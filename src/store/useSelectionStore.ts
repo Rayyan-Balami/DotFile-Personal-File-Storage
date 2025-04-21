@@ -252,7 +252,7 @@ export function useKeyboardShortcuts(onDelete?: (ids: Set<string>) => void) {
 }
 
 export const useSelectedIds = () => 
-  useSelectionStore(state => state.selectedIds, shallow);
+  useSelectionStore(state => state.selectedIds);
 
 export const useSelectionCount = () =>
   useSelectionStore(state => state.selectedIds.size);

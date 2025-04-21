@@ -280,13 +280,13 @@ ItemCount.displayName = "ItemCount";
 
 // Lazy-loaded menu content components with better defaults
 const LazyContextMenuItems = lazy(() => 
-  import('./MenuItems').then(module => ({ 
+  import('@/components/cards/MenuItems').then(module => ({ 
     default: module.default || module.ContextMenuItems 
   }))
 );
 
 const LazyDropdownMenuItems = lazy(() => 
-  import('./MenuItems').then(module => ({ default: module.DropdownMenuItems }))
+  import('@/components/cards/MenuItems').then(module => ({ default: module.DropdownMenuItems }))
 );
 
 // The CardContent component with optimized menu rendering
@@ -435,10 +435,9 @@ const FolderDocumentCard = React.memo((props: FolderDocumentCardProps) => {
   );
   
   const handleItemClick = useSelectionStore(state => state.handleItemClick);
-  const [contextMenuOpen, setContextMenuOpen] = useState(false);
   
   // Create stable references to handlers
-  const actionHandlerRef = useRef<(action: string) => void>();
+  const actionHandlerRef = useRef<(action: string) => void>(() => {});
   actionHandlerRef.current = useCallback(
     (action: string) => {
       if (action === "open" && onOpen) {

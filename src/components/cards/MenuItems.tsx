@@ -46,7 +46,7 @@ export const ContextMenuItems = React.memo(
         <ContextMenuSeparator />
         <ContextMenuItem
           onClick={() => handleAction("info")}
-          className="text-blue-500 focus:text-blue-500 focus:bg-blue-500/20"
+          className="text-blue-600 focus:text-blue-600 focus:bg-blue-700/10"
         >
           More Info
         </ContextMenuItem>
@@ -127,7 +127,7 @@ export const DropdownMenuItems = React.memo(
           Pin/Unpin
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => handleAction("info")} className="text-blue-500 focus:text-blue-500 focus:bg-blue-500/20">
+        <DropdownMenuItem onClick={() => handleAction("info")} className="text-blue-600 focus:text-blue-600 focus:bg-blue-700/10">
           More Info
         </DropdownMenuItem>
         <DropdownMenuSeparator />
