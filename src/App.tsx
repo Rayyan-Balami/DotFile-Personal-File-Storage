@@ -1,12 +1,25 @@
 import { AppSidebar } from "@/components/app-sidebar";
-import { SiteHeader } from "@/components/header/site-header";
+import { SiteHeader } from "@/components/footer/site-header";
 import { SidebarFooter, SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import FolderDocumentCard from "./components/cards/FolderDocumnetCard";
-import { SiteFooter } from "./components/footer/site-footer";
+import { SiteFooter } from "./components/header/site-footer";
 import { useEffect } from "react";
-import { SelectableItem, useSelectionStore } from "./store/useSelectionStore";
+import { SelectableItem, useSelectionStore, useKeyboardShortcuts } from "./store/useSelectionStore";
 
 export default function Page() {
+  // Prevent right-click context menu of the browser in entire app
+  useEffect(() => {
+    const disableRightClick = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+  
+    document.addEventListener("contextmenu", disableRightClick);
+  
+    return () => {
+      document.removeEventListener("contextmenu", disableRightClick);
+    };
+  }, []);
+  
   // Sample data with unique IDs
   const cardData = [
     // Folders
@@ -84,6 +97,17 @@ export default function Page() {
     selectRange(cardData as SelectableItem[]);
   }, [useSelectionStore(state => state.lastSelectedId)]);
 
+  // Set up keyboard shortcuts with custom delete handler
+  useKeyboardShortcuts((selectedIds) => {
+    console.log('Deleting items:', Array.from(selectedIds));
+    // Call your API or dispatch deletion action
+  });
+
+  // When your items list changes, make sure to update the visible items
+  useEffect(() => {
+    useSelectionStore.getState().setVisibleItems(cardData);
+  }, [cardData]);
+
   const handleOpen = (id: string) => {
     console.log(`Opening item with id: ${id}`);
   };
@@ -143,7 +167,7 @@ export default function Page() {
             {/* list folders section */}
             <section className="flex flex-1 flex-col gap-4 mt-8">
               <h2 className="text-lg font-medium">List</h2>
-              <div className="grid">
+              <div className="grid gap-0.5">
                 {cardData.map((item) => (
                   <FolderDocumentCard
                     key={item.id}

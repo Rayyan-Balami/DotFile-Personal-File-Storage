@@ -1,8 +1,8 @@
-import { DeskOptions } from "@/components/header/desk-options";
-import { MoreOptions } from "@/components/header/more-options";
-import { ShareOptions } from "@/components/header/share-options";
-import { SortOptions } from "@/components/header/sort-options";
-import { ViewOptions } from "@/components/header/view-options";
+import { DeskOptions } from "@/components/footer/desk-options";
+import { MoreOptions } from "@/components/footer/more-options";
+import { ShareOptions } from "@/components/footer/share-options";
+import { SortOptions } from "@/components/footer/sort-options";
+import { ViewOptions } from "@/components/footer/view-options";
 import { SearchForm } from "@/components/search-form";
 import { Menubar } from "@radix-ui/react-menubar";
 

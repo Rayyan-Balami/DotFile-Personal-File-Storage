@@ -10,7 +10,7 @@ import {
 
 export function BreadcrumbNav() {
   return (
-    <Breadcrumb className="hidden sm:block bg-background flex-grow shrink-0 border h-9 px-4 py-2 rounded-md">
+    <Breadcrumb className="hidden sm:block bg-background flex-grow shrink-0 bg-secondary h-9 px-4 py-2 rounded-md">
       <BreadcrumbList>
         <BreadcrumbItem>
           <BreadcrumbLink href="#">
