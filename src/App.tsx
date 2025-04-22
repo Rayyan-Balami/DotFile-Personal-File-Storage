@@ -1,10 +1,12 @@
 import { AppSidebar } from "@/components/app-sidebar";
-import { SiteHeader } from "@/components/footer/site-header";
-import { SidebarFooter, SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import FolderDocumentCard from "./components/cards/FolderDocumnetCard";
-import { SiteFooter } from "./components/header/site-footer";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useEffect } from "react";
-import { SelectableItem, useSelectionStore, useKeyboardShortcuts } from "./store/useSelectionStore";
+import { SiteHeader } from "./components/footer/site-footer";
+import { SiteFooter } from "./components/header/site-header";
+import { SelectableItem, useKeyboardShortcuts, useSelectionStore } from "./store/useSelectionStore";
+import { FileSystemDndProvider } from "./components/dnd/FileSystemDndContext";
+import { DraggableFolderCard } from "./components/cards/DraggableFolderCard";
+import { initializeFileSystem, useFileSystemStore } from "./store/useFileSystemStore";
 
 export default function Page() {
   // Prevent right-click context menu of the browser in entire app
@@ -90,11 +92,21 @@ export default function Page() {
     { fallback: "+3" },
   ];
 
+  // Initialize file system store with items
+  useEffect(() => {
+    initializeFileSystem(cardData);
+  }, []);
+  
+  // Get items from the file system store
+  const items = useFileSystemStore(state => state.items);
+  const rootItems = useFileSystemStore(state => state.rootItems);
+  const fileSystemItems = rootItems.map(id => items[id]).filter(Boolean);
+
   const selectRange = useSelectionStore(state => state.selectRange);
   
   // Support for shift+click range selection
   useEffect(() => {
-    selectRange(cardData as SelectableItem[]);
+    selectRange(fileSystemItems as SelectableItem[]);
   }, [useSelectionStore(state => state.lastSelectedId)]);
 
   // Set up keyboard shortcuts with custom delete handler
@@ -105,8 +117,8 @@ export default function Page() {
 
   // When your items list changes, make sure to update the visible items
   useEffect(() => {
-    useSelectionStore.getState().setVisibleItems(cardData);
-  }, [cardData]);
+    useSelectionStore.getState().setVisibleItems(fileSystemItems);
+  }, [fileSystemItems]);
 
   const handleOpen = (id: string) => {
     console.log(`Opening item with id: ${id}`);
@@ -114,82 +126,41 @@ export default function Page() {
 
   return (
     <SidebarProvider className="flex flex-col">
-      <div className="flex flex-1">
-        <AppSidebar />
-        <SidebarInset>
-          <SiteHeader />
-          <section className="flex flex-1 flex-col gap-4 p-4 md:p-6">
-            {/* large folders section */}
-            <section className="flex flex-1 flex-col gap-4">
-              <h2 className="text-lg font-medium">Large</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4 lg:gap-6">
-                {cardData.map((item) => (
-                  <FolderDocumentCard
-                    key={item.id}
-                    id={item.id}
-                    variant="large"
-                    type={item.type}
-                    color={item.color ?? "default"}
-                    title={item.title}
-                    itemCount={item.itemCount}
-                    users={users}
-                    isPinned={item.id.includes("-2")}
-                    fileExtension={item.fileExtension || "pdf"}
-                    previewUrl={item.previewUrl}
-                    onOpen={() => handleOpen(item.id)}
-                  />
-                ))}
-              </div>
+      <FileSystemDndProvider>
+        <div className="flex flex-1">
+          <AppSidebar />
+          <SidebarInset>
+            <SiteHeader />
+            <section className="flex flex-1 flex-col gap-4 p-4 md:p-6">
+              {/* large folders section */}
+              <section className="flex flex-1 flex-col gap-4">
+                <h2 className="text-lg font-medium">Large</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4 lg:gap-6">
+                  {fileSystemItems.map((item) => (
+                    <DraggableFolderCard
+                      key={item.id}
+                      id={item.id}
+                      variant="large"
+                      type={item.type}
+                      color={item.color ?? "default"}
+                      title={item.title}
+                      itemCount={item.itemCount}
+                      users={users}
+                      isPinned={item.id.includes("-2")}
+                      fileExtension={item.fileExtension || "pdf"}
+                      previewUrl={item.previewUrl}
+                      onOpen={() => handleOpen(item.id)}
+                    />
+                  ))}
+                </div>
+              </section>
+              
+
             </section>
-            
-            {/* compact folders section */}
-            <section className="flex flex-1 flex-col gap-4 mt-8">
-              <h2 className="text-lg font-medium">Compact</h2>
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-4 lg:gap-6">
-                {cardData.map((item) => (
-                  <FolderDocumentCard
-                    key={item.id}
-                    id={item.id}
-                    variant="compact"
-                    type={item.type}
-                    title={item.title}
-                    itemCount={item.itemCount}
-                    users={users}
-                    isPinned={item.id.includes("-2")}
-                    fileExtension={item.fileExtension || "pdf"}
-                    previewUrl={item.previewUrl}
-                    onOpen={() => handleOpen(item.id)}
-                  />
-                ))}
-              </div>
-            </section>
-            
-            {/* list folders section */}
-            <section className="flex flex-1 flex-col gap-4 mt-8">
-              <h2 className="text-lg font-medium">List</h2>
-              <div className="grid gap-0.5">
-                {cardData.map((item) => (
-                  <FolderDocumentCard
-                    key={item.id}
-                    id={item.id}
-                    variant="list"
-                    type={item.type}
-                    title={item.title}
-                    itemCount={item.itemCount}
-                    users={users}
-                    isPinned={item.id.includes("-2")}
-                    fileExtension={item.fileExtension || "pdf"}
-                    alternateBg={parseInt(item.id.split("-")[1]) % 2 === 0}
-                    previewUrl={item.previewUrl}
-                    onOpen={() => handleOpen(item.id)}
-                  />
-                ))}
-              </div>
-            </section>
-          </section>
-          <SiteFooter />
-        </SidebarInset>
-      </div>
+            <SiteFooter />
+          </SidebarInset>
+        </div>
+      </FileSystemDndProvider>
     </SidebarProvider>
   );
 }

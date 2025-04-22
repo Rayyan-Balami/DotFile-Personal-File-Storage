@@ -3,13 +3,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* rayyan defined variables */
-:root{
---header-height: 3.5rem; /* Equivalent to theme(spacing.14) */
---footer-height: 4rem; /* Equivalent to theme(spacing.14) */
-}
-
-
 :root {
   --radius: 1rem;
   --background: oklch(1 0 0);
@@ -79,7 +72,6 @@
   --sidebar-ring: oklch(0.488 0.243 264.376);
 }
 
-
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -119,11 +111,22 @@
 }
 
 @layer base {
+  /* rayyan defined variables */
+  :root {
+    --header-height: 3.5rem; /* Equivalent to theme(spacing.14) */
+    --footer-height: 4rem; /* Equivalent to theme(spacing.14) */
+  }
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
+  }
+  img {
+    -webkit-user-drag: none;
+    -moz-user-drag: none;
+    -ms-user-drag: none;
+    user-select: none;
   }
 }
 
