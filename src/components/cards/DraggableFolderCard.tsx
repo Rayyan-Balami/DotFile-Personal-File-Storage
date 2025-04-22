@@ -55,8 +55,7 @@ export const DraggableFolderCard = memo(({
     <div
       ref={setNodeRef}
       className={cn(
-        "transition-all relative",
-        isDropTarget && "ring-2 ring-primary scale-[1.02]"
+        "transition-all duration-500 relative",
       )}
       {...attributes}
       {...listeners}
@@ -71,7 +70,7 @@ export const DraggableFolderCard = memo(({
           props.className,
           // Apply ghost effect but keep it visible
           isDragging && "opacity-30 grayscale blur-[0.3px] pointer-events-none",
-          isDropTarget && "border-primary bg-primary/5"
+          isDropTarget && "border-transparent"
         )}
       />
       

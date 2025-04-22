@@ -6,7 +6,7 @@
 import { ColorOption } from "@/config/colors";
 import { cn } from "@/lib/utils";
 import { useSelectionStore } from "@/store/useSelectionStore";
-import { EllipsisVertical, Pin } from "lucide-react";
+import { EllipsisVertical, Loader2, Pin } from "lucide-react";
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { defaultStyles, FileIcon } from "react-file-icon";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
@@ -280,13 +280,13 @@ ItemCount.displayName = "ItemCount";
 
 // Lazy-loaded menu content components with better defaults
 const LazyContextMenuItems = lazy(() => 
-  import('@/components/cards/MenuItems').then(module => ({ 
+  import('@/components/cards/FolderDocumentMenuItems').then(module => ({ 
     default: module.default || module.ContextMenuItems 
   }))
 );
 
 const LazyDropdownMenuItems = lazy(() => 
-  import('@/components/cards/MenuItems').then(module => ({ default: module.DropdownMenuItems }))
+  import('@/components/cards/FolderDocumentMenuItems').then(module => ({ default: module.DropdownMenuItems }))
 );
 
 // The CardContent component with optimized menu rendering
@@ -328,7 +328,7 @@ const CardContent = React.memo(
         </DropdownMenuTrigger>
         {menuOpen && (
           <DropdownMenuContent align="end" className="w-48">
-            <Suspense fallback={<DropdownMenuItem disabled>Loading...</DropdownMenuItem>}>
+            <Suspense fallback={<DropdownMenuItem disabled><Loader2 className="animate-spin mx-auto" /></DropdownMenuItem>}>
               <LazyDropdownMenuItems
                 type={type}
                 title={title}
@@ -537,7 +537,7 @@ const FolderDocumentCard = React.memo((props: FolderDocumentCardProps) => {
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent className="w-48">
-        <Suspense fallback={<ContextMenuItem disabled>Loading...</ContextMenuItem>}>
+        <Suspense fallback={<ContextMenuItem disabled><Loader2 className="animate-spin mx-auto" /></ContextMenuItem>}>
           <LazyContextMenuItems 
             type={type} 
             title={title} 
