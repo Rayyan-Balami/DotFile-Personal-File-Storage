@@ -1,5 +1,5 @@
 import { DragOverlay as DndKitDragOverlay } from '@dnd-kit/core';
-import FolderDocumentCard from '../cards/FolderDocumnetCard';
+import FolderDocumentCard from '../cards/FolderDocumentCard';
 import { useFileSystemDnd } from './FileSystemDndContext';
 
 // Define a type for drag data to help TypeScript understand the structure

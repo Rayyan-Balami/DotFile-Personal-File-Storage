@@ -26,7 +26,7 @@ import {
 import { FolderIcon } from "../ui/folder-icon";
 
 // Types remain the same
-type CardVariant = "large" | "compact" | "list";
+export type CardVariant = "large" | "compact" | "list";
 type CardType = "folder" | "document";
 
 interface User {

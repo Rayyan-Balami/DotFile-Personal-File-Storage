@@ -1,28 +1,30 @@
-import { AlignVerticalSpaceAround, SortAsc, SortDesc } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useLocalStorage } from "@/hooks/use-local-storage";
 import {
-  Menubar,
   MenubarContent,
   MenubarLabel,
   MenubarMenu,
   MenubarRadioGroup,
   MenubarRadioItem,
   MenubarSeparator,
-  MenubarTrigger,
+  MenubarTrigger
 } from "@/components/ui/menubar";
+import { useSortPreferencesStore } from "@/store/useSortPreferencesStore";
+import { AlignVerticalSpaceAround, SortAsc, SortDesc } from "lucide-react";
 
 type SortDirection = "asc" | "desc";
 type SortBy = "name" | "kind" | "dateModified" | "dateAdded" | "dateOpened" | "size" | "desk";
 type FolderArrangement = "separated" | "mixed";
 
 export function SortOptions() {
-  const [sortDirection, setSortDirection] = useLocalStorage<SortDirection>("sort-direction", "asc");
-  const [sortBy, setSortBy] = useLocalStorage<SortBy>("sort-by", "name");
-  const [folderArrangement, setFolderArrangement] = useLocalStorage<FolderArrangement>(
-    "folder-arrangement", 
-    "separated"
-  );
+  // Use Zustand store instead of localStorage hooks
+  const sortDirection = useSortPreferencesStore((state) => state.sortDirection);
+  const setSortDirection = useSortPreferencesStore((state) => state.setSortDirection);
+  
+  const sortBy = useSortPreferencesStore((state) => state.sortBy);
+  const setSortBy = useSortPreferencesStore((state) => state.setSortBy);
+  
+  const folderArrangement = useSortPreferencesStore((state) => state.folderArrangement);
+  const setFolderArrangement = useSortPreferencesStore((state) => state.setFolderArrangement);
 
   return (
       <MenubarMenu>

@@ -1,16 +1,13 @@
-import { LayoutGrid, List, Rows2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
-import { useLocalStorage } from "@/hooks/use-local-storage";
-
-type ViewType = "large" | "compact" | "list";
+import { useViewPreferencesStore } from "@/store/useViewPreferencesStore";
+import { LayoutGrid, List, Rows2 } from "lucide-react";
 
 export function ViewOptions() {
-  const [viewType, setViewType] = useLocalStorage<ViewType>(
-    "view-type",
-    "large"
-  );
-
+  // Use primitive selectors to avoid unnecessary re-renders
+  const viewType = useViewPreferencesStore((state) => state.viewType);
+  const setViewType = useViewPreferencesStore((state) => state.setViewType);
+  
   return (
     <ButtonGroup orientation="horizontal" className="bg-secondary rounded-md">
       <Button

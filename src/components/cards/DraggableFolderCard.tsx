@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { useFileSystemDnd } from '@/components/dnd/FileSystemDndContext';
-import FolderDocumentCard from './FolderDocumnetCard';
+import FolderDocumentCard from './FolderDocumentCard';
 import { cn } from '@/lib/utils';
 
 // Import the props type from FolderDocumentCard
@@ -55,7 +55,7 @@ export const DraggableFolderCard = memo(({
     <div
       ref={setNodeRef}
       className={cn(
-        "transition-all duration-500 relative",
+        "transition-all duration-500 relative ",
       )}
       {...attributes}
       {...listeners}

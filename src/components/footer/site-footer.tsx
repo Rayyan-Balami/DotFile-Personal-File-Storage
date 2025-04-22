@@ -1,16 +1,25 @@
+import { DeskOptions } from "@/components/footer/desk-options";
+import { MoreOptions } from "@/components/footer/more-options";
+import { ShareOptions } from "@/components/footer/share-options";
+import { SortOptions } from "@/components/footer/sort-options";
+import { ViewOptions } from "@/components/footer/view-options";
+import { SearchForm } from "@/components/search-form";
+import { Menubar } from "@radix-ui/react-menubar";
 
-
-import { BreadcrumbNav } from "@/components/header/breadcrumb-nav";
-import { NavigationControls } from "@/components/header/navigation-controls";
-
-export function SiteHeader() {
+export function SiteFooter() {
   return (
-    <header className="bg-background/80 backdrop-blur-md sticky top-0 z-50">
-      <nav className="flex h-(--header-height) w-full flex-1 items-center gap-3.5 p-4">
-          <NavigationControls />
-          <BreadcrumbNav />
+    <footer className="bg-background/80 backdrop-blur-md sticky bottom-0 z-50 border-t">
+      <nav className="flex h-(--footer-height) w-full flex-1 items-center gap-3.5 px-4">
+        <ViewOptions />
+        <SearchForm />
+        <Menubar className="p-0 border-none gap-0 shadow-none flex flex-row">
+          <SortOptions />
+          <DeskOptions />
+          <MoreOptions />
+        </Menubar>
+        <ShareOptions />
       </nav>
-    </header>
+    </footer>
   );
 }
 

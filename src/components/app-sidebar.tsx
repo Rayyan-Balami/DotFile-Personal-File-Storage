@@ -1,7 +1,7 @@
 import {
   BriefcaseBusiness,
   Clock,
-  Command,
+  Cloud,
   File,
   Folder,
   FolderClosed,
@@ -158,12 +158,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     <Sidebar className="border-muted-foreground/15" collapsible={"icon"} {...props}>
       { state === "collapsed" && !isMobile && (
         <Button
-          className="group h-(--header-height) w-[3rem] rounded-none"
+          className="group/toggle h-(--header-height) w-[3rem] rounded-none text-sidebar-foreground hover:text-primary "
           variant="ghost"
           onClick={toggleSidebar}
         >
           <PanelRightClose
-            className="size-4.25 text-sidebar-foreground hover:text-sidebar-accent-foreground group-hover:scale-105 transition-transform"
+            className="size-4.25 group-hover/toggle:scale-105 transition-transform"
           />
         </Button>
       )}
@@ -172,8 +172,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem >
             <SidebarMenuButton size="lg" asChild tooltip="Acme Inc">
               <a href="#">
-                <div className="bg-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Command className="size-4" />
+                <div className="bg-primary text-white flex aspect-square size-8 items-center justify-center rounded-lg font-serif text-lg">
+                  <span>.F</span>
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">Acme Inc</span>
