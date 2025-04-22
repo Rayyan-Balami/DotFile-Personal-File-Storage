@@ -292,6 +292,7 @@ const LazyDropdownMenuItems = lazy(() =>
 // The CardContent component with optimized menu rendering
 const CardContent = React.memo(
   ({
+    id,
     title,
     itemCount,
     users = [],
@@ -299,6 +300,7 @@ const CardContent = React.memo(
     variant,
     type,
   }: {
+    id: string;
     title: string;
     itemCount?: number;
     users: User[];
@@ -332,7 +334,7 @@ const CardContent = React.memo(
               <LazyDropdownMenuItems
                 type={type}
                 title={title}
-                onAction={handleAction}
+                id={id}
               />
             </Suspense>
           </DropdownMenuContent>
@@ -527,6 +529,7 @@ const FolderDocumentCard = React.memo((props: FolderDocumentCardProps) => {
           />
 
           <CardContent
+            id={id}
             title={title}
             itemCount={itemCount}
             users={users}
@@ -541,7 +544,7 @@ const FolderDocumentCard = React.memo((props: FolderDocumentCardProps) => {
           <LazyContextMenuItems 
             type={type} 
             title={title} 
-            onAction={(action) => actionHandlerRef.current?.(action)}
+            id={id}
           />
         </Suspense>
       </ContextMenuContent>

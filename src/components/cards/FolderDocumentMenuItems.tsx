@@ -13,15 +13,15 @@ export const ContextMenuItems = React.memo(
   ({
     type,
     title,
-    onAction,
+    id,
   }: {
     type: "folder" | "document";
     title: string;
-    onAction: (action: string) => void;
+    id: string;
   }) => {
     // Remove setTimeout which can cause timing issues
     const handleAction = (action: string) => {
-      onAction(action);
+      console.log(`Action triggered: ${action} on ${title} (${id})`);
     };
 
     const commonItems = (
@@ -97,14 +97,14 @@ export const DropdownMenuItems = React.memo(
   ({
     type,
     title,
-    onAction,
+    id
   }: {
     type: "folder" | "document";
     title: string;
-    onAction: (action: string) => void;
+    id: string;
   }) => {
     const handleAction = (action: string) => {
-      onAction(action);
+      console.log(`Action triggered: ${action} on ${title} (${id})`);
     };
 
     const commonItems = (

@@ -24,8 +24,8 @@ import { lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
 
 const LazyGlobalMenuItems = lazy(() =>
-  import('@/components/context/GlobalMenuItems').then(module => ({
-    default: module.ContextMenuItems
+  import("@/components/context/GlobalMenuItems").then((module) => ({
+    default: module.ContextMenuItems,
   }))
 );
 
@@ -154,42 +154,47 @@ export default function Page() {
           <AppSidebar />
           <SidebarInset>
             <SiteHeader />
-            <ContextMenu>
-              <ContextMenuTrigger>
-                <section className="flex flex-1 flex-col gap-4 p-4 md:p-6">
+              <ContextMenu>
+                <ContextMenuTrigger asChild>
                   {/* large folders section */}
-                  <section className="flex flex-1 flex-col gap-4">
-                    <h2 className="text-lg font-medium">Large</h2>
-                    <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4 lg:gap-6">
-                      {fileSystemItems.map((item) => (
-                        <DraggableFolderCard
-                          key={item.id}
-                          id={item.id}
-                          variant="large"
-                          type={item.type}
-                          color={item.color ?? "default"}
-                          title={item.title}
-                          itemCount={item.itemCount}
-                          users={users}
-                          isPinned={item.id.includes("-2")}
-                          fileExtension={item.fileExtension || "pdf"}
-                          previewUrl={item.previewUrl}
-                          onOpen={() => handleOpen(item.id)}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                </section>
-              </ContextMenuTrigger>
-              <ContextMenuContent>
-                <Suspense fallback={<ContextMenuItem disabled>
-                  <Loader2 className="animate-spin mx-auto" />
-                </ContextMenuItem>}>
-                  <LazyGlobalMenuItems />
-                </Suspense>
-              </ContextMenuContent>
-            </ContextMenu>
+                  <section className="flex flex-1 flex-col gap-4 md:gap-6 p-4 md:p-6">
 
+
+                    <section className="flex flex-1 flex-col gap-4">
+                      <h2 className="text-lg font-medium">Large</h2>
+                      <div className="grid grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-4 lg:gap-6">
+                        {fileSystemItems.map((item) => (
+                          <DraggableFolderCard
+                            key={item.id}
+                            id={item.id}
+                            variant="compact"
+                            type={item.type}
+                            color={item.color ?? "default"}
+                            title={item.title}
+                            itemCount={item.itemCount}
+                            users={users}
+                            isPinned={item.id.includes("-2")}
+                            fileExtension={item.fileExtension || "pdf"}
+                            previewUrl={item.previewUrl}
+                            onOpen={() => handleOpen(item.id)}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  </section>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <Suspense
+                    fallback={
+                      <ContextMenuItem disabled>
+                        <Loader2 className="animate-spin mx-auto" />
+                      </ContextMenuItem>
+                    }
+                  >
+                    <LazyGlobalMenuItems />
+                  </Suspense>
+                </ContextMenuContent>
+              </ContextMenu>
             <SiteFooter />
           </SidebarInset>
         </div>
