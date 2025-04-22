@@ -453,7 +453,7 @@ const FolderDocumentCard = React.memo((props: FolderDocumentCardProps) => {
   const containerClass = useMemo(
     () => cn(
       "relative group transition-colors ease-out duration-100 focus:outline-none focus:ring-1 focus:ring-primary/10 select-none",
-      "hover:bg-sidebar-foreground/3 border hover:shadow-xs p-2.5 rounded-md",
+      "hover:bg-sidebar-foreground/4 border hover:shadow-xs p-2.5 rounded-md",
       isSelected ? "border-primary/80 hover:border-primary/80" : "hover:border-muted-foreground/15",
       "contain-intrinsic-size",
       className
