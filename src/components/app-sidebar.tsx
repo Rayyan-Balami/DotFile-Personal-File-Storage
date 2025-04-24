@@ -5,6 +5,7 @@ import {
   File,
   Folder,
   FolderClosed,
+  Database,
   GraduationCap,
   Laptop,
   LifeBuoy,
@@ -173,7 +174,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenuButton size="lg" asChild tooltip="Acme Inc">
               <a href="#">
                 <div className="bg-primary text-white flex aspect-square size-8 items-center justify-center rounded-lg font-serif text-lg">
-                  <span>.F</span>
+                  <Database className="size-4 text-primary-foreground" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">Acme Inc</span>

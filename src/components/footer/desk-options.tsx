@@ -26,7 +26,7 @@ export function DeskOptions() {
       <MenubarMenu>
         <MenubarTrigger asChild>
           <Button
-            className="group shadow-none first:rounded-l-md last:rounded-r-md rounded-none text-sidebar-foreground hover:text-sidebar-accent-foreground border border-transparent hover:border-border"
+            className="group shadow-none first:rounded-l-md last:rounded-r-md rounded-none text-sidebar-foreground hover:text-primary border border-transparent hover:border-border"
             variant="secondary"
           >
             <LampDesk className="size-4 group-hover:scale-105 transition-transform" />
