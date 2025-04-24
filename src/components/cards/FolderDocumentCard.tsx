@@ -6,8 +6,17 @@
 import { ColorOption } from "@/config/colors";
 import { cn } from "@/lib/utils";
 import { useSelectionStore } from "@/store/useSelectionStore";
+import { formatChildCount, formatFileSize } from "@/utils/formatUtils";
 import { EllipsisVertical, Loader2, Pin } from "lucide-react";
-import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { defaultStyles, FileIcon } from "react-file-icon";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
@@ -15,13 +24,13 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
-  ContextMenuTrigger
+  ContextMenuTrigger,
 } from "../ui/context-menu";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { FolderIcon } from "../ui/folder-icon";
 
@@ -34,12 +43,14 @@ interface User {
   fallback: string;
 }
 
+// Update the FolderDocumentCardProps interface
 interface FolderDocumentCardProps {
   id: string;
   variant?: CardVariant;
   type: CardType;
   title: string;
-  itemCount?: number;
+  childCount?: number;
+  byteCount?: number;
   users?: User[];
   isPinned?: boolean;
   previewUrl?: string;
@@ -94,61 +105,69 @@ const FILE_ICON_STYLES = new Map();
 const HoverIndicator = React.memo(
   ({ variant, selected }: { variant: CardVariant; selected: boolean }) => {
     const styles = VARIANT_STYLES[variant];
-    
+
     return (
       <div
         className={cn(
           "absolute z-10 transition-all",
-          selected ? "opacity-100 bg-primary" : "opacity-0 group-hover:opacity-100 group-hover:bg-primary/80",
+          selected
+            ? "opacity-100 bg-primary"
+            : "opacity-0 group-hover:opacity-100 group-hover:bg-primary/80",
           styles.indicator.position,
           selected ? styles.indicator.selected : styles.indicator.hover
         )}
         aria-hidden="true"
       />
     );
-  }, 
-  (prevProps, nextProps) => 
-    prevProps.variant === nextProps.variant && 
+  },
+  (prevProps, nextProps) =>
+    prevProps.variant === nextProps.variant &&
     prevProps.selected === nextProps.selected
 );
 HoverIndicator.displayName = "HoverIndicator";
 
 // Optimized lazy image loader
-const LazyImage = React.memo(({ src, alt }: { src: string; alt: string }) => {
-  const imgRef = useRef<HTMLImageElement>(null);
-  const [loaded, setLoaded] = useState(false);
-  
-  // Use Intersection Observer to only load images when in viewport
-  useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const img = imgRef.current;
-          if (img && !img.src) {
-            img.src = src;
-            observer.disconnect();
-          }
-        }
-      });
-    }, { rootMargin: '200px' });
-    
-    if (imgRef.current) observer.observe(imgRef.current);
-    return () => observer.disconnect();
-  }, [src]);
+const LazyImage = React.memo(
+  ({ src, alt }: { src: string; alt: string }) => {
+    const imgRef = useRef<HTMLImageElement>(null);
+    const [loaded, setLoaded] = useState(false);
 
-  return (
-    <img
-      ref={imgRef}
-      className={cn(
-        "object-center object-cover h-full w-full transition-opacity will-change-transform",
-        loaded ? "opacity-100" : "opacity-0"
-      )}
-      alt={alt}
-      loading="lazy"
-      onLoad={() => setLoaded(true)}
-    />
-  );
-}, (prevProps, nextProps) => prevProps.src === nextProps.src);
+    // Use Intersection Observer to only load images when in viewport
+    useEffect(() => {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const img = imgRef.current;
+              if (img && !img.src) {
+                img.src = src;
+                observer.disconnect();
+              }
+            }
+          });
+        },
+        { rootMargin: "200px" }
+      );
+
+      if (imgRef.current) observer.observe(imgRef.current);
+      return () => observer.disconnect();
+    }, [src]);
+
+    return (
+      <img
+        ref={imgRef}
+        className={cn(
+          "object-center object-cover h-full w-full transition-opacity will-change-transform",
+          loaded ? "opacity-100" : "opacity-0"
+        )}
+        alt={alt}
+        loading="lazy"
+        onLoad={() => setLoaded(true)}
+      />
+    );
+  },
+  (prevProps, nextProps) => prevProps.src === nextProps.src
+);
 LazyImage.displayName = "LazyImage";
 
 // Optimized file icon caching
@@ -156,15 +175,17 @@ const getIconStyles = (fileExtension: string) => {
   if (FILE_ICON_STYLES.has(fileExtension)) {
     return FILE_ICON_STYLES.get(fileExtension);
   }
-  
-  const baseStyles = defaultStyles[fileExtension as keyof typeof defaultStyles] || {};
+
+  const baseStyles =
+    defaultStyles[fileExtension as keyof typeof defaultStyles] || {};
   const styles = {
     labelColor: baseStyles.labelColor || "#52525b",
     glyphColor: baseStyles.glyphColor || baseStyles.labelColor || "#52525b",
     color: baseStyles.color || "#e7e5e4",
+    labelUppercase: true,
     ...baseStyles,
   };
-  
+
   FILE_ICON_STYLES.set(fileExtension, styles);
   return styles;
 };
@@ -186,7 +207,7 @@ const FileOrFolderIcon = React.memo(
     color?: ColorOption;
   }) => {
     const styles = VARIANT_STYLES[variant];
-    
+
     // Use primitive type for memoization key
     const memoKey = `${type}-${!!previewUrl}-${variant}`;
     const scaleClass = useMemo(() => {
@@ -194,12 +215,11 @@ const FileOrFolderIcon = React.memo(
       if (type === "document" && !previewUrl) return styles.docIconScale;
       return "";
     }, [memoKey]);
-    
+
     // Get icon styles only when needed (document without preview)
-    const iconStyles = type === "document" && !previewUrl 
-      ? getIconStyles(fileExtension)
-      : null;
-    
+    const iconStyles =
+      type === "document" && !previewUrl ? getIconStyles(fileExtension) : null;
+
     return (
       <div
         className={cn(
@@ -235,58 +255,77 @@ const FileOrFolderIcon = React.memo(
 FileOrFolderIcon.displayName = "FileOrFolderIcon";
 
 // Optimized user avatars with virtualization
-const UserAvatars = React.memo(({ users }: { users: User[] }) => {
-  if (!users?.length) return null;
-  
-  // Only render max 3 avatars
-  const visibleUsers = users.slice(0, 3);
-  const extraCount = users.length > 3 ? users.length - 3 : 0;
+const UserAvatars = React.memo(
+  ({ users }: { users: User[] }) => {
+    if (!users?.length) return null;
 
-  return (
-    <div className="flex items-center">
-      {visibleUsers.map((user, idx) => (
-        <Avatar key={idx} className="size-4.5 first:ml-0 -ml-1">
-          {user.image && <AvatarImage src={user.image} alt="" />}
-          <AvatarFallback>{user.fallback}</AvatarFallback>
-        </Avatar>
-      ))}
+    // Only render max 3 avatars
+    const visibleUsers = users.slice(0, 3);
+    const extraCount = users.length > 3 ? users.length - 3 : 0;
 
-      {extraCount > 0 && (
-        <span className="size-4.5 first:ml-0 -ml-0.5 bg-primary grid place-content-center rounded-full text-[0.5rem] font-medium text-background">
-          +{extraCount}
-        </span>
-      )}
-    </div>
-  );
-}, (prevProps, nextProps) => {
-  // Deep comparison of users array
-  if (prevProps.users.length !== nextProps.users.length) return false;
-  return prevProps.users.every((user, i) => 
-    user.image === nextProps.users[i].image && 
-    user.fallback === nextProps.users[i].fallback
-  );
-});
+    return (
+      <div className="flex items-center">
+        {visibleUsers.map((user, idx) => (
+          <Avatar key={idx} className="size-4.5 first:ml-0 -ml-1">
+            {user.image && <AvatarImage src={user.image} alt="" />}
+            <AvatarFallback>{user.fallback}</AvatarFallback>
+          </Avatar>
+        ))}
+
+        {extraCount > 0 && (
+          <span className="size-4.5 first:ml-0 -ml-0.5 bg-primary grid place-content-center rounded-full text-[0.5rem] font-medium text-background">
+            +{extraCount}
+          </span>
+        )}
+      </div>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Deep comparison of users array
+    if (prevProps.users.length !== nextProps.users.length) return false;
+    return prevProps.users.every(
+      (user, i) =>
+        user.image === nextProps.users[i].image &&
+        user.fallback === nextProps.users[i].fallback
+    );
+  }
+);
 UserAvatars.displayName = "UserAvatars";
 
-const ItemCount = React.memo(({ count }: { count?: number }) => {
-  if (count === undefined) return null;
-  return (
-    <span className="flex-1 my-1.5 text-xs text-muted-foreground">
-      {count} {count === 1 ? "item" : "items"}
-    </span>
-  );
+const ItemCount = React.memo(({ type, childCount, byteCount }: { 
+  type: CardType; 
+  childCount?: number; 
+  byteCount?: number;
+}) => {
+  if (type === 'folder') {
+    if (childCount === undefined) return null;
+    return (
+      <span className="flex-1 my-1.5 text-xs text-muted-foreground">
+        {formatChildCount(childCount)}
+      </span>
+    );
+  } else {
+    if (byteCount === undefined) return null;
+    return (
+      <span className="flex-1 my-1.5 text-xs text-muted-foreground">
+        {formatFileSize(byteCount)}
+      </span>
+    );
+  }
 });
 ItemCount.displayName = "ItemCount";
 
 // Lazy-loaded menu content components with better defaults
-const LazyContextMenuItems = lazy(() => 
-  import('@/components/cards/FolderDocumentMenuItems').then(module => ({ 
-    default: module.default || module.ContextMenuItems 
+const LazyContextMenuItems = lazy(() =>
+  import("@/components/menuItems/FolderDocumentMenuItems").then((module) => ({
+    default: module.default || module.ContextMenuItems,
   }))
 );
 
-const LazyDropdownMenuItems = lazy(() => 
-  import('@/components/cards/FolderDocumentMenuItems').then(module => ({ default: module.DropdownMenuItems }))
+const LazyDropdownMenuItems = lazy(() =>
+  import("@/components/menuItems/FolderDocumentMenuItems").then((module) => ({
+    default: module.DropdownMenuItems,
+  }))
 );
 
 // The CardContent component with optimized menu rendering
@@ -294,28 +333,24 @@ const CardContent = React.memo(
   ({
     id,
     title,
-    itemCount,
+    type,
+    childCount,
+    byteCount,
     users = [],
     isPinned = false,
     variant,
-    type,
   }: {
     id: string;
     title: string;
-    itemCount?: number;
+    type: CardType;
+    childCount?: number;
+    byteCount?: number;
     users: User[];
     isPinned: boolean;
     variant: CardVariant;
-    type: CardType;
   }) => {
     const [menuOpen, setMenuOpen] = useState(false);
-    const handleAction = useCallback(
-      (action: string) => {
-        console.log(`Action: ${action} on ${type} "${title}"`);
-      },
-      [title, type]
-    );
-    
+
     // Only render dropdown content when menu is open
     const dropdownMenu = (
       <DropdownMenu onOpenChange={setMenuOpen}>
@@ -330,12 +365,14 @@ const CardContent = React.memo(
         </DropdownMenuTrigger>
         {menuOpen && (
           <DropdownMenuContent align="end" className="w-48">
-            <Suspense fallback={<DropdownMenuItem disabled><Loader2 className="animate-spin mx-auto" /></DropdownMenuItem>}>
-              <LazyDropdownMenuItems
-                type={type}
-                title={title}
-                id={id}
-              />
+            <Suspense
+              fallback={
+                <DropdownMenuItem disabled>
+                  <Loader2 className="animate-spin mx-auto" />
+                </DropdownMenuItem>
+              }
+            >
+              <LazyDropdownMenuItems type={type} title={title} id={id} />
             </Suspense>
           </DropdownMenuContent>
         )}
@@ -350,7 +387,11 @@ const CardContent = React.memo(
               {title}
             </h3>
             <div className="flex-1 flex items-center">
-              <ItemCount count={itemCount} />
+              <ItemCount
+                type={type}
+                childCount={childCount}
+                byteCount={byteCount}
+              />
               {users.length > 0 && (
                 <div className="lg:flex-1">
                   <UserAvatars users={users} />
@@ -368,10 +409,10 @@ const CardContent = React.memo(
                 className="size-4 text-muted-foreground rotate-45"
                 aria-hidden={!isPinned}
               />
-            ):
-            // Placeholder for empty space for alignment
+            ) : (
+              // Placeholder for empty space for alignment
               <div className="size-4" />
-            }
+            )}
           </div>
         </div>
       );
@@ -381,7 +422,11 @@ const CardContent = React.memo(
       <div className="px-1 flex-1 flex gap-6">
         <div className="flex-1 flex flex-col">
           <h3 className="text-sm font-[425] line-clamp-1 break-all">{title}</h3>
-          <ItemCount count={itemCount} />
+          <ItemCount
+            type={type}
+            childCount={childCount}
+            byteCount={byteCount}
+          />
           {users.length > 0 && (
             <div className="mt-auto">
               <UserAvatars users={users} />
@@ -403,7 +448,8 @@ const CardContent = React.memo(
   (prevProps, nextProps) => {
     return (
       prevProps.title === nextProps.title &&
-      prevProps.itemCount === nextProps.itemCount &&
+      prevProps.childCount === nextProps.childCount &&
+      prevProps.byteCount === nextProps.byteCount &&
       prevProps.isPinned === nextProps.isPinned &&
       prevProps.variant === nextProps.variant &&
       prevProps.type === nextProps.type &&
@@ -414,159 +460,180 @@ const CardContent = React.memo(
 CardContent.displayName = "CardContent";
 
 // Main optimized component with DOM recycling
-const FolderDocumentCard = React.memo((props: FolderDocumentCardProps) => {
-  const {
-    id,
-    variant = "large",
-    type,
-    title,
-    itemCount,
-    users = [],
-    isPinned = false,
-    previewUrl,
-    fileExtension = "pdf",
-    className = "",
-    alternateBg = false,
-    onOpen,
-    color = "default",
-  } = props;
+const FolderDocumentCard = React.memo(
+  (props: FolderDocumentCardProps) => {
+    const {
+      id,
+      variant = "large",
+      type,
+      title,
+      childCount,
+      byteCount,
+      users = [],
+      isPinned = false,
+      previewUrl,
+      fileExtension = "pdf",
+      className = "",
+      alternateBg = false,
+      onOpen,
+      color = "default",
+    } = props;
 
-  // Direct state access with optimized selector
-  const isSelected = useSelectionStore(
-    useCallback(state => state.isSelected(id), [id])
-  );
-  
-  const handleItemClick = useSelectionStore(state => state.handleItemClick);
-  
-  // Create stable references to handlers
-  const actionHandlerRef = useRef<(action: string) => void>(() => {});
-  actionHandlerRef.current = useCallback(
-    (action: string) => {
-      if (action === "open" && onOpen) {
-        onOpen();
-        return;
-      }
-      console.log(`Action: ${action} on ${type} "${title}" (ID: ${id})`);
-    },
-    [id, onOpen, title, type]
-  );
+    // Direct state access with optimized selector
+    const isSelected = useSelectionStore(
+      useCallback((state) => state.isSelected(id), [id])
+    );
 
-  // Optimize container class calculation
-  const containerClass = useMemo(
-    () => cn(
-      "relative group transition-colors ease-out duration-100 focus:outline-none focus:ring-1 focus:ring-primary/40 select-none",
-      "hover:bg-sidebar-foreground/4 border hover:shadow-xs p-2.5 rounded-md",
-      isSelected ? "border-primary hover:border-primary" : "hover:border-muted-foreground/15",
-      "contain-intrinsic-size",
-      className
-    ),
-    [isSelected, className]
-  );
+    const handleItemClick = useSelectionStore((state) => state.handleItemClick);
 
-  // Optimize card style calculation
-  const cardStyle = useMemo(() => {
-    const base = VARIANT_STYLES[variant].container;
-    if (variant !== "list") return `${base} bg-sidebar border-muted`;
-    
-    return `${base} ${
-      alternateBg
-        ? `bg-background ${isSelected ? "border-primary/80" : "border-background"}`
-        : `bg-sidebar ${isSelected ? "border-primary/80" : "border-muted"}`
-    }`;
-  }, [variant, alternateBg, isSelected]);
-
-  // Optimize event handlers
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && onOpen) onOpen();
-      if (e.key === " ") {
-        e.preventDefault();
-        handleItemClick(id, e as any, onOpen);
-      }
-    },
-    [id, onOpen, handleItemClick]
-  );
-
-  const handleClick = useCallback(
-    (e: React.MouseEvent) => handleItemClick(id, e, onOpen),
-    [id, onOpen, handleItemClick]
-  );
-
-  // Use global click handler only once
-  useEffect(() => {
-    if (!window.__cardSelectionHandler) {
-      window.__cardSelectionHandler = (e: MouseEvent) => {
-        if (!(e.target as Element).closest("[data-folder-card]")) {
-          useSelectionStore.getState().clear();
+    // Create stable references to handlers
+    const actionHandlerRef = useRef<(action: string) => void>(() => {});
+    actionHandlerRef.current = useCallback(
+      (action: string) => {
+        if (action === "open" && onOpen) {
+          onOpen();
+          return;
         }
-      };
-      document.addEventListener("mousedown", window.__cardSelectionHandler, { passive: true });
-    }
-  }, []);
+        console.log(`Action: ${action} on ${type} "${title}" (ID: ${id})`);
+      },
+      [id, onOpen, title, type]
+    );
 
-  return (
-    <ContextMenu>
-      <ContextMenuTrigger>
-        <div
-          data-folder-card
-          className={`${containerClass} ${cardStyle}`}
-          onClick={handleClick}
-          onDoubleClick={(e) => e.preventDefault()}
-          role="button"
-          tabIndex={0}
-          aria-selected={isSelected}
-          onKeyDown={handleKeyDown}
-        >
-          <HoverIndicator variant={variant} selected={isSelected} />
+    // Optimize container class calculation
+    const containerClass = useMemo(
+      () =>
+        cn(
+          "relative group transition-colors ease-out duration-100 focus:outline-none focus:ring-1 focus:ring-primary/40 select-none",
+          "hover:bg-sidebar-foreground/4 border hover:shadow-xs p-2.5 rounded-md",
+          isSelected
+            ? "border-primary hover:border-primary"
+            : "hover:border-muted-foreground/15",
+          "contain-intrinsic-size",
+          className
+        ),
+      [isSelected, className]
+    );
 
-          <FileOrFolderIcon
-            type={type}
-            previewUrl={previewUrl}
-            fileExtension={fileExtension}
-            title={title}
-            variant={variant}
-            color={color}
-          />
+    // Optimize card style calculation
+    const cardStyle = useMemo(() => {
+      const base = VARIANT_STYLES[variant].container;
+      if (variant !== "list") return `${base} bg-sidebar border-muted`;
 
-          <CardContent
-            id={id}
-            title={title}
-            itemCount={itemCount}
-            users={users}
-            isPinned={isPinned}
-            variant={variant}
-            type={type}
-          />
-        </div>
-      </ContextMenuTrigger>
-      <ContextMenuContent className="w-48">
-        <Suspense fallback={<ContextMenuItem disabled><Loader2 className="animate-spin mx-auto" /></ContextMenuItem>}>
-          <LazyContextMenuItems 
-            type={type} 
-            title={title} 
-            id={id}
-          />
-        </Suspense>
-      </ContextMenuContent>
-    </ContextMenu>
-  );
-}, (prevProps, nextProps) => {
-  // Deep comparison for critical props
-  return (
-    prevProps.id === nextProps.id &&
-    prevProps.variant === nextProps.variant &&
-    prevProps.type === nextProps.type &&
-    prevProps.title === nextProps.title &&
-    prevProps.itemCount === nextProps.itemCount &&
-    prevProps.isPinned === nextProps.isPinned &&
-    prevProps.previewUrl === nextProps.previewUrl &&
-    prevProps.fileExtension === nextProps.fileExtension &&
-    prevProps.className === nextProps.className &&
-    prevProps.alternateBg === nextProps.alternateBg &&
-    prevProps.color === nextProps.color &&
-    prevProps.onOpen === nextProps.onOpen
-  );
-});
+      return `${base} ${
+        alternateBg
+          ? `bg-background ${
+              isSelected ? "border-primary/80" : "border-background"
+            }`
+          : `bg-sidebar ${isSelected ? "border-primary/80" : "border-muted"}`
+      }`;
+    }, [variant, alternateBg, isSelected]);
+
+    // Optimize event handlers
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" && onOpen) onOpen();
+        if (e.key === " ") {
+          e.preventDefault();
+          handleItemClick(id, e as any, onOpen);
+        }
+      },
+      [id, onOpen, handleItemClick]
+    );
+
+    const handleClick = useCallback(
+      (e: React.MouseEvent) => handleItemClick(id, e, onOpen),
+      [id, onOpen, handleItemClick]
+    );
+
+    // Use global click handler only once
+    useEffect(() => {
+      if (!window.__cardSelectionHandler) {
+        window.__cardSelectionHandler = (e: MouseEvent) => {
+          if (!(e.target as Element).closest("[data-folder-card]")) {
+            useSelectionStore.getState().clear();
+          }
+        };
+        document.addEventListener("mousedown", window.__cardSelectionHandler, {
+          passive: true,
+        });
+      }
+    }, []);
+
+    return (
+      <ContextMenu>
+        <ContextMenuTrigger>
+          <div
+            data-folder-card
+            className={`${containerClass} ${cardStyle}`}
+            onClick={handleClick}
+            onDoubleClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (onOpen) {
+                onOpen();
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-selected={isSelected}
+            onKeyDown={handleKeyDown}
+          >
+            <HoverIndicator variant={variant} selected={isSelected} />
+
+            <FileOrFolderIcon
+              type={type}
+              previewUrl={previewUrl}
+              fileExtension={fileExtension}
+              title={title}
+              variant={variant}
+              color={color}
+            />
+
+            <CardContent
+              id={id}
+              title={title}
+              type={type}
+              childCount={childCount}
+              byteCount={byteCount}
+              users={users}
+              isPinned={isPinned}
+              variant={variant}
+            />
+          </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-48">
+          <Suspense
+            fallback={
+              <ContextMenuItem disabled>
+                <Loader2 className="animate-spin mx-auto" />
+              </ContextMenuItem>
+            }
+          >
+            <LazyContextMenuItems type={type} title={title} id={id} />
+          </Suspense>
+        </ContextMenuContent>
+      </ContextMenu>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Deep comparison for critical props
+    return (
+      prevProps.id === nextProps.id &&
+      prevProps.variant === nextProps.variant &&
+      prevProps.type === nextProps.type &&
+      prevProps.title === nextProps.title &&
+      prevProps.childCount === nextProps.childCount &&
+      prevProps.byteCount === nextProps.byteCount &&
+      prevProps.isPinned === nextProps.isPinned &&
+      prevProps.previewUrl === nextProps.previewUrl &&
+      prevProps.fileExtension === nextProps.fileExtension &&
+      prevProps.className === nextProps.className &&
+      prevProps.alternateBg === nextProps.alternateBg &&
+      prevProps.color === nextProps.color &&
+      prevProps.onOpen === nextProps.onOpen
+    );
+  }
+);
 FolderDocumentCard.displayName = "FolderDocumentCard";
 
 // Add type definition for the global handler

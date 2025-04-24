@@ -32,11 +32,11 @@ function compareItems(
         : bKind.localeCompare(aKind);
       return kindCompare !== 0 ? kindCompare : compareDefault();
       
-    case "size":
-      // Compare by item count (for folders) or just 1 for files
-      const aSize = a.itemCount || 1;
-      const bSize = b.itemCount || 1;
-      return sortDirection === "asc" ? aSize - bSize : bSize - aSize;
+      case "size":
+        // For documents, compare byteCount; for folders, compare childCount
+        const aSize = a.type === 'document' ? (a.byteCount || 0) : (a.childCount || 0);
+        const bSize = b.type === 'document' ? (b.byteCount || 0) : (b.childCount || 0);
+        return sortDirection === "asc" ? aSize - bSize : bSize - aSize;
       
     // You would need to add date fields to your FileSystemItem interface
     case "dateModified":

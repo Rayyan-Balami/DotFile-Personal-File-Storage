@@ -10,11 +10,16 @@ export interface FileSystemItem {
   title: string;
   parentId: string | null;
   color?: string;
-  itemCount?: number;
+  childCount?: number;
+  byteCount?: number;
   fileExtension?: string;
   previewUrl?: string;
   isPinned?: boolean;
-  children?: string[]; // IDs of children for folders
+  children?: string[];
+  size?: string;
+  dateAdded?: string;
+  dateModified?: string;
+  dateOpened?: string;
 }
 
 interface FileSystemState {
@@ -64,7 +69,7 @@ export const useFileSystemStore = create<FileSystemState>((set, get) => ({
         }
         
         // Update item count
-        targetItem.itemCount = targetItem.children.length;
+        targetItem.childCount = targetItem.children.length;
       }
     }
   })),
@@ -81,7 +86,7 @@ export const useFileSystemStore = create<FileSystemState>((set, get) => ({
       if (!parent.children) parent.children = [];
       if (!parent.children.includes(item.id)) {
         parent.children.push(item.id);
-        parent.itemCount = parent.children.length;
+        parent.childCount = parent.children.length;
       }
     }
   })),
@@ -97,7 +102,7 @@ export const useFileSystemStore = create<FileSystemState>((set, get) => ({
       const parent = state.items[item.parentId];
       if (parent.children) {
         parent.children = parent.children.filter(id => id !== itemId);
-        parent.itemCount = parent.children.length;
+        parent.childCount = parent.children.length;
       }
     }
     
@@ -145,13 +150,24 @@ export const useFileSystemStore = create<FileSystemState>((set, get) => ({
 }));
 
 // Initialize with sample data
-export const initializeFileSystem = (items: Omit<FileSystemItem, 'children' | 'parentId'>[]) => {
+export const initializeFileSystem = (data) => {
   const store = useFileSystemStore.getState();
-  items.forEach(item => {
-    store.addItem({
-      ...item,
-      parentId: null,
-      children: item.type === 'folder' ? [] : undefined,
+  
+  // If data provided is our JSON structure
+  if (data.items && data.rootItems) {
+    // Set items directly
+    useFileSystemStore.setState({
+      items: data.items,
+      rootItems: data.rootItems
     });
-  });
+  } else {
+    // Fallback for the old format (an array of items)
+    data.forEach(item => {
+      store.addItem({
+        ...item,
+        parentId: null,
+        children: item.type === 'folder' ? [] : undefined,
+      });
+    });
+  }
 };
