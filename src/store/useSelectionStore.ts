@@ -22,7 +22,7 @@ interface SelectionActions {
   select: (id: string, event: React.MouseEvent) => void;
   toggle: (id: string) => void;
   clear: () => void;
-  selectRange: (items: SelectableItem[]) => void;
+  selectRange: (startId: string, endId: string) => void;
   isSelected: (id: string) => boolean;
   updateItemPositions: (items: SelectableItem[]) => void;
   handleItemClick: (
@@ -34,6 +34,8 @@ interface SelectionActions {
   setVisibleItems: (items: SelectableItem[]) => void;
   deleteSelected: (onDelete?: (ids: Set<string>) => void) => void;
   handleKeyDown: (e: KeyboardEvent) => void;
+  getSelectedItems: () => SelectableItem[];
+  logSelection: () => void;
 }
 
 type SelectionStore = SelectionState & SelectionActions;
@@ -78,11 +80,56 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
       lastSelectedId: visibleItems[visibleItems.length - 1].id,
       selectionAnchor: visibleItems[0].id
     });
+    
+    // Log the selection
+    console.log(`Selected all ${newSelectedIds.size} items`);
+    get().logSelection();
+  },
+  
+  getSelectedItems: () => {
+    const { selectedIds, visibleItems } = get();
+    return visibleItems.filter(item => selectedIds.has(item.id));
+  },
+  
+  logSelection: () => {
+    const selectedItems = get().getSelectedItems();
+    if (selectedItems.length === 0) {
+      console.log("No items selected");
+      return;
+    }
+    
+    console.group(`${selectedItems.length} item(s) selected:`);
+    
+    // Group by type for better organization
+    const folders = selectedItems.filter(item => item.type === 'folder');
+    const documents = selectedItems.filter(item => item.type === 'document');
+    
+    if (folders.length > 0) {
+      console.group(`Folders (${folders.length}):`);
+      folders.forEach(folder => {
+        console.log(`- ${folder.title} (ID: ${folder.id})`);
+      });
+      console.groupEnd();
+    }
+    
+    if (documents.length > 0) {
+      console.group(`Documents (${documents.length}):`);
+      documents.forEach(doc => {
+        console.log(`- ${doc.title} (ID: ${doc.id})`);
+      });
+      console.groupEnd();
+    }
+    
+    console.groupEnd();
   },
   
   deleteSelected: (onDelete?: (ids: Set<string>) => void) => {
     const { selectedIds } = get();
     if (selectedIds.size === 0) return;
+    
+    // Log items being deleted
+    console.log(`Deleting ${selectedIds.size} items:`);
+    get().logSelection();
     
     if (onDelete) {
       onDelete(selectedIds);
@@ -126,9 +173,10 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
   },
   
   select: (id: string, event: React.MouseEvent) => {
-    const { selectedIds } = get();
+    const { selectedIds, visibleItems } = get();
     
     if (event.metaKey || event.ctrlKey) {
+      // Toggle selection with Ctrl/Cmd
       set(state => ({
         selectedIds: state.selectedIds.has(id) 
           ? removeFromSet(state.selectedIds, id)
@@ -137,8 +185,11 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
         selectionAnchor: id
       }));
     } else if (event.shiftKey && get().selectionAnchor) {
-      set({ lastSelectedId: id });
+      // Shift-select for range
+      const anchorId = get().selectionAnchor;
+      get().selectRange(anchorId, id);
     } else {
+      // Normal single selection
       const newSelection = new Set<string>([id]);
       set({
         selectedIds: newSelection,
@@ -146,6 +197,9 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
         selectionAnchor: id
       });
     }
+    
+    // Log selection after a small delay to ensure state has updated
+    setTimeout(() => get().logSelection(), 0);
   },
   
   toggle: (id: string) => {
@@ -156,13 +210,18 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
       lastSelectedId: id,
       selectionAnchor: id
     }));
+    
+    setTimeout(() => get().logSelection(), 0);
   },
   
   clear: () => {
+    const { selectedIds } = get();
+    if (selectedIds.size === 0) return;
     set({
       selectedIds: new Set<string>(),
       lastSelectedId: null
     });
+    console.log("Selection cleared");
   },
   
   updateItemPositions: (items: SelectableItem[]) => {
@@ -173,41 +232,36 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
     set({ itemPositions });
   },
   
-  selectRange: (items: SelectableItem[]) => {
-    const { selectionAnchor, lastSelectedId, itemPositions } = get();
-    if (!selectionAnchor || !lastSelectedId || selectionAnchor === lastSelectedId) return;
+  selectRange: (startId: string, endId: string) => {
+    const { itemPositions, visibleItems } = get();
     
-    let anchorIndex = itemPositions.get(selectionAnchor) ?? -1;
-    let targetIndex = itemPositions.get(lastSelectedId) ?? -1;
+    let startIndex = itemPositions.get(startId) ?? -1;
+    let endIndex = itemPositions.get(endId) ?? -1;
     
-    if (anchorIndex === -1 || targetIndex === -1) {
-      const ids = items.map(item => item.id);
-      anchorIndex = ids.indexOf(selectionAnchor);
-      targetIndex = ids.indexOf(lastSelectedId);
-      
-      if (anchorIndex !== -1) itemPositions.set(selectionAnchor, anchorIndex);
-      if (targetIndex !== -1) itemPositions.set(lastSelectedId, targetIndex);
+    if (startIndex === -1 || endIndex === -1) {
+      // Try to find positions in visibleItems
+      startIndex = visibleItems.findIndex(item => item.id === startId);
+      endIndex = visibleItems.findIndex(item => item.id === endId);
     }
     
-    if (anchorIndex === -1 || targetIndex === -1) return;
+    if (startIndex === -1 || endIndex === -1) return;
     
-    const rangeSize = Math.abs(targetIndex - anchorIndex);
-    if (rangeSize > 1000) {
-      console.warn('Range selection too large, limiting to 1000 items');
-      targetIndex = anchorIndex + (targetIndex > anchorIndex ? 1000 : -1000);
-    }
-    
-    const start = Math.min(anchorIndex, targetIndex);
-    const end = Math.max(anchorIndex, targetIndex);
+    const start = Math.min(startIndex, endIndex);
+    const end = Math.max(startIndex, endIndex);
     
     const newSelectedIds = new Set<string>();
     for (let i = start; i <= end; i++) {
-      if (i < items.length) {
-        newSelectedIds.add(items[i].id);
+      if (i < visibleItems.length) {
+        newSelectedIds.add(visibleItems[i].id);
       }
     }
     
-    set({ selectedIds: newSelectedIds });
+    set({ 
+      selectedIds: newSelectedIds,
+      lastSelectedId: endId
+    });
+    
+    setTimeout(() => get().logSelection(), 0);
   },
   
   isSelected: (id: string) => {
@@ -219,11 +273,13 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
     const { lastClickTime, lastClickId } = get();
     
     if (lastClickId === id && now - lastClickTime < 350) {
+      // Double click
       if (onOpen) {
         requestAnimationFrame(() => onOpen());
       }
       set({ lastClickTime: 0, lastClickId: null });
     } else {
+      // Single click
       get().select(id, event);
       set({ lastClickTime: now, lastClickId: id });
     }

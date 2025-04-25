@@ -1,18 +1,28 @@
+import React, { useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import {
+  useSelectionStore,
+  useKeyboardShortcuts,
+} from "@/store/useSelectionStore";
 import { useSortPreferencesStore } from "@/store/useSortPreferencesStore";
 import { useViewPreferencesStore } from "@/store/useViewPreferencesStore";
 import { useSortedItems } from "@/utils/sortUtils";
-import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@radix-ui/react-context-menu";
-import { useNavigate } from "@tanstack/react-router";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { Loader2 } from "lucide-react";
-import { lazy, Suspense, useMemo } from "react";
+import { lazy, Suspense } from "react";
 import { FileDropZone } from "../dnd/FileDropZone";
 import { CardGrid } from "./CardGrid";
 
 // Define USERS constant for avatars
 const USERS = [
-  { image: "https://github.com/shadcn.png", fallback: "CN" },
-  { image: "https://github.com/shadcn.png", fallback: "CN" },
-  { image: "https://github.com/shadcn.png", fallback: "CN" },
+  { image: "https://githu.com/shadcn.png", fallback: "C" },
+  { image: "https://githu.com/shadcn.png", fallback: "R" },
+  { image: "https://githu.com/shadcn.png", fallback: "A" },
   { fallback: "+3" },
 ];
 
@@ -23,107 +33,98 @@ const LazyGlobalMenuItems = lazy(() =>
   }))
 );
 
-export default function DirectoryView({ 
-  items = [], 
-  currentPath = '/', 
-  directoryName = 'Directory',
-  parentId = null 
+export default function DirectoryView({
+  items = [],
+  currentPath = "/",
+  directoryName = "Directory",
+  parentId = null,
 }) {
   const navigate = useNavigate();
-  
+  const setVisibleItems = useSelectionStore((state) => state.setVisibleItems);
+
   // Apply sorting
   const sortedItems = useSortedItems(items);
-  
+
+  // Callback for opening items
+  const handleOpenItem = (id: string) => {
+    const item = sortedItems.find((item) => item.id === id);
+    if (item) {
+      if (item.type === "folder") {
+        navigate({ to: `/folder/${item.id}` });
+      } else {
+        // Handle document opening logic
+        console.log(`Opening document: ${item.title}`);
+        // Implement document opening logic
+      }
+    }
+  };
+
+  // Register keyboard shortcuts with the open callback
+  useKeyboardShortcuts(handleOpenItem);
+
+  // Update visible items for selection when sorted items change
+  useEffect(() => {
+    setVisibleItems(sortedItems);
+  }, [sortedItems, setVisibleItems]);
+
   // Get view preferences
   const viewType = useViewPreferencesStore((state) => state.viewType);
   const folderArrangement = useSortPreferencesStore(
     (state) => state.folderArrangement
   );
 
-  // Handle item open
-  const handleOpen = (id) => {
-    const item = items.find(item => item.id === id);
-    if (!item) return;
-    
-    if (item.type === 'folder') {
-      navigate({ to: '/folder/$id', params: { id: id } });
-    } else {
-      console.log(`Opening document with id: ${id}`);
-      // Implement document opening logic here
-    }
-  };
-
-  // For going back to files - update to handle parent folders
-  const handleBackToFiles = () => {
-    if (currentPath === '/') return;
-    
-    // If we have a parentId, navigate to that folder
-    if (parentId) {
-      navigate({ to: '/folder/$id', params: { id: parentId } });
-    } else {
-      // Otherwise go back to root
-      navigate({ to: '/' });
-    }
-  };
-  
-  // Separate folders and files if needed
-  const folderSubItems = useMemo(
-    () => sortedItems.filter((item) => item.type === "folder"),
-    [sortedItems]
-  );
-
-  const fileItems = useMemo(
-    () => sortedItems.filter((item) => item.type === "document"),
-    [sortedItems]
-  );
-  
-  
   return (
     <FileDropZone>
       <ContextMenu>
         <ContextMenuTrigger asChild>
           <section className="flex flex-1 flex-col gap-4 md:gap-6 p-4 md:p-6">
-            
             <div className="mb-2">
-              {currentPath !== '/' && (
-                <button 
-                  onClick={handleBackToFiles}
+              {currentPath !== "/" && (
+                <button
+                  onClick={() =>
+                    navigate({ to: parentId ? `/folder/${parentId}` : "/" })
+                  }
                   className="text-sm text-muted-foreground hover:underline mb-2 flex items-center"
                 >
                   ← Back to root
                 </button>
               )}
-              
-              <h1 className="text-2xl font-bold">
-                {directoryName}
-              </h1>
+
+              <h1 className="text-2xl font-bold">{directoryName}</h1>
               <p className="text-muted-foreground">
-                {sortedItems.length} {sortedItems.length === 1 ? 'item' : 'items'}
+                {sortedItems.length}{" "}
+                {sortedItems.length === 1 ? "item" : "items"}
               </p>
             </div>
-            
+
             {folderArrangement === "separated" ? (
               <>
-                {folderSubItems.length > 0 && (
+                {sortedItems.filter((item) => item.type === "folder").length >
+                  0 && (
                   <section className="flex flex-col gap-4 mb-6">
                     <h2 className="text-lg font-medium">Folders</h2>
                     <CardGrid
-                      items={folderSubItems}
+                      items={sortedItems.filter(
+                        (item) => item.type === "folder"
+                      )}
                       viewType={viewType}
                       users={USERS}
-                      onOpen={handleOpen}
+                      onOpen={handleOpenItem}
                     />
                   </section>
                 )}
 
-                {fileItems.length > 0 && (
+                {sortedItems.filter((item) => item.type === "document").length >
+                  0 && (
                   <section className="flex flex-col gap-4">
                     <h2 className="text-lg font-medium">Files</h2>
                     <CardGrid
-                      items={fileItems}
+                      items={sortedItems.filter(
+                        (item) => item.type === "document"
+                      )}
                       viewType={viewType}
                       users={USERS}
-                      onOpen={handleOpen}
+                      onOpen={handleOpenItem}
                     />
                   </section>
                 )}
@@ -135,11 +136,11 @@ export default function DirectoryView({
                   items={sortedItems}
                   viewType={viewType}
                   users={USERS}
-                  onOpen={handleOpen}
+                  onOpen={handleOpenItem}
                 />
               </section>
             )}
-            
+
             {sortedItems.length === 0 && (
               <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
                 <p>This folder is empty</p>

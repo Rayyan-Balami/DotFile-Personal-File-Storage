@@ -11,7 +11,10 @@ interface DragData {
   color?: string;
   fileExtension?: string;
   previewUrl?: string;
-  itemCount?: number;
+  childCount?: number;
+  byteCount?: number;
+  isPinned?: boolean;
+  users?: Array<{ image?: string; fallback: string }>;
   [key: string]: any; // Allow other props
 }
 
@@ -32,11 +35,14 @@ export function DragOverlay() {
   const {
     variant = "large",
     type = primaryItem.type,
-    title = primaryItem.title || "Untitled", // Title is required
+    title = primaryItem.title || "Untitled",
     color = "default",
     fileExtension = "pdf",
     previewUrl,
-    itemCount
+    childCount,
+    byteCount,
+    isPinned = false,
+    users = []
   } = data;
   
   return (
@@ -46,11 +52,13 @@ export function DragOverlay() {
           id={primaryItem.id}
           type={type}
           title={title}
-          itemCount={itemCount}
+          childCount={childCount}
+          byteCount={byteCount}
+          users={users}
           color={color}
           fileExtension={fileExtension}
           previewUrl={previewUrl}
-          // Use the same variant as the original card
+          isPinned={isPinned}
           variant={variant}
           className="shadow-lg ring-1 ring-primary/30 scale-90"
         />

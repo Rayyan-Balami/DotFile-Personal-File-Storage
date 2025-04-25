@@ -1,0 +1,22 @@
+import DirectoryView from '@/components/views/DirectoryView';
+import { createFileRoute } from '@tanstack/react-router';
+import dummyData from '@/data/dummyData.json';
+
+// When we open our website this is the root directory
+export const Route = createFileRoute('/my-drive')({
+  component: RouteComponent,
+  loader: async () => {
+    // Get the root directory data (folders and files)
+    const rootItems = dummyData.rootItems.map(id => dummyData.items[id]);
+    return {
+      items: rootItems,
+      currentPath: '/',
+      directoryName: 'My Drive',
+    };
+  }
+})
+
+function RouteComponent() {
+  const { items, currentPath, directoryName } = Route.useLoaderData();
+  return <DirectoryView items={items} currentPath={currentPath} directoryName={directoryName} />;
+}

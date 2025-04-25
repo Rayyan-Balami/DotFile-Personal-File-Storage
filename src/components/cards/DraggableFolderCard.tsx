@@ -36,6 +36,13 @@ export const DraggableFolderCard = memo(({
       id,
       title,
       variant,
+      childCount,
+      byteCount,
+      isPinned: props.isPinned,
+      users: props.users,
+      color: props.color,
+      fileExtension: props.fileExtension,
+      previewUrl: props.previewUrl,
       ...props
     }
   });
@@ -102,6 +109,9 @@ export const DraggableFolderCard = memo(({
     }
   }, [id, title, type]);
 
+  // console.log(`Rendering DraggableFolderCard: ${title} (ID: ${id})`);
+  // console.log(`childCount: ${childCount}, byteCount: ${byteCount}`);
+
   return (
     <div
       ref={setNodeRef}
@@ -111,6 +121,8 @@ export const DraggableFolderCard = memo(({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      //skip tab index for accessibility
+      tabIndex={-1}
     >
       <FolderDocumentCard
         id={id}

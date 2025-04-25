@@ -11,11 +11,18 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
+import { Route as MyDriveImport } from './routes/my-drive'
 import { Route as AboutImport } from './routes/about'
 import { Route as IndexImport } from './routes/index'
 import { Route as FolderIdImport } from './routes/folder/$id'
 
 // Create/Update Routes
+
+const MyDriveRoute = MyDriveImport.update({
+  id: '/my-drive',
+  path: '/my-drive',
+  getParentRoute: () => rootRoute,
+} as any)
 
 const AboutRoute = AboutImport.update({
   id: '/about',
@@ -53,6 +60,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutImport
       parentRoute: typeof rootRoute
     }
+    '/my-drive': {
+      id: '/my-drive'
+      path: '/my-drive'
+      fullPath: '/my-drive'
+      preLoaderRoute: typeof MyDriveImport
+      parentRoute: typeof rootRoute
+    }
     '/folder/$id': {
       id: '/folder/$id'
       path: '/folder/$id'
@@ -68,12 +82,14 @@ declare module '@tanstack/react-router' {
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/my-drive': typeof MyDriveRoute
   '/folder/$id': typeof FolderIdRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/my-drive': typeof MyDriveRoute
   '/folder/$id': typeof FolderIdRoute
 }
 
@@ -81,27 +97,30 @@ export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/my-drive': typeof MyDriveRoute
   '/folder/$id': typeof FolderIdRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/folder/$id'
+  fullPaths: '/' | '/about' | '/my-drive' | '/folder/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/folder/$id'
-  id: '__root__' | '/' | '/about' | '/folder/$id'
+  to: '/' | '/about' | '/my-drive' | '/folder/$id'
+  id: '__root__' | '/' | '/about' | '/my-drive' | '/folder/$id'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  MyDriveRoute: typeof MyDriveRoute
   FolderIdRoute: typeof FolderIdRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  MyDriveRoute: MyDriveRoute,
   FolderIdRoute: FolderIdRoute,
 }
 
@@ -117,6 +136,7 @@ export const routeTree = rootRoute
       "children": [
         "/",
         "/about",
+        "/my-drive",
         "/folder/$id"
       ]
     },
@@ -125,6 +145,9 @@ export const routeTree = rootRoute
     },
     "/about": {
       "filePath": "about.tsx"
+    },
+    "/my-drive": {
+      "filePath": "my-drive.tsx"
     },
     "/folder/$id": {
       "filePath": "folder/$id.tsx"

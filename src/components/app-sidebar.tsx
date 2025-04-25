@@ -28,6 +28,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarRail,
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
@@ -50,7 +51,7 @@ const data = {
       icon: Clock,
     },
     {
-      title: "File Manager",
+      title: "My Drive",
       url: "#",
       icon: FolderClosed,
     },
@@ -200,6 +201,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
         </SidebarMenu>
       </SidebarFooter>
+      <SidebarRail/>
     </Sidebar>
   );
 }

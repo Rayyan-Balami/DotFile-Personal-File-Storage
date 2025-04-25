@@ -29,18 +29,16 @@ function RootComponent() {
   }, []);
 
   return (
-    <SidebarProvider className="flex flex-col">
+    <SidebarProvider>
       <FileSystemDndProvider>
-        <div className="flex flex-1">
           <AppSidebar />
           <SidebarInset className="sidebar-container">
             <SiteHeader />
             <Outlet /> {/* Render the current route component here */}
             <SiteFooter />
           </SidebarInset>
-        </div>
       </FileSystemDndProvider>
-      {process.env.NODE_ENV === 'development' && <TanStackRouterDevtools />}
+      {process.env.NODE_ENV === 'development' && <TanStackRouterDevtools position="top-right" />}
     </SidebarProvider>
   );
 }

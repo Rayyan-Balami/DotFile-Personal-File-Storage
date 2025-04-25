@@ -266,16 +266,16 @@ const UserAvatars = React.memo(
     return (
       <div className="flex items-center">
         {visibleUsers.map((user, idx) => (
-          <Avatar key={idx} className="size-4.5 first:ml-0 -ml-1">
+          <Avatar key={idx} className="size-4.5 first:ml-0 -ml-1 hover:z-10 relative border border-primary-foreground">
             {user.image && <AvatarImage src={user.image} alt="" />}
-            <AvatarFallback>{user.fallback}</AvatarFallback>
+            <AvatarFallback className="bg-primary text-primary-foreground text-[0.5rem] font-bold">{user.fallback}</AvatarFallback>
           </Avatar>
         ))}
 
         {extraCount > 0 && (
-          <span className="size-4.5 first:ml-0 -ml-0.5 bg-primary grid place-content-center rounded-full text-[0.5rem] font-medium text-background">
-            +{extraCount}
-          </span>
+          <Avatar className="size-4.5 first:ml-0 -ml-1 hover:z-10 relative border border-primary-foreground">
+          <AvatarFallback className="bg-primary text-primary-foreground text-[0.5rem] font-bold">+{extraCount}</AvatarFallback>
+        </Avatar>
         )}
       </div>
     );
