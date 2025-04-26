@@ -1,0 +1,157 @@
+{
+  "items": {
+    "folder-simple": {
+      "id": "folder-simple",
+      "type": "folder",
+      "title": "empty Folder",
+      "ownerId": "user-1",
+      "parentFolderId": "my-drive",
+      "dateModified": "2025-04-20T15:30:00.000Z",
+      "dateAdded": "2025-04-18T09:15:00.000Z",
+      "trashedAt": null,
+      "isPinned": false,
+      "sharedUsersPreview": [],
+      "desk": {
+        "id": "desk-1",
+        "name": "Work Space",
+        "color": "blue",
+        "icon": "folder"
+      },
+      "childCount": 0,
+      "children": []
+    },
+    "folder-parent": {
+      "id": "folder-parent",
+      "type": "folder",
+      "title": "Project Files",
+      "ownerId": "user-1",
+      "parentFolderId": "my-drive",
+      "dateModified": "2025-04-23T11:45:00.000Z",
+      "dateAdded": "2025-04-15T10:30:00.000Z",
+      "trashedAt": null,
+      "isPinned": true,
+      "sharedUsersPreview": [
+        {
+          "id": "user-2",
+          "name": "Jane Smith",
+          "image": "https://randomuser.me/api/portraits/women/42.jpg"
+        }
+      ],
+      "desk": {
+        "id": "desk-2",
+        "name": "Important Projects",
+        "color": "green",
+        "icon": "fileText"
+      },
+      "childCount": 3,
+      "children": ["folder-child", "doc-1", "doc-2"]
+    },
+    "folder-child": {
+      "id": "folder-child",
+      "type": "folder",
+      "title": "Resources",
+      "ownerId": "user-1",
+      "parentFolderId": "folder-parent",
+      "dateModified": "2025-04-22T14:20:00.000Z",
+      "dateAdded": "2025-04-16T13:15:00.000Z",
+      "trashedAt": null,
+      "isPinned": false,
+      "sharedUsersPreview": [],
+      "desk": {
+        "id": "desk-3",
+        "name": "Reference Materials",
+        "color": "purple",
+        "icon": "book"
+      },
+      "childCount": 1,
+      "children": ["doc-3"]
+    },
+    "doc-1": {
+      "id": "doc-1",
+      "type": "document",
+      "title": "Project Proposal.pdf",
+      "ownerId": "user-1",
+      "parentFolderId": "folder-parent",
+      "dateModified": "2025-04-21T09:30:00.000Z",
+      "dateAdded": "2025-04-18T11:45:00.000Z",
+      "trashedAt": null,
+      "isPinned": true,
+      "sharedUsersPreview": [
+        {
+          "id": "user-2",
+          "name": "Jane Smith",
+          "image": "https://randomuser.me/api/portraits/women/42.jpg"
+        },
+        {
+          "id": "user-3",
+          "name": "Bob Johnson",
+          "image": "https://randomuser.me/api/portraits/men/32.jpg"
+        }
+      ],
+      "fileExtension": "pdf",
+      "byteCount": 2516582,
+      "previewUrl": null
+    },
+    "doc-2": {
+      "id": "doc-2",
+      "type": "document",
+      "title": "Budget Spreadsheet.xlsx",
+      "ownerId": "user-1",
+      "parentFolderId": "folder-parent",
+      "dateModified": "2025-04-22T16:20:00.000Z",
+      "dateAdded": "2025-04-19T14:10:00.000Z",
+      "trashedAt": null,
+      "isPinned": false,
+      "sharedUsersPreview": [],
+      "fileExtension": "xlsx",
+      "byteCount": 1258291,
+      "previewUrl": null
+    },
+    "doc-3": {
+      "id": "doc-3",
+      "type": "document",
+      "title": "Research Paper.docx",
+      "ownerId": "user-1",
+      "parentFolderId": "folder-child",
+      "dateModified": "2025-04-20T13:45:00.000Z",
+      "dateAdded": "2025-04-17T15:30:00.000Z",
+      "trashedAt": null,
+      "isPinned": false,
+      "sharedUsersPreview": [],
+      "fileExtension": "docx",
+      "byteCount": 3214567,
+      "previewUrl": null
+    },
+    "doc-4": {
+      "id": "doc-4",
+      "type": "document",
+      "title": "Meeting Notes.txt",
+      "ownerId": "user-1",
+      "parentFolderId": "my-drive",
+      "dateModified": "2025-04-24T10:15:00.000Z",
+      "dateAdded": "2025-04-24T10:15:00.000Z",
+      "trashedAt": null,
+      "isPinned": false,
+      "sharedUsersPreview": [],
+      "fileExtension": "txt",
+      "byteCount": 12450,
+      "previewUrl": null
+    },
+    "doc-5": {
+      "id": "doc-5",
+      "type": "document",
+      "title": "Product Image.jpg",
+      "ownerId": "user-1",
+      "parentFolderId": "my-drive",
+      "dateModified": "2025-04-23T09:20:00.000Z",
+      "dateAdded": "2025-04-23T09:20:00.000Z",
+      "trashedAt": null,
+      "isPinned": true,
+      "sharedUsersPreview": [],
+      "fileExtension": "jpg",
+      "byteCount": 3670016,
+      "previewUrl": "https://images.unsplash.com/photo-1682687982167-d7fb3ed8541d?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.0.3"
+    }
+  },
+  "rootItems": ["folder-simple", "folder-parent", "doc-4", "doc-5"]
+}
