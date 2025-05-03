@@ -8,18 +8,28 @@ import {
 } from "../../constants.js";
 import bcryptjs from "bcryptjs";
 import jwt, { Secret, SignOptions } from "jsonwebtoken";
+import { JwtUserPayload } from "./user.dto.js";
+
+// Define interface for User methods
+interface IUserMethods {
+  checkPassword(password: string): Promise<boolean>;
+  generateAccessToken(): string;
+  generateRefreshToken(): string;
+}
 
 // Define the user interface
-export interface IUser extends Document {
+export interface IUser extends Document, IUserMethods {
   avatar: string;
-  fullName: string;
+  name: string;
   email: string;
   password: string;
-  plan: mongoose.Schema.Types.ObjectId;
+  role: "user" | "admin";
+  plan: Schema.Types.ObjectId;
   storageUsed: number;
+  refreshToken: string;
   createdAt: Date;
   updatedAt: Date;
-  deletedAt: Date | null; // Add deletedAt field
+  deletedAt: Date | null;
 }
 
 // Create the schema
@@ -30,7 +40,7 @@ const UserSchema: Schema = new Schema(
       required: false,
       default: DEFAULT_USER_AVATAR,
     },
-    fullName: {
+    name: {
       type: String,
       required: true,
       trim: true,
@@ -44,13 +54,22 @@ const UserSchema: Schema = new Schema(
       type: String,
       required: true,
     },
+    role: {
+      type: String,
+      enum: ['user', 'admin'],
+      default: 'user'
+    },
     plan: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "Plan",
     },
     storageUsed: {
       type: Number,
       default: 0,
+    },
+    refreshToken: {
+      type: String,
+      default: null,
     },
     deletedAt: {
       type: Date,
@@ -77,10 +96,10 @@ UserSchema.methods.checkPassword = async function (password: string) {
 
 // Add a method to generate access token
 UserSchema.methods.generateAccessToken = function () {
-  const payload = { id: this._id, email: this.email, fullName: this.fullName };
+  const payload : JwtUserPayload = { id: this._id, email: this.email, name: this.name, role: this.role };
   const secret: Secret = ACCESS_TOKEN_SECRET;
-  const options: jwt.SignOptions = {
-    expiresIn: ACCESS_TOKEN_EXPIRY as jwt.SignOptions["expiresIn"],
+  const options: SignOptions = {
+    expiresIn: ACCESS_TOKEN_EXPIRY as SignOptions["expiresIn"],
   };
 
   if (!secret) {
@@ -92,10 +111,10 @@ UserSchema.methods.generateAccessToken = function () {
 
 // Add a method to generate refresh token
 UserSchema.methods.generateRefreshToken = function () {
-  const payload = { id: this._id, email: this.email, fullName: this.fullName };
+  const payload : JwtUserPayload = { id: this._id, email: this.email, name: this.name, role: this.role };
   const secret: Secret = REFRESH_TOKEN_SECRET;
-  const options: jwt.SignOptions = {
-    expiresIn: REFRESH_TOKEN_EXPIRY as jwt.SignOptions["expiresIn"],
+  const options: SignOptions = {
+    expiresIn: REFRESH_TOKEN_EXPIRY as SignOptions["expiresIn"],
   };
   if (!secret) {
     throw new Error("JWT secret is not configured");

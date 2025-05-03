@@ -11,117 +11,222 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
-import { Route as MyDriveImport } from './routes/my-drive'
-import { Route as AboutImport } from './routes/about'
-import { Route as IndexImport } from './routes/index'
-import { Route as FolderIdImport } from './routes/folder/$id'
+import { Route as userRouteImport } from './routes/(user)/route'
+import { Route as authRouteImport } from './routes/(auth)/route'
+import { Route as userIndexImport } from './routes/(user)/index'
+import { Route as userMyDriveImport } from './routes/(user)/my-drive'
+import { Route as userAboutImport } from './routes/(user)/about'
+import { Route as authRegisterImport } from './routes/(auth)/register'
+import { Route as authLoginImport } from './routes/(auth)/login'
+import { Route as userFolderIdImport } from './routes/(user)/folder/$id'
 
 // Create/Update Routes
 
-const MyDriveRoute = MyDriveImport.update({
-  id: '/my-drive',
-  path: '/my-drive',
+const userRouteRoute = userRouteImport.update({
+  id: '/(user)',
   getParentRoute: () => rootRoute,
 } as any)
 
-const AboutRoute = AboutImport.update({
-  id: '/about',
-  path: '/about',
+const authRouteRoute = authRouteImport.update({
+  id: '/(auth)',
   getParentRoute: () => rootRoute,
 } as any)
 
-const IndexRoute = IndexImport.update({
+const userIndexRoute = userIndexImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => userRouteRoute,
 } as any)
 
-const FolderIdRoute = FolderIdImport.update({
+const userMyDriveRoute = userMyDriveImport.update({
+  id: '/my-drive',
+  path: '/my-drive',
+  getParentRoute: () => userRouteRoute,
+} as any)
+
+const userAboutRoute = userAboutImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => userRouteRoute,
+} as any)
+
+const authRegisterRoute = authRegisterImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => authRouteRoute,
+} as any)
+
+const authLoginRoute = authLoginImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => authRouteRoute,
+} as any)
+
+const userFolderIdRoute = userFolderIdImport.update({
   id: '/folder/$id',
   path: '/folder/$id',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => userRouteRoute,
 } as any)
 
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/(auth)': {
+      id: '/(auth)'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexImport
+      preLoaderRoute: typeof authRouteImport
       parentRoute: typeof rootRoute
     }
-    '/about': {
-      id: '/about'
+    '/(user)': {
+      id: '/(user)'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof userRouteImport
+      parentRoute: typeof rootRoute
+    }
+    '/(auth)/login': {
+      id: '/(auth)/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof authLoginImport
+      parentRoute: typeof authRouteImport
+    }
+    '/(auth)/register': {
+      id: '/(auth)/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof authRegisterImport
+      parentRoute: typeof authRouteImport
+    }
+    '/(user)/about': {
+      id: '/(user)/about'
       path: '/about'
       fullPath: '/about'
-      preLoaderRoute: typeof AboutImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof userAboutImport
+      parentRoute: typeof userRouteImport
     }
-    '/my-drive': {
-      id: '/my-drive'
+    '/(user)/my-drive': {
+      id: '/(user)/my-drive'
       path: '/my-drive'
       fullPath: '/my-drive'
-      preLoaderRoute: typeof MyDriveImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof userMyDriveImport
+      parentRoute: typeof userRouteImport
     }
-    '/folder/$id': {
-      id: '/folder/$id'
+    '/(user)/': {
+      id: '/(user)/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof userIndexImport
+      parentRoute: typeof userRouteImport
+    }
+    '/(user)/folder/$id': {
+      id: '/(user)/folder/$id'
       path: '/folder/$id'
       fullPath: '/folder/$id'
-      preLoaderRoute: typeof FolderIdImport
-      parentRoute: typeof rootRoute
+      preLoaderRoute: typeof userFolderIdImport
+      parentRoute: typeof userRouteImport
     }
   }
 }
 
 // Create and export the route tree
 
+interface authRouteRouteChildren {
+  authLoginRoute: typeof authLoginRoute
+  authRegisterRoute: typeof authRegisterRoute
+}
+
+const authRouteRouteChildren: authRouteRouteChildren = {
+  authLoginRoute: authLoginRoute,
+  authRegisterRoute: authRegisterRoute,
+}
+
+const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
+  authRouteRouteChildren,
+)
+
+interface userRouteRouteChildren {
+  userAboutRoute: typeof userAboutRoute
+  userMyDriveRoute: typeof userMyDriveRoute
+  userIndexRoute: typeof userIndexRoute
+  userFolderIdRoute: typeof userFolderIdRoute
+}
+
+const userRouteRouteChildren: userRouteRouteChildren = {
+  userAboutRoute: userAboutRoute,
+  userMyDriveRoute: userMyDriveRoute,
+  userIndexRoute: userIndexRoute,
+  userFolderIdRoute: userFolderIdRoute,
+}
+
+const userRouteRouteWithChildren = userRouteRoute._addFileChildren(
+  userRouteRouteChildren,
+)
+
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/my-drive': typeof MyDriveRoute
-  '/folder/$id': typeof FolderIdRoute
+  '/': typeof userIndexRoute
+  '/login': typeof authLoginRoute
+  '/register': typeof authRegisterRoute
+  '/about': typeof userAboutRoute
+  '/my-drive': typeof userMyDriveRoute
+  '/folder/$id': typeof userFolderIdRoute
 }
 
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/my-drive': typeof MyDriveRoute
-  '/folder/$id': typeof FolderIdRoute
+  '/': typeof userIndexRoute
+  '/login': typeof authLoginRoute
+  '/register': typeof authRegisterRoute
+  '/about': typeof userAboutRoute
+  '/my-drive': typeof userMyDriveRoute
+  '/folder/$id': typeof userFolderIdRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/my-drive': typeof MyDriveRoute
-  '/folder/$id': typeof FolderIdRoute
+  '/(auth)': typeof authRouteRouteWithChildren
+  '/(user)': typeof userRouteRouteWithChildren
+  '/(auth)/login': typeof authLoginRoute
+  '/(auth)/register': typeof authRegisterRoute
+  '/(user)/about': typeof userAboutRoute
+  '/(user)/my-drive': typeof userMyDriveRoute
+  '/(user)/': typeof userIndexRoute
+  '/(user)/folder/$id': typeof userFolderIdRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/my-drive' | '/folder/$id'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/register'
+    | '/about'
+    | '/my-drive'
+    | '/folder/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/my-drive' | '/folder/$id'
-  id: '__root__' | '/' | '/about' | '/my-drive' | '/folder/$id'
+  to: '/' | '/login' | '/register' | '/about' | '/my-drive' | '/folder/$id'
+  id:
+    | '__root__'
+    | '/(auth)'
+    | '/(user)'
+    | '/(auth)/login'
+    | '/(auth)/register'
+    | '/(user)/about'
+    | '/(user)/my-drive'
+    | '/(user)/'
+    | '/(user)/folder/$id'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
-  MyDriveRoute: typeof MyDriveRoute
-  FolderIdRoute: typeof FolderIdRoute
+  authRouteRoute: typeof authRouteRouteWithChildren
+  userRouteRoute: typeof userRouteRouteWithChildren
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
-  MyDriveRoute: MyDriveRoute,
-  FolderIdRoute: FolderIdRoute,
+  authRouteRoute: authRouteRouteWithChildren,
+  userRouteRoute: userRouteRouteWithChildren,
 }
 
 export const routeTree = rootRoute
@@ -134,23 +239,49 @@ export const routeTree = rootRoute
     "__root__": {
       "filePath": "__root.tsx",
       "children": [
-        "/",
-        "/about",
-        "/my-drive",
-        "/folder/$id"
+        "/(auth)",
+        "/(user)"
       ]
     },
-    "/": {
-      "filePath": "index.tsx"
+    "/(auth)": {
+      "filePath": "(auth)/route.tsx",
+      "children": [
+        "/(auth)/login",
+        "/(auth)/register"
+      ]
     },
-    "/about": {
-      "filePath": "about.tsx"
+    "/(user)": {
+      "filePath": "(user)/route.tsx",
+      "children": [
+        "/(user)/about",
+        "/(user)/my-drive",
+        "/(user)/",
+        "/(user)/folder/$id"
+      ]
     },
-    "/my-drive": {
-      "filePath": "my-drive.tsx"
+    "/(auth)/login": {
+      "filePath": "(auth)/login.tsx",
+      "parent": "/(auth)"
     },
-    "/folder/$id": {
-      "filePath": "folder/$id.tsx"
+    "/(auth)/register": {
+      "filePath": "(auth)/register.tsx",
+      "parent": "/(auth)"
+    },
+    "/(user)/about": {
+      "filePath": "(user)/about.tsx",
+      "parent": "/(user)"
+    },
+    "/(user)/my-drive": {
+      "filePath": "(user)/my-drive.tsx",
+      "parent": "/(user)"
+    },
+    "/(user)/": {
+      "filePath": "(user)/index.tsx",
+      "parent": "/(user)"
+    },
+    "/(user)/folder/$id": {
+      "filePath": "(user)/folder/$id.tsx",
+      "parent": "/(user)"
     }
   }
 }

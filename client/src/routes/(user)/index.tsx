@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import dummyData from '@/data/dummyData.json';
 
 // When we open our website this is the root directory
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute('/(user)/')({
   component: RouteComponent,
   loader: async () => {
     // Get the root directory data (folders and files)

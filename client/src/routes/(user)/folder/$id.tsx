@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import dummyData from '@/data/dummyData.json';
 
 // When we go inside a folder we use a dynamic route
-export const Route = createFileRoute('/folder/$id')({
+export const Route = createFileRoute('/(user)/folder/$id')({
   component: RouteComponent,
   loader: async ({ params }) => {
     // Get the folderId from the route params
