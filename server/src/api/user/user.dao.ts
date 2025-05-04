@@ -40,7 +40,10 @@ export class UserDAO {
       ...(deletedAt ? {} : { deletedAt: null }),
     })
       .select("-password -refreshToken")
-      .populate('plan');
+      .populate({
+        path: "plan",
+        select: "-description -features",
+      });
   }
 
   /**
@@ -57,7 +60,12 @@ export class UserDAO {
     return await User.findOne({
       email,
       ...(deletedAt ? {} : { deletedAt: null }),
-    }).select("-password -refreshToken");
+    })
+      .select("-refreshToken") // Exclude password cuz, login function will check it with bcrypt
+      .populate({
+        path: "plan",
+        select: "-description -features",
+      });
   }
 
   /**

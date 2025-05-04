@@ -74,9 +74,6 @@ class UserService {
       plan: defaultPlan.id,
     });
     
-    // Populate plan for response - no need for extra validation here
-    await user.populate("plan");
-
     // Generate tokens
     const { accessToken, refreshToken } =
       await this.generateAccessAndRefreshTokens(user);
@@ -313,6 +310,7 @@ class UserService {
   private sanitizeUser(user: IUser): UserResponseDTO {
     return sanitizeDocument<UserResponseDTO>(user, {
       excludeFields: ["password", "refreshToken", "__v"],
+      recursive: true,
     });
   }
 }

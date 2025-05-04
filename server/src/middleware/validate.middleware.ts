@@ -13,7 +13,7 @@ type AnyZodSchema = AnyZodObject | ZodEffects<any, any, any>;
  * @param source Where to find the data to validate (body, query, params)
  */
 export const validateData = (schema: AnyZodSchema, source: 'body' | 'query' | 'params' = 'body') => {
-  return asyncHandler(async (req: Request, _: Response, next: NextFunction) => {
+  return asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     try {
       // Validate the request data against the schema
       const data = await schema.parseAsync(req[source]);
@@ -26,17 +26,24 @@ export const validateData = (schema: AnyZodSchema, source: 'body' | 'query' | 'p
       // Handle Zod validation errors
       if (error instanceof ZodError) {
         // Format Zod errors into a more user-friendly structure
-        const errors = error.errors.map(err => {
+        const formattedErrors = error.errors.map(err => {
           const path = err.path.join('.');
-          return path ? `${path}: ${err.message}` : err.message;
+          return `${path ? path + ': ' : ''}${err.message}`;
         });
         
-        // Throw ApiError for asyncHandler to catch
-        throw new ApiError(400, 'Validation failed', errors);
+        // Create an ApiError instance for consistent error handling
+        const apiError = new ApiError(
+          400,
+          'Validation failed',
+          formattedErrors
+        );
+        
+        // Pass to error handler for consistent formatting
+        next(apiError);
+      } else {
+        // Pass other errors to the error handler
+        next(error);
       }
-      
-      // Re-throw other errors for asyncHandler to catch
-      throw error;
     }
   });
 };

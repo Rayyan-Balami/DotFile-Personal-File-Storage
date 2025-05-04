@@ -4,6 +4,7 @@ import express from "express";
 import apiRoutes from "./api/api.routes.js";
 import { CLIENT_ORIGIN, PORT } from "./constants.js";
 import { connectDatabase } from "./database/connection.js";
+import { errorHandler } from "./middleware/errorHandler.middleware.js";
 import logger from "./utils/logger.js";
 
 const app = express();
@@ -30,6 +31,9 @@ app.get("/", (_, res) => {
 
 // API routes
 app.use('/api', apiRoutes);
+
+// Error handling middleware - must be after all routes
+app.use(errorHandler);
 
 // Start server
 app.listen(PORT, () => {
