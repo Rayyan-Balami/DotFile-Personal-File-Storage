@@ -53,6 +53,7 @@ const UserSchema: Schema = new Schema(
     password: {
       type: String,
       required: true,
+      select: false,
     },
     role: {
       type: String,
@@ -70,6 +71,7 @@ const UserSchema: Schema = new Schema(
     refreshToken: {
       type: String,
       default: null,
+      select: false,
     },
     deletedAt: {
       type: Date,

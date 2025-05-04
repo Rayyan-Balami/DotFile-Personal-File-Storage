@@ -13,6 +13,7 @@ import {
   UserResponseDTO,
 } from "./user.dto.js";
 import { IUser } from "./user.model.js";
+import logger from "../../utils/logger.js";
 
 /**
  * Service class for user-related business logic
@@ -98,7 +99,7 @@ class UserService {
     refreshToken: string;
   }> {
     // Find user by email
-    const user = await userDAO.getUserByEmail(credentials.email);
+    const user = await userDAO.getUserByEmail(credentials.email, { includePassword: true });
     if (!user) {
       throw new ApiError(401, "Invalid credentials", ["email"]);
     }
@@ -282,10 +283,13 @@ class UserService {
     ) as JwtUserPayload;
 
     // Find user by ID
-    const user = await userDAO.getUserById(decoded.id);
+    const user = await userDAO.getUserById(decoded.id,{ includeRefreshToken: true });
     if (!user) {
       throw new ApiError(401, "Invalid refresh token", ["refreshToken"]);
     }
+    logger.dev("user given refresh token", refreshToken);
+    logger.dev("user found refresh token", user.refreshToken);
+    logger.info("user found", user);
     if (user.refreshToken !== refreshToken) {
       throw new ApiError(401, "Expired or used refresh token", ["refreshToken"]);
     }

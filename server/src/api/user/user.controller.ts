@@ -135,7 +135,12 @@ class UserController {
    * Refresh access token using refresh token
    */
   refreshToken = asyncHandler(async (req: Request, res: Response) => {
-    const { refreshToken } = req.body;
+    // Try to get token from cookies first, then body
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+    
+    if (!refreshToken) {
+      throw new ApiError(400, "Refresh token is required", ["refreshToken"]);
+    }
     
     // Get new tokens using the refresh token
     const { user, newAccessToken, newRefreshToken } = await userService.refreshAccessToken(refreshToken);
@@ -145,7 +150,7 @@ class UserController {
       .status(200)
       .cookie("refreshToken", newRefreshToken, this.cookieOptions)
       .cookie("accessToken", newAccessToken, this.cookieOptions)
-      .json(new ApiResponse(200, { user, newAccessToken }, "Access token refreshed"));
+      .json(new ApiResponse(200, { user, accessToken: newAccessToken }, "Access token refreshed"));
   });
 }
 

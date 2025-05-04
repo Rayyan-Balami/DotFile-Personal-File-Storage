@@ -32,14 +32,16 @@ export class UserDAO {
    */
   async getUserById(
     id: string,
-    deletedAt: boolean = false
+    options: { includeRefreshToken?: boolean; deletedAt?: boolean } = {}
   ): Promise<IUser | null> {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    const { includeRefreshToken = false, deletedAt = false } = options;
+    const selectFields = includeRefreshToken ? "refreshToken" : "-refreshToken";
     return await User.findOne({
       _id: id,
       ...(deletedAt ? {} : { deletedAt: null }),
     })
-      .select("-password -refreshToken")
+      .select(`${selectFields}`)
       .populate({
         path: "plan",
         select: "-description -features",
@@ -55,18 +57,22 @@ export class UserDAO {
    */
   async getUserByEmail(
     email: string,
-    deletedAt: boolean = false
+    options: { includePassword?: boolean; deletedAt?: boolean } = {}
   ): Promise<IUser | null> {
+    const { includePassword = false, deletedAt = false } = options;
+  
+    const selectFields = includePassword ? "password" : "-password";
+    
     return await User.findOne({
       email,
       ...(deletedAt ? {} : { deletedAt: null }),
     })
-      .select("-refreshToken") // Exclude password cuz, login function will check it with bcrypt
+      .select(`${selectFields}`)
       .populate({
         path: "plan",
         select: "-description -features",
       });
-  }
+  }  
 
   /**
    * Update a user's information
@@ -131,7 +137,7 @@ export class UserDAO {
       { _id: id },
       { refreshToken: tokenData.refreshToken },
       { new: true }
-    ).select("-password -refreshToken");
+    );
   }
 
   /**
@@ -158,7 +164,7 @@ export class UserDAO {
   async getAllUsers(deletedAt: boolean = false): Promise<IUser[]> {
     return await User.find({
       deletedAt: deletedAt ? { $ne: null } : null,
-    }).select("-password -refreshToken");
+    });
   }
 }
 

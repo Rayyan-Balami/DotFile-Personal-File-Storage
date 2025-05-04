@@ -30,6 +30,10 @@ export interface UpdateUserRefreshTokenDTO {
   refreshToken: string | null;
 }
 
+export interface RefreshTokenDTO {
+  refreshToken?: string; // Optional since it could come from cookies
+}
+
 export enum UserRole {
   USER = "user",
   ADMIN = "admin",
