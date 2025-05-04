@@ -67,7 +67,7 @@ const updateUserPasswordSchema = z
 
 const refreshTokenSchema = z.object({
   refreshToken: z.string().optional(),
-}).optional().default({});
+});
 
 export {
   loginUserSchema,
