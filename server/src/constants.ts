@@ -12,7 +12,7 @@ export const IS_PRODUCTION = NODE_ENV === 'production';
 
 // Server
 export const PORT = Number(process.env.PORT) || 3000;
-export const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:3000';
+export const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
 
 // Database
 export const MONGODB_URI = process.env.MONGODB_URI || '';
