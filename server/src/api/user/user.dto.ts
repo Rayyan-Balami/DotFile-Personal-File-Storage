@@ -1,9 +1,10 @@
-import mongoose from "mongoose";
+import { UserPlanResponseDTO } from "../plan/plan.dto.js";
 
 export interface CreateUserDTO {
   name: string;
   email: string;
   password: string;
+  plan: string;
 }
 
 export interface LoginUserDTO {
@@ -29,21 +30,28 @@ export interface UpdateUserRefreshTokenDTO {
   refreshToken: string | null;
 }
 
+export enum UserRole {
+  USER = "user",
+  ADMIN = "admin",
+}
+
 export interface UserResponseDTO {
   id: string;
   name: string;
   email: string;
   avatar: string;
-  role: 'user' | 'admin';
-  plan: string;
+  role: UserRole;
+  plan: string | UserPlanResponseDTO;
   storageUsed: number;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
 }
+
 export interface JwtUserPayload {
   id: string;
   email: string;
   name: string;
-  role: 'user' | 'admin';
+  role: UserRole;
+  iat: number;
 }

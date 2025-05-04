@@ -38,7 +38,9 @@ export class UserDAO {
     return await User.findOne({
       _id: id,
       ...(deletedAt ? {} : { deletedAt: null }),
-    }).select("-password -refreshToken");
+    })
+      .select("-password -refreshToken")
+      .populate('plan');
   }
 
   /**

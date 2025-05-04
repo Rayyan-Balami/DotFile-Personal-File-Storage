@@ -1,10 +1,10 @@
-import express from "express";
-import { PORT, CLIENT_ORIGIN } from "./constants.js";
-import logger from "./utils/logger.js";
-import { connectDatabase } from "./database/connection.js";
-import cors from "cors";
 import cookieParser from "cookie-parser";
-import entryRoute from "./api/entry.routes.js";
+import cors from "cors";
+import express from "express";
+import apiRoutes from "./api/api.routes.js";
+import { CLIENT_ORIGIN, PORT } from "./constants.js";
+import { connectDatabase } from "./database/connection.js";
+import logger from "./utils/logger.js";
 
 const app = express();
 
@@ -24,12 +24,12 @@ app.use(express.json({ limit: "20kb" }));
 app.use(express.urlencoded({ extended: true, limit: "20kb" }));
 
 // Base route
-app.get("/", (req, res) => {
+app.get("/", (_, res) => {
   res.send("Welcome to the Dotfile API");
 });
 
 // API routes
-app.use('/api', entryRoute);
+app.use('/api', apiRoutes);
 
 // Start server
 app.listen(PORT, () => {

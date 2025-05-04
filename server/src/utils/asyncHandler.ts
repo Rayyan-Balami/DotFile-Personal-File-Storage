@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from "express";
-import logger from "./logger.js";
+import { NextFunction, Request, Response } from "express";
 import { ApiError } from "./apiError.js"; // Adjust path as needed
+import logger from "./logger.js";
 
 /**
  * Wrapper for async route handlers to handle promise rejections

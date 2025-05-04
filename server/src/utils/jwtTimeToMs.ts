@@ -3,7 +3,7 @@
  * @param timeString JWT time string like '7d', '24h', etc.
  * @returns Time in milliseconds
  */
-export const getMillisecondsFromJwtTime = (timeString: string): number => {
+export const jwtTimeToMs = (timeString: string): number => {
   const unit = timeString.charAt(timeString.length - 1);
   const value = parseInt(timeString.slice(0, -1));
   

@@ -1,4 +1,4 @@
-import mongoose, {Schema, Document} from "mongoose";
+import mongoose, { Document, Schema } from "mongoose";
 
 // Define the plan interface
 export interface IPlan extends Document {
@@ -7,6 +7,7 @@ export interface IPlan extends Document {
   price: number;
   description: string;
   features: string[];
+  isDefault: boolean;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -35,6 +36,11 @@ const PlanSchema: Schema = new Schema(
       type: [String],
       required: true,
     },
+    isDefault: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
     deletedAt: {
       type: Date,
       default: null,
@@ -47,3 +53,4 @@ const PlanSchema: Schema = new Schema(
 
 // Create and export the model
 const Plan = mongoose.model<IPlan>("Plan", PlanSchema);
+export default Plan;

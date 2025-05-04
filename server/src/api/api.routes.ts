@@ -1,11 +1,13 @@
 import { Router } from "express";
-import { ApiResponse } from "../utils/apiResponse.js";
 import { NODE_ENV } from "../constants.js";
+import { ApiResponse } from "../utils/apiResponse.js";
+import userRoutes from "./user/user.routes.js";
+import planRoutes from "./plan/plan.routes.js";
 
-const router = Router();
+const apiRoutes = Router();
 
 // Root API route
-router.get("/", (req, res) => {
+apiRoutes.get("/", (req, res) => {
   res.status(200).json(
     new ApiResponse(
       200,
@@ -21,7 +23,7 @@ router.get("/", (req, res) => {
 });
 
 // Health check route
-router.get("/health", (req, res) => {
+apiRoutes.get("/health", (req, res) => {
   res.status(200).json(
     new ApiResponse(
       200,
@@ -35,4 +37,7 @@ router.get("/health", (req, res) => {
   );
 });
 
-export default router;
+apiRoutes.use("/user", userRoutes);
+apiRoutes.use("/plan", planRoutes);
+
+export default apiRoutes;

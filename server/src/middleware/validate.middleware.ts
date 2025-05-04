@@ -1,6 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import { AnyZodObject, ZodError, ZodEffects, z } from 'zod';
+import { NextFunction, Request, Response } from 'express';
+import { AnyZodObject, ZodEffects, ZodError } from 'zod';
 import { ApiError } from '../utils/apiError.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 // Type that covers both plain Zod objects and refined schemas
 type AnyZodSchema = AnyZodObject | ZodEffects<any, any, any>;
@@ -11,8 +12,8 @@ type AnyZodSchema = AnyZodObject | ZodEffects<any, any, any>;
  * @param schema Zod schema to validate against
  * @param source Where to find the data to validate (body, query, params)
  */
-export const validate = (schema: AnyZodSchema, source: 'body' | 'query' | 'params' = 'body') => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+export const validateData = (schema: AnyZodSchema, source: 'body' | 'query' | 'params' = 'body') => {
+  return asyncHandler(async (req: Request, _: Response, next: NextFunction) => {
     try {
       // Validate the request data against the schema
       const data = await schema.parseAsync(req[source]);
@@ -20,7 +21,7 @@ export const validate = (schema: AnyZodSchema, source: 'body' | 'query' | 'param
       // Update request with validated and transformed data
       req[source] = data;
       
-      return next();
+      next();
     } catch (error) {
       // Handle Zod validation errors
       if (error instanceof ZodError) {
@@ -30,14 +31,12 @@ export const validate = (schema: AnyZodSchema, source: 'body' | 'query' | 'param
           return path ? `${path}: ${err.message}` : err.message;
         });
         
-        // Pass to error handler as ApiError
-        return next(new ApiError(400, 'Validation failed', errors));
+        // Throw ApiError for asyncHandler to catch
+        throw new ApiError(400, 'Validation failed', errors);
       }
       
-      // Pass other errors to error handler
-      return next(error);
+      // Re-throw other errors for asyncHandler to catch
+      throw error;
     }
-  };
+  });
 };
-
-export default validate;

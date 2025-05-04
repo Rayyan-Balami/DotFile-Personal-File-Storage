@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { JwtUserPayload, UserResponseDTO } from "../api/user/user.dto.js";
 import userService from "../api/user/user.service.js";
@@ -14,8 +14,14 @@ declare global {
     }
   }
 }
-
-export const verifyJwt = asyncHandler(
+/**
+ * Middleware to verify JWT token and authenticate user
+ * 
+ * @param req Express request object
+ * @param res Express response object
+ * @param next Next function to call the next middleware
+ */
+export const verifyAuth = asyncHandler(
   async (req: Request, _: Response, next: NextFunction) => {
     const token =
       req.cookies?.accessToken ||

@@ -1,4 +1,6 @@
-import mongoose, { Schema, Document } from "mongoose";
+import bcryptjs from "bcryptjs";
+import jwt, { Secret, SignOptions } from "jsonwebtoken";
+import mongoose, { Document, Schema } from "mongoose";
 import {
   ACCESS_TOKEN_EXPIRY,
   ACCESS_TOKEN_SECRET,
@@ -6,9 +8,7 @@ import {
   REFRESH_TOKEN_EXPIRY,
   REFRESH_TOKEN_SECRET,
 } from "../../constants.js";
-import bcryptjs from "bcryptjs";
-import jwt, { Secret, SignOptions } from "jsonwebtoken";
-import { JwtUserPayload } from "./user.dto.js";
+import { JwtUserPayload, UserRole } from "./user.dto.js";
 
 // Define interface for User methods
 interface IUserMethods {
@@ -23,7 +23,7 @@ export interface IUser extends Document, IUserMethods {
   name: string;
   email: string;
   password: string;
-  role: "user" | "admin";
+  role: UserRole;
   plan: Schema.Types.ObjectId;
   storageUsed: number;
   refreshToken: string;
@@ -56,8 +56,8 @@ const UserSchema: Schema = new Schema(
     },
     role: {
       type: String,
-      enum: ['user', 'admin'],
-      default: 'user'
+      enum: Object.values(UserRole),
+      default: UserRole.USER,
     },
     plan: {
       type: Schema.Types.ObjectId,
@@ -96,7 +96,13 @@ UserSchema.methods.checkPassword = async function (password: string) {
 
 // Add a method to generate access token
 UserSchema.methods.generateAccessToken = function () {
-  const payload : JwtUserPayload = { id: this._id, email: this.email, name: this.name, role: this.role };
+  const payload: JwtUserPayload = {
+    id: this._id,
+    email: this.email,
+    name: this.name,
+    role: this.role,
+    iat: Math.floor(Date.now() / 1000),
+  };
   const secret: Secret = ACCESS_TOKEN_SECRET;
   const options: SignOptions = {
     expiresIn: ACCESS_TOKEN_EXPIRY as SignOptions["expiresIn"],
@@ -111,7 +117,13 @@ UserSchema.methods.generateAccessToken = function () {
 
 // Add a method to generate refresh token
 UserSchema.methods.generateRefreshToken = function () {
-  const payload : JwtUserPayload = { id: this._id, email: this.email, name: this.name, role: this.role };
+  const payload: JwtUserPayload = {
+    id: this._id,
+    email: this.email,
+    name: this.name,
+    role: this.role,
+    iat: Math.floor(Date.now() / 1000),
+  };
   const secret: Secret = REFRESH_TOKEN_SECRET;
   const options: SignOptions = {
     expiresIn: REFRESH_TOKEN_EXPIRY as SignOptions["expiresIn"],

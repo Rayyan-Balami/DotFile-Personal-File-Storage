@@ -1,14 +1,18 @@
+import jwt from "jsonwebtoken";
+import { REFRESH_TOKEN_SECRET } from "../../constants.js";
+import { ApiError } from "../../utils/apiError.js";
+import { sanitizeDocument } from "../../utils/sanitizeDocument.js";
+import planService from "../plan/plan.service.js";
 import userDAO from "./user.dao.js";
 import {
   CreateUserDTO,
+  JwtUserPayload,
   LoginUserDTO,
   UpdateUserDTO,
   UpdateUserPasswordDTO,
   UserResponseDTO,
 } from "./user.dto.js";
 import { IUser } from "./user.model.js";
-import { ApiError } from "../../utils/apiError.js";
-import { sanitizeDocument } from "../../utils/sanitizeDocument.js";
 
 /**
  * Service class for user-related business logic
@@ -20,23 +24,16 @@ class UserService {
   /**
    * Generate access and refresh tokens for a user
    *
-   * @param userId User ID
+   * @param user User object
    * @returns Object containing access and refresh tokens
-   * @throws ApiError if user not found
    */
-  async generateAccessAndRefreshTokens(userId: string) {
-    // Find user by ID
-    const user = await userDAO.getUserById(userId);
-    if (!user) {
-      throw new ApiError(404, "User not found", ["id"]);
-    }
-
-    // Generate tokens
+  async generateAccessAndRefreshTokens(user: IUser) {
+    // Generate tokens directly
     const accessToken = user.generateAccessToken();
     const refreshToken = user.generateRefreshToken();
 
     // set refresh token in the database
-    await userDAO.updateUserRefreshToken(userId, {
+    await userDAO.updateUserRefreshToken(user.id, {
       refreshToken,
     });
 
@@ -64,12 +61,25 @@ class UserService {
     if (existingUser) {
       throw new ApiError(409, "Email already in use", ["email"]);
     }
+    
+    // Get default plan
+    const defaultPlan = await planService.getDefaultPlan();
+    if (!defaultPlan) {
+      throw new ApiError(500, "Default plan not found", ["plan"]);
+    }
 
-    // Create the user in database
-    const user = await userDAO.createUser(data);
+    // Create user with default plan
+    const user = await userDAO.createUser({
+      ...data,
+      plan: defaultPlan.id,
+    });
+    
+    // Populate plan for response - no need for extra validation here
+    await user.populate("plan");
 
     // Generate tokens
-    const { accessToken, refreshToken } = await this.generateAccessAndRefreshTokens(user.id);
+    const { accessToken, refreshToken } =
+      await this.generateAccessAndRefreshTokens(user);
 
     return {
       user: this.sanitizeUser(user),
@@ -104,7 +114,7 @@ class UserService {
 
     // Generate tokens
     const { accessToken, refreshToken } =
-      await this.generateAccessAndRefreshTokens(user.id);
+      await this.generateAccessAndRefreshTokens(user);
 
     return {
       user: this.sanitizeUser(user),
@@ -257,6 +267,44 @@ class UserService {
   }
 
   /**
+   * Refresh access token using refresh token
+   *
+   * @param refreshToken The refresh token provided by the client
+   * @returns User data and new tokens (access + refresh)
+   * @throws ApiError if refresh token is invalid or expired
+   */
+  async refreshAccessToken(refreshToken: string): Promise<{
+    user: UserResponseDTO;
+    newAccessToken: string;
+    newRefreshToken: string;
+  }> {
+    // Verify refresh token
+    const decoded = jwt.verify(
+      refreshToken,
+      REFRESH_TOKEN_SECRET
+    ) as JwtUserPayload;
+
+    // Find user by ID
+    const user = await userDAO.getUserById(decoded.id);
+    if (!user) {
+      throw new ApiError(401, "Invalid refresh token", ["refreshToken"]);
+    }
+    if (user.refreshToken !== refreshToken) {
+      throw new ApiError(401, "Expired or used refresh token", ["refreshToken"]);
+    }
+
+    // Generate new tokens
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
+      await this.generateAccessAndRefreshTokens(user);
+
+    return {
+      user: this.sanitizeUser(user),
+      newAccessToken,
+      newRefreshToken,
+    };
+  }
+
+  /**
    * Remove sensitive data from user object
    *
    * @param user User document
@@ -264,7 +312,7 @@ class UserService {
    */
   private sanitizeUser(user: IUser): UserResponseDTO {
     return sanitizeDocument<UserResponseDTO>(user, {
-      excludeFields: ["password", "refreshToken"],
+      excludeFields: ["password", "refreshToken", "__v"],
     });
   }
 }

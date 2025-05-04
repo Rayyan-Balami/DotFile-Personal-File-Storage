@@ -1,55 +1,90 @@
-import { Router } from 'express';
-import userController from './user.controller.js';
-import { validate } from '../../middleware/validate.js';
+import { Router } from "express";
+import { restrictTo } from "../../middleware/accessControl.middleware.js";
+import { verifyAuth } from "../../middleware/auth.middleware.js";
+import { verifyGuest } from "../../middleware/guest.middleware.js";
+import { validateData } from "../../middleware/validate.middleware.js";
+import userController from "./user.controller.js";
+import { UserRole } from "./user.dto.js";
 import {
   loginUserSchema,
+  refreshTokenSchema,
   registerUserSchema,
+  updateUserPasswordSchema,
   updateUserSchema,
-  updateUserPasswordSchema
-} from './user.validator.js';
-import asyncHandler from '../../utils/asyncHandler.js';
+} from "./user.validator.js";
 
-const router = Router();
+const userRoutes = Router();
 
-// Auth routes
-router.post(
-  '/register',
-  validate(registerUserSchema),
-  asyncHandler(userController.register)
+// Public routes (no auth required)
+userRoutes.post(
+  "/register",
+  verifyGuest,
+  validateData(registerUserSchema),
+  userController.register
 );
 
-router.post(
-  '/login',
-  validate(loginUserSchema),
-  asyncHandler(userController.login)
+userRoutes.post(
+  "/login",
+  verifyGuest,
+  validateData(loginUserSchema),
+  userController.login
 );
 
-// User routes
-router.get(
-  '/',
-  asyncHandler(userController.getAllUsers)
+userRoutes.post(
+  "/refresh-token",
+  verifyGuest,
+  validateData(refreshTokenSchema),
+  userController.refreshToken
 );
 
-router.get(
-  '/:id',
-  asyncHandler(userController.getUserById)
+// Logout route - only for authenticated users
+userRoutes.post(
+  "/logout",
+  verifyAuth,
+  restrictTo([UserRole.USER, UserRole.ADMIN]),
+  userController.logout
 );
 
-router.put(
-  '/:id',
-  validate(updateUserSchema),
-  asyncHandler(userController.updateUser)
+// User routes - Admin only can get all users
+userRoutes.get(
+  "/",
+  verifyAuth,
+  restrictTo([UserRole.ADMIN]),
+  userController.getAllUsers
 );
 
-router.patch(
-  '/:id/password',
-  validate(updateUserPasswordSchema),
-  asyncHandler(userController.updateUserPassword)
+// Get user profile - users can get their own, admin can get any
+userRoutes.get(
+  "/:id",
+  verifyAuth,
+  restrictTo([UserRole.USER, UserRole.ADMIN]),
+  userController.getUserById
 );
 
-router.delete(
-  '/:id',
-  asyncHandler(userController.deleteUser)
+// Update user profile - users can update their own, admin can update any
+userRoutes.put(
+  "/:id",
+  verifyAuth,
+  restrictTo([UserRole.USER, UserRole.ADMIN]),
+  validateData(updateUserSchema),
+  userController.updateUser
 );
 
-export default router;
+// Update password - users can update their own, admin can update any
+userRoutes.patch(
+  "/:id/password",
+  verifyAuth,
+  restrictTo([UserRole.USER, UserRole.ADMIN]),
+  validateData(updateUserPasswordSchema),
+  userController.updateUserPassword
+);
+
+// Delete user - admin only operation
+userRoutes.delete(
+  "/:id",
+  verifyAuth,
+  restrictTo([UserRole.ADMIN]),
+  userController.deleteUser
+);
+
+export default userRoutes;

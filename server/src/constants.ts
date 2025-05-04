@@ -20,7 +20,7 @@ export const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || 'dotfile';
 
 // Authentication
 export const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET || '';
-export const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || '1d';
+export const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || '1h';
 export const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || '';
 export const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || '7d';
 

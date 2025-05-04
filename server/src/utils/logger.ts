@@ -19,7 +19,7 @@ const logger = {
   /**
    * Log informational message
    */
-  log: (message: string, ...args: any[]): void => {
+  info: (message: string, ...args: any[]): void => {
     console.log(`${colors.blue}[INFO] ${message}${colors.reset}`, ...args);
   },
   
