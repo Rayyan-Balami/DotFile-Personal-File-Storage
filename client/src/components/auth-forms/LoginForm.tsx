@@ -8,33 +8,56 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-import { loginFormSchema, LoginFormValues } from "@/validation/authForm";
+import { cn, logger } from "@/lib/utils";
+import { loginUserSchema, LoginUserInput } from "@/validation/authForm";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
+import { useLogin } from "@/api/user/user.query";
+import { toast } from "sonner";
+import { useAuthStore } from "@/stores/authStore";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
-  const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginFormSchema),
+  const navigate = useNavigate();
+  const login = useLogin();
+  const setAuth = useAuthStore((state) => state.setAuth);
+
+  const form = useForm<LoginUserInput>({
+    resolver: zodResolver(loginUserSchema),
     defaultValues: {
       email: "",
       password: "",
     },
   });
 
-  async function onSubmit(values: LoginFormValues) {
+  async function onSubmit(values: LoginUserInput) {
     try {
-      // Here you would normally handle authentication
-      console.log(values);
+      const response = await login.mutateAsync(values);
 
-      // Simulating API request delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    } catch (error) {
-      console.error(error);
+      // Extract user and token from the response
+      const { user, accessToken } = response.data;
+      console.log("Login response:", response);
+      console.log("User data:", user);
+      console.log("Access token:", accessToken);
+
+      // Store in Zustand
+      setAuth(user, accessToken);
+
+      //log what is in the store
+      console.log("Zustand store:", useAuthStore.getState());
+
+      toast.success("Login successful!");
+      navigate({ to: "/" }); // Navigate to home or dashboard
+    } catch (error: any) {
+      logger.error("Login error:", error);
+      if (error.code === "ECONNABORTED") {
+        toast.error("Login failed due to a timeout. Please try again.");
+      } else {
+        toast.error("Login failed. Please check your credentials.");
+      }
     }
   }
 
@@ -75,12 +98,12 @@ export function LoginForm({
               <FormItem className="gap-3">
                 <div className="flex items-center">
                   <FormLabel htmlFor="password">Password</FormLabel>
-                  <a
-                    href="#"
+                  <Link
+                    to="/"
                     className="ml-auto text-xs underline-offset-4 hover:underline"
                   >
                     Forgot your password?
-                  </a>
+                  </Link>
                 </div>
                 <FormControl>
                   <Input

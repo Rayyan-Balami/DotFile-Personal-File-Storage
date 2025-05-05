@@ -1,11 +1,11 @@
-import mongoose from "mongoose";
 import {
   CreateUserDTO,
   UpdateUserDTO,
   UpdateUserPasswordDTO,
   UpdateUserRefreshTokenDTO,
-} from "./user.dto.js";
-import User, { IUser } from "./user.model.js";
+} from "@api/user/user.dto.js";
+import User, { IUser } from "@api/user/user.model.js";
+import mongoose from "mongoose";
 
 /**
  * Data Access Object for User operations
@@ -27,7 +27,7 @@ export class UserDAO {
    * Find a user by their ID
    *
    * @param id - MongoDB ObjectId string of the user
-   * @param deletedAt - When true, includes soft-deleted users in search
+   * @param options - Options for including refresh token and/or deleted users
    * @returns User document if found, null otherwise
    */
   async getUserById(
@@ -36,16 +36,21 @@ export class UserDAO {
   ): Promise<IUser | null> {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
     const { includeRefreshToken = false, deletedAt = false } = options;
-    const selectFields = includeRefreshToken ? "refreshToken" : "-refreshToken";
-    return await User.findOne({
+    
+    const query = User.findOne({
       _id: id,
       ...(deletedAt ? {} : { deletedAt: null }),
-    })
-      .select(`${selectFields}`)
-      .populate({
-        path: "plan",
-        select: "-description -features",
-      });
+    });
+    
+    // Either exclude refreshToken or include all fields
+    if (includeRefreshToken) {
+      query.select("+refreshToken");
+    }
+    
+    return await query.populate({
+      path: "plan",
+      select: "-description -features",
+    });
   }
 
   /**
@@ -60,19 +65,24 @@ export class UserDAO {
     options: { includePassword?: boolean; deletedAt?: boolean } = {}
   ): Promise<IUser | null> {
     const { includePassword = false, deletedAt = false } = options;
-  
-    const selectFields = includePassword ? "password" : "-password";
-    
-    return await User.findOne({
+
+    // Instead of only selecting the password field
+    // We want to either include or exclude the password
+    const query = User.findOne({
       email,
       ...(deletedAt ? {} : { deletedAt: null }),
-    })
-      .select(`${selectFields}`)
-      .populate({
-        path: "plan",
-        select: "-description -features",
-      });
-  }  
+    });
+    
+    // Either exclude password or include it, but don't restrict other fields
+    if (includePassword) {
+      query.select("+password");
+    }
+
+    return await query.populate({
+      path: "plan",
+      select: "-description -features",
+    });
+  }
 
   /**
    * Update a user's information

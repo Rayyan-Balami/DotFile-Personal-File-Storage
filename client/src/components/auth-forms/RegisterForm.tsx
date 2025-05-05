@@ -9,17 +9,22 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { registerFormSchema, RegisterFormValues } from "@/validation/authForm";
+import { registerUserSchema, RegisterUserInput } from "@/validation/authForm";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
+import { useRegister } from "@/api/user/user.query";
+import { toast } from "sonner";
 
 export function RegisterForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
-  const form = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerFormSchema),
+  const navigate = useNavigate();
+  const register = useRegister();
+
+  const form = useForm<RegisterUserInput>({
+    resolver: zodResolver(registerUserSchema),
     defaultValues: {
       name: "",
       email: "",
@@ -28,15 +33,14 @@ export function RegisterForm({
     },
   });
 
-  async function onSubmit(values: RegisterFormValues) {
+  async function onSubmit(values: RegisterUserInput) {
     try {
-      // Handle registration logic here
-      console.log(values);
-
-      // Simulate API request delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await register.mutateAsync(values);
+      toast.success("Registration successful! Please log in.");
+      navigate({ to: "/login" });
     } catch (error) {
       console.error(error);
+      toast.error("Registration failed. Please try again.");
     }
   }
 

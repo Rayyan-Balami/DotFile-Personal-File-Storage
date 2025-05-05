@@ -9,7 +9,15 @@
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@middleware/*": ["src/middleware/*"],
+      "@api/*": ["src/api/*"],
+      "@utils/*": ["src/utils/*"],
+      "@database/*": ["src/database/*"],
+      "@config/*": ["src/config/*"],
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

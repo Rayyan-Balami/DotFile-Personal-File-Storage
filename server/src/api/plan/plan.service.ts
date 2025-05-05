@@ -1,9 +1,14 @@
-import { ApiError } from "../../utils/apiError.js";
-import { sanitizeDocument } from "../../utils/sanitizeDocument.js";
-import userService from "../user/user.service.js";
-import planDAO from "./plan.dao.js";
-import { CreatePlanDTO, PlanResponseDTO, UpdatePlanDTO, UserPlanResponseDTO } from "./plan.dto.js";
-import { IPlan } from "./plan.model.js";
+import planDAO from "@api/plan/plan.dao.js";
+import {
+  CreatePlanDTO,
+  PlanResponseDTO,
+  UpdatePlanDTO,
+  UserPlanResponseDTO,
+} from "@api/plan/plan.dto.js";
+import { IPlan } from "@api/plan/plan.model.js";
+import userService from "@api/user/user.service.js";
+import { ApiError } from "@utils/apiError.js";
+import { sanitizeDocument } from "@utils/sanitizeDocument.js";
 
 /**
  * Service class for plan-related business logic
@@ -83,9 +88,11 @@ class PlanService {
    * @param includeDeleted Whether to include soft-deleted plans
    * @returns Array of plan data
    */
-  async getAllPlans(includeDeleted: boolean = false): Promise<PlanResponseDTO[]> {
+  async getAllPlans(
+    includeDeleted: boolean = false
+  ): Promise<PlanResponseDTO[]> {
     const plans = await planDAO.getAllPlans(includeDeleted);
-    return plans.map(plan => this.sanitizePlan(plan));
+    return plans.map((plan) => this.sanitizePlan(plan));
   }
 
   /**
@@ -131,7 +138,7 @@ class PlanService {
     if (!plan) {
       throw new ApiError(404, "Plan not found", ["id"]);
     }
-    
+
     if (plan.name === "Free") {
       throw new ApiError(400, "Cannot delete the Free plan", ["name"]);
     }
@@ -146,13 +153,16 @@ class PlanService {
 
   /**
    * Subscribe a user to a plan
-   * 
+   *
    * @param userId User ID
    * @param planId Plan ID
    * @returns Updated user data
    * @throws ApiError if plan or user not found
    */
-  async subscribeToPlan(userId: string, planId: string): Promise<UserPlanResponseDTO> {
+  async subscribeToPlan(
+    userId: string,
+    planId: string
+  ): Promise<UserPlanResponseDTO> {
     // Verify plan exists
     const plan = await planDAO.getPlanById(planId);
     if (!plan) {
@@ -161,52 +171,60 @@ class PlanService {
 
     // Update user's plan
     const user = await userService.updateUser(userId, { plan: planId });
-    
+
     // Calculate storage used percentage
-    const storagePercentUsed = plan.storageLimit > 0 
-      ? Math.min(100, Math.round((user.storageUsed / plan.storageLimit) * 100))
-      : 0;
-    
+    const storagePercentUsed =
+      plan.storageLimit > 0
+        ? Math.min(
+            100,
+            Math.round((user.storageUsed / plan.storageLimit) * 100)
+          )
+        : 0;
+
     // Combine user and plan data
     return {
       ...this.sanitizePlan(plan),
       storageUsed: user.storageUsed,
-      storagePercentUsed
+      storagePercentUsed,
     };
   }
 
   /**
    * Get a user's current plan with usage information
-   * 
+   *
    * @param userId User ID
    * @returns Plan data with user usage information
    */
   async getUserPlan(userId: string): Promise<UserPlanResponseDTO> {
     // Get user with populated plan
     const user = await userService.getUserById(userId);
-    
+
     if (!user.plan) {
       throw new ApiError(404, "User has no plan assigned", ["plan"]);
     }
-    
+
     // Get plan details
-    const planId = typeof user.plan === 'object' ? user.plan.id : user.plan;
+    const planId = typeof user.plan === "object" ? user.plan.id : user.plan;
     const plan = await planDAO.getPlanById(planId as string);
-    
+
     if (!plan) {
       throw new ApiError(404, "Plan not found", ["plan"]);
     }
-    
+
     // Calculate storage used percentage
-    const storagePercentUsed = plan.storageLimit > 0 
-      ? Math.min(100, Math.round((user.storageUsed / plan.storageLimit) * 100))
-      : 0;
-    
+    const storagePercentUsed =
+      plan.storageLimit > 0
+        ? Math.min(
+            100,
+            Math.round((user.storageUsed / plan.storageLimit) * 100)
+          )
+        : 0;
+
     // Return plan with usage info
     return {
       ...this.sanitizePlan(plan),
       storageUsed: user.storageUsed,
-      storagePercentUsed
+      storagePercentUsed,
     };
   }
 
@@ -219,7 +237,7 @@ class PlanService {
   private sanitizePlan(plan: IPlan): PlanResponseDTO {
     return sanitizeDocument<PlanResponseDTO>(plan, {
       excludeFields: ["__v"],
-      includeFields: ["id", "name", "storageLimit", "price"] // Only include essential fields
+      includeFields: ["id", "name", "storageLimit", "price"], // Only include essential fields
     });
   }
 

@@ -1,14 +1,13 @@
 import { NextFunction, Request, Response } from "express";
 import { Types } from "mongoose";
-import { AccessLevel } from "../api/storage/storage.dto.js";
-import Storage from "../api/storage/storage.model.js";
-import { UserRole } from "../api/user/user.dto.js";
-import { ApiError } from "../utils/apiError.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
+import { AccessLevel } from "@api/storage/storage.dto.js";
+import Storage from "@api/storage/storage.model.js";
+import { UserRole } from "@api/user/user.dto.js";
+import { ApiError } from "@utils/apiError.js";
+import { asyncHandler } from "@utils/asyncHandler.js";
 
 /**
  * Middleware to restrict access based on user roles
- * 
  * @param allowedRoles Array of roles that are allowed to access the route
  */
 export const restrictTo = (allowedRoles: UserRole[]) => {
@@ -20,11 +19,14 @@ export const restrictTo = (allowedRoles: UserRole[]) => {
 
     // Check if user role is in allowed roles
     const userRole = req.user.role as UserRole;
-    
-    if (!allowedRoles.includes(userRole) && !allowedRoles.includes(UserRole.ADMIN)) {
+
+    if (
+      !allowedRoles.includes(userRole) &&
+      !allowedRoles.includes(UserRole.ADMIN)
+    ) {
       throw new ApiError(
-        403, 
-        `Access denied. Required role: ${allowedRoles.join(' or ')}`,
+        403,
+        `Access denied. Required role: ${allowedRoles.join(" or ")}`,
         ["authorization"]
       );
     }
@@ -35,10 +37,12 @@ export const restrictTo = (allowedRoles: UserRole[]) => {
 
 /**
  * Middleware to check if user has access to a storage item
- * 
+ *
  * @param requiredAccess Minimum access level required (view, edit, owner)
  */
-export const checkStorageAccess = (requiredAccess: AccessLevel = AccessLevel.VIEW) => {
+export const checkStorageAccess = (
+  requiredAccess: AccessLevel = AccessLevel.VIEW
+) => {
   return asyncHandler(async (req: Request, _: Response, next: NextFunction) => {
     if (!req.user) {
       throw new ApiError(401, "Authentication required", ["authentication"]);
@@ -51,9 +55,9 @@ export const checkStorageAccess = (requiredAccess: AccessLevel = AccessLevel.VIE
     }
 
     // Get storage item
-    const storageItem = await Storage.findOne({ 
+    const storageItem = await Storage.findOne({
       _id: storageId,
-      deletedAt: null
+      deletedAt: null,
     });
 
     if (!storageItem) {
@@ -78,14 +82,16 @@ export const checkStorageAccess = (requiredAccess: AccessLevel = AccessLevel.VIE
     );
 
     if (!userSharedAccess) {
-      throw new ApiError(403, "You don't have access to this item", ["authorization"]);
+      throw new ApiError(403, "You don't have access to this item", [
+        "authorization",
+      ]);
     }
 
     // Check if user has sufficient access level
     const accessMap = {
       [AccessLevel.VIEW]: 1,
       [AccessLevel.EDIT]: 2,
-      [AccessLevel.OWNER]: 3
+      [AccessLevel.OWNER]: 3,
     };
 
     if (accessMap[userSharedAccess.accessLevel] < accessMap[requiredAccess]) {

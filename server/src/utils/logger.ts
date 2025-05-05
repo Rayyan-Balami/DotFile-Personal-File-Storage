@@ -1,4 +1,4 @@
-import { IS_PRODUCTION } from '../constants.js';
+import { IS_PRODUCTION } from '@config/constants.js';
 
 // ANSI color codes
 const colors = {

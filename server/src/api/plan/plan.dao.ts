@@ -1,6 +1,6 @@
+import { CreatePlanDTO, UpdatePlanDTO } from "@api/plan/plan.dto.js";
+import Plan, { IPlan } from "@api/plan/plan.model.js";
 import mongoose from "mongoose";
-import { CreatePlanDTO, UpdatePlanDTO } from "./plan.dto.js";
-import Plan, { IPlan } from "./plan.model.js";
 
 /**
  * Data Access Object for Plan operations
@@ -55,13 +55,11 @@ export class PlanDAO {
 
   /**
    * Find the current default plan
-   * 
+   *
    * @param includeDeleted - When true, includes soft-deleted plans in search
    * @returns Default plan document if found, null otherwise
    */
-  async getDefaultPlan(
-    includeDeleted: boolean = false
-  ): Promise<IPlan | null> {
+  async getDefaultPlan(includeDeleted: boolean = false): Promise<IPlan | null> {
     return await Plan.findOne({
       isDefault: true,
       ...(includeDeleted ? {} : { deletedAt: null }),

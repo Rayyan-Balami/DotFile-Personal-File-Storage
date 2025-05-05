@@ -1,7 +1,6 @@
+import { ApiError } from '@utils/apiError.js';
+import logger from '@utils/logger.js';
 import { NextFunction, Request, Response } from 'express';
-import { ApiError } from '../utils/apiError.js';
-import logger from '../utils/logger.js';
-import { ApiResponse } from '../utils/apiResponse.js';
 
 /**
  * Global error handling middleware

@@ -1,14 +1,14 @@
-import bcryptjs from "bcryptjs";
-import jwt, { Secret, SignOptions } from "jsonwebtoken";
-import mongoose, { Document, Schema } from "mongoose";
+import { JwtUserPayload, UserRole } from "@api/user/user.dto.js";
 import {
   ACCESS_TOKEN_EXPIRY,
   ACCESS_TOKEN_SECRET,
   DEFAULT_USER_AVATAR,
   REFRESH_TOKEN_EXPIRY,
   REFRESH_TOKEN_SECRET,
-} from "../../constants.js";
-import { JwtUserPayload, UserRole } from "./user.dto.js";
+} from "@config/constants.js";
+import bcryptjs from "bcryptjs";
+import jwt, { Secret, SignOptions } from "jsonwebtoken";
+import mongoose, { Document, Schema } from "mongoose";
 
 // Define interface for User methods
 interface IUserMethods {

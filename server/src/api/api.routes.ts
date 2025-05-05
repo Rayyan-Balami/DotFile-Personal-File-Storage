@@ -1,13 +1,14 @@
 import { Router } from "express";
-import { NODE_ENV } from "../constants.js";
-import { ApiResponse } from "../utils/apiResponse.js";
-import userRoutes from "./user/user.routes.js";
-import planRoutes from "./plan/plan.routes.js";
+import { NODE_ENV } from "@config/constants.js";
+import { ApiResponse } from "@utils/apiResponse.js";
+import userRoutes from "@api/user/user.routes.js";
+import planRoutes from "@api/plan/plan.routes.js";
 
 const apiRoutes = Router();
 
 // Root API route
-apiRoutes.get("/", (req, res) => {
+apiRoutes
+.get("/", (_, res) => {
   res.status(200).json(
     new ApiResponse(
       200,
@@ -20,10 +21,8 @@ apiRoutes.get("/", (req, res) => {
       "API is running"
     )
   );
-});
-
-// Health check route
-apiRoutes.get("/health", (req, res) => {
+})
+.get("/health", (_, res) => {
   res.status(200).json(
     new ApiResponse(
       200,
@@ -37,7 +36,7 @@ apiRoutes.get("/health", (req, res) => {
   );
 });
 
-apiRoutes.use("/user", userRoutes);
-apiRoutes.use("/plan", planRoutes);
+apiRoutes.use("/", userRoutes);
+apiRoutes.use("/", planRoutes);
 
 export default apiRoutes;

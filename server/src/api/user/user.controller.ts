@@ -1,10 +1,10 @@
+import userService from "@api/user/user.service.js";
+import { IS_PRODUCTION, REFRESH_TOKEN_EXPIRY } from "@config/constants.js";
+import { ApiError } from "@utils/apiError.js";
+import { ApiResponse } from "@utils/apiResponse.js";
+import asyncHandler from "@utils/asyncHandler.js";
+import { jwtTimeToMs } from "@utils/jwtTimeToMs.js";
 import { Request, Response } from "express";
-import { IS_PRODUCTION, REFRESH_TOKEN_EXPIRY } from "../../constants.js";
-import { ApiError } from "../../utils/apiError.js";
-import { ApiResponse } from "../../utils/apiResponse.js";
-import asyncHandler from "../../utils/asyncHandler.js";
-import { jwtTimeToMs } from "../../utils/jwtTimeToMs.js";
-import userService from "./user.service.js";
 
 class UserController {
   cookieOptions = {
@@ -17,7 +17,9 @@ class UserController {
    */
   register = asyncHandler(async (req: Request, res: Response) => {
     // Service handles both user creation and token generation
-    const { user, accessToken, refreshToken } = await userService.registerUser(req.body);
+    const { user, accessToken, refreshToken } = await userService.registerUser(
+      req.body
+    );
 
     // Return user data and set cookies
     res
@@ -137,21 +139,75 @@ class UserController {
   refreshToken = asyncHandler(async (req: Request, res: Response) => {
     // Try to get token from cookies first, then body
     const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
-    
+
     if (!refreshToken) {
       throw new ApiError(400, "Refresh token is required", ["refreshToken"]);
     }
-    
+
     // Get new tokens using the refresh token
-    const { user, newAccessToken, newRefreshToken } = await userService.refreshAccessToken(refreshToken);
-    
+    const { user, newAccessToken, newRefreshToken } =
+      await userService.refreshAccessToken(refreshToken);
+
     // Return user data and set cookies with new tokens
     res
       .status(200)
       .cookie("refreshToken", newRefreshToken, this.cookieOptions)
       .cookie("accessToken", newAccessToken, this.cookieOptions)
-      .json(new ApiResponse(200, { user, accessToken: newAccessToken }, "Access token refreshed"));
+      .json(
+        new ApiResponse(
+          200,
+          { user, accessToken: newAccessToken },
+          "Access token refreshed"
+        )
+      );
   });
+
+  /**
+   * Get the current authenticated user's profile
+   */
+  getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
+    // req.user is already available from the auth middleware
+    res.json(
+      new ApiResponse(200, { user: req.user }, "User retrieved successfully")
+    );
+  });
+
+  /**
+   * Update the current authenticated user's profile
+   */
+  updateCurrentUser = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new ApiError(401, "Unauthorized", ["authentication"]);
+    }
+
+    const updatedUser = await userService.updateUser(req.user.id, req.body);
+    res.json(
+      new ApiResponse(200, { user: updatedUser }, "User updated successfully")
+    );
+  });
+
+  /**
+   * Update the current authenticated user's password
+   */
+  updateCurrentUserPassword = asyncHandler(
+    async (req: Request, res: Response) => {
+      if (!req.user) {
+        throw new ApiError(401, "Unauthorized", ["authentication"]);
+      }
+
+      const updatedUser = await userService.updateUserPassword(
+        req.user.id,
+        req.body
+      );
+      res.json(
+        new ApiResponse(
+          200,
+          { user: updatedUser },
+          "Password updated successfully"
+        )
+      );
+    }
+  );
 }
 
 export default new UserController();

@@ -1,10 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { JwtUserPayload, UserResponseDTO } from "../api/user/user.dto.js";
-import userService from "../api/user/user.service.js";
-import { ACCESS_TOKEN_SECRET } from "../constants.js";
-import { ApiError } from "../utils/apiError.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
+import { JwtUserPayload, UserResponseDTO } from "@api/user/user.dto.js";
+import userService from "@api/user/user.service.js";
+import { ACCESS_TOKEN_SECRET } from "@config/constants.js";
+import { ApiError } from "@utils/apiError.js";
+import { asyncHandler } from "@utils/asyncHandler.js";
 
 // Type declaration for request object
 declare global {

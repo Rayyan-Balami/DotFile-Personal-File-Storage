@@ -1,4 +1,4 @@
-import { UserPlanResponseDTO } from "../plan/plan.dto.js";
+import { UserPlanResponseDTO } from "@api/plan/plan.dto.js";
 
 export interface CreateUserDTO {
   name: string;

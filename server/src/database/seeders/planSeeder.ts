@@ -1,5 +1,5 @@
-import Plan from "../../api/plan/plan.model.js";
-import logger from "../../utils/logger.js";
+import Plan from "@api/plan/plan.model.js";
+import logger from "@utils/logger.js";
 
 // Function to seed default plans if they don't exist or force update
 export const seedDefaultPlans = async (forceUpdate = false): Promise<void> => {

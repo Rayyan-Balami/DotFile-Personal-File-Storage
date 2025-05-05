@@ -1,11 +1,9 @@
-
 import {
   BadgeCheck,
   Bell,
   ChevronsUpDown,
-  CreditCard,
   LogOut,
-  Sparkles,
+  Sparkles
 } from "lucide-react"
 
 import {
@@ -23,92 +21,128 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
-  SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
+  useSidebar
 } from "@/components/ui/sidebar"
 import { ModeToggle } from "./mode-toggle"
-import { Button } from "./ui/button"
+import { useAuthStore } from "@/stores/authStore"
+import { useNavigate } from "@tanstack/react-router"
+import { toast } from "sonner"
+import { useLogout } from "@/api/user/user.query"
+import { getInitials } from "@/lib/utils"
+import { Badge } from "./ui/badge"
+import { Progress } from "./ui/progress"
 
-export function NavUser({
-  user,
-}: {
-  user: {
-    name: string
-    email: string
-    avatar: string
-  }
-}) {
-  const { isMobile } = useSidebar()
+export function NavUser() {
+  const { user, clearAuth } = useAuthStore();
+  const { isMobile } = useSidebar();
+  const navigate = useNavigate();
+  const logout = useLogout();
+
+  // Handle logout function
+  const handleLogout = async () => {
+    try {
+      await logout.mutateAsync();
+      clearAuth();
+      toast.success("Logged out successfully");
+      navigate({ to: "/login" });
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to logout. Please try again.");
+      // Still clear auth in case API fails but we want to logout anyway
+      clearAuth();
+      navigate({ to: "/login" });
+    }
+  };
+
+  // If no user is authenticated, don't render the component
+  if (!user) return null;
+
+  // Get user initials for avatar fallback
+  const initials = getInitials(user.name);
 
   return (
-      <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
-              size="lg"
-              tooltip={"You"}
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            >
-              <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
-              </Avatar>
+    <SidebarMenuItem>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <SidebarMenuButton
+            size="lg"
+            tooltip={"Your Account"}
+            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+          >
+            <Avatar className="h-8 w-8 rounded-lg">
+              <AvatarImage src={user.avatar} alt={user.name} />
+              <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+            </Avatar>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-medium">{user.name}</span>
+              <span className="truncate text-xs">{user.email}</span>
+            </div>
+            <ChevronsUpDown className="ml-auto size-4" />
+          </SidebarMenuButton>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          className={`w-(--radix-dropdown-menu-trigger-width) min-w-64 rounded-lg ${isMobile ? "" : "mt-4"}`}
+          side={isMobile ? "bottom" : "right"}
+          align="end"
+          sideOffset={4}
+        >
+          <DropdownMenuLabel className="font-normal">
+            <div className="flex items-center gap-2 py-1.5 text-left text-sm">
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
+                <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>
               </div>
-              <ChevronsUpDown className="ml-auto size-4" />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
-            align="end"
-            sideOffset={4}
-          >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
-                </div>
-              </div>
-            </DropdownMenuLabel>
+              <Avatar className="h-8 w-8 rounded-lg">
+                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+              </Avatar>
+            </div>
+          </DropdownMenuLabel>
 
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                Setting
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                Plan & Pricing
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="focus:bg-transparent justify-between">
-              Theme
-              <ModeToggle />
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
+          <DropdownMenuSeparator />
+          {/* Users plan */}
+          <DropdownMenuLabel className="font-normal flex items-center justify-between gap-2">
+            <span>Plan</span>
+            <Badge variant={"secondary"} className="truncate h-6 rounded-full text-xs font-normal">{user.plan?.name}</Badge>
+            </DropdownMenuLabel>
+          <DropdownMenuLabel className="font-normal flex flex-col justify-between gap-2.5 ">
+            {/* progress bar */}
+            <Progress value={33} />
+            <span className="font-light text-xs">34% of 15MB</span>
+            </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel className="font-normal flex items-center justify-between gap-2">
+            <span>Theme</span>
+            <ModeToggle />
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuGroup>
             <DropdownMenuItem>
-              <LogOut />
-              Log out
+              <BadgeCheck className="mr-1 h-4 w-4" />
+              Settings
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-              <DropdownMenuItem className="bg-primary text-primary-foreground focus:text-primary-foreground font-medium transition-all focus:bg-primary/90">
-                  <Sparkles className="text-inherit" />
-                  Upgrade Plan
-              </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
+            <DropdownMenuItem>
+              <Bell className="mr-1 h-4 w-4" />
+              Plan: {user.plan?.name}
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+
+          <DropdownMenuItem onClick={handleLogout}>
+            <LogOut className="mr-1 h-4 w-4" />
+            Log out
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {user.plan?.isDefault && (
+            <DropdownMenuItem className="text-primary focus:text-primary font-medium transition-all focus:bg-primary/15">
+              <Sparkles className="mr-1 h-4 w-4 text-inherit stroke-[2.25]" />
+              Upgrade Plan
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </SidebarMenuItem>
   )
 }

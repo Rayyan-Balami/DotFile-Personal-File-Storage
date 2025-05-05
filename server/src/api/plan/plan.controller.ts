@@ -1,8 +1,8 @@
+import planService from "@api/plan/plan.service.js";
+import { ApiError } from "@utils/apiError.js";
+import { ApiResponse } from "@utils/apiResponse.js";
+import asyncHandler from "@utils/asyncHandler.js";
 import { Request, Response } from "express";
-import { ApiError } from "../../utils/apiError.js";
-import { ApiResponse } from "../../utils/apiResponse.js";
-import asyncHandler from "../../utils/asyncHandler.js";
-import planService from "./plan.service.js";
 
 class PlanController {
   /**
@@ -10,8 +10,9 @@ class PlanController {
    */
   getAllPlans = asyncHandler(async (req: Request, res: Response) => {
     // Check if admin is requesting to include deleted plans
-    const includeDeleted = req.user?.role === "admin" && req.query.includeDeleted === "true";
-    
+    const includeDeleted =
+      req.user?.role === "admin" && req.query.includeDeleted === "true";
+
     const plans = await planService.getAllPlans(includeDeleted);
     res.json(new ApiResponse(200, { plans }, "Plans retrieved successfully"));
   });
@@ -29,7 +30,9 @@ class PlanController {
    */
   createPlan = asyncHandler(async (req: Request, res: Response) => {
     const plan = await planService.createPlan(req.body);
-    res.status(201).json(new ApiResponse(201, { plan }, "Plan created successfully"));
+    res
+      .status(201)
+      .json(new ApiResponse(201, { plan }, "Plan created successfully"));
   });
 
   /**
@@ -37,7 +40,9 @@ class PlanController {
    */
   updatePlan = asyncHandler(async (req: Request, res: Response) => {
     const updatedPlan = await planService.updatePlan(req.params.id, req.body);
-    res.json(new ApiResponse(200, { plan: updatedPlan }, "Plan updated successfully"));
+    res.json(
+      new ApiResponse(200, { plan: updatedPlan }, "Plan updated successfully")
+    );
   });
 
   /**
@@ -45,7 +50,9 @@ class PlanController {
    */
   deletePlan = asyncHandler(async (req: Request, res: Response) => {
     const deletedPlan = await planService.deletePlan(req.params.id);
-    res.json(new ApiResponse(200, { plan: deletedPlan }, "Plan deleted successfully"));
+    res.json(
+      new ApiResponse(200, { plan: deletedPlan }, "Plan deleted successfully")
+    );
   });
 
   /**
@@ -58,10 +65,12 @@ class PlanController {
 
     const userId = req.user.id;
     const planId = req.params.planId;
-    
+
     const userPlan = await planService.subscribeToPlan(userId, planId);
-    
-    res.json(new ApiResponse(200, { plan: userPlan }, "Plan subscription successful"));
+
+    res.json(
+      new ApiResponse(200, { plan: userPlan }, "Plan subscription successful")
+    );
   });
 
   /**
@@ -74,8 +83,14 @@ class PlanController {
 
     const userId = req.user.id;
     const userPlan = await planService.getUserPlan(userId);
-    
-    res.json(new ApiResponse(200, { plan: userPlan }, "User plan retrieved successfully"));
+
+    res.json(
+      new ApiResponse(
+        200,
+        { plan: userPlan },
+        "User plan retrieved successfully"
+      )
+    );
   });
 }
 

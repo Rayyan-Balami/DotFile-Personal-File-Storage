@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
-import { MONGODB_DB_NAME, MONGODB_URI } from "../constants.js";
-import logger from "../utils/logger.js";
+import { MONGODB_DB_NAME, MONGODB_URI } from "@config/constants.js";
+import logger from "@utils/logger.js";
 
 /**
  * Connect to MongoDB database

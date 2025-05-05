@@ -1,9 +1,5 @@
-import jwt from "jsonwebtoken";
-import { REFRESH_TOKEN_SECRET } from "../../constants.js";
-import { ApiError } from "../../utils/apiError.js";
-import { sanitizeDocument } from "../../utils/sanitizeDocument.js";
-import planService from "../plan/plan.service.js";
-import userDAO from "./user.dao.js";
+import planService from "@api/plan/plan.service.js";
+import userDAO from "@api/user/user.dao.js";
 import {
   CreateUserDTO,
   JwtUserPayload,
@@ -11,9 +7,13 @@ import {
   UpdateUserDTO,
   UpdateUserPasswordDTO,
   UserResponseDTO,
-} from "./user.dto.js";
-import { IUser } from "./user.model.js";
-import logger from "../../utils/logger.js";
+} from "@api/user/user.dto.js";
+import { IUser } from "@api/user/user.model.js";
+import { REFRESH_TOKEN_SECRET } from "@config/constants.js";
+import { ApiError } from "@utils/apiError.js";
+import logger from "@utils/logger.js";
+import { sanitizeDocument } from "@utils/sanitizeDocument.js";
+import jwt from "jsonwebtoken";
 
 /**
  * Service class for user-related business logic
@@ -62,7 +62,7 @@ class UserService {
     if (existingUser) {
       throw new ApiError(409, "Email already in use", ["email"]);
     }
-    
+
     // Get default plan
     const defaultPlan = await planService.getDefaultPlan();
     if (!defaultPlan) {
@@ -74,7 +74,7 @@ class UserService {
       ...data,
       plan: defaultPlan.id,
     });
-    
+
     // Generate tokens
     const { accessToken, refreshToken } =
       await this.generateAccessAndRefreshTokens(user);
@@ -99,7 +99,10 @@ class UserService {
     refreshToken: string;
   }> {
     // Find user by email
-    const user = await userDAO.getUserByEmail(credentials.email, { includePassword: true });
+    const user = await userDAO.getUserByEmail(credentials.email, {
+      includePassword: true,
+    });
+    logger.info("user found", user);
     if (!user) {
       throw new ApiError(401, "Invalid credentials", ["email"]);
     }
@@ -283,7 +286,9 @@ class UserService {
     ) as JwtUserPayload;
 
     // Find user by ID
-    const user = await userDAO.getUserById(decoded.id,{ includeRefreshToken: true });
+    const user = await userDAO.getUserById(decoded.id, {
+      includeRefreshToken: true,
+    });
     if (!user) {
       throw new ApiError(401, "Invalid refresh token", ["refreshToken"]);
     }
@@ -291,7 +296,9 @@ class UserService {
     logger.dev("user found refresh token", user.refreshToken);
     logger.info("user found", user);
     if (user.refreshToken !== refreshToken) {
-      throw new ApiError(401, "Expired or used refresh token", ["refreshToken"]);
+      throw new ApiError(401, "Expired or used refresh token", [
+        "refreshToken",
+      ]);
     }
 
     // Generate new tokens
