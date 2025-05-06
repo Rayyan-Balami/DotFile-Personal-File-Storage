@@ -1,11 +1,10 @@
 import {
   BriefcaseBusiness,
   Clock,
-  Cloud,
+  Database,
   File,
   Folder,
   FolderClosed,
-  Database,
   GraduationCap,
   Laptop,
   LifeBuoy,
@@ -14,7 +13,7 @@ import {
   Settings2,
   Smile,
   Trash2,
-  UsersRound,
+  UsersRound
 } from "lucide-react";
 import * as React from "react";
 
@@ -32,11 +31,11 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { Link } from "@tanstack/react-router";
+import { ModeToggle } from "./mode-toggle";
 import { NavDesks } from "./nav-desks";
 import { NavProjects } from "./nav-projects";
 import { Button } from "./ui/button";
-import { ModeToggle } from "./mode-toggle";
-import { Link } from "@tanstack/react-router";
 
 const data = {
   user: {

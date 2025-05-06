@@ -5,7 +5,7 @@
 
 import { ColorOption } from "@/config/colors";
 import { cn } from "@/lib/utils";
-import { useSelectionStore } from "@/store/useSelectionStore";
+import { useSelectionStore } from "@/stores/useSelectionStore";
 import { formatChildCount, formatFileSize } from "@/utils/formatUtils";
 import { EllipsisVertical, Loader2, Pin } from "lucide-react";
 import React, {

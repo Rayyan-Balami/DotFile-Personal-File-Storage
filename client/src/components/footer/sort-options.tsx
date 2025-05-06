@@ -8,7 +8,7 @@ import {
   MenubarSeparator,
   MenubarTrigger
 } from "@/components/ui/menubar";
-import { useSortPreferencesStore } from "@/store/useSortPreferencesStore";
+import { useSortPreferencesStore } from "@/stores/useSortPreferencesStore";
 import { AlignVerticalSpaceAround, SortAsc, SortDesc } from "lucide-react";
 
 type SortDirection = "asc" | "desc";

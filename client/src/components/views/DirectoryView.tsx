@@ -3,9 +3,9 @@ import { useNavigate } from "@tanstack/react-router";
 import {
   useSelectionStore,
   useKeyboardShortcuts,
-} from "@/store/useSelectionStore";
-import { useSortPreferencesStore } from "@/store/useSortPreferencesStore";
-import { useViewPreferencesStore } from "@/store/useViewPreferencesStore";
+} from "@/stores/useSelectionStore";
+import { useSortPreferencesStore } from "@/stores/useSortPreferencesStore";
+import { useViewPreferencesStore } from "@/stores/useViewPreferencesStore";
 import { useSortedItems } from "@/utils/sortUtils";
 import {
   ContextMenu,

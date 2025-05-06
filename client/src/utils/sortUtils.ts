@@ -1,6 +1,6 @@
-import { FileSystemItem } from "@/store/useFileSystemStore";
+import { FileSystemItem } from "@/stores/useFileSystemStore";
 import { useMemo } from "react";
-import { useSortPreferencesStore } from "@/store/useSortPreferencesStore";
+import { useSortPreferencesStore } from "@/stores/useSortPreferencesStore";
 
 // Compare function for sorting items
 function compareItems(

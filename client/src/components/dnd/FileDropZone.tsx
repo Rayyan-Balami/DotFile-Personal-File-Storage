@@ -1,4 +1,4 @@
-import { useFileSystemStore } from '@/store/useFileSystemStore';
+import { useFileSystemStore } from '@/stores/useFileSystemStore';
 import { useParams } from '@tanstack/react-router';
 import { nanoid } from 'nanoid';
 import React, { useCallback, useState } from 'react';

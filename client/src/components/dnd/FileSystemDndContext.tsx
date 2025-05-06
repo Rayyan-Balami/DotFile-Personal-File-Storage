@@ -1,5 +1,5 @@
-import { FileSystemItem, useFileSystemStore } from '@/store/useFileSystemStore';
-import { useSelectionStore } from '@/store/useSelectionStore';
+import { FileSystemItem, useFileSystemStore } from '@/stores/useFileSystemStore';
+import { useSelectionStore } from '@/stores/useSelectionStore';
 import { Active, DndContext, DragEndEvent, DragOverEvent, DragStartEvent, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { restrictToWindowEdges } from '@dnd-kit/modifiers';
 import React, { createContext, useContext, useState } from 'react';

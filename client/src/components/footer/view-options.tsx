@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
-import { useViewPreferencesStore } from "@/store/useViewPreferencesStore";
+import { useViewPreferencesStore } from "@/stores/useViewPreferencesStore";
 import { LayoutGrid, List, Rows2 } from "lucide-react";
 
 export function ViewOptions() {
