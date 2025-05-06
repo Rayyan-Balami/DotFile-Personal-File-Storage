@@ -33,6 +33,7 @@ import { useLogout } from "@/api/user/user.query"
 import { getInitials } from "@/lib/utils"
 import { Badge } from "./ui/badge"
 import { Progress } from "./ui/progress"
+import { VITE_API_URL } from "@/config/constants"
 
 export function NavUser() {
   const { user, clearAuth } = useAuthStore();
@@ -72,7 +73,8 @@ export function NavUser() {
             className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
           >
             <Avatar className="h-8 w-8 rounded-lg">
-              <AvatarImage src={user.avatar} alt={user.name} />
+              <AvatarImage src={`${VITE_API_URL}${user.avatar}`}
+               alt={user.name} />
               <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
@@ -95,7 +97,7 @@ export function NavUser() {
                 <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>
               </div>
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarImage src={`${VITE_API_URL}${user.avatar}`} alt={user.name} />
                 <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
               </Avatar>
             </div>

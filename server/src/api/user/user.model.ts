@@ -2,7 +2,7 @@ import { JwtUserPayload, UserRole } from "@api/user/user.dto.js";
 import {
   ACCESS_TOKEN_EXPIRY,
   ACCESS_TOKEN_SECRET,
-  DEFAULT_USER_AVATAR,
+  DEFAULT_USER_AVATAR_URL,
   REFRESH_TOKEN_EXPIRY,
   REFRESH_TOKEN_SECRET,
 } from "@config/constants.js";
@@ -38,7 +38,7 @@ const UserSchema: Schema = new Schema(
     avatar: {
       type: String,
       required: false,
-      default: DEFAULT_USER_AVATAR,
+      default: DEFAULT_USER_AVATAR_URL,
     },
     name: {
       type: String,

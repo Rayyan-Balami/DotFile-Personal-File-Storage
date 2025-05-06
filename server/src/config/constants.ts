@@ -12,6 +12,7 @@ export const IS_PRODUCTION = NODE_ENV === 'production';
 
 // Server
 export const PORT = Number(process.env.PORT) || 3000;
+export const API_PREFIX = process.env.API_PREFIX || '/api';
 export const API_VERSION = process.env.API_VERSION || 'v1';
 export const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
 
@@ -32,5 +33,9 @@ const __dirname = join(__filename, '..');
 export const ROOT_DIR = join(__dirname, '..');
 export const UPLOADS_DIR = join(ROOT_DIR, 'uploads');
 export const PUBLIC_DIR = join(ROOT_DIR, 'public');
-// Default user avatar
-export const DEFAULT_USER_AVATAR = join(PUBLIC_DIR, 'images/default-user-avatar.png');
+
+// Keep this for filesystem operations
+export const DEFAULT_USER_AVATAR_PATH = join(PUBLIC_DIR, 'images/default-user-avatar.png');
+
+// Add this for storing in database and sending in API responses
+export const DEFAULT_USER_AVATAR_URL = '/images/default-user-avatar.png';

@@ -2,7 +2,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import apiRoutes from "@api/api.routes.js";
-import { API_VERSION, CLIENT_ORIGIN, PORT } from "@config/constants.js";
+import { API_PREFIX, API_VERSION, CLIENT_ORIGIN, PORT } from "@config/constants.js";
 import { connectDatabase } from "@database/connection.js";
 import { errorHandler } from "@middleware/errorHandler.middleware.js";
 import logger from "@utils/logger.js";
@@ -30,7 +30,7 @@ app.get("/", (_, res) => {
 });
 
 // API routes
-app.use(`/api/${API_VERSION}`, apiRoutes);
+app.use(`${API_PREFIX}/${API_VERSION}`, apiRoutes);
 
 // Error handling middleware - must be after all routes
 app.use(errorHandler);

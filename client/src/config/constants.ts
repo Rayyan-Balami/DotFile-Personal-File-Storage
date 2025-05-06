@@ -12,7 +12,9 @@ export const VITE_APP_AUTHOR_URL =
   import.meta.env.VITE_APP_AUTHOR_URL || "https://rayyanbalami.com.np";
 
 export const VITE_API_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+  import.meta.env.VITE_API_URL || "http://localhost:3000";
+export const VITE_API_PREFIX = import.meta.env.VITE_API_PREFIX || "/api"; // API prefix
 export const VITE_API_TIMEOUT = import.meta.env.VITE_API_TIMEOUT || 10000; // 10 seconds timeout
 export const VITE_API_VERSION = import.meta.env.VITE_API_VERSION || "v1"; // API version
-export const VITE_API_BASE_URL = `${VITE_API_URL}/${VITE_API_VERSION}`; // Base URL for API
+export const VITE_API_BASE_URL = `${VITE_API_URL}${VITE_API_PREFIX}
+/${VITE_API_VERSION}`; // Base URL for API
