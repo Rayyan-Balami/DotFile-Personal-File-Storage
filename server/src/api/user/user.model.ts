@@ -10,11 +10,20 @@ import bcryptjs from "bcryptjs";
 import jwt, { Secret, SignOptions } from "jsonwebtoken";
 import mongoose, { Document, Schema } from "mongoose";
 
+// Define the refresh token interface
+interface IRefreshToken {
+  token: string;
+  deviceInfo: string;
+  createdAt: Date;
+}
+
 // Define interface for User methods
 interface IUserMethods {
   checkPassword(password: string): Promise<boolean>;
   generateAccessToken(): string;
-  generateRefreshToken(): string;
+  generateRefreshToken(deviceInfo: string): string;
+  findRefreshToken(token: string): IRefreshToken | undefined;
+  removeRefreshToken(token: string): boolean;
 }
 
 // Define the user interface
@@ -26,11 +35,27 @@ export interface IUser extends Document, IUserMethods {
   role: UserRole;
   plan: Schema.Types.ObjectId;
   storageUsed: number;
-  refreshToken: string;
+  refreshTokens: IRefreshToken[];
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
 }
+
+// Create the refresh token schema
+const RefreshTokenSchema = new Schema({
+  token: {
+    type: String,
+    required: true,
+  },
+  deviceInfo: {
+    type: String,
+    required: true,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  }
+}, { _id: false });
 
 // Create the schema
 const UserSchema: Schema = new Schema(
@@ -68,9 +93,9 @@ const UserSchema: Schema = new Schema(
       type: Number,
       default: 0,
     },
-    refreshToken: {
-      type: String,
-      default: null,
+    refreshTokens: {
+      type: [RefreshTokenSchema],
+      default: [],
       select: false,
     },
     deletedAt: {
@@ -118,7 +143,7 @@ UserSchema.methods.generateAccessToken = function () {
 };
 
 // Add a method to generate refresh token
-UserSchema.methods.generateRefreshToken = function () {
+UserSchema.methods.generateRefreshToken = function (deviceInfo: string) {
   const payload: JwtUserPayload = {
     id: this._id,
     email: this.email,
@@ -134,6 +159,18 @@ UserSchema.methods.generateRefreshToken = function () {
     throw new Error("JWT secret is not configured");
   }
   return jwt.sign(payload, secret, options);
+};
+
+// Add a method to find a refresh token
+UserSchema.methods.findRefreshToken = function (token: string) {
+  return this.refreshTokens.find((rt: IRefreshToken) => rt.token === token);
+};
+
+// Add a method to remove a refresh token
+UserSchema.methods.removeRefreshToken = function (token: string) {
+  const initialLength = this.refreshTokens.length;
+  this.refreshTokens = this.refreshTokens.filter((rt: IRefreshToken) => rt.token !== token);
+  return this.refreshTokens.length < initialLength;
 };
 
 // Create and export the model

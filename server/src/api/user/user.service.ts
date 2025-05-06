@@ -26,16 +26,20 @@ class UserService {
    * Generate access and refresh tokens for a user
    *
    * @param user User object
+   * @param deviceInfo Device information
    * @returns Object containing access and refresh tokens
    */
-  async generateAccessAndRefreshTokens(user: IUser) {
-    // Generate tokens directly
+  async generateAccessAndRefreshTokens(user: IUser, deviceInfo: string) {
+    // Generate access token
     const accessToken = user.generateAccessToken();
-    const refreshToken = user.generateRefreshToken();
+    
+    // Generate refresh token
+    const refreshToken = user.generateRefreshToken(deviceInfo);
 
-    // set refresh token in the database
-    await userDAO.updateUserRefreshToken(user.id, {
+    // Add refresh token to the user's tokens array
+    await userDAO.addUserRefreshToken(user.id, {
       refreshToken,
+      deviceInfo
     });
 
     // Return tokens
@@ -49,10 +53,11 @@ class UserService {
    * Register a new user and generate authentication tokens
    *
    * @param data User registration data
+   * @param deviceInfo Information about the device being used
    * @returns Newly created user data and authentication tokens
    * @throws ApiError if email already exists
    */
-  async registerUser(data: CreateUserDTO): Promise<{
+  async registerUserWithTokens(data: CreateUserDTO, deviceInfo: string): Promise<{
     user: UserResponseDTO;
     accessToken: string;
     refreshToken: string;
@@ -60,7 +65,7 @@ class UserService {
     // Check if email is already in use
     const existingUser = await userDAO.getUserByEmail(data.email);
     if (existingUser) {
-      throw new ApiError(409, "Email already in use", ["email"]);
+      throw new ApiError(409, "Email is already linked to an account.", ["email"]);
     }
 
     // Get default plan
@@ -77,7 +82,7 @@ class UserService {
 
     // Generate tokens
     const { accessToken, refreshToken } =
-      await this.generateAccessAndRefreshTokens(user);
+      await this.generateAccessAndRefreshTokens(user, deviceInfo);
 
     return {
       user: this.sanitizeUser(user),
@@ -87,13 +92,44 @@ class UserService {
   }
 
   /**
+   * Register a new user without automatically logging them in
+   *
+   * @param data User registration data
+   * @returns Newly created user data
+   * @throws ApiError if email already exists
+   */
+  async registerUser(data: CreateUserDTO): Promise<UserResponseDTO> {
+    // Check if email is already in use
+    const existingUser = await userDAO.getUserByEmail(data.email);
+    if (existingUser) {
+      throw new ApiError(409, "Email is already linked to an account.", ["email"]);
+    }
+
+    // Get default plan
+    const defaultPlan = await planService.getDefaultPlan();
+    if (!defaultPlan) {
+      throw new ApiError(500, "Default plan not found", ["plan"]);
+    }
+
+    // Create user with default plan
+    const user = await userDAO.createUser({
+      ...data,
+      plan: defaultPlan.id,
+    });
+
+    // Return only the user data, no tokens
+    return this.sanitizeUser(user);
+  }
+
+  /**
    * Authenticate user and generate tokens
    *
    * @param credentials User login credentials
+   * @param deviceInfo Information about the device being used
    * @returns User data and authentication tokens
    * @throws ApiError if credentials are invalid
    */
-  async loginUser(credentials: LoginUserDTO): Promise<{
+  async loginUser(credentials: LoginUserDTO, deviceInfo: string): Promise<{
     user: UserResponseDTO;
     accessToken: string;
     refreshToken: string;
@@ -115,7 +151,7 @@ class UserService {
 
     // Generate tokens
     const { accessToken, refreshToken } =
-      await this.generateAccessAndRefreshTokens(user);
+      await this.generateAccessAndRefreshTokens(user, deviceInfo);
 
     return {
       user: this.sanitizeUser(user),
@@ -124,19 +160,47 @@ class UserService {
     };
   }
 
-  async logoutUser(userId: string): Promise<boolean> {
+  /**
+   * Logout user from a specific device by removing the refresh token
+   *
+   * @param userId User ID
+   * @param refreshToken Refresh token to invalidate
+   * @returns Boolean indicating success
+   */
+  async logoutUser(userId: string, refreshToken: string): Promise<boolean> {
+    // Find user by ID
+    const user = await userDAO.getUserById(userId, { includeRefreshTokens: true });
+    if (!user) {
+      throw new ApiError(404, "User not found", ["id"]);
+    }
+    
+    // Remove the specific refresh token
+    const loggedOutUser = await userDAO.removeUserRefreshToken(userId, refreshToken);
+
+    if (!loggedOutUser) {
+      throw new ApiError(500, "Failed to logout user", ["logout"]);
+    }
+    return true;
+  }
+
+  /**
+   * Logout user from all devices by clearing all refresh tokens
+   *
+   * @param userId User ID
+   * @returns Boolean indicating success
+   */
+  async logoutFromAllDevices(userId: string): Promise<boolean> {
     // Find user by ID
     const user = await userDAO.getUserById(userId);
     if (!user) {
       throw new ApiError(404, "User not found", ["id"]);
     }
-    // Clear refresh token in the database
-    const loggedOutUser = await userDAO.updateUserRefreshToken(userId, {
-      refreshToken: null,
-    });
+    
+    // Clear all refresh tokens
+    const loggedOutUser = await userDAO.clearAllUserRefreshTokens(userId);
 
     if (!loggedOutUser) {
-      throw new ApiError(500, "Failed to logout user", ["logout"]);
+      throw new ApiError(500, "Failed to logout user from all devices", ["logout"]);
     }
     return true;
   }
@@ -170,7 +234,7 @@ class UserService {
     if (data.email) {
       const existingUser = await userDAO.getUserByEmail(data.email);
       if (existingUser && existingUser.id.toString() !== id) {
-        throw new ApiError(409, "Email already in use by another account", [
+        throw new ApiError(409, "Email is already linked to an account. by another account", [
           "email",
         ]);
       }
@@ -271,10 +335,11 @@ class UserService {
    * Refresh access token using refresh token
    *
    * @param refreshToken The refresh token provided by the client
+   * @param deviceInfo The device information
    * @returns User data and new tokens (access + refresh)
    * @throws ApiError if refresh token is invalid or expired
    */
-  async refreshAccessToken(refreshToken: string): Promise<{
+  async refreshAccessToken(refreshToken: string, deviceInfo: string): Promise<{
     user: UserResponseDTO;
     newAccessToken: string;
     newRefreshToken: string;
@@ -287,23 +352,26 @@ class UserService {
 
     // Find user by ID
     const user = await userDAO.getUserById(decoded.id, {
-      includeRefreshToken: true,
+      includeRefreshTokens: true,
     });
     if (!user) {
       throw new ApiError(401, "Invalid refresh token", ["refreshToken"]);
     }
-    logger.dev("user given refresh token", refreshToken);
-    logger.dev("user found refresh token", user.refreshToken);
-    logger.info("user found", user);
-    if (user.refreshToken !== refreshToken) {
+    
+    // Check if the refresh token exists in the user's tokens array
+    const tokenExists = user.findRefreshToken(refreshToken);
+    if (!tokenExists) {
       throw new ApiError(401, "Expired or used refresh token", [
         "refreshToken",
       ]);
     }
 
+    // Remove the old refresh token
+    await userDAO.removeUserRefreshToken(user.id, refreshToken);
+    
     // Generate new tokens
     const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
-      await this.generateAccessAndRefreshTokens(user);
+      await this.generateAccessAndRefreshTokens(user, deviceInfo);
 
     return {
       user: this.sanitizeUser(user),

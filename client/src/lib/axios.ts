@@ -52,8 +52,12 @@ API.interceptors.response.use(
       _retry?: boolean;
     };
 
-    // If the error is 401 and we haven't already tried to refresh the token
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Check if this is a 401 that needs token refresh
+    if (
+      error.response?.status === 401 && 
+      !originalRequest._retry && 
+      useAuthStore.getState().accessToken // Only attempt refresh if we have a token
+    ) {
       // Check if we're not already refreshing
       if (!isRefreshing) {
         originalRequest._retry = true;

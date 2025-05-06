@@ -35,28 +35,21 @@ export function LoginForm({
 
   async function onSubmit(values: LoginUserInput) {
     try {
-      const response = await login.mutateAsync(values);
-
-      // Extract user and token from the response
-      const { user, accessToken } = response.data;
-      console.log("Login response:", response);
-      console.log("User data:", user);
-      console.log("Access token:", accessToken);
-
-      // Store in Zustand
-      setAuth(user, accessToken);
-
-      //log what is in the store
-      console.log("Zustand store:", useAuthStore.getState());
-
+      const { data } = await login.mutateAsync(values);
+      setAuth(data.user, data.accessToken);
       toast.success("Login successful!");
-      navigate({ to: "/" }); // Navigate to home or dashboard
+      navigate({ to: "/" });
     } catch (error: any) {
       logger.error("Login error:", error);
-      if (error.code === "ECONNABORTED") {
-        toast.error("Login failed due to a timeout. Please try again.");
+      
+      const responseData = error.response?.data;
+      const errorField = responseData?.errors?.[0];
+      const message = responseData?.message || "Our servers are busy. Please try again later.";
+      
+      if (["email", "password"].includes(errorField)) {
+        form.setError(errorField, { type: "manual", message });
       } else {
-        toast.error("Login failed. Please check your credentials.");
+        toast.error(message);
       }
     }
   }

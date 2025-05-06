@@ -28,10 +28,19 @@ export interface UpdateUserPasswordDTO {
 
 export interface UpdateUserRefreshTokenDTO {
   refreshToken: string | null;
+  deviceInfo: string;
 }
 
 export interface RefreshTokenDTO {
   refreshToken?: string; // Optional since it could come from cookies
+  deviceInfo?: string;   // Added device info
+}
+
+// Add this new interface
+export interface RefreshTokenRecord {
+  token: string;
+  deviceInfo: string;
+  createdAt: Date;
 }
 
 export enum UserRole {

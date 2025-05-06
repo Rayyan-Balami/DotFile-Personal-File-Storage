@@ -13,24 +13,20 @@ class UserController {
     maxAge: jwtTimeToMs(REFRESH_TOKEN_EXPIRY),
   };
   /**
-   * Register a new user and automatically log them in
+   * Register a new user without automatically logging them in
    */
   register = asyncHandler(async (req: Request, res: Response) => {
-    // Service handles both user creation and token generation
-    const { user, accessToken, refreshToken } = await userService.registerUser(
-      req.body
-    );
+    // Service handles user creation only, no token generation
+    const user = await userService.registerUser(req.body);
 
-    // Return user data and set cookies
+    // Return user data without tokens or cookies
     res
       .status(201)
-      .cookie("refreshToken", refreshToken, this.cookieOptions)
-      .cookie("accessToken", accessToken, this.cookieOptions)
       .json(
         new ApiResponse(
           201,
-          { user, accessToken },
-          "User registered successfully"
+          { user },
+          "Registration successful. Please login to continue."
         )
       );
   });
@@ -39,8 +35,12 @@ class UserController {
    * Login existing user
    */
   login = asyncHandler(async (req: Request, res: Response) => {
+    // Get device info from user agent or custom header
+    const deviceInfo = req.headers["user-agent"] || "unknown-device";
+    
     const { user, accessToken, refreshToken } = await userService.loginUser(
-      req.body
+      req.body,
+      deviceInfo
     );
 
     // Return user data and access token
@@ -108,15 +108,17 @@ class UserController {
   });
 
   /**
-   * Logout user by clearing refresh token
+   * Logout user by removing refresh token for this device
    */
   logout = asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
       throw new ApiError(401, "Unauthorized", ["authentication"]);
     }
 
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+
     try {
-      await userService.logoutUser(req.user.id);
+      await userService.logoutUser(req.user.id, refreshToken);
 
       res
         .clearCookie("refreshToken", this.cookieOptions)
@@ -134,11 +136,29 @@ class UserController {
   });
 
   /**
+   * Logout user from all devices
+   */
+  logoutAllDevices = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new ApiError(401, "Unauthorized", ["authentication"]);
+    }
+
+    await userService.logoutFromAllDevices(req.user.id);
+
+    res
+      .clearCookie("refreshToken", this.cookieOptions)
+      .clearCookie("accessToken", this.cookieOptions)
+      .json(new ApiResponse(200, {}, "Logged out from all devices successfully"));
+  });
+
+  /**
    * Refresh access token using refresh token
    */
   refreshToken = asyncHandler(async (req: Request, res: Response) => {
     // Try to get token from cookies first, then body
     const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+    // Get device info from user agent or custom header
+    const deviceInfo = req.headers["user-agent"] || "unknown-device";
 
     if (!refreshToken) {
       throw new ApiError(400, "Refresh token is required", ["refreshToken"]);
@@ -146,7 +166,7 @@ class UserController {
 
     // Get new tokens using the refresh token
     const { user, newAccessToken, newRefreshToken } =
-      await userService.refreshAccessToken(refreshToken);
+      await userService.refreshAccessToken(refreshToken, deviceInfo);
 
     // Return user data and set cookies with new tokens
     res

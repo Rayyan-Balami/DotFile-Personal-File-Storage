@@ -1,4 +1,5 @@
 import { useFileSystemStore } from '@/stores/useFileSystemStore';
+import { useUploadStore } from '@/stores/useUploadStore';
 import { useParams } from '@tanstack/react-router';
 import { nanoid } from 'nanoid';
 import React, { useCallback, useState } from 'react';
@@ -12,6 +13,7 @@ export function FileDropZone({ children }: FileDropZoneProps) {
   // Use strict: false to make useParams work anywhere in the component tree
   const params = useParams({ strict: false });
   const addItem = useFileSystemStore(state => state.addItem);
+  const { addUpload, updateUploadProgress, setUploadStatus } = useUploadStore();
   
   // Get current folder ID from URL or use root
   const getCurrentFolderId = () => {
@@ -56,44 +58,63 @@ export function FileDropZone({ children }: FileDropZoneProps) {
           const newFileId = `doc-${nanoid(6)}`;
           const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
           
-          // Create file system item
-          addItem({
-            id: newFileId,
-            type: 'document',
-            title: file.name,
-            parentId: parentId,
-            fileExtension,
-            byteCount: file.size,
-            dateModified: new Date().toISOString(),
-            dateAdded: new Date().toISOString(),
-          });
+          // Create upload item
+          const uploadId = addUpload(file, parentId);
           
-          console.log(`Added file: "${file.name}" (Size: ${formatFileSize(file.size)}, Type: ${file.type}) to folder: ${
-            parentId ? useFileSystemStore.getState().items[parentId]?.title || 'Unknown' : 'Root'
-          } (${parentId || 'root'})`);
-          
-          resolve();
+          // Simulate upload progress (in real app, replace with actual upload logic)
+          let progress = 0;
+          const interval = setInterval(() => {
+            progress += 10;
+            updateUploadProgress(uploadId, progress);
+            
+            if (progress >= 100) {
+              clearInterval(interval);
+              setUploadStatus(uploadId, 'success');
+              
+              // Create file system item on successful upload
+              addItem({
+                id: newFileId,
+                type: 'document',
+                title: file.name,
+                parentId: parentId,
+                fileExtension,
+                byteCount: file.size,
+                dateModified: new Date().toISOString(),
+                dateAdded: new Date().toISOString(),
+              });
+              
+              resolve();
+            }
+          }, 500);
         });
       });
     } else if (entry.isDirectory) {
       const dirEntry = entry as FileSystemDirectoryEntry;
       const newFolderId = `folder-${nanoid(6)}`;
       
-      // Create folder item
-      addItem({
-        id: newFolderId,
-        type: 'folder',
-        title: entry.name,
-        parentId: parentId,
-        childCount: 0,
-        dateAdded: new Date().toISOString(),
-        dateModified: new Date().toISOString(),
-        children: []
-      });
+      // Create upload item for folder
+      const uploadId = addUpload({ 
+        name: entry.name, 
+        size: 0, 
+        isFolder: true 
+      }, parentId);
       
-      console.log(`Added directory: "${entry.name}" to folder: ${
-        parentId ? useFileSystemStore.getState().items[parentId]?.title || 'Unknown' : 'Root'
-      } (${parentId || 'root'})`);
+      // Simulate folder creation progress
+      setTimeout(() => {
+        setUploadStatus(uploadId, 'success');
+        
+        // Create folder item
+        addItem({
+          id: newFolderId,
+          type: 'folder',
+          title: entry.name,
+          parentId: parentId,
+          childCount: 0,
+          dateAdded: new Date().toISOString(),
+          dateModified: new Date().toISOString(),
+          children: []
+        });
+      }, 1000);
       
       // Process directory contents
       const dirReader = dirEntry.createReader();

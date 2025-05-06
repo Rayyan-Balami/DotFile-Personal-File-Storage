@@ -38,9 +38,16 @@ export function RegisterForm({
       await register.mutateAsync(values);
       toast.success("Registration successful! Please log in.");
       navigate({ to: "/login" });
-    } catch (error) {
-      console.error(error);
-      toast.error("Registration failed. Please try again.");
+    } catch (error: any) {
+      const responseData = error.response?.data;
+      const errorField = responseData?.errors?.[0];
+      const message = responseData?.message || "Our servers are busy. Please try again later.";
+      
+      if (["email", "password", "name"].includes(errorField)) {
+        form.setError(errorField, { type: "manual", message });
+      } else {
+        toast.error(message);
+      }
     }
   }
 

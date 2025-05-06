@@ -49,7 +49,8 @@ authUserRoutes
     validateData(updateUserPasswordSchema),
     userController.updateCurrentUserPassword
   )
-  .post("/logout", userController.logout);
+  .post("/logout", userController.logout)
+  .post("/logout-all", userController.logoutAllDevices);
 
 //=============================================================================
 // ADMIN ROUTES - Requires admin privileges
