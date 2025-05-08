@@ -2,17 +2,21 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 import apiRoutes from "@api/api.routes.js";
-import { API_PREFIX, API_VERSION, CLIENT_ORIGIN, PORT } from "@config/constants.js";
+import { $dirname, $filename, API_PREFIX, API_VERSION, CLIENT_ORIGIN, PORT, ROOT_DIR, UPLOADS_DIR } from "@config/constants.js";
 import { connectDatabase } from "@database/connection.js";
 import { errorHandler } from "@middleware/errorHandler.middleware.js";
 import logger from "@utils/logger.js";
+import { addRequestId } from "@middleware/requestId.middleware.js"; // Import the middleware
 
 const app = express();
 
 // Connect to MongoDB
 connectDatabase();
 
-// Middleware
+// Apply the request ID middleware first so all requests get an ID
+app.use(addRequestId);
+
+// Other middleware
 app.use(
   cors({
     origin: CLIENT_ORIGIN,
@@ -34,6 +38,11 @@ app.use(`${API_PREFIX}/${API_VERSION}`, apiRoutes);
 
 // Error handling middleware - must be after all routes
 app.use(errorHandler);
+
+console.log('File path:', $filename);
+console.log('Directory path:', $dirname);
+console.log('Root directory:', ROOT_DIR);
+console.log('Uploads directory:', UPLOADS_DIR);
 
 // Start server
 app.listen(PORT, () => {

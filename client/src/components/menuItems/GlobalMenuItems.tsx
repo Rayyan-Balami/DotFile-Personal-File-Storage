@@ -1,15 +1,17 @@
+import { useDialogStore } from "@/stores/useDialogStore";
 import React from "react";
 import { ContextMenuItem, ContextMenuSeparator } from "../ui/context-menu";
 
-interface GlobalMenuItemsProps {
-  onAction?: (action: string) => void;
-}
-
 // Context menu items component
 export const ContextMenuItems = React.memo(() => {
+  const { openCreateFolderDialog } = useDialogStore();
+  
   // Handle the action
   const handleAction = (action: string) => {
     console.log(`Action triggered: ${action}`);
+    if (action === "createFolder") {
+      openCreateFolderDialog();
+    }
   };
 
   return (
@@ -20,6 +22,7 @@ export const ContextMenuItems = React.memo(() => {
       <ContextMenuItem onClick={() => handleAction("createFolder")}>
         Create Folder
       </ContextMenuItem>
+
       <ContextMenuSeparator />
       <ContextMenuItem onClick={() => handleAction("refresh")}>
         Refresh

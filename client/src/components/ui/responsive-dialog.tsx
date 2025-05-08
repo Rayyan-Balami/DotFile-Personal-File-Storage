@@ -24,7 +24,7 @@ import {
 import { DialogClose } from "@radix-ui/react-dialog"
 
 interface ResponsiveDialogProps {
-  trigger: React.ReactNode
+  trigger?: React.ReactNode
   title: string
   description?: string
   children: React.ReactNode

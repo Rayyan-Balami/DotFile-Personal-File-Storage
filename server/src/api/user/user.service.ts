@@ -14,6 +14,7 @@ import { ApiError } from "@utils/apiError.js";
 import logger from "@utils/logger.js";
 import { sanitizeDocument } from "@utils/sanitizeDocument.js";
 import jwt from "jsonwebtoken";
+import { createUserDirectory } from "@utils/mkdir.utils.js";
 
 /**
  * Service class for user-related business logic
@@ -116,6 +117,9 @@ class UserService {
       ...data,
       plan: defaultPlan.id,
     });
+
+    // Create user directory after user is created
+    createUserDirectory(user.id);
 
     // Return only the user data, no tokens
     return this.sanitizeUser(user);

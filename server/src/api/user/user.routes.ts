@@ -16,17 +16,17 @@ import { Router } from "express";
 //=============================================================================
 // ROUTE INITIALIZATION
 //=============================================================================
-const guestUserRoutes = Router();
-const authUserRoutes = Router();
-const adminUserRoutes = Router();
+const guestRoutes = Router();
+const authRoutes = Router();
+const adminRoutes = Router();
 
 //=============================================================================
 // GUEST ROUTES - No authentication required
 //=============================================================================
 // Apply middleware once at the router level
-guestUserRoutes.use(verifyGuest);
+guestRoutes.use(verifyGuest);
 
-guestUserRoutes
+guestRoutes
   .post("/register", validateData(registerUserSchema), userController.register)
   .post("/login", validateData(loginUserSchema), userController.login)
   .post(
@@ -39,9 +39,9 @@ guestUserRoutes
 // AUTHENTICATED USER ROUTES - Requires valid auth token
 //=============================================================================
 // Apply middleware once at the router level
-authUserRoutes.use(verifyAuth);
+authRoutes.use(verifyAuth);
 
-authUserRoutes
+authRoutes
   .get("/me", userController.getCurrentUser)
   .put("/me", validateData(updateUserSchema), userController.updateCurrentUser)
   .patch(
@@ -56,10 +56,10 @@ authUserRoutes
 // ADMIN ROUTES - Requires admin privileges
 //=============================================================================
 // Apply middleware once at the router level
-adminUserRoutes.use(verifyAuth);
-adminUserRoutes.use(restrictTo([UserRole.ADMIN]));
+adminRoutes.use(verifyAuth);
+adminRoutes.use(restrictTo([UserRole.ADMIN]));
 
-adminUserRoutes
+adminRoutes
   .get("/", userController.getAllUsers)
   .get("/:id", userController.getUserById)
   .put("/:id", validateData(updateUserSchema), userController.updateUser)
@@ -74,8 +74,8 @@ adminUserRoutes
 // ROUTE REGISTRATION
 //=============================================================================
 const userRoutes = Router();
-userRoutes.use("/auth", guestUserRoutes);
-userRoutes.use("/users", authUserRoutes);
-userRoutes.use("/admin/users", adminUserRoutes);
+userRoutes.use("/auth", guestRoutes);
+userRoutes.use("/users", authRoutes);
+userRoutes.use("/admin/users", adminRoutes);
 
 export default userRoutes;

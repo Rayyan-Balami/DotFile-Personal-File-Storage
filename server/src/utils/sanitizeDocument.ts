@@ -1,95 +1,52 @@
-// utils/sanitize.ts
+import mongoose from "mongoose";
 
 type SanitizeOptions = {
   excludeFields?: string[];
-  includeFields?: string[]; // Only include these fields if specified
+  includeFields?: string[];
   idField?: string; // default: "id"
-  recursive?: boolean; // default: true - whether to sanitize nested objects
+  recursive?: boolean; // default: true
 };
 
-/**
- * Sanitizes a Mongoose document by:
- * - converting _id to id
- * - removing sensitive/internal fields like password, __v
- * - handling nested documents and populated fields
- *
- * @param doc Mongoose document or plain object
- * @param options Optional fields to exclude or customize
- * @returns Plain sanitized object
- */
 export function sanitizeDocument<T>(
   doc: any,
   options: SanitizeOptions = {}
 ): T {
   const {
     excludeFields = ["__v"],
-    includeFields = [], // Empty means include all non-excluded fields
+    includeFields = [],
     idField = "id",
     recursive = true,
   } = options;
 
   if (!doc) return null as any;
 
-  // Handle arrays by mapping each item
   if (Array.isArray(doc)) {
     return doc.map((item) =>
-      sanitizeDocument(item, {
-        ...options,
-        // Pass down the same options to nested items
-        excludeFields,
-        includeFields,
-        idField,
-        recursive,
-      })
+      sanitizeDocument(item, options)
     ) as any;
   }
 
   const obj = typeof doc.toObject === "function" ? doc.toObject() : { ...doc };
   const sanitized: Record<string, any> = {};
 
-  // Process fields
   for (const key in obj) {
-    // Skip excluded fields
     if (excludeFields.includes(key)) continue;
+    if (includeFields.length > 0 && !includeFields.includes(key) && key !== "_id") continue;
 
-    // If includeFields has items, only include specified fields
-    if (
-      includeFields.length > 0 &&
-      !includeFields.includes(key) &&
-      key !== "_id"
-    )
-      continue;
+    const value = obj[key];
 
     if (key === "_id") {
-      // Convert _id to id string
-      sanitized[idField] = obj[key].toString();
-    } else if (obj[key] instanceof Date) {
-      // Properly format dates as ISO strings instead of empty objects
-      sanitized[key] = obj[key].toISOString();
-    } else if (recursive && obj[key] && typeof obj[key] === "object") {
-      // Recursively sanitize nested objects and arrays
-      if (Array.isArray(obj[key])) {
-        sanitized[key] = obj[key].map((item: any) =>
-          item && typeof item === "object"
-            ? sanitizeDocument(item, {
-                excludeFields,
-                includeFields,
-                idField,
-                recursive,
-              })
-            : item
-        );
-      } else {
-        sanitized[key] = sanitizeDocument(obj[key], {
-          excludeFields,
-          includeFields,
-          idField,
-          recursive,
-        });
-      }
+      sanitized[idField] = value.toString();
+    } else if (value instanceof mongoose.Types.ObjectId) {
+      sanitized[key] = value.toString();
+    } else if (Buffer.isBuffer(value)) {
+      sanitized[key] = value.toString("hex");
+    } else if (value instanceof Date) {
+      sanitized[key] = value.toISOString();
+    } else if (recursive && typeof value === "object" && value !== null) {
+      sanitized[key] = sanitizeDocument(value, options);
     } else {
-      // Copy primitive values as-is
-      sanitized[key] = obj[key];
+      sanitized[key] = value;
     }
   }
 

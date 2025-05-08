@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import { join } from 'path';
+import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 // Load environment variables
@@ -26,11 +26,10 @@ export const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || '15m';
 export const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || '';
 export const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || '7d';
 
-
-// Path constants
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = join(__filename, '..');
-export const ROOT_DIR = join(__dirname, '..');
+// Path constants - Fixed
+export const $filename = fileURLToPath(import.meta.url);
+export const $dirname = dirname($filename); // Get directory containing the file
+export const ROOT_DIR = join($dirname, '..', '..'); // Go up two levels from config dir
 export const UPLOADS_DIR = join(ROOT_DIR, 'uploads');
 export const PUBLIC_DIR = join(ROOT_DIR, 'public');
 
@@ -39,3 +38,8 @@ export const DEFAULT_USER_AVATAR_PATH = join(PUBLIC_DIR, 'images/default-user-av
 
 // Add this for storing in database and sending in API responses
 export const DEFAULT_USER_AVATAR_URL = '/images/default-user-avatar.png';
+
+export const MAX_FOLDER_DEPTH = Number(process.env.MAX_FOLDER_DEPTH) || 10;
+export const MAX_FILES_PER_FOLDER = Number(process.env.MAX_FILES_PER_FOLDER) || 50;
+export const MAX_FILES_PER_UPLOAD_BATCH = Number(process.env.MAX_FILES_PER_UPLOAD_BATCH) || 50;
+export const MAX_SIZE_PER_UPLOAD_BATCH = Number(process.env.MAX_SIZE_PER_UPLOAD_BATCH) || 262144000; // 250 MB

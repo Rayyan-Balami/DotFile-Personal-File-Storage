@@ -1,8 +1,8 @@
 const dummyUsers: CreateUserDTO[] = [
   {
-    name: "Sita Sharma",
-    email: "sita@example.com",
-    password: "Password@123",
+    name: "happy guy",
+    email: "happy.guy@example.com",
+    password: "Happy@2024",
     plan: "basic"
   },
   {

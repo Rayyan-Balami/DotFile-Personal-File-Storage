@@ -75,7 +75,7 @@ export default function DirectoryView({
 
   return (
     <FileDropZone>
-      <ContextMenu>
+      <ContextMenu modal={false}>
         <ContextMenuTrigger asChild>
           <section className="flex flex-1 flex-col gap-4 md:gap-6 p-4 md:p-6">
             <div className="mb-2">
