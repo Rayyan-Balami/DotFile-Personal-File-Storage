@@ -1,12 +1,32 @@
 import express from "express";
 import FileController from "@api/File/file.controller.js";
-import { authenticate } from "@middleware/auth.middleware.js";
+import { verifyAuth } from "@middleware/auth.middleware.js";
 
-const router = express.Router();
-const authRoutes = router.use(authenticate);
+//=============================================================================
+// ROUTE INITIALIZATION
+//=============================================================================
+const authRoutes = express.Router();
+
+//=============================================================================
+// AUTHENTICATED USER ROUTES - Requires valid auth token
+//=============================================================================
+// Apply middleware once at the router level
+authRoutes.use(verifyAuth);
 
 // File routes
-authRoutes.post("/upload", FileController.uploadFile);
-authRoutes.post("/upload/multiple", FileController.uploadMultipleFiles);
+authRoutes.post("/upload", FileController.uploadFiles); // Single unified upload endpoint
+authRoutes.get("/", FileController.getFiles);
+authRoutes.get("/:id", FileController.getFileById);
+authRoutes.patch("/:id", FileController.updateFile);
+authRoutes.delete("/:id", FileController.deleteFile);
+authRoutes.get("/:id/download", FileController.downloadFile);
+authRoutes.post("/move", FileController.moveFiles);
+authRoutes.get("/search", FileController.searchFiles);
 
-export default router;
+//=============================================================================
+// ROUTE REGISTRATION
+//=============================================================================
+const fileRoutes = express.Router();
+fileRoutes.use("/file", authRoutes);
+
+export default fileRoutes;

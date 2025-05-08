@@ -6,9 +6,8 @@ export interface IFolder extends Document {
   owner: Schema.Types.ObjectId;
   workspace: Schema.Types.ObjectId | null;
   parent: Schema.Types.ObjectId | null;
-  path: string; // Logical path for display
+  path: string; // Virtual logical path for display/navigation
   pathSegments: { name: string; id: Schema.Types.ObjectId }[]; // For breadcrumb navigation
-  storageLocation: string; // Physical path on disk
   items: number;
   pinned: boolean;
   isShared: boolean;
@@ -31,7 +30,6 @@ const FolderSchema = new Schema<IFolder>(
         id: { type: Schema.Types.ObjectId, ref: 'Folder', required: true }
       }
     ],
-    storageLocation: { type: String }, // Add this field
     items: { type: Number, default: 0 },
     pinned: { type: Boolean, default: false },
     isShared: { type: Boolean, default: false },

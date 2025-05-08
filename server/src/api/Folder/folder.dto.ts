@@ -1,7 +1,6 @@
 export interface CreateFolderDto {
   name: string;
   parent?: string | null;
-  workspace?: string | null;
 }
 
 export interface UpdateFolderDto {
@@ -13,7 +12,6 @@ export interface UpdateFolderDto {
   path?: string;
   pathSegments?: { name: string; id: string }[];
   items?: number;
-  storageLocation?: string; // Add this field
 }
 
 export interface GetFolderDto {
@@ -49,13 +47,6 @@ export interface FolderResponseDto {
    * Structured array of ancestor folders for breadcrumb navigation
    */
   pathSegments: { name: string; id: string }[];
-
-  /**
-   * Physical location where files are stored on disk
-   * Not exposed to end users
-   */
-  storageLocation: string;
-
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;

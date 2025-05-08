@@ -78,54 +78,6 @@ export const createUserDirectory = (userId: string): string => {
 };
 
 /**
- * Creates a folder directory with the format `folder-{folderId}`
- * inside a user's directory
- * @param userId The user ID who owns the folder
- * @param folderId The folder ID to create a directory for
- * @returns The full path to the created folder directory
- */
-export const createFolderDirectory = (userId: string, folderId: string): string => {
-  try {
-    logger.info(`Creating folder directory for folder ${folderId} owned by user ${userId}`);
-    const userDirName = `user-${userId}`;
-    const folderDirName = `folder-${folderId}`;
-    const userDirPath = path.join(UPLOADS_DIR, userDirName);
-    const folderPath = path.join(userDirPath, folderDirName);
-    
-    // Create user directory if it doesn't exist
-    if (!fs.existsSync(userDirPath)) {
-      logger.debug(`User directory doesn't exist, creating: ${userDirPath}`);
-      try {
-        fs.mkdirSync(userDirPath, { recursive: true });
-        logger.info(`Created user directory: ${userDirPath}`);
-      } catch (userDirError: unknown) {
-        logger.error(`Failed to create user directory: ${userDirPath}`, userDirError);
-        throw new Error(`Failed to create user directory: ${getErrorMessage(userDirError)}`);
-      }
-    }
-    
-    // Create folder directory
-    if (!fs.existsSync(folderPath)) {
-      logger.debug(`Creating folder directory: ${folderPath}`);
-      try {
-        fs.mkdirSync(folderPath, { recursive: true });
-        logger.info(`Created folder directory: ${folderPath}`);
-      } catch (folderDirError: unknown) {
-        logger.error(`Failed to create folder directory: ${folderPath}`, folderDirError);
-        throw new Error(`Failed to create folder directory: ${getErrorMessage(folderDirError)}`);
-      }
-    } else {
-      logger.debug(`Folder directory already exists: ${folderPath}`);
-    }
-    
-    return folderPath;
-  } catch (error: unknown) {
-    logger.error(`Failed in createFolderDirectory operation:`, error);
-    throw new Error(`Failed to create folder directory: ${getErrorMessage(error)}`);
-  }
-};
-
-/**
  * Returns the path to a user's storage directory
  * @param userId The user ID
  * @returns The path to the user's storage directory
@@ -148,29 +100,6 @@ export const getUserDirectoryPath = (userId: string): string => {
 };
 
 /**
- * Returns the path to a folder's storage directory
- * @param userId The user ID who owns the folder
- * @param folderId The folder ID
- * @returns The path to the folder's storage directory
- */
-export const getFolderDirectoryPath = (userId: string, folderId: string): string => {
-  try {
-    const folderPath = path.join(UPLOADS_DIR, `user-${userId}`, `folder-${folderId}`);
-    logger.debug(`Resolved folder directory path: ${folderPath}`);
-    
-    // Optional: Verify the path exists
-    if (!fs.existsSync(folderPath)) {
-      logger.warn(`Folder directory does not exist: ${folderPath}`);
-    }
-    
-    return folderPath;
-  } catch (error: unknown) {
-    logger.error(`Failed to get folder directory path for folder ${folderId} owned by user ${userId}:`, error);
-    throw new Error(`Failed to get folder directory path: ${getErrorMessage(error)}`);
-  }
-};
-
-/**
  * Checks if a directory exists and is accessible
  * @param dirPath Path to check
  * @returns Boolean indicating if directory exists and is accessible
@@ -180,6 +109,27 @@ export const directoryExists = (dirPath: string): boolean => {
     return fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory();
   } catch (error: unknown) {
     logger.error(`Error checking if directory exists: ${dirPath}`, error);
+    return false;
+  }
+};
+
+/**
+ * Safely removes a file if it exists
+ * @param filePath Path to the file to remove
+ * @returns Boolean indicating success
+ */
+export const removeFile = (filePath: string): boolean => {
+  try {
+    if (fs.existsSync(filePath)) {
+      logger.debug(`Removing file: ${filePath}`);
+      fs.unlinkSync(filePath);
+      logger.info(`Successfully removed file: ${filePath}`);
+      return true;
+    }
+    logger.debug(`File doesn't exist, nothing to remove: ${filePath}`);
+    return true;
+  } catch (error: unknown) {
+    logger.error(`Failed to remove file ${filePath}:`, error);
     return false;
   }
 };
@@ -204,3 +154,6 @@ export const removeDirectory = (dirPath: string): boolean => {
     return false;
   }
 };
+
+
+

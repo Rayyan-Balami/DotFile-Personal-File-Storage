@@ -8,7 +8,6 @@ import {
 } from "./folder.dto.js";
 import { IFolder } from "@api/Folder/folder.model.js";
 import { ApiError } from "@utils/apiError.js";
-import { createFolderDirectory } from "@utils/mkdir.utils.js";
 
 class FolderService {
   // Create a new folder
@@ -19,22 +18,13 @@ class FolderService {
     // Calculate the path and prepare complete folder data
     const folderWithPath = await this.prepareFolderData(folderData, ownerId);
     const newFolder = await folderDao.createFolder(folderWithPath);
-    const sanitizedFolder = this.sanitizeFolder(newFolder);
-
-    // Create physical folder directory and store its path
-    const physicalPath = createFolderDirectory(ownerId, newFolder.id.toString());
-    
-    // Update the folder with its physical storage location
-    await folderDao.updateFolder(newFolder.id.toString(), {
-      storageLocation: physicalPath
-    });
 
     // If folder has a parent, increment its item count
     if (folderData.parent) {
       await this.incrementParentItemCount(folderData.parent);
     }
 
-    return sanitizedFolder;
+    return this.sanitizeFolder(newFolder);
   }
 
   // Get a folder by ID
@@ -56,6 +46,28 @@ class FolderService {
     }
 
     return this.sanitizeFolder(folder);
+  }
+
+  /**
+   * Get a folder by name and parent ID
+   * 
+   * @param name The name of the folder to find
+   * @param parentId The ID of the parent folder, or null for root folders
+   * @param ownerId Optional owner ID to check folder ownership
+   * @returns The folder data if found, or null if not found
+   */
+  async getFolderByNameAndParent(
+    name: string,
+    parentId: string | null,
+    ownerId?: string
+  ): Promise<FolderResponseDto | null> {
+    // If ownerId is not provided, we can't check for the folder
+    if (!ownerId) {
+      return null;
+    }
+    
+    const folder = await folderDao.checkFolderExists(name, ownerId, parentId);
+    return folder ? this.sanitizeFolder(folder) : null;
   }
 
   // Get all folders matching query
@@ -261,6 +273,26 @@ class FolderService {
     return folders.map((folder) => this.sanitizeFolder(folder));
   }
 
+  /**
+   * Increment a folder's item count when a new item is added to it
+   * Public method for use by other services
+   * 
+   * @param folderId ID of the folder to update
+   */
+  async incrementFolderItemCount(folderId: string): Promise<void> {
+    await this.incrementParentItemCount(folderId);
+  }
+
+  /**
+   * Decrement a folder's item count when an item is removed from it
+   * Public method for use by other services
+   * 
+   * @param folderId ID of the folder to update
+   */
+  async decrementFolderItemCount(folderId: string): Promise<void> {
+    await this.decrementParentItemCount(folderId);
+  }
+
   // Helper method to check if a folder is a descendant of another
   private async isDescendant(
     ancestorId: string,
@@ -341,7 +373,7 @@ class FolderService {
       if (!parentFolder) {
         throw new ApiError(404, "Parent folder not found", ["parent"]);
       }
-
+      
       // Construct the path based on parent
       enhancedData.path = `${parentFolder.path}/${this.sanitizePathSegment(enhancedData.name)}`;
 
