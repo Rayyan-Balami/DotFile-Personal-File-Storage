@@ -37,14 +37,23 @@ class FileService {
     folderId?: string
   ): Promise<FileResponseDto> {
     logger.debug(`Creating file record for ${fileData.name} by user ${userId}`);
-    
+
+    // Ensure file name is unique within the folder
+    const uniqueName = await this.ensureUniqueNameAtLevel(
+      fileData.name,
+      fileData.type,
+      userId,
+      folderId
+    );
+
     // Create the file document
     const file = await fileDao.createFile({
       ...fileData,
+      name: uniqueName,
       owner: userId,
       folder: folderId || null,
       // Using flat storage, so the path is directly in user directory
-      path: `/${fileData.name}`,
+      path: `/${uniqueName}`,
       // Add the extension field - use the file type as extension
       extension: fileData.type || ''
     });
@@ -161,6 +170,46 @@ class FileService {
     return this.sanitizeFile(deletedFile);
   }
 
+  /**
+   * Ensure a file name is unique within a folder by appending a counter if needed
+   * Similar to how folder names are made unique
+   * 
+   * @param name Original file name without extension
+   * @param extension File extension
+   * @param ownerId User ID who owns the file
+   * @param folderId Optional folder ID where the file will be placed
+   * @returns Unique file name (without extension)
+   */
+  private async ensureUniqueNameAtLevel(
+    name: string,
+    extension: string,
+    ownerId: string,
+    folderId?: string | null
+  ): Promise<string> {
+    let finalName = name;
+    let counter = 1;
+    let isUnique = false;
+
+    while (!isUnique) {
+      // Check if a file with this name already exists in the same folder
+      const existingFile = await fileDao.checkFileExists(
+        finalName,
+        extension,
+        ownerId,
+        folderId || null
+      );
+
+      if (!existingFile) {
+        isUnique = true;
+      } else {
+        // If exists, append counter in parentheses and try again
+        counter++;
+        finalName = `${name} (${counter})`;
+      }
+    }
+
+    return finalName;
+  }
 
   /**
    * Remove sensitive data from file object

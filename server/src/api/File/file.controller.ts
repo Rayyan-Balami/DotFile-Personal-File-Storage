@@ -38,6 +38,12 @@ class FileController {
       const files = req.files as Express.Multer.File[];
       const fileToFolderMap = req.fileToFolderMap || {};
 
+      // Debug info - log files being processed
+      logger.debug(`Processing ${files.length} files in controller`);
+      files.forEach((file, index) => {
+        logger.debug(`[${index}] Processing file: ${file.filename}, original: ${file.originalname}`);
+      });
+
       // Process uploaded files to create database records
       const uploadResults = [];
       // Use the virtual folders map created in processZipFiles middleware if available,
@@ -46,11 +52,21 @@ class FileController {
         Object.entries(req.virtualFolders || {})
       );
 
+      // Track processed filenames to avoid duplicates (extra protection)
+      const processedFilenames = new Set<string>();
+
       // The original ZIP files have already been filtered out in the updateUserStorageUsage middleware
       // so now we just need to process all files in the req.files array
 
       for (const file of files) {
         try {
+          // Skip if we've already processed this file
+          if (processedFilenames.has(file.filename)) {
+            logger.debug(`Skipping duplicate file: ${file.filename}`);
+            continue;
+          }
+          processedFilenames.add(file.filename);
+
           // Check if this file is part of a zip folder structure
           const virtualPath = fileToFolderMap[file.filename];
 
@@ -122,7 +138,7 @@ class FileController {
                 name: fileName,
                 type: fileExtension,
                 size: file.size,
-                storageKey: file.filename,
+                storageKey: file.originalname,
                 originalPath: virtualPath,
               },
               userId,

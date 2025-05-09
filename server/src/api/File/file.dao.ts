@@ -117,6 +117,32 @@ class FileDao {
       deletedAt: isDeleted ? { $ne: null } : null,
     }).sort({ [isDeleted ? "deletedAt" : "createdAt"]: -1 });
   }
+
+  /**
+   * Check if a file with the given name and extension exists in a specific folder
+   * 
+   * @param name File name without extension
+   * @param extension File extension
+   * @param ownerId User who owns the file
+   * @param folderId Folder where to check (null for root level)
+   * @returns File document if found, null otherwise
+   */
+  async checkFileExists(
+    name: string,
+    extension: string,
+    ownerId: string,
+    folderId: string | null
+  ): Promise<IFile | null> {
+    const query = {
+      name,
+      extension,
+      owner: new mongoose.Types.ObjectId(ownerId),
+      folder: folderId ? new mongoose.Types.ObjectId(folderId) : null,
+      deletedAt: null // Only check non-deleted files
+    };
+
+    return await File.findOne(query);
+  }
 }
 
 export default new FileDao();

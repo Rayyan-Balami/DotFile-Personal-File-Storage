@@ -405,16 +405,18 @@ export const updateUserStorageUsage = async (
       const filteredOriginalFiles = (req.files as Express.Multer.File[])
         .filter(f => !zipFilenames.includes(f.filename));
       
-      // Add the extracted files from the session to req.files
-      // This ensures the controller processes both original and extracted files
-      const extractedFiles = session.files.map(f => ({
-        originalname: f.originalname,
-        filename: f.filename,
-        size: f.size,
-        destination: f.destination,
-        path: path.join(f.destination, f.filename),
-        mimetype: ''  // Could be determined from extension if needed
-      } as Express.Multer.File));
+      // Get only extracted files from the session (from ZIP files)
+      // This is the key change - only include files that are extracted from ZIP archives
+      const extractedFiles = session.files
+        .filter(f => Object.keys(fileToFolderMap).includes(f.filename))
+        .map(f => ({
+          originalname: f.originalname,
+          filename: f.filename,
+          size: f.size,
+          destination: f.destination,
+          path: path.join(f.destination, f.filename),
+          mimetype: ''  // Could be determined from extension if needed
+        } as Express.Multer.File));
       
       // Log information about extracted files
       logger.debug(`Adding ${extractedFiles.length} extracted files to req.files for processing`);
