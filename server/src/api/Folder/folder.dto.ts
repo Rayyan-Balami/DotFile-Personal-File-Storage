@@ -1,4 +1,5 @@
 import { FileResponseDto } from "@api/File/file.dto.js";
+import mongoose from "mongoose";
 
 export interface CreateFolderDto {
   name: string;
@@ -12,13 +13,16 @@ export interface UpdateFolderDto {
   isPinned?: boolean;
   isShared?: boolean;
   path?: string;
-  pathSegments?: { name: string; id: string }[];
+  pathSegments?: { name: string; id: mongoose.Types.ObjectId | string }[];
   items?: number;
 }
 
 export interface RenameFolderDto {
-  name: string;
-  id: string;
+  newName: string;
+}
+
+export interface MoveFolderDto {
+  newParentId: string | null;
 }
 
 export interface FolderResponseDto {

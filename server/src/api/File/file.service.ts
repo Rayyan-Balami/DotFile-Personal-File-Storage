@@ -1,16 +1,14 @@
-import { ApiError } from "@utils/apiError.js";
 import fileDao from "@api/File/file.dao.js";
-import folderService from "@api/Folder/folder.service.js";
-import { IFile } from "@api/File/file.model.js";
-import path from "path";
-import { getUserDirectoryPath } from "@utils/mkdir.utils.js";
-import { sanitizeDocument } from "@utils/sanitizeDocument.js";
-import logger from "@utils/logger.js";
-import { 
-  CreateFileDto, 
-  FileResponseDto, 
-  UpdateFileDto 
+import {
+  CreateFileDto,
+  FileResponseDto,
+  UpdateFileDto
 } from "@api/File/file.dto.js";
+import { IFile } from "@api/File/file.model.js";
+import folderService from "@api/Folder/folder.service.js";
+import { ApiError } from "@utils/apiError.js";
+import logger from "@utils/logger.js";
+import { sanitizeDocument } from "@utils/sanitizeDocument.js";
 
 /**
  * Service class for file-related business logic
@@ -46,6 +44,9 @@ class FileService {
       folderId
     );
 
+    // Sanitize the name for path consistency
+    const sanitizedName = this.sanitizePathSegment(uniqueName);
+
     // Create the file document
     const file = await fileDao.createFile({
       ...fileData,
@@ -53,7 +54,7 @@ class FileService {
       owner: userId,
       folder: folderId || null,
       // Using flat storage, so the path is directly in user directory
-      path: `/${uniqueName}`,
+      path: `/${sanitizedName}`,
       // Add the extension field - use the file type as extension
       extension: fileData.type || ''
     });
@@ -171,6 +172,111 @@ class FileService {
   }
 
   /**
+   * Rename a file
+   * 
+   * @param fileId File ID to rename
+   * @param newName New file name
+   * @param userId User ID for ownership verification
+   * @returns Updated file document
+   */
+  async renameFile(fileId: string, newName: string, userId: string): Promise<FileResponseDto> {
+    // Verify file exists and user owns it
+    const existingFile = await this.getFileById(fileId, userId);
+    
+    // Ensure name is unique within the folder
+    const uniqueName = await this.ensureUniqueNameAtLevel(
+      newName,
+      existingFile.extension,
+      userId,
+      existingFile.folder
+    );
+    
+    // Calculate the new path - simply update the last segment of the path
+    const sanitizedName = this.sanitizePathSegment(uniqueName);
+    const newPath = `/${sanitizedName}`;
+    
+    // Update the file
+    const updatedFile = await fileDao.updateFile(fileId, {
+      name: uniqueName,
+      path: newPath
+    });
+    
+    if (!updatedFile) {
+      throw new ApiError(500, [{ rename: "Failed to rename file" }]);
+    }
+    
+    return this.sanitizeFile(updatedFile);
+  }
+  
+  /**
+   * Move a file to a new parent folder
+   * 
+   * @param fileId File ID to move
+   * @param newParentId New parent folder ID or null for root
+   * @param userId User ID for ownership verification
+   * @returns Updated file document
+   */
+  async moveFile(fileId: string, newParentId: string | null, userId: string): Promise<FileResponseDto> {
+    // Verify file exists and user owns it
+    const existingFile = await this.getFileById(fileId, userId);
+    
+    // Verify the destination folder exists and user owns it (if not moving to root)
+    let parentFolder = null;
+    let newPathSegments: { name: string; id: string }[] = [];
+    
+    if (newParentId) {
+      // Get the destination folder
+      parentFolder = await folderService.getFolderById(newParentId, userId);
+      if (!parentFolder) {
+        throw new ApiError(404, [{ folder: "Destination folder not found" }]);
+      }
+      
+      // Use the parent's pathSegments for the file
+      newPathSegments = [...parentFolder.pathSegments];
+    }
+    
+    // Ensure name is unique within the new parent folder
+    const uniqueName = await this.ensureUniqueNameAtLevel(
+      existingFile.name,
+      existingFile.extension,
+      userId,
+      newParentId
+    );
+    
+    // Sanitize the name for path consistency
+    const sanitizedName = this.sanitizePathSegment(uniqueName);
+    
+    // Calculate new path
+    const newPath = newParentId && parentFolder 
+      ? `${parentFolder.path}/${sanitizedName}` 
+      : `/${sanitizedName}`;
+    
+    // If file was in a folder, decrement that folder's item count
+    if (existingFile.folder) {
+      await folderService.decrementFolderItemCount(existingFile.folder);
+    }
+    
+    // Update the file
+    const updatedFile = await fileDao.updateFile(fileId, {
+      name: uniqueName,
+      folder: newParentId,
+      path: newPath,
+      pathSegments: newPathSegments
+    });
+    
+    if (!updatedFile) {
+      throw new ApiError(500, [{ move: "Failed to move file" }]);
+    }
+    
+    // If file is moved to a folder, increment that folder's item count
+    if (newParentId) {
+      await folderService.incrementFolderItemCount(newParentId);
+    }
+    
+    return this.sanitizeFile(updatedFile);
+  }
+
+  /**
    * Ensure a file name is unique within a folder by appending a counter if needed
    * Similar to how folder names are made unique
    * 
@@ -222,6 +328,21 @@ class FileService {
       excludeFields: ["__v"],
       recursive: true,
     });
+  }
+  
+  /**
+   * Helper to sanitize path segments - replaces spaces with hyphens and removes invalid chars
+   * Keeping consistent with the folder path sanitization
+   * 
+   * @param name Name to sanitize for path use
+   * @returns Sanitized name suitable for paths
+   */
+  private sanitizePathSegment(name: string): string {
+    return name
+      .trim()
+      .replace(/\s+/g, "-") // Replace spaces with hyphens
+      .replace(/[\/\\:*?"<>|]/g, "") // Remove invalid filesystem characters
+      .toLowerCase(); // Lowercase for consistency
   }
 }
 

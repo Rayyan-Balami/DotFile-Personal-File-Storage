@@ -25,7 +25,7 @@ class PlanService {
     // Check if a plan with the same name already exists
     const existingPlan = await planDAO.getPlanByName(data.name);
     if (existingPlan) {
-      throw new ApiError(409, "Plan with this name already exists", ["name"]);
+      throw new ApiError(409, [{ name: "Plan with this name already exists" }]);
     }
 
     // If creating a default plan, unset default flag on any existing default plan
@@ -47,7 +47,7 @@ class PlanService {
   async getPlanById(id: string): Promise<PlanResponseDTO> {
     const plan = await planDAO.getPlanById(id);
     if (!plan) {
-      throw new ApiError(404, "Plan not found", ["id"]);
+      throw new ApiError(404, [ {id: "Plan not found" }]);
     }
 
     return this.sanitizePlan(plan);
@@ -63,7 +63,7 @@ class PlanService {
   async getPlanByName(name: string): Promise<PlanResponseDTO> {
     const plan = await planDAO.getPlanByName(name);
     if (!plan) {
-      throw new ApiError(404, "Plan not found", ["name"]);
+      throw new ApiError(404, [ {name: "Plan not found" }]);
     }
     return this.sanitizePlan(plan);
   }
@@ -77,7 +77,7 @@ class PlanService {
   async getDefaultPlan(): Promise<PlanResponseDTO> {
     const plan = await planDAO.getDefaultPlan();
     if (!plan) {
-      throw new ApiError(404, "Default plan not found", ["default"]);
+      throw new ApiError(404, [ {name: "Default plan not found" }]);
     }
     return this.sanitizePlan(plan);
   }
@@ -108,7 +108,7 @@ class PlanService {
     if (data.name) {
       const existingPlan = await planDAO.getPlanByName(data.name);
       if (existingPlan && existingPlan.id.toString() !== id) {
-        throw new ApiError(409, "Plan name already in use", ["name"]);
+        throw new ApiError(409, [ {name: "Plan name already in use"} ]);
       }
     }
 
@@ -119,7 +119,7 @@ class PlanService {
 
     const updatedPlan = await planDAO.updatePlan(id, data);
     if (!updatedPlan) {
-      throw new ApiError(404, "Plan not found", ["id"]);
+      throw new ApiError(404, [ {id: "Plan not found"} ]);
     }
 
     return this.sanitizePlan(updatedPlan);
@@ -136,16 +136,16 @@ class PlanService {
     // Check if this is the Free plan - prevent deletion
     const plan = await planDAO.getPlanById(id);
     if (!plan) {
-      throw new ApiError(404, "Plan not found", ["id"]);
+      throw new ApiError(404, [ {id: "Plan not found"} ]);
     }
 
     if (plan.name === "Free") {
-      throw new ApiError(400, "Cannot delete the Free plan", ["name"]);
+      throw new ApiError(400, [ {name: "Cannot delete the Free plan"} ]);
     }
 
     const deletedPlan = await planDAO.deletePlan(id);
     if (!deletedPlan) {
-      throw new ApiError(404, "Plan not found", ["id"]);
+      throw new ApiError(404, [ {id: "Plan not found"} ]);
     }
 
     return this.sanitizePlan(deletedPlan);
@@ -166,7 +166,7 @@ class PlanService {
     // Verify plan exists
     const plan = await planDAO.getPlanById(planId);
     if (!plan) {
-      throw new ApiError(404, "Plan not found", ["planId"]);
+      throw new ApiError(404, [ {id: "Plan not found"} ]);
     }
 
     // Update user's plan
@@ -200,7 +200,7 @@ class PlanService {
     const user = await userService.getUserById(userId);
 
     if (!user.plan) {
-      throw new ApiError(404, "User has no plan assigned", ["plan"]);
+      throw new ApiError(404, [ {id: "User plan not found"} ]);
     }
 
     // Get plan details
@@ -208,7 +208,7 @@ class PlanService {
     const plan = await planDAO.getPlanById(planId as string);
 
     if (!plan) {
-      throw new ApiError(404, "Plan not found", ["plan"]);
+      throw new ApiError(404, [ {id: "Plan not found"} ]);
     }
 
     // Calculate storage used percentage

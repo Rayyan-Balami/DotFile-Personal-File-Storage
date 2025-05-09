@@ -1,7 +1,4 @@
-import {
-  CreateFileDto,
-  UpdateFileDto
-} from "@api/File/file.dto.js";
+import { CreateFileDto, UpdateFileDto } from "@api/File/file.dto.js";
 import File, { IFile } from "@api/File/file.model.js";
 import mongoose from "mongoose";
 
@@ -120,7 +117,7 @@ class FileDao {
 
   /**
    * Check if a file with the given name and extension exists in a specific folder
-   * 
+   *
    * @param name File name without extension
    * @param extension File extension
    * @param ownerId User who owns the file
@@ -138,10 +135,164 @@ class FileDao {
       extension,
       owner: new mongoose.Types.ObjectId(ownerId),
       folder: folderId ? new mongoose.Types.ObjectId(folderId) : null,
-      deletedAt: null // Only check non-deleted files
+      deletedAt: null, // Only check non-deleted files
     };
 
     return await File.findOne(query);
+  }
+
+  /**
+   * Update a file's path and pathSegments when its parent folder is renamed
+   *
+   * @param folderId The ID of the parent folder
+   * @param newPathPrefix The new path prefix for all files in this folder
+   * @param newPathSegments The updated path segments for all files in this folder
+   * @returns Result of the update operation
+   */
+  async updateFilesPathByFolder(
+    folderId: string,
+    newPathPrefix: string,
+    newPathSegments: { name: string; id: string }[]
+  ): Promise<{ acknowledged: boolean; modifiedCount: number }> {
+    if (!mongoose.Types.ObjectId.isValid(folderId)) {
+      return { acknowledged: false, modifiedCount: 0 };
+    }
+
+    const result = await File.updateMany(
+      { folder: folderId, deletedAt: null },
+      {
+        $set: {
+          path: newPathPrefix,
+          pathSegments: newPathSegments,
+        },
+      }
+    );
+
+    return {
+      acknowledged: result.acknowledged,
+      modifiedCount: result.modifiedCount,
+    };
+  }
+
+  /**
+   * Bulk update files' folder, path, and pathSegments when they are moved
+   *
+   * @param fileIds Array of file IDs to update
+   * @param newFolderId The new parent folder ID
+   * @param newPathPrefix The new path prefix for the files
+   * @param newPathSegments The updated path segments for the files
+   * @returns Result of the update operation
+   */
+  async moveFiles(
+    fileIds: string[],
+    newFolderId: string | null,
+    newPathPrefix: string,
+    newPathSegments: { name: string; id: string }[]
+  ): Promise<{ acknowledged: boolean; modifiedCount: number }> {
+    if (!fileIds.length) {
+      return { acknowledged: true, modifiedCount: 0 };
+    }
+
+    // Validate all IDs are proper MongoDB ObjectIds
+    const validIds = fileIds
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+
+    if (!validIds.length) {
+      return { acknowledged: false, modifiedCount: 0 };
+    }
+
+    const result = await File.updateMany(
+      { _id: { $in: validIds }, deletedAt: null },
+      {
+        $set: {
+          folder: newFolderId,
+          path: newPathPrefix,
+          pathSegments: newPathSegments,
+        },
+      }
+    );
+
+    return {
+      acknowledged: result.acknowledged,
+      modifiedCount: result.modifiedCount,
+    };
+  }
+
+  /**
+   * Update files when a specific folder is recursively updated
+   * This is used when a parent folder is renamed or moved
+   *
+   * @param oldPathPrefix The old path prefix to match
+   * @param newPathPrefix The new path prefix to replace it with
+   * @param pathSegmentsToUpdate Additional path segments to update or replace
+   * @returns Result of the update operation
+   */
+  async bulkUpdateFilePaths(
+    oldPathPrefix: string,
+    newPathPrefix: string,
+    pathSegmentsToUpdate: {
+      index: number;
+      value: { name: string; id: string };
+    }[] = []
+  ): Promise<{ acknowledged: boolean; modifiedCount: number }> {
+    // If old and new paths are the same, only update path segments if needed
+    if (oldPathPrefix === newPathPrefix && pathSegmentsToUpdate.length === 0) {
+      return { acknowledged: true, modifiedCount: 0 };
+    }
+
+    // Find all matching files to update
+    const filesToUpdate = await File.find({
+      path: { $regex: `^${oldPathPrefix}` },
+      deletedAt: null,
+    });
+
+    if (filesToUpdate.length === 0) {
+      return { acknowledged: true, modifiedCount: 0 };
+    }
+
+    // Track successful updates
+    let modifiedCount = 0;
+
+    // Process each file individually with string replacements
+    for (const file of filesToUpdate) {
+      // Update the path with string replacement
+      let newPath = file.path;
+      if (oldPathPrefix !== newPathPrefix) {
+        newPath = file.path.replace(
+          new RegExp(`^${oldPathPrefix}`),
+          newPathPrefix
+        );
+      }
+
+      // Prepare updates object
+      const updates: any = { path: newPath };
+
+      // Apply path segment updates if any provided
+      if (pathSegmentsToUpdate.length > 0) {
+        const pathSegments = [...file.pathSegments]; // Clone the array
+        pathSegmentsToUpdate.forEach((update) => {
+          if (update.index < pathSegments.length) {
+            pathSegments[update.index] = {
+              name: update.value.name,
+              id: new mongoose.Schema.Types.ObjectId(update.value.id),
+            };
+          }
+        });
+        updates.pathSegments = pathSegments;
+      }
+
+      // Update this file
+      const result = await File.updateOne({ _id: file._id }, { $set: updates });
+      if (result.modifiedCount > 0) {
+        modifiedCount++;
+      }
+    }
+
+    return {
+      acknowledged: true,
+      modifiedCount: modifiedCount,
+    };
   }
 }
 

@@ -13,6 +13,7 @@ import path from "path";
 import logger from "@utils/logger.js";
 import fs from "fs";
 import { ZIP_NAME_PREFIX } from "@config/constants.js";
+import { MoveFileDto, RenameFileDto } from "./file.dto.js";
 
 class FileController {
   /**
@@ -252,6 +253,46 @@ class FileController {
 
     res.json(
       new ApiResponse(200, { file: deletedFile }, "File deleted successfully")
+    );
+  });
+
+  /**
+   * Rename a file
+   */
+  renameFile = asyncHandler(async (req: Request, res: Response) => {
+    logger.info("Renaming file");
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+
+    const fileId = req.params.id;
+    const renameData: RenameFileDto = req.body;
+
+    const updatedFile = await fileService.renameFile(fileId, renameData.newName, userId);
+
+    res.json(
+      new ApiResponse(200, { file: updatedFile }, "File renamed successfully")
+    );
+  });
+
+  /**
+   * Move a file to a different folder
+   */
+  moveFile = asyncHandler(async (req: Request, res: Response) => {
+    logger.info("Moving file");
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+
+    const fileId = req.params.id;
+    const moveData: MoveFileDto = req.body;
+
+    const updatedFile = await fileService.moveFile(fileId, moveData.newParentId, userId);
+
+    res.json(
+      new ApiResponse(200, { file: updatedFile }, "File moved successfully")
     );
   });
 }

@@ -24,7 +24,7 @@ class FolderController {
 
   getFolderContents = asyncHandler(async (req, res) => {
     logger.info("Getting folder contents");
-    const folderId = req.params.folderId || null;
+    const folderId = req.params.id || null;
     
     // Add the owner (current logged in user) from auth middleware
     if (!req.user) {
@@ -36,8 +36,41 @@ class FolderController {
     res
       .status(200)
       .json(new ApiResponse(200, { folderContents }, "Folder contents retrieved successfully"));
-  }
-  );
+  });
+  
+  // Rename a folder
+  renameFolder = asyncHandler(async (req, res) => {
+    logger.info("Renaming folder");
+    const folderId = req.params.id;
+    const renameData = req.body;
+    
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+    const userId = req.user.id;
+    
+    const updatedFolder = await folderService.renameFolder(folderId, renameData, userId);
+    res
+      .status(200)
+      .json(new ApiResponse(200, { folder: updatedFolder }, "Folder renamed successfully"));
+  });
+  
+  // Move a folder to a new parent
+  moveFolder = asyncHandler(async (req, res) => {
+    logger.info("Moving folder");
+    const folderId = req.params.id;
+    const moveData = req.body;
+    
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+    const userId = req.user.id;
+    
+    const updatedFolder = await folderService.moveFolder(folderId, moveData, userId);
+    res
+      .status(200)
+      .json(new ApiResponse(200, { folder: updatedFolder }, "Folder moved successfully"));
+  });
 }
 
 export default new FolderController();

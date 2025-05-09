@@ -6,9 +6,14 @@ import {
   CreateFolderDto,
   FolderResponseDto,
   FolderResponseWithFilesDto,
+  MoveFolderDto,
+  RenameFolderDto,
 } from "./folder.dto.js";
 import fileService from "@api/File/file.service.js";
 import { FileResponseDto } from "@api/File/file.dto.js";
+import fileDao from "@api/File/file.dao.js";
+import logger from "@utils/logger.js";
+import mongoose from "mongoose";
 
 class FolderService {
   // Create a new folder
@@ -70,6 +75,34 @@ class FolderService {
   }
 
   /**
+   * Get a folder by ID and verify ownership
+   *
+   * @param folderId The ID of the folder to retrieve
+   * @param ownerId The ID of the user who should own the folder
+   * @returns The folder if found and owned by the user
+   * @throws ApiError if folder not found or user doesn't own it
+   */
+  async getFolderById(
+    folderId: string,
+    ownerId: string
+  ): Promise<FolderResponseDto> {
+    const folder = await folderDao.getFolderById(folderId);
+
+    if (!folder) {
+      throw new ApiError(404, [{ folder: "Folder not found" }]);
+    }
+
+    // Check ownership
+    if (folder.owner.toString() !== ownerId) {
+      throw new ApiError(403, [
+        { folder: "You don't have permission to access this folder" },
+      ]);
+    }
+
+    return this.sanitizeFolder(folder);
+  }
+
+  /**
    * Increment a folder's item count when a new item is added to it
    * Public method for use by other services
    *
@@ -89,6 +122,264 @@ class FolderService {
     await this.decrementParentItemCount(folderId);
   }
 
+  /**
+   * Rename a folder
+   * Updates the folder's name and recursively updates paths for all children
+   *
+   * @param folderId ID of the folder to rename
+   * @param renameData Object containing the new name
+   * @param userId ID of the user who owns the folder
+   * @returns Updated folder with new name
+   */
+  async renameFolder(
+    folderId: string,
+    renameData: RenameFolderDto,
+    userId: string
+  ): Promise<FolderResponseDto> {
+    // Get the folder
+    const folder = await folderDao.getFolderById(folderId);
+    if (!folder) {
+      throw new ApiError(404, [{ folder: "Folder not found" }]);
+    }
+
+    // Verify ownership
+    if (folder.owner.toString() !== userId) {
+      throw new ApiError(403, [
+        { folder: "You don't have permission to rename this folder" },
+      ]);
+    }
+
+    // Sanitize and ensure unique name at this level
+    const newName = await this.ensureUniqueNameAtLevel(
+      renameData.newName,
+      userId,
+      folder.parent ? folder.parent.toString() : null
+    );
+
+    // Get the old path for updates
+    const oldPath = folder.path;
+    const oldName = folder.name;
+
+    // Create new path with new name (sanitized)
+    const sanitizedNewName = this.sanitizePathSegment(newName);
+
+    // Calculate the new path by replacing just the last segment
+    const pathSegments = oldPath.split("/");
+    const lastSegmentIndex = pathSegments.length - 1;
+    pathSegments[lastSegmentIndex] = sanitizedNewName;
+    const newPath = pathSegments.join("/");
+
+    // Update this folder
+    const updatedFolder = await folderDao.updateFolder(folderId, {
+      name: newName,
+      path: newPath,
+    });
+
+    if (!updatedFolder) {
+      throw new ApiError(500, [{ folder: "Failed to update folder" }]);
+    }
+
+    // If path hasn't changed (e.g., same name with different case), no need for recursive updates
+    if (oldPath === newPath) {
+      return this.sanitizeFolder(updatedFolder);
+    }
+
+    logger.debug(
+      `Updating paths for child items. Old path: ${oldPath}, New path: ${newPath}`
+    );
+
+    // Update all sub-folders recursively using the materialized path approach
+    // This updates all folders whose path starts with the old path prefix
+    await folderDao.bulkUpdateFolderPaths(
+      oldPath, // Old prefix to match
+      newPath, // New prefix replacement
+      [] // No path segment updates needed for rename
+    );
+
+    // Update all files directly in this folder and in sub-folders
+    await fileDao.bulkUpdateFilePaths(
+      oldPath, // Old prefix to match
+      newPath, // New prefix replacement
+      [] // No path segment updates needed for rename
+    );
+
+    return this.sanitizeFolder(updatedFolder);
+  }
+
+  /**
+   * Move a folder to a new parent folder
+   * Updates the folder's parent and recursively updates paths for all children
+   *
+   * @param folderId ID of the folder to move
+   * @param moveData Object containing the new parent ID
+   * @param userId ID of the user who owns the folder
+   * @returns Updated folder with new parent and path
+   */
+  async moveFolder(
+    folderId: string,
+    moveData: MoveFolderDto,
+    userId: string
+  ): Promise<FolderResponseDto> {
+    // Get the folder to move
+    const folder = await folderDao.getFolderById(folderId);
+    if (!folder) {
+      throw new ApiError(404, [{ folder: "Folder not found" }]);
+    }
+
+    // Verify ownership
+    if (folder.owner.toString() !== userId) {
+      throw new ApiError(403, [
+        { folder: "You don't have permission to move this folder" },
+      ]);
+    }
+
+    // If the folder is already in the target parent, no need to move
+    if (
+      (moveData.newParentId === null && folder.parent === null) ||
+      (moveData.newParentId !== null &&
+        folder.parent !== null &&
+        folder.parent.toString() === moveData.newParentId)
+    ) {
+      return this.sanitizeFolder(folder);
+    }
+
+    // Verify the target parent exists if not moving to root
+    let newParentFolder = null;
+    if (moveData.newParentId !== null) {
+      newParentFolder = await folderDao.getFolderById(moveData.newParentId);
+      if (!newParentFolder) {
+        throw new ApiError(404, [{ parent: "Destination folder not found" }]);
+      }
+
+      // Check ownership of destination folder
+      if (newParentFolder.owner.toString() !== userId) {
+        throw new ApiError(403, [
+          { parent: "You don't have permission to move to this folder" },
+        ]);
+      }
+
+      // Check that we're not moving a folder into its own descendant
+      if (
+        await this.isFolderDescendant(
+          newParentFolder._id instanceof mongoose.Types.ObjectId
+            ? newParentFolder._id.toString()
+            : String(newParentFolder._id),
+          folderId
+        )
+      ) {
+        throw new ApiError(400, [
+          { parent: "Cannot move a folder into its own subfolder" },
+        ]);
+      }
+    }
+
+    // Store old parent for decrementing item count
+    const oldParentId = folder.parent;
+
+    // Store old path for path updates
+    const oldPath = folder.path;
+
+    // Calculate the new path
+    let newPath = "";
+    let newPathSegments: { name: string; id: string }[] = [];
+
+    if (!moveData.newParentId) {
+      // Moving to root level
+      newPath = `/${this.sanitizePathSegment(folder.name)}`;
+      newPathSegments = []; // Root level has no path segments
+    } else {
+      // Moving to a different parent folder
+      newPath = `${newParentFolder!.path}/${this.sanitizePathSegment(folder.name)}`;
+
+      // Convert pathSegments to the DTO format (with string IDs)
+      const convertedPathSegments = (newParentFolder!.pathSegments || []).map(
+        (segment) => ({
+          name: segment.name,
+          id:
+            segment.id instanceof mongoose.Types.ObjectId
+              ? segment.id.toString()
+              : String(segment.id),
+        })
+      );
+
+      newPathSegments = [
+        ...convertedPathSegments,
+        {
+          name: newParentFolder!.name,
+          id:
+            newParentFolder!._id instanceof mongoose.Types.ObjectId
+              ? newParentFolder!._id.toString()
+              : String(newParentFolder!._id),
+        },
+      ];
+    }
+
+    // Update the folder's parent and path
+    const updatedFolder = await folderDao.updateFolder(folderId, {
+      parent: moveData.newParentId,
+      path: newPath,
+      pathSegments: newPathSegments,
+    });
+
+    if (!updatedFolder) {
+      throw new ApiError(500, [{ folder: "Failed to update folder" }]);
+    }
+
+    // Update item counts for old and new parent folders
+    // Decrement count on the old parent
+    if (oldParentId) {
+      await this.decrementParentItemCount(oldParentId.toString());
+    }
+
+    // Increment count on the new parent
+    if (moveData.newParentId) {
+      await this.incrementParentItemCount(moveData.newParentId);
+    }
+
+    logger.debug(`Moving folder. Old path: ${oldPath}, New path: ${newPath}`);
+
+    // Update all sub-folders recursively using the materialized path approach
+    await folderDao.bulkUpdateFolderPaths(
+      oldPath, // Old prefix to match
+      newPath, // New prefix replacement
+      [] // No path segment updates needed for move
+    );
+
+    // Update all files in this folder and sub-folders
+    await fileDao.bulkUpdateFilePaths(
+      oldPath, // Old prefix to match
+      newPath, // New prefix replacement
+      [] // No path segment updates needed for move
+    );
+
+    return this.sanitizeFolder(updatedFolder);
+  }
+
+  /**
+   * Check if a folder is a descendant of another folder
+   * Used to prevent circular references when moving folders
+   *
+   * @param folderId Potential parent folder ID
+   * @param potentialDescendantId Potential child folder ID
+   * @returns True if potentialDescendantId is a descendant of folderId
+   */
+  private async isFolderDescendant(
+    folderId: string,
+    potentialDescendantId: string
+  ): Promise<boolean> {
+    // Get all descendants of the potential parent folder
+    const descendants = await folderDao.getAllDescendantFolders(folderId);
+
+    // Check if our target folder is among the descendants
+    return descendants.some((descendant) => {
+      const descendantId =
+        descendant._id instanceof mongoose.Types.ObjectId
+          ? descendant._id.toString()
+          : String(descendant._id);
+      return descendantId === potentialDescendantId;
+    });
+  }
+
   // Helper to update folder path when parent changes
   private async updateFolderPath(
     folder: FolderResponseDto,
@@ -103,11 +394,25 @@ class FolderService {
     const newPath = `${newParent.path}/${this.sanitizePathSegment(folder.name)}`;
 
     // Build new pathSegments
+    // Convert existing parent path segments to string IDs
+    const convertedParentSegments = (newParent.pathSegments || []).map(
+      (segment) => ({
+        name: segment.name,
+        id:
+          segment.id instanceof mongoose.Types.ObjectId
+            ? segment.id.toString()
+            : String(segment.id),
+      })
+    );
+
     const newPathSegments = [
-      ...(newParent.pathSegments || []),
+      ...convertedParentSegments,
       {
         name: newParent.name,
-        id: newParent._id,
+        id:
+          newParent._id instanceof mongoose.Types.ObjectId
+            ? newParent._id.toString()
+            : String(newParent._id),
       },
     ];
 
@@ -117,8 +422,8 @@ class FolderService {
       pathSegments: newPathSegments,
     };
 
-    // Use toString() to convert ObjectId to string
-    await folderDao.updateFolder(folder.id.toString(), pathUpdateData);
+    // Use the folder's ID string
+    await folderDao.updateFolder(folder.id, pathUpdateData);
 
     // TODO: Update all subfolders recursively
     // This would be needed for a complete implementation but
@@ -159,11 +464,25 @@ class FolderService {
       enhancedData.path = `${parentFolder.path}/${this.sanitizePathSegment(enhancedData.name)}`;
 
       // Copy parent's pathSegments and add parent to it
+      // Convert parent path segments to string IDs
+      const convertedParentSegments = (parentFolder.pathSegments || []).map(
+        (segment) => ({
+          name: segment.name,
+          id:
+            segment.id instanceof mongoose.Types.ObjectId
+              ? segment.id.toString()
+              : String(segment.id),
+        })
+      );
+
       enhancedData.pathSegments = [
-        ...(parentFolder.pathSegments || []),
+        ...convertedParentSegments,
         {
           name: parentFolder.name,
-          id: parentFolder._id,
+          id:
+            parentFolder._id instanceof mongoose.Types.ObjectId
+              ? parentFolder._id.toString()
+              : String(parentFolder._id),
         },
       ];
     }
