@@ -8,6 +8,7 @@ import { ApiError } from "@utils/apiError.js";
 import path from "path";
 import logger from "@utils/logger.js";
 import fs from "fs";
+import { ZIP_NAME_PREFIX } from "@config/constants.js";
 
 class FileController {
   /**
@@ -35,77 +36,92 @@ class FileController {
       
       // Process uploaded files to create database records
       const uploadResults = [];
-      const virtualFolderCache = new Map<string, string>(); // path -> folderId
+      // Use the virtual folders map created in processZipFiles middleware if available,
+      // otherwise initialize a new one
+      const virtualFolderCache = new Map<string, string>(
+        Object.entries(req.virtualFolders || {})
+      );
+      
+      // The original ZIP files have already been filtered out in the updateUserStorageUsage middleware
+      // so now we just need to process all files in the req.files array
       
       for (const file of files) {
         try {
+          
           // Check if this file is part of a zip folder structure
           const virtualPath = fileToFolderMap[file.filename];
           
           if (virtualPath) {
             // This file came from a zip with folder structure
-            // Split path into segments
-            const pathSegments = virtualPath.split('/').filter(Boolean);
+            logger.debug(`Processing extracted file: ${file.filename} from path: ${virtualPath}`);
+            let targetFolderId = folderId || null;
             
-            if (pathSegments.length > 0) {
-              // Create virtual folders for each path segment
-              let parentId = folderId || null;
-              let currentPath = '';
-              
-              // Create each folder in the path if it doesn't exist
-              for (const segment of pathSegments) {
-                currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+            // If we have a non-root directory path, find the corresponding folder ID
+            if (virtualPath !== '.' && virtualPath !== '/') {
+              // Check if the folder was already created in processZipFiles middleware
+              if (virtualFolderCache.has(virtualPath)) {
+                targetFolderId = virtualFolderCache.get(virtualPath)!;
+              } else {
+                // As a fallback, create folder structure
+                const pathSegments = virtualPath.split('/').filter(Boolean);
+                let parentId = folderId || null;
+                let currentPath = '';
                 
-                // Check if we've already created this folder in this session
-                if (virtualFolderCache.has(currentPath)) {
-                  parentId = virtualFolderCache.get(currentPath)!;
-                  continue;
+                // Create each folder in the path if it doesn't exist
+                for (const segment of pathSegments) {
+                  currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+                  
+                  // Check if we've already created this folder in this session
+                  if (virtualFolderCache.has(currentPath)) {
+                    parentId = virtualFolderCache.get(currentPath)!;
+                    continue;
+                  }
+                  
+                  // Check if folder already exists at this path under the parent
+                  let folder = await folderService.getFolderByNameAndParent(segment, parentId, userId);
+                  
+                  // Create the folder if it doesn't exist
+                  if (!folder) {
+                    folder = await folderService.createFolder(
+                      { name: segment, parent: parentId },
+                      userId
+                    );
+                  }
+                  
+                  // Store folder ID in cache
+                  virtualFolderCache.set(currentPath, folder.id);
+                  parentId = folder.id;
                 }
                 
-                // Check if folder already exists at this path under the parent
-                let folder = await folderService.getFolderByNameAndParent(segment, parentId, userId);
-                
-                // Create the folder if it doesn't exist
-                if (!folder) {
-                  folder = await folderService.createFolder(
-                    { name: segment, parent: parentId },
-                    userId
-                  );
-                }
-                
-                // Store folder ID in cache
-                virtualFolderCache.set(currentPath, folder.id);
-                parentId = folder.id;
+                targetFolderId = parentId;
               }
-              
-              // Use the final folder ID as the file's folder
-              const targetFolderId = parentId;
-              
-              // Extract file extension and name
-              const fileExtension = path.extname(file.originalname).substring(1);
-              const fileName = path.basename(file.originalname, `.${fileExtension}`);
-              
-              // Create file record in the database
-              const savedFile = await fileService.createFileWithVirtualFolder(
-                {
-                  name: fileName,
-                  type: fileExtension,
-                  size: file.size,
-                  storageKey: file.filename,
-                  originalPath: virtualPath
-                },
-                userId,
-                targetFolderId
-              );
-              
-              uploadResults.push({
-                id: savedFile.id,
-                name: savedFile.name,
-                size: savedFile.size,
-                folder: targetFolderId,
-                virtualPath: virtualPath
-              });
             }
+            // Note: No else needed here - for root-level files in ZIP, we use the provided folderId
+            
+            // Extract file extension and name
+            const fileExtension = path.extname(file.originalname).substring(1);
+            const fileName = path.basename(file.originalname, `.${fileExtension}`);
+            
+            // Create file record in the database
+            const savedFile = await fileService.createFileWithVirtualFolder(
+              {
+                name: fileName,
+                type: fileExtension,
+                size: file.size,
+                storageKey: file.filename,
+                originalPath: virtualPath
+              },
+              userId,
+              targetFolderId
+            );
+            
+            uploadResults.push({
+              id: savedFile.id,
+              name: savedFile.name,
+              size: savedFile.size,
+              folder: targetFolderId,
+              virtualPath: virtualPath
+            });
           } else {
             // Regular file upload (not from ZIP)
             const fileExtension = path.extname(file.originalname).substring(1);

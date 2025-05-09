@@ -18,7 +18,7 @@ export const seedDefaultPlans = async (forceUpdate = false): Promise<void> => {
       // Create default plans
       const defaultPlans = [
         {
-          name: "Chill",
+          name: "Basic",
           storageLimit: 15 * 1024 * 1024, // 15MB in bytes
           price: 0,
           description: "The perfect starting place for your files. Free forever.",
@@ -38,7 +38,7 @@ export const seedDefaultPlans = async (forceUpdate = false): Promise<void> => {
           isDefault: true
         },
         {
-          name: "Vibe",
+          name: "Plus",
           storageLimit: 75 * 1024 * 1024, // 75MB in bytes
           price: 9.99,
           description: "Great for personal use and small teams.",
@@ -61,7 +61,7 @@ export const seedDefaultPlans = async (forceUpdate = false): Promise<void> => {
           isDefault: false
         },
         {
-          name: "Flex+",
+          name: "Pro",
           storageLimit: 125 * 1024 * 1024, // 125MB in bytes
           price: 19.99,
           description: "For power users and larger teams.",

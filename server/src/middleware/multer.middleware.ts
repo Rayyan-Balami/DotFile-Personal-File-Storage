@@ -1,4 +1,5 @@
 import userService from "@api/user/user.service.js";
+import folderService from "@api/Folder/folder.service.js";
 import {
   MAX_FILES_PER_FOLDER,
   MAX_FILES_PER_UPLOAD_BATCH,
@@ -30,12 +31,21 @@ interface UploadSession {
   files: UploadedFile[];
 }
 
+// Extended type for extracting virtual folder structure from ZIP
+interface VirtualFolder {
+  name: string;
+  path: string; // Full path from ZIP root
+  parentPath: string | null; // Parent folder path
+  folderId?: string; // MongoDB ID once created
+}
+
 declare module "express-serve-static-core" {
   interface Request {
     user?: { id: string; [key: string]: any };
     requestId?: string;
     uploadedFiles?: UploadedFile[];
     fileToFolderMap?: Record<string, string>;
+    virtualFolders?: Record<string, string>; // path -> folderId mapping
   }
 }
 
@@ -51,6 +61,90 @@ const generateRandomFilename = (originalFilename: string): string => {
 
 const getErrorMessage = (err: unknown): string =>
   err instanceof Error ? err.message : String(err);
+
+/**
+ * Build a folder hierarchy from ZIP entries
+ * This creates a map of folder paths and their metadata
+ * 
+ * @param entries ZIP entries from AdmZip
+ * @returns Map of folder paths and folder objects
+ */
+const buildFolderHierarchy = (entries: AdmZip.IZipEntry[]): Map<string, VirtualFolder> => {
+  const folders = new Map<string, VirtualFolder>();
+  
+  // First pass: identify all folders
+  entries.forEach(entry => {
+    // Skip files and junk entries
+    if (!entry.isDirectory) return;
+    
+    const folderPath = entry.entryName.endsWith('/') 
+      ? entry.entryName.slice(0, -1)  // Remove trailing slash
+      : entry.entryName;
+    
+    // Skip hidden or system folders
+    if (
+      folderPath.startsWith('__') || 
+      folderPath.startsWith('.') || 
+      folderPath.includes('/.') || 
+      folderPath === ''
+    ) {
+      return;
+    }
+    
+    // Get folder name (last segment of path)
+    const segments = folderPath.split('/');
+    const name = segments[segments.length - 1];
+    
+    // Get parent path
+    const parentPath = segments.length > 1 
+      ? segments.slice(0, -1).join('/')
+      : null;
+    
+    // Add folder to map
+    folders.set(folderPath, {
+      name,
+      path: folderPath,
+      parentPath
+    });
+  });
+  
+  // Second pass: extract folders from file paths that might not have explicit directory entries
+  entries.forEach(entry => {
+    if (entry.isDirectory) return; // Skip directories we've already processed
+    
+    // Get directory path from file path
+    const dirPath = path.dirname(entry.entryName);
+    if (dirPath === '.' || folders.has(dirPath)) return; // Skip root level or existing folders
+    
+    // Split into path segments
+    const segments = dirPath.split('/');
+    
+    // Create each folder in path that doesn't exist yet
+    let currentPath = '';
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+      
+      // Skip empty segments or hidden folders
+      if (!segment || segment.startsWith('.') || segment.startsWith('__')) continue;
+      
+      // Build current path
+      currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+      
+      // If this path doesn't exist in our folder map, add it
+      if (!folders.has(currentPath)) {
+        const parentPath = i > 0 ? segments.slice(0, i).join('/') : null;
+        
+        folders.set(currentPath, {
+          name: segment,
+          path: currentPath,
+          parentPath
+        });
+      }
+    }
+  });
+  
+  return folders;
+};
 
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
@@ -142,15 +236,73 @@ export const processZipFiles = async (
         ? [req.file]
         : [];
     const session = uploadSessions.get(req.requestId!);
+    
+    // Store mapping of virtual folder paths to MongoDB folder IDs
+    const virtualFoldersMap: Record<string, string> = {};
+    req.virtualFolders = virtualFoldersMap;
 
     for (const file of files) {
       if (
         file.originalname.endsWith(".zip") && 
         file.originalname.startsWith(ZIP_NAME_PREFIX)
       ) {
-        const zip = new AdmZip(path.join(file.destination, file.filename));
+        const zipPath = path.join(file.destination, file.filename);
+        const zip = new AdmZip(zipPath);
         const entries = zip.getEntries();
-
+        
+        // Process the folder structure first
+        if (req.user?.id) {
+          const userId = req.user.id;
+          const folderId = req.body.folderId || null;  // Parent folder ID from request
+          
+          // Extract folder hierarchy from zip entries
+          const folderHierarchy = buildFolderHierarchy(entries);
+          
+          // Create folders in MongoDB in the correct order (parents first)
+          // Need to sort by path depth to ensure parent folders are created before their children
+          const sortedFolders = Array.from(folderHierarchy.values())
+            .sort((a, b) => {
+              return (a.path?.split('/').length || 0) - (b.path?.split('/').length || 0);
+            });
+            
+          for (const folder of sortedFolders) {
+            try {
+              // Determine the parent folder ID
+              let parentId = folderId;
+              
+              // If this folder has a parent path in the ZIP, use its MongoDB ID
+              if (folder.parentPath && virtualFoldersMap[folder.parentPath]) {
+                parentId = virtualFoldersMap[folder.parentPath];
+              }
+              
+              // Create folder in MongoDB
+              const newFolder = await folderService.createFolder(
+                { 
+                  name: folder.name,
+                  parent: parentId
+                },
+                userId
+              );
+              
+              // Store the mapping from virtual path to MongoDB folder ID
+              virtualFoldersMap[folder.path] = newFolder.id;
+              
+              // If this is the root folder of a file's path, store its ID for direct lookup in the controller
+              Object.keys(fileToFolderMap).forEach(filename => {
+                if (fileToFolderMap[filename] === folder.path) {
+                  logger.debug(`Associating file ${filename} with folder ${newFolder.id} at path ${folder.path}`);
+                }
+              });
+              
+              logger.debug(`Created virtual folder: ${folder.path} -> ${newFolder.id}`);
+            } catch (folderError) {
+              logger.error(`Error creating folder ${folder.path}:`, folderError);
+              // Continue processing other folders
+            }
+          }
+        }
+        
+        // Now process files
         for (const entry of entries) {
           const entryName = entry.entryName;
           const baseName = path.basename(entryName);
@@ -171,7 +323,8 @@ export const processZipFiles = async (
 
           // Generate a completely random filename for the extracted file
           const randomFilename = generateRandomFilename(entry.entryName);
-
+          
+          // Extract the file
           zip.extractEntryTo(
             entry.entryName,
             file.destination,
@@ -180,17 +333,34 @@ export const processZipFiles = async (
             false,
             randomFilename
           );
-          fileToFolderMap[randomFilename] = path.dirname(entry.entryName);
+          
+          // Get the directory path for this file from the zip
+          const dirPath = path.dirname(entry.entryName);
+          
+          // Store the original path for later reference
+          fileToFolderMap[randomFilename] = dirPath;
 
-          session?.files.push({
+          // Make sure we have a session
+          if (!session) {
+            logger.error(`No upload session found for request ID ${req.requestId}`);
+            continue;
+          }
+          
+          // Add the extracted file to the session files list so it gets processed by the controller
+          session.files.push({
             originalname: baseName, // Keep track of original name for reference
             filename: randomFilename,
             size: entry.header.size,
             destination: file.destination,
           });
         }
-        fs.unlinkSync(path.join(file.destination, file.filename)); // Delete original ZIP
+        
+        // Delete the original ZIP file as we've extracted its contents
+        fs.unlinkSync(zipPath);
+        
+        logger.info(`Processed ZIP file with ${Object.keys(virtualFoldersMap).length} folders extracted`);
       } else {
+        // Regular file upload (not a ZIP)
         session?.files.push({
           originalname: file.originalname,
           filename: file.filename,
@@ -223,6 +393,41 @@ export const updateUserStorageUsage = async (
 
     req.uploadedFiles = session?.files || [];
     req.fileToFolderMap = fileToFolderMap;
+    
+    // Update req.files with extracted files so they get processed by the controller
+    if (req.files && Array.isArray(req.files) && session?.files) {
+      // Create list of original ZIP files to be excluded
+      const zipFilenames = (req.files as Express.Multer.File[])
+        .filter(f => f.originalname.endsWith('.zip') && f.originalname.startsWith(ZIP_NAME_PREFIX))
+        .map(f => f.filename);
+      
+      // Filter out the original ZIP files from current files array
+      const filteredOriginalFiles = (req.files as Express.Multer.File[])
+        .filter(f => !zipFilenames.includes(f.filename));
+      
+      // Add the extracted files from the session to req.files
+      // This ensures the controller processes both original and extracted files
+      const extractedFiles = session.files.map(f => ({
+        originalname: f.originalname,
+        filename: f.filename,
+        size: f.size,
+        destination: f.destination,
+        path: path.join(f.destination, f.filename),
+        mimetype: ''  // Could be determined from extension if needed
+      } as Express.Multer.File));
+      
+      // Log information about extracted files
+      logger.debug(`Adding ${extractedFiles.length} extracted files to req.files for processing`);
+      extractedFiles.forEach(f => {
+        logger.debug(`Extracted file: ${f.filename}, original name: ${f.originalname}, virtual path: ${fileToFolderMap[f.filename] || 'none'}`);
+      });
+      
+      req.files = [
+        ...filteredOriginalFiles,
+        ...extractedFiles
+      ];
+    }
+    
     uploadSessions.delete(req.requestId!);
 
     next();
