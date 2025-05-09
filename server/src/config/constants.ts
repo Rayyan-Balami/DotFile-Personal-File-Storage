@@ -43,3 +43,4 @@ export const MAX_FOLDER_DEPTH = Number(process.env.MAX_FOLDER_DEPTH) || 10;
 export const MAX_FILES_PER_FOLDER = Number(process.env.MAX_FILES_PER_FOLDER) || 50;
 export const MAX_FILES_PER_UPLOAD_BATCH = Number(process.env.MAX_FILES_PER_UPLOAD_BATCH) || 50;
 export const MAX_SIZE_PER_UPLOAD_BATCH = Number(process.env.MAX_SIZE_PER_UPLOAD_BATCH) || 262144000; // 250 MB
+export const ZIP_NAME_PREFIX = process.env.ZIP_NAME_PREFIX || '__fezip__-';

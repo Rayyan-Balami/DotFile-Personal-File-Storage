@@ -4,6 +4,7 @@ import {
   MAX_FILES_PER_UPLOAD_BATCH,
   MAX_SIZE_PER_UPLOAD_BATCH,
   UPLOADS_DIR,
+  ZIP_NAME_PREFIX,
 } from "@config/constants.js";
 import { ApiError } from "@utils/apiError.js";
 import logger from "@utils/logger.js";
@@ -144,8 +145,8 @@ export const processZipFiles = async (
 
     for (const file of files) {
       if (
-        file.originalname.endsWith(".zip") &&
-        (req.body.zipAsFolder === "true" || req.body.isFolder === "true")
+        file.originalname.endsWith(".zip") && 
+        file.originalname.startsWith(ZIP_NAME_PREFIX)
       ) {
         const zip = new AdmZip(path.join(file.destination, file.filename));
         const entries = zip.getEntries();
