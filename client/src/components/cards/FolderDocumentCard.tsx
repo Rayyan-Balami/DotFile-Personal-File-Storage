@@ -357,7 +357,7 @@ const CardContent = React.memo(
 
     // Only render dropdown content when menu is open
     const dropdownMenu = (
-      <DropdownMenu onOpenChange={setMenuOpen}>
+      <DropdownMenu onOpenChange={setMenuOpen} modal={false}>
         <DropdownMenuTrigger asChild>
           <Button
             variant={"ghost"}
@@ -570,7 +570,7 @@ const FolderDocumentCard = React.memo(
     }, []);
 
     return (
-      <ContextMenu>
+      <ContextMenu modal={false}>
         <ContextMenuTrigger>
           <div
             data-folder-card

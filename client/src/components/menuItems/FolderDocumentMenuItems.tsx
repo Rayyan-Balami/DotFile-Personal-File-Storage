@@ -7,6 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "../ui/dropdown-menu";
+import { useDialogStore } from "@/stores/useDialogStore";
 
 // Context menu items component
 export const ContextMenuItems = React.memo(
@@ -19,9 +20,18 @@ export const ContextMenuItems = React.memo(
     title: string;
     id: string;
   }) => {
+    const { openCreateFolderDialog } = useDialogStore();
+    
     // Remove setTimeout which can cause timing issues
     const handleAction = (action: string) => {
       console.log(`Action triggered: ${action} on ${title} (${id})`);
+      
+      if (action === "create-folder") {
+        // If we're in a folder, use its ID as the parent
+        if (type === "folder") {
+          openCreateFolderDialog(id);
+        }
+      }
     };
 
     const commonItems = (
@@ -103,8 +113,17 @@ export const DropdownMenuItems = React.memo(
     title: string;
     id: string;
   }) => {
+    const { openCreateFolderDialog } = useDialogStore();
+    
     const handleAction = (action: string) => {
       console.log(`Action triggered: ${action} on ${title} (${id})`);
+      
+      if (action === "create-folder") {
+        // If we're in a folder, use its ID as the parent
+        if (type === "folder") {
+          openCreateFolderDialog(id);
+        }
+      }
     };
 
     const commonItems = (

@@ -1,10 +1,10 @@
 export class ApiError extends Error {
   public success: boolean;
   public statusCode: number;
-  public errors?: string[];
+  public errors?: Record<string, string>[];  // [{ field: message }]
   public timestamp: string;
 
-  constructor(statusCode: number, message?: string, errors?: string[]) {
+  constructor(statusCode: number, errors?: Record<string, string>[]) {
     const defaultMessages: Record<number, string> = {
       400: "Bad Request",
       401: "Unauthorized",
@@ -15,7 +15,8 @@ export class ApiError extends Error {
       500: "Internal Server Error",
     };
 
-    super(message || defaultMessages[statusCode] || "Error");
+    const message = defaultMessages[statusCode] || "Error";
+    super(message);
 
     this.success = false;
     this.statusCode = statusCode;
@@ -29,13 +30,13 @@ export class ApiError extends Error {
     }
   }
 
-  // convert to JSON
+  // Convert to JSON
   toJSON() {
     return {
       success: this.success,
       statusCode: this.statusCode,
-      message: this.message,
-      errors: this.errors,
+      message: this.message,  // from default based on statusCode
+      errors: this.errors,    // [{ field: message }]
       timestamp: this.timestamp,
     };
   }

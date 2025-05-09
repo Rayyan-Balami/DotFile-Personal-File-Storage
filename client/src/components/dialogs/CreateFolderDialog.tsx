@@ -18,38 +18,56 @@ import { Input } from "@/components/ui/input";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { toast } from "sonner";
 import { useDialogStore } from "@/stores/useDialogStore";
-
-const FormSchema = z.object({
-  name: z.string().min(1, "Folder name is required."),
-  parent: z.string().nullable(),
-});
+import { useCreateFolder } from "@/api/folder/folder.query";
+import { createFolderSchema } from "@/validation/folder.validation";
+import { logger } from "@/lib/utils";
 
 export function CreateFolderDialog() {
-  const { createFolderOpen, createFolderParentId, closeCreateFolderDialog } = useDialogStore();
+  const { createFolderOpen, createFolderParentId, closeCreateFolderDialog } =
+    useDialogStore();
 
-  const form = useForm<z.infer<typeof FormSchema>>({
-    resolver: zodResolver(FormSchema),
+  // Removed console.log for production
+
+  const form = useForm<z.infer<typeof createFolderSchema>>({
+    resolver: zodResolver(createFolderSchema),
     defaultValues: {
+      name: "",
       parent: createFolderParentId,
     },
   });
 
-  // Update parent id when it changes in the store
+  // Update form values when the dialog opens or parent changes
   useEffect(() => {
-    form.setValue("parent", createFolderParentId);
-  }, [createFolderParentId, form]);
+    if (createFolderOpen) {
+      // Reset the form with proper initial values
+      form.reset({
+        name: "",
+        parent: createFolderParentId,
+      });
+    }
+  }, [createFolderOpen, createFolderParentId, form]);
 
-  function onSubmit(data: z.infer<typeof FormSchema>) {
-    toast("Folder created successfully!", {
-      description: "Sunday, December 03, 2023 at 9:00 AM",
-      action: {
-        label: "Undo",
-        onClick: () => console.log("Undo"),
-      },
-    });
-    console.log(data);
-    closeCreateFolderDialog();
-    form.reset();
+  const createFolder = useCreateFolder();
+  
+  async function onSubmit(values: z.infer<typeof createFolderSchema>) {
+    try {
+      await createFolder.mutateAsync(values);
+      toast.success("Folder created successfully!");
+      closeCreateFolderDialog();
+      form.reset({ name: "", parent: null });
+    } catch (error: any) {
+      logger.error("Create folder error:", error);
+      
+      const responseData = error.response?.data;
+      const errorField = responseData?.errors?.[0];
+      const message = responseData?.message || "Failed to create folder. Please try again.";
+      
+      if (errorField === "name") {
+        form.setError("name", { type: "manual", message });
+      } else {
+        toast.error(message);
+      }
+    }
   }
 
   return (
@@ -58,9 +76,14 @@ export function CreateFolderDialog() {
       description="Enter a name for your new folder."
       open={createFolderOpen}
       onOpenChange={(open) => {
-        if (!open) closeCreateFolderDialog();
+        if (!open) {
+          closeCreateFolderDialog();
+          form.reset({ name: "", parent: null });
+        }
       }}
-      contentClassName="max-w-md"
+      contentClassName="max-h-[80svh] max-md:-mt-8.5 overflow-y-auto gap-0"
+      headerClassName="p-6 max-md:pt-8 pb-4 md:p-8 md:pb-6 border-b bg-muted/50"
+      bodyClassName="p-6 md:p-8 gap-8"
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -87,10 +110,17 @@ export function CreateFolderDialog() {
               type="button"
               variant="outline"
               onClick={closeCreateFolderDialog}
+              disabled={form.formState.isSubmitting}
             >
               Cancel
             </Button>
-            <Button type="submit">Create Folder</Button>
+            <Button 
+              type="submit" 
+              loading={form.formState.isSubmitting}
+              disabled={form.formState.isSubmitting}
+            >
+              Create Folder
+            </Button>
           </div>
         </form>
       </Form>

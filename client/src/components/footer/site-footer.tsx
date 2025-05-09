@@ -41,7 +41,7 @@ export function SiteFooter() {
           <DeskOptions />
           <MoreOptions />
         </Menubar>
-        {/* <ShareOptions /> */}
+        <ShareOptions />
       </nav>
     </footer>
   );

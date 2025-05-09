@@ -52,11 +52,6 @@ export function ResponsiveDialog({
 }: ResponsiveDialogProps) {
   const [isOpen, setIsOpen] = React.useState(open || false)
   
-  const handleOpenChange = (newOpen: boolean) => {
-    setIsOpen(newOpen)
-    onOpenChange?.(newOpen)
-  }
-
   // Use controlled component if open prop is provided
   const isControlled = open !== undefined && onOpenChange !== undefined
   const dialogOpen = isControlled ? open : isOpen
