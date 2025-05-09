@@ -9,7 +9,6 @@ import logger from "@utils/logger.js";
 import { 
   CreateFileDto, 
   FileResponseDto, 
-  GetFilesQueryDto, 
   UpdateFileDto 
 } from "@api/File/file.dto.js";
 

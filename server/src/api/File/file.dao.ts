@@ -1,7 +1,6 @@
 import {
   CreateFileDto,
-  GetFilesQueryDto,
-  UpdateFileDto,
+  UpdateFileDto
 } from "@api/File/file.dto.js";
 import File, { IFile } from "@api/File/file.model.js";
 import mongoose from "mongoose";
