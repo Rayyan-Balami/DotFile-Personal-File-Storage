@@ -28,7 +28,7 @@ export const verifyAuth = asyncHandler(
       req.headers["authorization"]?.replace("Bearer ", "");
 
     if (!token) {
-      throw new ApiError(401, "No token provided", ["token"]);
+      throw new ApiError(401, [{ token: "No token provided" }]);
     }
 
     try {
@@ -39,7 +39,7 @@ export const verifyAuth = asyncHandler(
       const user = await userService.getUserById(decoded.id);
 
       if (!user) {
-        throw new ApiError(401, "Invalid token or user not found", ["user"]);
+        throw new ApiError(401, [{ user: "Invalid token or user not found" }]);
       }
 
       // Attach user to request object
@@ -47,13 +47,11 @@ export const verifyAuth = asyncHandler(
       next();
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
-        throw new ApiError(401, "Session expired, please login again", [
-          "token",
-        ]);
+        throw new ApiError(401, [{ token: "Session expired, please login again" }]);
       } else if (error instanceof jwt.JsonWebTokenError) {
-        throw new ApiError(401, "Invalid token", ["token"]);
+        throw new ApiError(401, [{ token: "Invalid token" }]);
       }
-      throw new ApiError(401, "Unauthorized", ["token"]);
+      throw new ApiError(401, [{ token: "Unauthorized" }]);
     }
   }
 );

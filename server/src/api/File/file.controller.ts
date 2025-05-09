@@ -190,7 +190,7 @@ class FileController {
   getFileById = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
     if (!userId) {
-      throw new ApiError(401, "Unauthorized", ["authentication"]);
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
     }
 
     const fileId = req.params.id;
@@ -205,7 +205,7 @@ class FileController {
   updateFile = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
     if (!userId) {
-      throw new ApiError(401, "Unauthorized", ["authentication"]);
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
     }
 
     const fileId = req.params.id;
@@ -228,7 +228,7 @@ class FileController {
   deleteFile = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
     if (!userId) {
-      throw new ApiError(401, "Unauthorized", ["authentication"]);
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
     }
 
     const fileId = req.params.id;

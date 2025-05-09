@@ -100,12 +100,12 @@ class FileService {
     const file = await fileDao.getFileById(fileId);
     
     if (!file) {
-      throw new ApiError(404, "File not found", ["id"]);
+      throw new ApiError(404, [{ id: "File not found" }]);
     }
     
     // Check ownership
     if (file.owner.toString() !== userId) {
-      throw new ApiError(403, "You don't have permission to access this file", ["access"]);
+      throw new ApiError(403, [{ access: "You don't have permission to access this file" }]);
     }
     
     return this.sanitizeFile(file);
@@ -128,7 +128,7 @@ class FileService {
     const updatedFile = await fileDao.updateFile(fileId, updateData);
     
     if (!updatedFile) {
-      throw new ApiError(500, "Failed to update file", ["update"]);
+      throw new ApiError(500, [{ update: "Failed to update file" }]);
     }
     
     return this.sanitizeFile(updatedFile);
@@ -150,7 +150,7 @@ class FileService {
     const deletedFile = await fileDao.deleteFile(fileId);
     
     if (!deletedFile) {
-      throw new ApiError(500, "Failed to delete file", ["delete"]);
+      throw new ApiError(500, [{ delete: "Failed to delete file" }]);
     }
     
     // If file was in a folder, decrement the folder's item count

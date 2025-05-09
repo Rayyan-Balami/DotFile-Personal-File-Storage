@@ -15,6 +15,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { useRegister } from "@/api/user/user.query";
 import { toast } from "sonner";
+import { extractFieldError, getErrorMessage } from "@/utils/apiErrorHandler";
 
 export function RegisterForm({
   className,
@@ -39,14 +40,17 @@ export function RegisterForm({
       toast.success("Registration successful! Please log in.");
       navigate({ to: "/login" });
     } catch (error: any) {
-      const responseData = error.response?.data;
-      const errorField = responseData?.errors?.[0];
-      const message = responseData?.message || "Our servers are busy. Please try again later.";
-      
-      if (["email", "password", "name"].includes(errorField)) {
-        form.setError(errorField, { type: "manual", message });
+      const fieldError = extractFieldError(error);
+
+      if (fieldError && ["email", "password", "name", "confirmPassword"].includes(fieldError.field)) {
+        // Set field-specific error
+        form.setError(fieldError.field as any, { 
+          type: "manual", 
+          message: fieldError.message 
+        });
       } else {
-        toast.error(message);
+        // Show general error toast
+        toast.error(fieldError?.message || getErrorMessage(error));
       }
     }
   }

@@ -112,7 +112,7 @@ class UserController {
    */
   logout = asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
-      throw new ApiError(401, "Unauthorized", ["authentication"]);
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
     }
 
     const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
@@ -140,7 +140,7 @@ class UserController {
    */
   logoutAllDevices = asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
-      throw new ApiError(401, "Unauthorized", ["authentication"]);
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
     }
 
     await userService.logoutFromAllDevices(req.user.id);
@@ -161,7 +161,7 @@ class UserController {
     const deviceInfo = req.headers["user-agent"] || "unknown-device";
 
     if (!refreshToken) {
-      throw new ApiError(400, "Refresh token is required", ["refreshToken"]);
+      throw new ApiError(400, [{ refreshToken: "Refresh token is required" }]);
     }
 
     // Get new tokens using the refresh token
@@ -197,7 +197,7 @@ class UserController {
    */
   updateCurrentUser = asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
-      throw new ApiError(401, "Unauthorized", ["authentication"]);
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
     }
 
     const updatedUser = await userService.updateUser(req.user.id, req.body);
@@ -212,7 +212,7 @@ class UserController {
   updateCurrentUserPassword = asyncHandler(
     async (req: Request, res: Response) => {
       if (!req.user) {
-        throw new ApiError(401, "Unauthorized", ["authentication"]);
+        throw new ApiError(401, [{ authentication: "Unauthorized" }]);
       }
 
       const updatedUser = await userService.updateUserPassword(

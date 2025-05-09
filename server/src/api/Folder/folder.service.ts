@@ -46,7 +46,7 @@ class FolderService {
     const folders = await folderDao.getUserFolders(userId, folderId);
     const files = await fileService.getUserFilesByFolders(userId, folderId);
     if (!folders || folders.length === 0) {
-      throw new ApiError(404, "Folder not found", ["folder"]);
+      throw new ApiError(404, [{ folder: "Folder not found" }]);
     }
     // Sanitize and return the folders
     return {
@@ -96,7 +96,7 @@ class FolderService {
   ): Promise<void> {
     const newParent = await folderDao.getFolderById(newParentId);
     if (!newParent) {
-      throw new ApiError(404, "Parent folder not found", ["parent"]);
+      throw new ApiError(404, [{ parent: "Parent folder not found" }]);
     }
 
     // Construct the new path
@@ -152,7 +152,7 @@ class FolderService {
       // Child folder - needs parent data
       const parentFolder = await folderDao.getFolderById(folderData.parent);
       if (!parentFolder) {
-        throw new ApiError(404, "Parent folder not found", ["parent"]);
+        throw new ApiError(404, [{ parent: "Parent folder not found" }]);
       }
 
       // Construct the path based on parent
@@ -214,7 +214,7 @@ class FolderService {
   private async incrementParentItemCount(parentId: string): Promise<void> {
     const parentFolder = await folderDao.getFolderById(parentId);
     if (!parentFolder) {
-      throw new ApiError(404, "Parent folder not found", ["parent"]);
+      throw new ApiError(404, [{ parent: "Parent folder not found" }]);
     }
 
     // Increment the items count
@@ -227,7 +227,7 @@ class FolderService {
   private async decrementParentItemCount(parentId: string): Promise<void> {
     const parentFolder = await folderDao.getFolderById(parentId);
     if (!parentFolder) {
-      throw new ApiError(404, "Parent folder not found", ["parent"]);
+      throw new ApiError(404, [{ parent: "Parent folder not found" }]);
     }
 
     // Ensure count doesn't go below 0

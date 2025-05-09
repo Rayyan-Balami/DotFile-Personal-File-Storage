@@ -189,7 +189,7 @@ const fileFilter = async (
 ) => {
   try {
     const userId = req.user?.id;
-    if (!userId) return cb(new ApiError(401, "User not authenticated"));
+    if (!userId) return cb(new ApiError(401, [{ authentication: "User not authenticated" }]));
 
     const user = await userService.getUserById(userId);
     const session = uploadSessions.get(req.requestId!) || {
@@ -200,12 +200,12 @@ const fileFilter = async (
 
     const totalSize = user.storageUsed + session.totalSize + file.size;
     if (typeof user.plan === "object" && totalSize > user.plan.storageLimit)
-      return cb(new ApiError(413, "Storage limit exceeded"));
+      return cb(new ApiError(413, [{ storage: "Storage limit exceeded" }]));
     if (session.fileCount + 1 > MAX_FILES_PER_UPLOAD_BATCH)
-      return cb(new ApiError(413, "File count limit exceeded"));
+      return cb(new ApiError(413, [{ files: "File count limit exceeded" }]));
 
     if (session.totalSize + file.size > MAX_SIZE_PER_UPLOAD_BATCH)
-      return cb(new ApiError(413, "Batch size limit exceeded"));
+      return cb(new ApiError(413, [{ batch: "Batch size limit exceeded" }]));
 
     session.totalSize += file.size;
     session.fileCount += 1;
@@ -213,7 +213,7 @@ const fileFilter = async (
 
     cb(null, true);
   } catch (err) {
-    cb(new ApiError(500, getErrorMessage(err)));
+    cb(new ApiError(500, [{ error: getErrorMessage(err) }]));
   }
 };
 
@@ -373,7 +373,7 @@ export const processZipFiles = async (
     next();
   } catch (err) {
     logger.error("ZIP processing error:", err);
-    next(new ApiError(500, getErrorMessage(err)));
+    next(new ApiError(500, [{ error: getErrorMessage(err) }]));
   }
 };
 
@@ -433,7 +433,7 @@ export const updateUserStorageUsage = async (
     next();
   } catch (err) {
     logger.error("Update storage error:", err);
-    next(new ApiError(500, getErrorMessage(err)));
+    next(new ApiError(500, [{ error: getErrorMessage(err) }]));
   }
 };
 

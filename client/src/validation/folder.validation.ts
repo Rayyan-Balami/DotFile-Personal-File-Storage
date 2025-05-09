@@ -7,7 +7,7 @@ const folderNameSchema = z
   .max(255, { message: "Folder name must be at most 255 characters" })
   .regex(
     /^(?!\.{1,2}$)(?!\s*$)(?!.*\/)[a-zA-Z0-9 _\-.]+$/,
-    "Folder name can contain letters, numbers, spaces, underscores (_), dashes (-), dots (.) but cannot contain forward slashes (/) or be just dots or whitespace"
+    "Folder name contains invalid characters"
   );
 
 const folderParentSchema = z.string().nullable().optional();

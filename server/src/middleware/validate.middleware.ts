@@ -32,11 +32,14 @@ export const validateData = (schema: AnyZodSchema, source: 'body' | 'query' | 'p
         });
         
         // Create an ApiError instance for consistent error handling
-        const apiError = new ApiError(
-          400,
-          'Validation failed',
-          formattedErrors
-        );
+        const validationErrors = formattedErrors.reduce((acc, error) => {
+          const [field, message] = error.includes(': ') 
+            ? error.split(': ', 2) 
+            : ['validation', error];
+          return [...acc, { [field]: message }];
+        }, [] as Record<string, string>[]);
+        
+        const apiError = new ApiError(400, validationErrors);
         
         // Pass to error handler for consistent formatting
         next(apiError);

@@ -41,7 +41,7 @@ export const ContextMenuItems = React.memo(({ parentId }: { parentId?: string | 
         Upload File
       </ContextMenuItem>
       <ContextMenuItem onClick={() => handleAction("createFolder")}>
-        Create Folder
+        Create New Folder
       </ContextMenuItem>
 
       <ContextMenuSeparator />

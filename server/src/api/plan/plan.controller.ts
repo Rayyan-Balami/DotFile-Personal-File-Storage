@@ -60,7 +60,7 @@ class PlanController {
    */
   subscribeToPlan = asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
-      throw new ApiError(401, "Authentication required", ["authentication"]);
+      throw new ApiError(401, [{ authentication: "Authentication required" }]);
     }
 
     const userId = req.user.id;
@@ -78,7 +78,7 @@ class PlanController {
    */
   getUserPlan = asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
-      throw new ApiError(401, "Authentication required", ["authentication"]);
+      throw new ApiError(401, [{ authentication: "Authentication required" }]);
     }
 
     const userId = req.user.id;

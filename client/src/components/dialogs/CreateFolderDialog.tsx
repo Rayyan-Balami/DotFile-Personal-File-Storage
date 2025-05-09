@@ -21,12 +21,11 @@ import { useDialogStore } from "@/stores/useDialogStore";
 import { useCreateFolder } from "@/api/folder/folder.query";
 import { createFolderSchema } from "@/validation/folder.validation";
 import { logger } from "@/lib/utils";
+import { extractFieldError, getErrorMessage } from "@/utils/apiErrorHandler";
 
 export function CreateFolderDialog() {
   const { createFolderOpen, createFolderParentId, closeCreateFolderDialog } =
     useDialogStore();
-
-  // Removed console.log for production
 
   const form = useForm<z.infer<typeof createFolderSchema>>({
     resolver: zodResolver(createFolderSchema),
@@ -58,14 +57,15 @@ export function CreateFolderDialog() {
     } catch (error: any) {
       logger.error("Create folder error:", error);
       
-      const responseData = error.response?.data;
-      const errorField = responseData?.errors?.[0];
-      const message = responseData?.message || "Failed to create folder. Please try again.";
+      const fieldError = extractFieldError(error);
       
-      if (errorField === "name") {
-        form.setError("name", { type: "manual", message });
+      if (fieldError && fieldError.field === "name") {
+        form.setError("name", {
+          type: "manual",
+          message: fieldError.message
+        });
       } else {
-        toast.error(message);
+        toast.error(fieldError?.message || getErrorMessage(error));
       }
     }
   }

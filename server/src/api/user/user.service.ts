@@ -66,13 +66,13 @@ class UserService {
     // Check if email is already in use
     const existingUser = await userDAO.getUserByEmail(data.email);
     if (existingUser) {
-      throw new ApiError(409, "Email is already linked to an account.", ["email"]);
+      throw new ApiError(409, [{ email: "Email is already linked to an account." }]);
     }
 
     // Get default plan
     const defaultPlan = await planService.getDefaultPlan();
     if (!defaultPlan) {
-      throw new ApiError(500, "Default plan not found", ["plan"]);
+      throw new ApiError(500, [{ plan: "Default plan not found" }]);
     }
 
     // Create user with default plan
@@ -103,13 +103,13 @@ class UserService {
     // Check if email is already in use
     const existingUser = await userDAO.getUserByEmail(data.email);
     if (existingUser) {
-      throw new ApiError(409, "Email is already linked to an account.", ["email"]);
+      throw new ApiError(409, [{ email: "Email is already linked to an account." }]);
     }
 
     // Get default plan
     const defaultPlan = await planService.getDefaultPlan();
     if (!defaultPlan) {
-      throw new ApiError(500, "Default plan not found", ["plan"]);
+      throw new ApiError(500, [{ plan: "Default plan not found" }]);
     }
 
     // Create user with default plan
@@ -144,13 +144,13 @@ class UserService {
     });
     logger.info("user found", user);
     if (!user) {
-      throw new ApiError(401, "Invalid credentials", ["email"]);
+      throw new ApiError(401, [{ email: "Invalid credentials" }]);
     }
 
     // Verify password
     const validPassword = await user.checkPassword(credentials.password);
     if (!validPassword) {
-      throw new ApiError(401, "Invalid credentials", ["password"]);
+      throw new ApiError(401, [{ password: "Invalid credentials" }]);
     }
 
     // Generate tokens
@@ -175,14 +175,14 @@ class UserService {
     // Find user by ID
     const user = await userDAO.getUserById(userId, { includeRefreshTokens: true });
     if (!user) {
-      throw new ApiError(404, "User not found", ["id"]);
+      throw new ApiError(404, [{ id: "User not found" }]);
     }
     
     // Remove the specific refresh token
     const loggedOutUser = await userDAO.removeUserRefreshToken(userId, refreshToken);
 
     if (!loggedOutUser) {
-      throw new ApiError(500, "Failed to logout user", ["logout"]);
+      throw new ApiError(500, [{ logout: "Failed to logout user" }]);
     }
     return true;
   }
@@ -197,14 +197,14 @@ class UserService {
     // Find user by ID
     const user = await userDAO.getUserById(userId);
     if (!user) {
-      throw new ApiError(404, "User not found", ["id"]);
+      throw new ApiError(404, [{ id: "User not found" }]);
     }
     
     // Clear all refresh tokens
     const loggedOutUser = await userDAO.clearAllUserRefreshTokens(userId);
 
     if (!loggedOutUser) {
-      throw new ApiError(500, "Failed to logout user from all devices", ["logout"]);
+      throw new ApiError(500, [{ logout: "Failed to logout user from all devices" }]);
     }
     return true;
   }
@@ -219,7 +219,7 @@ class UserService {
   async getUserById(id: string): Promise<UserResponseDTO> {
     const user = await userDAO.getUserById(id);
     if (!user) {
-      throw new ApiError(404, "User not found", ["id"]);
+      throw new ApiError(404, [{ id: "User not found" }]);
     }
 
     return this.sanitizeUser(user);
@@ -238,15 +238,13 @@ class UserService {
     if (data.email) {
       const existingUser = await userDAO.getUserByEmail(data.email);
       if (existingUser && existingUser.id.toString() !== id) {
-        throw new ApiError(409, "Email is already linked to an account. by another account", [
-          "email",
-        ]);
+        throw new ApiError(409, [{ email: "Email is already linked to an account by another account" }]);
       }
     }
 
     const updatedUser = await userDAO.updateUser(id, data);
     if (!updatedUser) {
-      throw new ApiError(404, "User not found", ["id"]);
+      throw new ApiError(404, [{ id: "User not found" }]);
     }
 
     return this.sanitizeUser(updatedUser);
@@ -267,8 +265,8 @@ class UserService {
     const updatedUser = await userDAO.updateUserPassword(id, passwordData);
 
     if (!updatedUser) {
-      throw new ApiError(400, "Invalid current password or user not found", [
-        "password",
+      throw new ApiError(400, [
+        { currentPassword: "Invalid current password or user not found" }
       ]);
     }
 
@@ -286,7 +284,7 @@ class UserService {
     const deletedUser = await userDAO.deleteUser(id);
 
     if (!deletedUser) {
-      throw new ApiError(404, "User not found", ["id"]);
+      throw new ApiError(404, [{ id: "User not found" }]);
     }
 
     return this.sanitizeUser(deletedUser);
@@ -320,7 +318,7 @@ class UserService {
     // First check if user exists
     const user = await userDAO.getUserById(userId);
     if (!user) {
-      throw new ApiError(404, "User not found", ["id"]);
+      throw new ApiError(404, [{ id: "User not found" }]);
     }
 
     // Update storage calculation
@@ -329,7 +327,7 @@ class UserService {
     });
 
     if (!updatedUser) {
-      throw new ApiError(500, "Failed to update storage usage", ["storage"]);
+      throw new ApiError(500, [{ storage: "Failed to update storage usage" }]);
     }
 
     return this.sanitizeUser(updatedUser);
@@ -359,14 +357,14 @@ class UserService {
       includeRefreshTokens: true,
     });
     if (!user) {
-      throw new ApiError(401, "Invalid refresh token", ["refreshToken"]);
+      throw new ApiError(401, [{ refreshToken: "Invalid refresh token" }]);
     }
     
     // Check if the refresh token exists in the user's tokens array
     const tokenExists = user.findRefreshToken(refreshToken);
     if (!tokenExists) {
-      throw new ApiError(401, "Expired or used refresh token", [
-        "refreshToken",
+      throw new ApiError(401, [
+        { refreshToken: "Expired or used refresh token" }
       ]);
     }
 

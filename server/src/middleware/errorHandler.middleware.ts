@@ -17,7 +17,7 @@ export const errorHandler = (
   // Default to 500 internal server error
   let statusCode = 500;
   let message = 'Something went wrong';
-  let errors: string[] | undefined;
+  let errors: Record<string, string>[] | undefined;
   
   // If error is an ApiError, use its properties
   if (err instanceof ApiError) {
@@ -27,7 +27,7 @@ export const errorHandler = (
   } else {
     // For other errors, create a generic message
     message = err.message || 'Internal Server Error';
-    errors = [err.name || 'Error'];
+    errors = [{ error: err.name || 'Error' }];
   }
   
   // Send JSON response with proper status code

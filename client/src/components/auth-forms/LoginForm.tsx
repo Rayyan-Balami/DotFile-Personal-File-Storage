@@ -16,6 +16,7 @@ import { useForm } from "react-hook-form";
 import { useLogin } from "@/api/user/user.query";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/authStore";
+import { extractFieldError, getErrorMessage } from "@/utils/apiErrorHandler";
 
 export function LoginForm({
   className,
@@ -41,15 +42,16 @@ export function LoginForm({
       navigate({ to: "/" });
     } catch (error: any) {
       logger.error("Login error:", error);
-      
-      const responseData = error.response?.data;
-      const errorField = responseData?.errors?.[0];
-      const message = responseData?.message || "Our servers are busy. Please try again later.";
-      
-      if (["email", "password"].includes(errorField)) {
-        form.setError(errorField, { type: "manual", message });
+
+      const fieldError = extractFieldError(error);
+
+      if (fieldError && ["email", "password"].includes(fieldError.field)) {
+        form.setError(fieldError.field as any, {
+          type: "manual",
+          message: fieldError.message,
+        });
       } else {
-        toast.error(message);
+        toast.error(getErrorMessage(error));
       }
     }
   }

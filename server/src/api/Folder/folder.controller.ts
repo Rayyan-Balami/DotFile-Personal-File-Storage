@@ -12,7 +12,7 @@ class FolderController {
     
     // Add the owner (current logged in user) from auth middleware
     if (!req.user) {
-      throw new ApiError(401, "Unauthorized", ["authentication"]);
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
     }
     const userId = req.user.id;
     
@@ -28,7 +28,7 @@ class FolderController {
     
     // Add the owner (current logged in user) from auth middleware
     if (!req.user) {
-      throw new ApiError(401, "Unauthorized", ["authentication"]);
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
     }
     const userId = req.user.id;
     

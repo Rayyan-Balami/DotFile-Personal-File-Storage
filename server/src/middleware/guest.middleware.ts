@@ -25,7 +25,7 @@ export const verifyGuest = asyncHandler(
     try {
       const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET) as JwtUserPayload;
       if (decoded?.id) {
-        throw new ApiError(403, "Already authenticated", ["auth"]);
+        throw new ApiError(403, [{ auth: "Already authenticated" }]);
       }
     } catch (err) {
       if (err instanceof ApiError) {

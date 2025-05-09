@@ -11,7 +11,7 @@ export const restrictTo = (allowedRoles: UserRole[]) => {
   return asyncHandler(async (req: Request, _: Response, next: NextFunction) => {
     // For all other routes, verify authentication
     if (!req.user) {
-      throw new ApiError(401, "Authentication required", ["authentication"]);
+      throw new ApiError(401, [{ authentication: "Authentication required" }]);
     }
 
     // Check if user role is in allowed roles
@@ -23,8 +23,7 @@ export const restrictTo = (allowedRoles: UserRole[]) => {
     ) {
       throw new ApiError(
         403,
-        `Access denied. Required role: ${allowedRoles.join(" or ")}`,
-        ["authorization"]
+        [{ authorization: `Access denied. Required role: ${allowedRoles.join(" or ")}` }]
       );
     }
 
