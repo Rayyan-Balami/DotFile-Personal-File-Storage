@@ -20,6 +20,11 @@ export interface UpdateFileDto {
   workspace?: string | null;
 }
 
+export interface RenameFileDto {
+  name: string;
+  id: string;
+}
+
 export interface FileResponseDto {
   id: string;
   name: string;

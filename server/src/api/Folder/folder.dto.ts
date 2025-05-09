@@ -16,6 +16,11 @@ export interface UpdateFolderDto {
   items?: number;
 }
 
+export interface RenameFolderDto {
+  name: string;
+  id: string;
+}
+
 export interface FolderResponseDto {
   id: string;
   name: string;
