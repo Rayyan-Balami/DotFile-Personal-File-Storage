@@ -77,15 +77,15 @@ class FileService {
     return this.sanitizeFile(file);
   }
 
-  /**
-   * Get files by query criteria
-   * 
-   * @param query Query parameters for filtering files
-   * @param userId User ID to filter by ownership
-   * @returns Array of file records
-   */
-  async getFiles(query: GetFilesQueryDto, userId: string): Promise<FileResponseDto[]> {
-    const files = await fileDao.getFiles({ ...query, owner: userId });
+
+  async getUserFilesByFolders(
+    userId: string,
+    folderId?: string | null,
+    isDeleted?: boolean
+  ): Promise<FileResponseDto[]> {
+    const files = await fileDao.getUserFilesByFolders(userId, folderId, isDeleted);
+    
+    // Return empty array instead of throwing error when no files are found
     return files.map(file => this.sanitizeFile(file));
   }
 
@@ -110,39 +110,6 @@ class FileService {
     }
     
     return this.sanitizeFile(file);
-  }
-
-  /**
-   * Get the download URL/path for a file
-   * 
-   * @param fileId File ID
-   * @param userId User ID for ownership verification
-   * @returns Object with file path and display name
-   * @throws ApiError if file not found or user doesn't own it
-   */
-  async getFileDownloadInfo(fileId: string, userId: string): Promise<{path: string, filename: string}> {
-    const file = await fileDao.getFileById(fileId);
-    
-    if (!file) {
-      throw new ApiError(404, "File not found", ["id"]);
-    }
-    
-    // Check ownership
-    if (file.owner.toString() !== userId) {
-      throw new ApiError(403, "You don't have permission to access this file", ["access"]);
-    }
-    
-    // Get the physical file path
-    const userDir = getUserDirectoryPath(userId);
-    const filePath = path.join(userDir, file.storageKey);
-    
-    // For display/download purposes, use the original filename
-    const displayName = file.name + (file.type ? `.${file.type}` : '');
-    
-    return {
-      path: filePath,
-      filename: displayName
-    };
   }
 
   /**
@@ -195,41 +162,6 @@ class FileService {
     return this.sanitizeFile(deletedFile);
   }
 
-  /**
-   * Move files to a different folder
-   * 
-   * @param fileIds Array of file IDs to move
-   * @param targetFolderId Destination folder ID (or null for root)
-   * @param userId User ID for ownership verification
-   * @returns Number of files moved successfully
-   * @throws ApiError if the folder doesn't exist or user doesn't have access
-   */
-  async moveFilesToFolder(fileIds: string[], targetFolderId: string | null, userId: string): Promise<number> {
-    // If there's a target folder, verify it exists and user has access
-    if (targetFolderId) {
-      const folder = await folderService.getFolderById(targetFolderId, userId);
-      if (!folder) {
-        throw new ApiError(404, "Target folder not found", ["folder"]);
-      }
-    }
-    
-    // Move the files
-    const updatedCount = await fileDao.updateFilesFolder(fileIds, targetFolderId, userId);
-    
-    return updatedCount;
-  }
-  
-  /**
-   * Search for files by name or type
-   * 
-   * @param searchTerm Text to search for in filename or type
-   * @param userId User ID for filtering by ownership
-   * @returns Array of matching file documents
-   */
-  async searchFiles(searchTerm: string, userId: string): Promise<FileResponseDto[]> {
-    const files = await fileDao.searchFiles(userId, searchTerm);
-    return files.map(file => this.sanitizeFile(file));
-  }
 
   /**
    * Remove sensitive data from file object

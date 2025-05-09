@@ -1,3 +1,5 @@
+import { FileResponseDto } from "@api/File/file.dto.js";
+
 export interface CreateFolderDto {
   name: string;
   parent?: string | null;
@@ -12,18 +14,6 @@ export interface UpdateFolderDto {
   path?: string;
   pathSegments?: { name: string; id: string }[];
   items?: number;
-}
-
-export interface GetFolderDto {
-  id: string;
-}
-
-export interface GetFoldersQueryDto {
-  parent?: string | null;
-  workspace?: string | null;
-  isPinned?: boolean;
-  isShared?: boolean;
-  includeDeleted?: boolean;
 }
 
 export interface FolderResponseDto {
@@ -50,4 +40,10 @@ export interface FolderResponseDto {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
+}
+
+
+export interface FolderResponseWithFilesDto {
+  files: FileResponseDto[];
+  folders: FolderResponseDto[];
 }

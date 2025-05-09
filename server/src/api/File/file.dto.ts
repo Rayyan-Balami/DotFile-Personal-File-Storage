@@ -9,6 +9,7 @@ export interface CreateFileDto {
   storageKey: string;
   workspace?: string | null;
   originalPath?: string;
+  extension?: string;
 }
 
 export interface UpdateFileDto {

@@ -15,13 +15,9 @@ authRoutes.use(verifyAuth);
 
 // File routes
 authRoutes.post("/upload", FileController.uploadFiles); // Single unified upload endpoint
-authRoutes.get("/", FileController.getFiles);
 authRoutes.get("/:id", FileController.getFileById);
 authRoutes.patch("/:id", FileController.updateFile);
 authRoutes.delete("/:id", FileController.deleteFile);
-authRoutes.get("/:id/download", FileController.downloadFile);
-authRoutes.post("/move", FileController.moveFiles);
-authRoutes.get("/search", FileController.searchFiles);
 
 //=============================================================================
 // ROUTE REGISTRATION

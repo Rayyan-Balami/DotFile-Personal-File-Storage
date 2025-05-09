@@ -1,13 +1,14 @@
-import { sanitizeDocument } from "@utils/sanitizeDocument.js";
 import folderDao from "@api/Folder/folder.dao.js";
+import { IFolder } from "@api/Folder/folder.model.js";
+import { ApiError } from "@utils/apiError.js";
+import { sanitizeDocument } from "@utils/sanitizeDocument.js";
 import {
   CreateFolderDto,
   FolderResponseDto,
-  GetFoldersQueryDto,
-  UpdateFolderDto,
+  FolderResponseWithFilesDto,
 } from "./folder.dto.js";
-import { IFolder } from "@api/Folder/folder.model.js";
-import { ApiError } from "@utils/apiError.js";
+import fileService from "@api/File/file.service.js";
+import { FileResponseDto } from "@api/File/file.dto.js";
 
 class FolderService {
   // Create a new folder
@@ -27,35 +28,33 @@ class FolderService {
     return this.sanitizeFolder(newFolder);
   }
 
-  // Get a folder by ID
-  async getFolderById(
-    folderId: string,
-    ownerId: string
-  ): Promise<FolderResponseDto> {
-    const folder = await folderDao.getFolderById(folderId);
-
-    if (!folder) {
+  //this gives the immediate children of a folder like other folders and files
+  async getFolderContents(
+    folderId: string | null,
+    userId: string
+  ): Promise<FolderResponseWithFilesDto> {
+    // if folderId is null then return all the folders and files having null parent (root level)
+    if (!folderId) {
+      const rootFolders = await folderDao.getUserFolders(userId);
+      const rootFiles = await fileService.getUserFilesByFolders(userId);
+      return {
+        folders: rootFolders.map((folder) => this.sanitizeFolder(folder)),
+        files: rootFiles,
+      };
+    }
+    // Get folder by ID
+    const folders = await folderDao.getUserFolders(userId, folderId);
+    const files = await fileService.getUserFilesByFolders(userId, folderId);
+    if (!folders || folders.length === 0) {
       throw new ApiError(404, "Folder not found", ["folder"]);
     }
-
-    // Check if user is the owner
-    if (folder.owner.toString() !== ownerId) {
-      throw new ApiError(403, "You don't have access to this folder", [
-        "authorization",
-      ]);
-    }
-
-    return this.sanitizeFolder(folder);
+    // Sanitize and return the folders
+    return {
+      folders: folders.map((folder) => this.sanitizeFolder(folder)),
+      files: files,
+    };
   }
 
-  /**
-   * Get a folder by name and parent ID
-   * 
-   * @param name The name of the folder to find
-   * @param parentId The ID of the parent folder, or null for root folders
-   * @param ownerId Optional owner ID to check folder ownership
-   * @returns The folder data if found, or null if not found
-   */
   async getFolderByNameAndParent(
     name: string,
     parentId: string | null,
@@ -65,218 +64,15 @@ class FolderService {
     if (!ownerId) {
       return null;
     }
-    
+
     const folder = await folderDao.checkFolderExists(name, ownerId, parentId);
     return folder ? this.sanitizeFolder(folder) : null;
-  }
-
-  // Get all folders matching query
-  async getFolders(
-    ownerId: string,
-    query: GetFoldersQueryDto
-  ): Promise<FolderResponseDto[]> {
-    const folders = await folderDao.getFolders(ownerId, query);
-    return folders.map((folder) => this.sanitizeFolder(folder));
-  }
-
-  // Update a folder
-  async updateFolder(
-    folderId: string,
-    updateData: UpdateFolderDto,
-    ownerId: string
-  ): Promise<FolderResponseDto> {
-    // Check if folder exists and belongs to user
-    const existingFolder = await folderDao.getFolderById(folderId);
-
-    if (!existingFolder) {
-      throw new ApiError(404, "Folder not found", ["folder"]);
-    }
-
-    if (existingFolder.owner.toString() !== ownerId) {
-      throw new ApiError(403, "You don't have access to this folder", [
-        "authorization",
-      ]);
-    }
-
-    // If moving folder to a new parent
-    if (
-      updateData.parent !== undefined &&
-      updateData.parent !== existingFolder.parent?.toString()
-    ) {
-      // Check if new parent exists
-      if (updateData.parent) {
-        const parentFolder = await folderDao.getFolderById(updateData.parent);
-        if (!parentFolder) {
-          throw new ApiError(404, "Parent folder not found", ["parent"]);
-        }
-
-        // Check if new parent is owned by the same user
-        if (parentFolder.owner.toString() !== ownerId) {
-          throw new ApiError(
-            403,
-            "You don't have access to the destination folder",
-            ["authorization"]
-          );
-        }
-
-        // Check if new parent is not a child of this folder (prevent circular references)
-        if (await this.isDescendant(folderId, updateData.parent)) {
-          throw new ApiError(
-            400,
-            "Cannot move a folder into its own subfolder",
-            ["parent"]
-          );
-        }
-
-        // Increment new parent's items count
-        await this.incrementParentItemCount(updateData.parent);
-
-        // Decrement old parent's items count if it exists
-        if (existingFolder.parent) {
-          await this.decrementParentItemCount(existingFolder.parent.toString());
-        }
-
-        // Recalculate path and pathSegments for this folder and all children
-        const enhancedData = { ...updateData };
-        await this.updateFolderPath(
-          this.sanitizeFolder(existingFolder),
-          updateData.parent
-        );
-
-        // Update with new path and other data
-        const updatedFolder = await folderDao.updateFolder(
-          folderId,
-          enhancedData
-        );
-        if (!updatedFolder) {
-          throw new ApiError(500, "Failed to update folder", ["update"]);
-        }
-
-        return this.sanitizeFolder(updatedFolder);
-      } else {
-        // Moving to root level
-        // Decrement old parent's items count if it exists
-        if (existingFolder.parent) {
-          await this.decrementParentItemCount(existingFolder.parent.toString());
-        }
-
-        // Recalculate path for root-level folder
-        const enhancedData = {
-          ...updateData,
-          path: `/${this.sanitizePathSegment(existingFolder.name)}`,
-          pathSegments: [],
-        };
-
-        const updatedFolder = await folderDao.updateFolder(
-          folderId,
-          enhancedData
-        );
-        if (!updatedFolder) {
-          throw new ApiError(500, "Failed to update folder", ["update"]);
-        }
-
-        return this.sanitizeFolder(updatedFolder);
-      }
-    } else if (updateData.name && updateData.name !== existingFolder.name) {
-      // If just changing the name, check for duplicates and update path
-      const newName = await this.ensureUniqueNameAtLevel(
-        updateData.name,
-        ownerId,
-        existingFolder.parent?.toString() || null
-      );
-
-      // Update path with new name
-      const parentPath = existingFolder.path.substring(
-        0,
-        existingFolder.path.lastIndexOf("/")
-      );
-      const newPath = `${parentPath}/${this.sanitizePathSegment(newName)}`;
-
-      const enhancedData = {
-        ...updateData,
-        name: newName,
-        path: newPath,
-      };
-
-      const updatedFolder = await folderDao.updateFolder(
-        folderId,
-        enhancedData
-      );
-      if (!updatedFolder) {
-        throw new ApiError(500, "Failed to update folder", ["update"]);
-      }
-
-      return this.sanitizeFolder(updatedFolder);
-    } else {
-      // Simple update without path changes
-      const updatedFolder = await folderDao.updateFolder(folderId, updateData);
-      if (!updatedFolder) {
-        throw new ApiError(500, "Failed to update folder", ["update"]);
-      }
-
-      return this.sanitizeFolder(updatedFolder);
-    }
-  }
-
-  // Delete a folder (soft delete)
-  async deleteFolder(
-    folderId: string,
-    ownerId: string
-  ): Promise<FolderResponseDto> {
-    // Check if folder exists and belongs to user
-    const existingFolder = await folderDao.getFolderById(folderId);
-
-    if (!existingFolder) {
-      throw new ApiError(404, "Folder not found", ["folder"]);
-    }
-
-    if (existingFolder.owner.toString() !== ownerId) {
-      throw new ApiError(403, "You don't have access to this folder", [
-        "authorization",
-      ]);
-    }
-
-    // Decrement parent folder's item count if parent exists
-    if (existingFolder.parent) {
-      await this.decrementParentItemCount(existingFolder.parent.toString());
-    }
-
-    // Perform soft delete
-    const deletedFolder = await folderDao.deleteFolder(folderId);
-    if (!deletedFolder) {
-      throw new ApiError(500, "Failed to delete folder", ["delete"]);
-    }
-
-    return this.sanitizeFolder(deletedFolder);
-  }
-
-  // Get contents of a specific folder (immediate children only)
-  async getFolderContents(
-    folderId: string | null,
-    ownerId: string
-  ): Promise<FolderResponseDto[]> {
-    // If folderId is provided, verify folder exists and user has access
-    if (folderId) {
-      const folder = await folderDao.getFolderById(folderId);
-      
-      if (!folder) {
-        throw new ApiError(404, "Folder not found", ["folder"]);
-      }
-      
-      if (folder.owner.toString() !== ownerId) {
-        throw new ApiError(403, "You don't have access to this folder", ["authorization"]);
-      }
-    }
-    
-    // Get all immediate children of this folder
-    const folders = await folderDao.getFolderContents(folderId, ownerId);
-    return folders.map((folder) => this.sanitizeFolder(folder));
   }
 
   /**
    * Increment a folder's item count when a new item is added to it
    * Public method for use by other services
-   * 
+   *
    * @param folderId ID of the folder to update
    */
   async incrementFolderItemCount(folderId: string): Promise<void> {
@@ -286,26 +82,11 @@ class FolderService {
   /**
    * Decrement a folder's item count when an item is removed from it
    * Public method for use by other services
-   * 
+   *
    * @param folderId ID of the folder to update
    */
   async decrementFolderItemCount(folderId: string): Promise<void> {
     await this.decrementParentItemCount(folderId);
-  }
-
-  // Helper method to check if a folder is a descendant of another
-  private async isDescendant(
-    ancestorId: string,
-    descendantId: string
-  ): Promise<boolean> {
-    const descendant = await folderDao.getFolderById(descendantId);
-    if (!descendant || !descendant.parent) return false;
-
-    if (descendant.parent.toString() === ancestorId) {
-      return true;
-    }
-
-    return this.isDescendant(ancestorId, descendant.parent.toString());
   }
 
   // Helper to update folder path when parent changes
@@ -373,7 +154,7 @@ class FolderService {
       if (!parentFolder) {
         throw new ApiError(404, "Parent folder not found", ["parent"]);
       }
-      
+
       // Construct the path based on parent
       enhancedData.path = `${parentFolder.path}/${this.sanitizePathSegment(enhancedData.name)}`;
 

@@ -23,24 +23,6 @@ class FileDao {
   }
 
   /**
-   * Get files based on query parameters
-   *
-   * @param query - Query filters including owner and optional filters
-   * @returns Array of file documents
-   */
-  async getFiles(
-    query: GetFilesQueryDto & { owner: string }
-  ): Promise<IFile[]> {
-    const { includeDeleted = false, ...filters } = query;
-
-    if (!mongoose.Types.ObjectId.isValid(filters.owner)) return [];
-    return await File.find({
-      owner: filters.owner,
-      deletedAt: includeDeleted ? { $ne: null } : null,
-    });
-  }
-
-  /**
    * Get a file by its ID
    *
    * @param id - MongoDB ObjectId string of the file
@@ -120,116 +102,21 @@ class FileDao {
   /**
    * Get all files in a folder
    *
-   * @param folderId - MongoDB ObjectId string of the folder
-   * @param includeDeleted - When true, includes soft-deleted files in results
-   * @returns Array of file documents in the specified folder
-   */
-  async getFilesByFolder(
-    folderId: string,
-    includeDeleted: boolean = false
-  ): Promise<IFile[]> {
-    if (!mongoose.Types.ObjectId.isValid(folderId)) return [];
-
-    return await File.find({
-      folder: folderId,
-      ...(includeDeleted ? {} : { deletedAt: null }),
-    }).sort({ createdAt: -1 });
-  }
-
-  /**
-   * Get files by owner
-   *
-   * @param ownerId - MongoDB ObjectId string of the owner
-   * @param includeDeleted - When true, includes soft-deleted files
-   * @returns Array of file documents owned by the specified user
-   */
-  async getFilesByOwner(
-    ownerId: string,
-    includeDeleted: boolean = false
-  ): Promise<IFile[]> {
-    if (!mongoose.Types.ObjectId.isValid(ownerId)) return [];
-
-    return await File.find({
-      owner: ownerId,
-      ...(includeDeleted ? {} : { deletedAt: null }),
-    }).sort({ createdAt: -1 });
-  }
-
-  /**
-   * Search files by name or content
-   *
    * @param userId - MongoDB ObjectId string of the user
-   * @param searchTerm - Text to search for in filename or content
-   * @param includeDeleted - When true, includes soft-deleted files
-   * @returns Array of matching file documents
+   * @param folderId - MongoDB ObjectId string of the folder (optional)
+   * @param isDeleted - When true, returns only deleted files
+   * @returns Array of file documents matching the criteria
    */
-  async searchFiles(
+  async getUserFilesByFolders(
     userId: string,
-    searchTerm: string,
-    includeDeleted: boolean = false
+    folderId?: string | null,
+    isDeleted?: boolean
   ): Promise<IFile[]> {
-    if (!mongoose.Types.ObjectId.isValid(userId)) return [];
-
-    const regex = new RegExp(searchTerm, "i");
-
-    return await File.find({
+    return File.find({
       owner: userId,
-      $or: [{ name: regex }, { type: regex }],
-      ...(includeDeleted ? {} : { deletedAt: null }),
-    }).sort({ createdAt: -1 });
-  }
-
-  /**
-   * Count files in a folder
-   *
-   * @param folderId - MongoDB ObjectId string of the folder
-   * @param includeDeleted - When true, includes soft-deleted files in count
-   * @returns Number of files in the folder
-   */
-  async countFilesByFolder(
-    folderId: string,
-    includeDeleted: boolean = false
-  ): Promise<number> {
-    if (!mongoose.Types.ObjectId.isValid(folderId)) return 0;
-
-    return await File.countDocuments({
-      folder: folderId,
-      ...(includeDeleted ? {} : { deletedAt: null }),
-    });
-  }
-
-  /**
-   * Update folder for multiple files
-   *
-   * @param fileIds - Array of file IDs to update
-   * @param folderId - New folder ID (or null to move to root)
-   * @param ownerId - Owner ID for verification
-   * @returns Number of files updated
-   */
-  async updateFilesFolder(
-    fileIds: string[],
-    folderId: string | null,
-    ownerId: string
-  ): Promise<number> {
-    if (!mongoose.Types.ObjectId.isValid(ownerId)) return 0;
-
-    // Filter out invalid MongoDB IDs
-    const validFileIds = fileIds.filter((id) =>
-      mongoose.Types.ObjectId.isValid(id)
-    );
-
-    if (validFileIds.length === 0) return 0;
-
-    const result = await File.updateMany(
-      {
-        _id: { $in: validFileIds },
-        owner: ownerId,
-        deletedAt: null,
-      },
-      { folder: folderId }
-    );
-
-    return result.modifiedCount;
+      folder: folderId || null,
+      deletedAt: isDeleted ? { $ne: null } : null,
+    }).sort({ [isDeleted ? "deletedAt" : "createdAt"]: -1 });
   }
 }
 

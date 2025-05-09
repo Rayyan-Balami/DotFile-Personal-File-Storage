@@ -159,29 +159,7 @@ class FileController {
       );
     })
   ];
-  
-  /**
-   * Get files by query
-   */
-  getFiles = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user?.id;
-    if (!userId) {
-      throw new ApiError(401, "Unauthorized", ["authentication"]);
-    }
-    
-    const query = req.query as unknown as {
-      folder?: string;
-      workspace?: string;
-      isPinned?: boolean;
-      isShared?: boolean;
-      includeDeleted?: boolean;
-      search?: string;
-    };
-    
-    const files = await fileService.getFiles(query, userId);
-    
-    res.json(new ApiResponse(200, { files }, "Files retrieved successfully"));
-  });
+
   
   /**
    * Get a file by ID
@@ -230,81 +208,8 @@ class FileController {
     res.json(new ApiResponse(200, { file: deletedFile }, "File deleted successfully"));
   });
   
-  /**
-   * Download a file
-   */
-  downloadFile = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user?.id;
-    if (!userId) {
-      throw new ApiError(401, "Unauthorized", ["authentication"]);
-    }
-    
-    const fileId = req.params.id;
-    const fileInfo = await fileService.getFileDownloadInfo(fileId, userId);
-    
-    // Check if file exists on disk
-    if (!fs.existsSync(fileInfo.path)) {
-      throw new ApiError(404, "File not found on disk", ["file"]);
-    }
-    
-    res.download(fileInfo.path, fileInfo.filename);
-  });
-  
-  /**
-   * Move files to different folder
-   */
-  moveFiles = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user?.id;
-    if (!userId) {
-      throw new ApiError(401, "Unauthorized", ["authentication"]);
-    }
-    
-    const { fileIds, targetFolderId } = req.body;
-    
-    if (!Array.isArray(fileIds) || fileIds.length === 0) {
-      throw new ApiError(400, "File IDs array is required", ["fileIds"]);
-    }
-    
-    const movedCount = await fileService.moveFilesToFolder(
-      fileIds, 
-      targetFolderId || null,
-      userId
-    );
-    
-    res.json(
-      new ApiResponse(
-        200, 
-        { count: movedCount }, 
-        `Successfully moved ${movedCount} file(s)`
-      )
-    );
-  });
-  
-  /**
-   * Search files
-   */
-  searchFiles = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user?.id;
-    if (!userId) {
-      throw new ApiError(401, "Unauthorized", ["authentication"]);
-    }
-    
-    const { query } = req.query;
-    
-    if (!query || typeof query !== "string") {
-      throw new ApiError(400, "Search query is required", ["query"]);
-    }
-    
-    const files = await fileService.searchFiles(query, userId);
-    
-    res.json(
-      new ApiResponse(
-        200, 
-        { files, count: files.length }, 
-        `Found ${files.length} file(s) matching "${query}"`
-      )
-    );
-  });
+
+
 }
 
 export default new FileController();
