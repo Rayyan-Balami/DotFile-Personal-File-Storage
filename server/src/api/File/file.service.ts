@@ -9,6 +9,7 @@ import folderService from "@api/Folder/folder.service.js";
 import { ApiError } from "@utils/apiError.utils.js";
 import logger from "@utils/logger.utils.js";
 import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
+import path from "path";
 
 /**
  * Service class for file-related business logic
@@ -32,7 +33,7 @@ class FileService {
       originalPath?: string;
     },
     userId: string,
-    folderId?: string
+    folderId?: string | null
   ): Promise<FileResponseDto> {
     logger.debug(`Creating file record for ${fileData.name} by user ${userId}`);
 
@@ -274,6 +275,177 @@ class FileService {
     }
     
     return this.sanitizeFile(updatedFile);
+  }
+
+  /**
+   * Process uploaded files 
+   * 
+   * @param files Array of uploaded files from multer middleware
+   * @param userId User ID who owns the files
+   * @param folderId Optional target folder ID
+   * @param fileToFolderMap Map of filenames to their virtual folder paths (for zip extraction)
+   * @param virtualFolders Map of paths to folder IDs (for zip extraction)
+   * @returns Array of processed file results
+   */
+  async processUploadedFiles(
+    files: Express.Multer.File[],
+    userId: string,
+    folderId: string | null | undefined,
+    fileToFolderMap: Record<string, string> = {},
+    virtualFolders: Record<string, string> = {}
+  ): Promise<Array<{id: string; name: string; size: number; folder: string | null; virtualPath?: string}>> {
+    logger.debug(`Processing ${files.length} files in service layer`);
+    
+    // Initialize results array
+    const uploadResults: Array<{id: string; name: string; size: number; folder: string | null; virtualPath?: string}> = [];
+    
+    // Create a map for virtual folders from the input object
+    const virtualFolderCache = new Map<string, string>(Object.entries(virtualFolders));
+    
+    // Track processed filenames to avoid duplicates
+    const processedFilenames = new Set<string>();
+    
+    for (const file of files) {
+      try {
+        // Skip if we've already processed this file
+        if (processedFilenames.has(file.filename)) {
+          logger.debug(`Skipping duplicate file: ${file.filename}`);
+          continue;
+        }
+        processedFilenames.add(file.filename);
+        
+        // Check if this file is part of a zip folder structure
+        const virtualPath = fileToFolderMap[file.filename];
+        
+        if (virtualPath) {
+          // This file came from a zip with folder structure
+          logger.debug(`Processing extracted file: ${file.filename} from path: ${virtualPath}`);
+          let targetFolderId: string | null | undefined = folderId;
+          
+          // If we have a non-root directory path, find the corresponding folder ID
+          if (virtualPath !== "." && virtualPath !== "/") {
+            // Check if the folder was already created in processZipFiles middleware
+            if (virtualFolderCache.has(virtualPath)) {
+              targetFolderId = virtualFolderCache.get(virtualPath)!;
+            } else {
+              // Create folder structure
+              targetFolderId = await this.createFolderStructure(
+                virtualPath, 
+                folderId, 
+                userId, 
+                virtualFolderCache
+              );
+            }
+          }
+          
+          // Extract file extension and name
+          const fileExtension = path.extname(file.originalname).substring(1);
+          const fileName = path.basename(file.originalname, `.${fileExtension}`);
+          
+          // Create file record in the database
+          const savedFile = await this.createFileWithVirtualFolder(
+            {
+              name: fileName,
+              type: fileExtension,
+              size: file.size,
+              storageKey: file.originalname,
+              originalPath: virtualPath,
+            },
+            userId,
+            targetFolderId
+          );
+          
+          uploadResults.push({
+            id: savedFile.id,
+            name: savedFile.name,
+            size: savedFile.size,
+            folder: targetFolderId || null,
+            virtualPath: virtualPath,
+          });
+          
+        } else {
+          // Regular file upload (not from ZIP)
+          const fileExtension = path.extname(file.originalname).substring(1);
+          const fileName = path.basename(file.originalname, `.${fileExtension}`);
+          
+          // Create file record in the database
+          const savedFile = await this.createFileWithVirtualFolder(
+            {
+              name: fileName,
+              type: fileExtension,
+              size: file.size,
+              storageKey: file.filename,
+            },
+            userId,
+            folderId
+          );
+          
+          uploadResults.push({
+            id: savedFile.id,
+            name: savedFile.name,
+            size: savedFile.size,
+            folder: folderId || null,
+          });
+        }
+      } catch (fileError) {
+        logger.error(`Error processing uploaded file ${file.filename}:`, fileError);
+        // Continue processing other files
+      }
+    }
+    
+    return uploadResults;
+  }
+  
+  /**
+   * Helper method to create folder structure based on path segments
+   * 
+   * @param virtualPath Path string with segments separated by /
+   * @param parentFolderId Initial parent folder ID
+   * @param userId User who owns the folders
+   * @param folderCache Cache map to store created folders
+   * @returns ID of the last folder created or found
+   */
+  private async createFolderStructure(
+    virtualPath: string,
+    parentFolderId: string | null | undefined,
+    userId: string,
+    folderCache: Map<string, string>
+  ): Promise<string | null> {
+    const pathSegments = virtualPath.split("/").filter(Boolean);
+    let parentId = parentFolderId || null;
+    let currentPath = "";
+    
+    // Create each folder in the path if it doesn't exist
+    for (const segment of pathSegments) {
+      currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+      
+      // Check if we've already created this folder in this session
+      if (folderCache.has(currentPath)) {
+        parentId = folderCache.get(currentPath)!;
+        continue;
+      }
+      
+      // Check if folder already exists at this path under the parent
+      let folder = await folderService.getFolderByNameAndParent(
+        segment,
+        parentId,
+        userId
+      );
+      
+      // Create the folder if it doesn't exist
+      if (!folder) {
+        folder = await folderService.createFolder(
+          { name: segment, parent: parentId },
+          userId
+        );
+      }
+      
+      // Store folder ID in cache
+      folderCache.set(currentPath, folder.id);
+      parentId = folder.id;
+    }
+    
+    return parentId;
   }
 
   /**
