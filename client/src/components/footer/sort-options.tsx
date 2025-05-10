@@ -47,7 +47,7 @@ export function SortOptions() {
             <MenubarRadioItem value="dateAdded">Date Added</MenubarRadioItem>
             <MenubarRadioItem value="dateOpened">Date Last Opened</MenubarRadioItem>
             <MenubarRadioItem value="size">Size</MenubarRadioItem>
-            <MenubarRadioItem value="desk">Desk</MenubarRadioItem>
+            <MenubarRadioItem value="desk">Workspace</MenubarRadioItem>
           </MenubarRadioGroup>
           <MenubarSeparator />
           <MenubarLabel>Direction</MenubarLabel>

@@ -25,6 +25,17 @@ class FolderDao {
     return Folder.findById(folderId);
   }
 
+  /**
+   * Get folder by ID with populated workspace data
+   *
+   * @param folderId The ID of the folder to retrieve
+   * @returns Folder with populated workspace or null if not found
+   */
+  async getFolderWithWorkspace(folderId: string): Promise<IFolder | null> {
+    if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
+    return Folder.findById(folderId).populate('workspace');
+  }
+
   async updateFolder(
     folderId: string,
     updateData: UpdateFolderDto
@@ -71,6 +82,28 @@ class FolderDao {
       parent: parentId || null,
       deletedAt: null,
     });
+  }
+
+  /**
+   * Get user folders with populated workspace data
+   *
+   * @param userId User ID who owns the folders
+   * @param parentId Parent folder ID (optional, null for root folders)
+   * @param isDeleted When true, returns deleted folders
+   * @returns Array of folders with populated workspace data
+   */
+  async getUserFoldersWithWorkspace(
+    userId: string,
+    parentId?: string | null,
+    isDeleted?: boolean
+  ): Promise<IFolder[]> {
+    return Folder.find({
+      owner: userId,
+      parent: parentId || null,
+      deletedAt: isDeleted ? { $ne: null } : null,
+    })
+      .populate('workspace')
+      .sort({ [isDeleted ? "deletedAt" : "createdAt"]: -1 });
   }
 
   /**

@@ -33,26 +33,77 @@ class FolderService {
     return this.sanitizeFolder(newFolder);
   }
 
-  //this gives the immediate children of a folder like other folders and files
+  /**
+   * Verifies that a folder belongs to the specified user
+   * 
+   * @param folderId The ID of the folder to check
+   * @param userId The ID of the user who should own the folder
+   * @returns The folder if ownership is verified
+   * @throws ApiError if folder not found or user is not the owner
+   */
+  async verifyFolderOwnership(folderId: string, userId: string): Promise<IFolder> {
+    if (!mongoose.Types.ObjectId.isValid(folderId)) {
+      throw new ApiError(400, [{ folder: "Invalid folder ID" }]);
+    }
+
+    const folder = await folderDao.getFolderById(folderId);
+    if (!folder) {
+      throw new ApiError(404, [{ folder: "Folder not found" }]);
+    }
+
+    // Check if the folder belongs to the user
+    if (folder.owner.toString() !== userId) {
+      throw new ApiError(403, [
+        { authorization: "You do not have permission to access this folder" },
+      ]);
+    }
+
+    return folder;
+  }
+
+  /**
+   * Get the immediate children of a folder (other folders and files)
+   * 
+   * @param folderId ID of the folder to get contents of (null for root level)
+   * @param userId ID of the user who should own the folder
+   * @param includeWorkspace Whether to include workspace data in the response
+   * @returns Folder contents including subfolders and files
+   */
   async getFolderContents(
     folderId: string | null,
-    userId: string
+    userId: string,
+    includeWorkspace: boolean = false
   ): Promise<FolderResponseWithFilesDto> {
     // if folderId is null then return all the folders and files having null parent (root level)
     if (!folderId) {
-      const rootFolders = await folderDao.getUserFolders(userId);
+      // Get root folders with or without workspace data
+      const rootFolders = includeWorkspace 
+        ? await folderDao.getUserFoldersWithWorkspace(userId)
+        : await folderDao.getUserFolders(userId);
+      
       const rootFiles = await fileService.getUserFilesByFolders(userId);
       return {
         folders: rootFolders.map((folder) => this.sanitizeFolder(folder)),
         files: rootFiles,
       };
     }
-    // Get folder by ID
-    const folders = await folderDao.getUserFolders(userId, folderId);
+
+    // Verify folder ownership if folderId is provided
+    if (folderId) {
+      await this.verifyFolderOwnership(folderId, userId);
+    }
+    
+    // Get folders by parent ID, with or without workspace data
+    const folders = includeWorkspace
+      ? await folderDao.getUserFoldersWithWorkspace(userId, folderId)
+      : await folderDao.getUserFolders(userId, folderId);
+      
     const files = await fileService.getUserFilesByFolders(userId, folderId);
+    
     if (!folders || folders.length === 0) {
       throw new ApiError(404, [{ folder: "Folder not found" }]);
     }
+    
     // Sanitize and return the folders
     return {
       folders: folders.map((folder) => this.sanitizeFolder(folder)),
@@ -63,12 +114,9 @@ class FolderService {
   async getFolderByNameAndParent(
     name: string,
     parentId: string | null,
-    ownerId?: string
+    ownerId: string
   ): Promise<FolderResponseDto | null> {
-    // If ownerId is not provided, we can't check for the folder
-    if (!ownerId) {
-      return null;
-    }
+    
 
     const folder = await folderDao.checkFolderExists(name, ownerId, parentId);
     return folder ? this.sanitizeFolder(folder) : null;
@@ -79,14 +127,19 @@ class FolderService {
    *
    * @param folderId The ID of the folder to retrieve
    * @param ownerId The ID of the user who should own the folder
+   * @param includeWorkspace Whether to include workspace data in the response
    * @returns The folder if found and owned by the user
    * @throws ApiError if folder not found or user doesn't own it
    */
   async getFolderById(
     folderId: string,
-    ownerId: string
+    ownerId: string,
+    includeWorkspace: boolean = false
   ): Promise<FolderResponseDto> {
-    const folder = await folderDao.getFolderById(folderId);
+    // Get folder with or without workspace data
+    const folder = includeWorkspace 
+      ? await folderDao.getFolderWithWorkspace(folderId)
+      : await folderDao.getFolderById(folderId);
 
     if (!folder) {
       throw new ApiError(404, [{ folder: "Folder not found" }]);
@@ -136,18 +189,8 @@ class FolderService {
     renameData: RenameFolderDto,
     userId: string
   ): Promise<FolderResponseDto> {
-    // Get the folder
-    const folder = await folderDao.getFolderById(folderId);
-    if (!folder) {
-      throw new ApiError(404, [{ folder: "Folder not found" }]);
-    }
-
-    // Verify ownership
-    if (folder.owner.toString() !== userId) {
-      throw new ApiError(403, [
-        { folder: "You don't have permission to rename this folder" },
-      ]);
-    }
+    // Verify folder ownership
+    const folder = await this.verifyFolderOwnership(folderId, userId);
 
     // Sanitize and ensure unique name at this level
     const newName = await this.ensureUniqueNameAtLevel(
@@ -220,19 +263,9 @@ class FolderService {
     moveData: MoveFolderDto,
     userId: string
   ): Promise<FolderResponseDto> {
-    // Get the folder to move
-    const folder = await folderDao.getFolderById(folderId);
-    if (!folder) {
-      throw new ApiError(404, [{ folder: "Folder not found" }]);
-    }
-
-    // Verify ownership
-    if (folder.owner.toString() !== userId) {
-      throw new ApiError(403, [
-        { folder: "You don't have permission to move this folder" },
-      ]);
-    }
-
+    // Verify folder ownership
+    const folder = await this.verifyFolderOwnership(folderId, userId);
+    
     // If the folder is already in the target parent, no need to move
     if (
       (moveData.newParentId === null && folder.parent === null) ||
@@ -246,17 +279,8 @@ class FolderService {
     // Verify the target parent exists if not moving to root
     let newParentFolder = null;
     if (moveData.newParentId !== null) {
-      newParentFolder = await folderDao.getFolderById(moveData.newParentId);
-      if (!newParentFolder) {
-        throw new ApiError(404, [{ parent: "Destination folder not found" }]);
-      }
-
-      // Check ownership of destination folder
-      if (newParentFolder.owner.toString() !== userId) {
-        throw new ApiError(403, [
-          { parent: "You don't have permission to move to this folder" },
-        ]);
-      }
+      // Verify the destination folder exists and the user owns it
+      newParentFolder = await this.verifyFolderOwnership(moveData.newParentId, userId);
 
       // Check that we're not moving a folder into its own descendant
       if (

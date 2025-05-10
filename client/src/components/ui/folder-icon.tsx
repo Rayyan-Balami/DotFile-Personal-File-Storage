@@ -1,29 +1,29 @@
 import { cn } from "@/lib/utils";
 import React from "react";
 import { colorMap, ColorOption } from "@/config/colors";
-import { DeskItem } from "@/types/desk";
-import { DeskIconType } from "@/config/icons";
-import * as DeskIcons from "@/config/icons";
+import { Workspace } from "@/types/desk";
+import { WorkspaceIconType } from "@/config/icons";
+import * as WorkspaceIcons from "@/config/icons";
 
 interface FolderIconProps {
   className?: string;
-  deskItem?: DeskItem;
+  workspace?: Workspace;
 }
 
 export function FolderIcon({
   className,
-  deskItem,
+  workspace,
 }: FolderIconProps) {
-  // If deskItem is provided, use its color and icon instead
-  const effectiveColor = deskItem?.color as ColorOption || "default";
-  const effectiveIconType = deskItem?.icon as DeskIconType || "folder";
+  // If workspace is provided, use its color and icon instead
+  const effectiveColor = workspace?.color as ColorOption || "default";
+  const effectiveIconType = workspace?.icon as WorkspaceIconType || "folder";
   
-  // Fallback to defaults if the values from deskItem are invalid
+  // Fallback to defaults if the values from workspace are invalid
   const primary = colorMap[effectiveColor]?.primary || colorMap.default.primary;
   const secondary = colorMap[effectiveColor]?.secondary || colorMap.default.secondary;
   
-  // Fix: Import DeskIcons properly and access the right icon
-  const IconComponent = DeskIcons.default[effectiveIconType] || DeskIcons.default.folder;
+  // Fix: Import WorkspaceIcons properly and access the right icon
+  const IconComponent = WorkspaceIcons.default[effectiveIconType] || WorkspaceIcons.default.folder;
 
   const cornerRadius = 4; 
 

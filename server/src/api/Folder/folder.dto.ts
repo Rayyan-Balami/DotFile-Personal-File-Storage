@@ -1,4 +1,5 @@
 import { FileResponseDto } from "@api/File/file.dto.js";
+import { WorkspaceResponseDto } from "@api/workspace/workspace.dto.js";
 import mongoose from "mongoose";
 
 export interface CreateFolderDto {
@@ -30,7 +31,7 @@ export interface FolderResponseDto {
   name: string;
   type: 'folder';
   owner: string;
-  workspace: string | null;
+  workspace: WorkspaceResponseDto | null;
   parent: string | null;
   items: number;
   isPinned: boolean;

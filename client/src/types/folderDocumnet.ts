@@ -1,4 +1,4 @@
-import { DeskItem } from "./desk";
+import { Workspace } from "./desk";
 
 // Define types for your file system items
 export interface BaseItem {
@@ -16,7 +16,7 @@ export interface BaseItem {
 
 export interface FolderItem extends BaseItem {
   type: 'folder';
-  desk: DeskItem;
+  desk: Workspace;
   childCount: number;
   children: string[];
 }

@@ -5,6 +5,7 @@ import userRoutes from "@api/user/user.routes.js";
 import planRoutes from "@api/plan/plan.routes.js";
 import folderRoutes from "./Folder/folder.routes.js";
 import fileRoutes from "./File/file.routes.js";
+import workspaceRoutes from "./workspace/workspace.routes.js";
 
 const apiRoutes = Router();
 
@@ -42,5 +43,6 @@ apiRoutes.use("/", userRoutes);
 apiRoutes.use("/", planRoutes);
 apiRoutes.use("/", folderRoutes);
 apiRoutes.use("/", fileRoutes);
+apiRoutes.use("/workspaces", workspaceRoutes);
 
 export default apiRoutes;

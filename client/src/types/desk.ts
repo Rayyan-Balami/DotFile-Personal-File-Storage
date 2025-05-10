@@ -1,8 +1,8 @@
-import { DeskIconType } from "@/config/icons";
+import { WorkspaceIconType } from "@/config/icons";
 
-export interface DeskItem {
+export interface Workspace {
   id: string;
   name: string;
   color: string;
-  icon: DeskIconType;
+  icon: WorkspaceIconType;
 }

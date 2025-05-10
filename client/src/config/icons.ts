@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 
 // Remove Document since it wasn't imported
-const DeskIcons = {
+const WorkspaceIcons = {
   arrowUp: ArrowUp,
   file: File,
   image: Image,
@@ -67,5 +67,5 @@ const DeskIcons = {
   coffee: Coffee
 };
 
-export type DeskIconType = keyof typeof DeskIcons;
-export default DeskIcons;
+export type WorkspaceIconType = keyof typeof WorkspaceIcons;
+export default WorkspaceIcons;

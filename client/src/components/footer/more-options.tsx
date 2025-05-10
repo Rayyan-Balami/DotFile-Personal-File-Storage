@@ -48,7 +48,7 @@ export function MoreOptions() {
           </MenubarItem>
           <MenubarItem className="flex items-center">
             <LampDesk className="size-4 mr-2" />
-            Add to Desk
+            Add to Workspace
             <MenubarShortcut>⌘D</MenubarShortcut>
           </MenubarItem>
         </MenubarContent>

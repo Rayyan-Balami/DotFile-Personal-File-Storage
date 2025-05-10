@@ -30,11 +30,11 @@ export function DeskOptions() {
             variant="secondary"
           >
             <LampDesk className="size-4 group-hover:scale-105 transition-transform" />
-            <span className="sr-only">Add to Desk</span>
+            <span className="sr-only">Add to Workspace</span>
           </Button>
         </MenubarTrigger>
         <MenubarContent>
-          <MenubarLabel>Add to Desk</MenubarLabel>
+          <MenubarLabel>Add to Workspace</MenubarLabel>
           <MenubarSeparator />
           <MenubarRadioGroup value={selectedDesk || ""} onValueChange={setSelectedDesk}>
             {desks.map(desk => (

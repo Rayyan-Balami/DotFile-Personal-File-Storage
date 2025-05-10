@@ -3,9 +3,10 @@
  * Designed for infinite scroll with thousands of items
  */
 
-import { ColorOption } from "@/config/colors";
 import { cn } from "@/lib/utils";
 import { useSelectionStore } from "@/stores/useSelectionStore";
+import { Workspace } from "@/types/desk";
+import { DocumentItem, FileSystemItem, FolderItem } from "@/types/folderDocumnet";
 import { formatChildCount, formatFileSize } from "@/utils/formatUtils";
 import { EllipsisVertical, Loader2, Pin } from "lucide-react";
 import React, {
@@ -33,8 +34,6 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { FolderIcon } from "../ui/folder-icon";
-import { FileSystemItem, FolderItem, DocumentItem } from "@/types/folderDocumnet";
-import { DeskItem } from "@/types/desk";
 
 // Types remain the same
 export type CardVariant = "large" | "compact" | "list";
@@ -185,14 +184,14 @@ const FileOrFolderIcon = React.memo(
     fileExtension = "pdf",
     title,
     variant,
-    deskItem,
+    workspace,
   }: {
     type: CardType;
     variant: CardVariant;
     previewUrl?: string;
     fileExtension?: string;
     title: string;
-    deskItem?: DeskItem;
+    workspace?: Workspace;
   }) => {
     const styles = VARIANT_STYLES[variant];
 
@@ -217,7 +216,7 @@ const FileOrFolderIcon = React.memo(
         )}
       >
         {type === "folder" && (
-          <FolderIcon className="size-full" deskItem={deskItem} />
+          <FolderIcon className="size-full" workspace={workspace} />
         )}
 
         {type === "document" && !previewUrl && iconStyles && (
@@ -236,8 +235,8 @@ const FileOrFolderIcon = React.memo(
       prevProps.variant === nextProps.variant &&
       prevProps.previewUrl === nextProps.previewUrl &&
       prevProps.fileExtension === nextProps.fileExtension &&
-      prevProps.deskItem?.color === nextProps.deskItem?.color &&
-      prevProps.deskItem?.icon === nextProps.deskItem?.icon
+      prevProps.workspace?.color === nextProps.workspace?.color &&
+      prevProps.workspace?.icon === nextProps.workspace?.icon
     );
   }
 );
@@ -478,7 +477,7 @@ const FolderDocumentCard = React.memo(
     // Extract properties from item based on type
     const { id, type, title, isPinned, dateModified } = item;
     const childCount = type === 'folder' ? (item as FolderItem).childCount : undefined;
-    const deskItem = type === 'folder' ? (item as FolderItem).desk : undefined;
+    const workspace = type === 'folder' ? (item as FolderItem).desk : undefined;
     const byteCount = type === 'document' ? (item as DocumentItem).byteCount : undefined;
     const fileExtension = type === 'document' ? (item as DocumentItem).fileExtension : undefined;
     const previewUrl = type === 'document' ? (item as DocumentItem).previewUrl || undefined : undefined;
@@ -596,7 +595,7 @@ const FolderDocumentCard = React.memo(
               fileExtension={fileExtension}
               title={title}
               variant={variant}
-              deskItem={deskItem}
+              workspace={workspace}
             />
 
             <CardContent

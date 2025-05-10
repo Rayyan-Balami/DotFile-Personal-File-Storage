@@ -10,6 +10,7 @@ import { ApiError } from "@utils/apiError.utils.js";
 import logger from "@utils/logger.utils.js";
 import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
 import path from "path";
+import mongoose from "mongoose";
 
 /**
  * Service class for file-related business logic
@@ -69,6 +70,62 @@ class FileService {
   }
 
   /**
+   * Verifies that a file belongs to the specified user
+   * 
+   * @param fileId The ID of the file to check
+   * @param userId The ID of the user who should own the file
+   * @returns The file if ownership is verified
+   * @throws ApiError if file not found or user is not the owner
+   */
+  async verifyFileOwnership(fileId: string, userId: string): Promise<IFile> {
+    if (!mongoose.Types.ObjectId.isValid(fileId)) {
+      throw new ApiError(400, [{ file: "Invalid file ID" }]);
+    }
+    
+    const file = await fileDao.getFileById(fileId);
+    if (!file) {
+      throw new ApiError(404, [{ file: "File not found" }]);
+    }
+    
+    // Check if the file belongs to the user
+    if (file.owner.toString() !== userId) {
+      throw new ApiError(403, [
+        { authorization: "You do not have permission to access this file" },
+      ]);
+    }
+    
+    return file;
+  }
+
+  /**
+   * Verifies that a file belongs to the specified user and includes workspace data
+   * 
+   * @param fileId The ID of the file to check
+   * @param userId The ID of the user who should own the file
+   * @returns The file with populated workspace if ownership is verified
+   * @throws ApiError if file not found or user is not the owner
+   */
+  async verifyFileOwnershipWithWorkspace(fileId: string, userId: string): Promise<IFile> {
+    if (!mongoose.Types.ObjectId.isValid(fileId)) {
+      throw new ApiError(400, [{ file: "Invalid file ID" }]);
+    }
+    
+    const file = await fileDao.getFileWithWorkspace(fileId);
+    if (!file) {
+      throw new ApiError(404, [{ file: "File not found" }]);
+    }
+    
+    // Check if the file belongs to the user
+    if (file.owner.toString() !== userId) {
+      throw new ApiError(403, [
+        { authorization: "You do not have permission to access this file" },
+      ]);
+    }
+    
+    return file;
+  }
+
+  /**
    * Create a file record from uploaded file
    * 
    * @param fileData File data from upload
@@ -87,36 +144,51 @@ class FileService {
     return this.sanitizeFile(file);
   }
 
-
+  /**
+   * Get user files by folder with optional workspace data
+   *
+   * @param userId User ID who owns the files
+   * @param folderId Optional folder ID to filter by
+   * @param isDeleted Whether to return deleted files
+   * @param includeWorkspace Whether to include workspace data
+   * @returns Array of file documents matching criteria
+   */
   async getUserFilesByFolders(
     userId: string,
     folderId?: string | null,
-    isDeleted?: boolean
+    isDeleted?: boolean,
+    includeWorkspace: boolean = false
   ): Promise<FileResponseDto[]> {
-    const files = await fileDao.getUserFilesByFolders(userId, folderId, isDeleted);
+    // Get files with or without workspace data
+    const files = includeWorkspace
+      ? await fileDao.getUserFilesWithWorkspace(userId, folderId, isDeleted)
+      : await fileDao.getUserFilesByFolders(userId, folderId, isDeleted);
     
     // Return empty array instead of throwing error when no files are found
     return files.map(file => this.sanitizeFile(file));
   }
 
   /**
-   * Get a file by ID
+   * Get a file by ID with optional workspace data
    * 
    * @param fileId File ID
    * @param userId User ID for ownership verification
+   * @param includeWorkspace Whether to include workspace data in the response
    * @returns File document if found
    * @throws ApiError if file not found or user doesn't own it
    */
-  async getFileById(fileId: string, userId: string): Promise<FileResponseDto> {
-    const file = await fileDao.getFileById(fileId);
+  async getFileById(
+    fileId: string, 
+    userId: string, 
+    includeWorkspace: boolean = false
+  ): Promise<FileResponseDto> {
+    // Verify file ownership and get the file with or without workspace data
+    let file;
     
-    if (!file) {
-      throw new ApiError(404, [{ id: "File not found" }]);
-    }
-    
-    // Check ownership
-    if (file.owner.toString() !== userId) {
-      throw new ApiError(403, [{ access: "You don't have permission to access this file" }]);
+    if (includeWorkspace) {
+      file = await this.verifyFileOwnershipWithWorkspace(fileId, userId);
+    } else {
+      file = await this.verifyFileOwnership(fileId, userId); 
     }
     
     return this.sanitizeFile(file);
@@ -132,8 +204,8 @@ class FileService {
    * @throws ApiError if file not found, user doesn't own it, or update fails
    */
   async updateFile(fileId: string, updateData: UpdateFileDto, userId: string): Promise<FileResponseDto> {
-    // Verify file exists and user owns it
-    await this.getFileById(fileId, userId);
+    // Verify file ownership
+    await this.verifyFileOwnership(fileId, userId);
     
     // Update the file
     const updatedFile = await fileDao.updateFile(fileId, updateData);
@@ -154,8 +226,8 @@ class FileService {
    * @throws ApiError if file not found, user doesn't own it, or deletion fails
    */
   async deleteFile(fileId: string, userId: string): Promise<FileResponseDto> {
-    // Verify file exists and user owns it
-    const existingFile = await this.getFileById(fileId, userId);
+    // Verify file ownership
+    const existingFile = await this.verifyFileOwnership(fileId, userId);
     
     // Soft delete the file
     const deletedFile = await fileDao.deleteFile(fileId);
@@ -166,7 +238,7 @@ class FileService {
     
     // If file was in a folder, decrement the folder's item count
     if (existingFile.folder) {
-      await folderService.decrementFolderItemCount(existingFile.folder);
+      await folderService.decrementFolderItemCount(existingFile.folder.toString());
     }
     
     return this.sanitizeFile(deletedFile);
@@ -181,15 +253,15 @@ class FileService {
    * @returns Updated file document
    */
   async renameFile(fileId: string, newName: string, userId: string): Promise<FileResponseDto> {
-    // Verify file exists and user owns it
-    const existingFile = await this.getFileById(fileId, userId);
+    // Verify file ownership
+    const existingFile = await this.verifyFileOwnership(fileId, userId);
     
     // Ensure name is unique within the folder
     const uniqueName = await this.ensureUniqueNameAtLevel(
       newName,
       existingFile.extension,
       userId,
-      existingFile.folder
+      existingFile.folder ? existingFile.folder.toString() : null
     );
     
     // Calculate the new path - simply update the last segment of the path
@@ -218,22 +290,22 @@ class FileService {
    * @returns Updated file document
    */
   async moveFile(fileId: string, newParentId: string | null, userId: string): Promise<FileResponseDto> {
-    // Verify file exists and user owns it
-    const existingFile = await this.getFileById(fileId, userId);
+    // Verify file ownership
+    const existingFile = await this.verifyFileOwnership(fileId, userId);
     
     // Verify the destination folder exists and user owns it (if not moving to root)
     let parentFolder = null;
     let newPathSegments: { name: string; id: string }[] = [];
     
     if (newParentId) {
-      // Get the destination folder
-      parentFolder = await folderService.getFolderById(newParentId, userId);
-      if (!parentFolder) {
-        throw new ApiError(404, [{ folder: "Destination folder not found" }]);
-      }
+      // Get the destination folder and verify ownership
+      parentFolder = await folderService.verifyFolderOwnership(newParentId, userId);
       
       // Use the parent's pathSegments for the file
-      newPathSegments = [...parentFolder.pathSegments];
+      newPathSegments = [...parentFolder.pathSegments.map(segment => ({
+        name: segment.name,
+        id: segment.id instanceof mongoose.Types.ObjectId ? segment.id.toString() : String(segment.id)
+      }))];
     }
     
     // Ensure name is unique within the new parent folder
@@ -254,7 +326,7 @@ class FileService {
     
     // If file was in a folder, decrement that folder's item count
     if (existingFile.folder) {
-      await folderService.decrementFolderItemCount(existingFile.folder);
+      await folderService.decrementFolderItemCount(existingFile.folder.toString());
     }
     
     // Update the file

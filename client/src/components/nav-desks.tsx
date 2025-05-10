@@ -31,7 +31,7 @@ const ContextMenuOptions = () => (
   <>
     <ContextMenuItem>
       <LampDesk className="text-muted-foreground mr-2 h-4 w-4" />
-      <span>View Desk Files</span>
+      <span>View Workspace Files</span>
     </ContextMenuItem>
     <ContextMenuItem>
       <Squircle className="text-muted-foreground mr-2 h-4 w-4" />
@@ -40,7 +40,7 @@ const ContextMenuOptions = () => (
     <ContextMenuSeparator />
     <ContextMenuItem>
       <Trash2 className="text-muted-foreground mr-2 h-4 w-4" />
-      <span>Delete Desk</span>
+      <span>Delete Workspace</span>
     </ContextMenuItem>
   </>
 )
@@ -50,7 +50,7 @@ const DropdownMenuOptions = () => (
   <>
     <DropdownMenuItem>
       <LampDesk className="text-muted-foreground mr-2 h-4 w-4" />
-      <span>View Desk Files</span>
+      <span>View Workspace Files</span>
     </DropdownMenuItem>
     <DropdownMenuItem>
       <Squircle className="text-muted-foreground mr-2 h-4 w-4" />
@@ -59,13 +59,13 @@ const DropdownMenuOptions = () => (
     <DropdownMenuSeparator />
     <DropdownMenuItem>
       <Trash2 className="text-muted-foreground mr-2 h-4 w-4" />
-      <span>Delete Desk</span>
+      <span>Delete Workspace</span>
     </DropdownMenuItem>
   </>
 )
 
 // Single desk item component
-const DeskItem = ({ 
+const Workspace = ({ 
   item, 
   isMobile 
 }: { 
@@ -123,13 +123,13 @@ export function NavDesks({
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Desks</SidebarGroupLabel>
+      <SidebarGroupLabel>Workspace</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((desk) => (
-          <DeskItem key={desk.name} item={desk} isMobile={isMobile} />
+          <Workspace key={desk.name} item={desk} isMobile={isMobile} />
         ))}
         <SidebarMenuItem>
-          <SidebarMenuButton asChild tooltip="More Desks">
+          <SidebarMenuButton asChild tooltip="More Workspace">
             <Link to="/">
             <MoreHorizontal />
             <span>More</span>
