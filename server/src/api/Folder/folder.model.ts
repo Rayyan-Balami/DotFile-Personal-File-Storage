@@ -9,7 +9,7 @@ export interface IFolder extends Document {
   path: string; // Virtual logical path for display/navigation
   pathSegments: { name: string; id: Schema.Types.ObjectId }[]; // For breadcrumb navigation
   items: number;
-  pinned: boolean;
+  isPinned: boolean;
   isShared: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -31,7 +31,7 @@ const FolderSchema = new Schema<IFolder>(
       }
     ],
     items: { type: Number, default: 0 },
-    pinned: { type: Boolean, default: false },
+    isPinned: { type: Boolean, default: false },
     isShared: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null }
   },
