@@ -11,6 +11,7 @@ import {
 
 const authRoutes = Router();
 
+// Apply authentication middleware to ALL folder routes
 authRoutes.use(verifyAuth);
 
 authRoutes

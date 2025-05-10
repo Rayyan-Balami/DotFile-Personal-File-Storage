@@ -16,7 +16,7 @@ declare global {
 }
 /**
  * Middleware to verify JWT token and authenticate user
- * 
+ *
  * @param req Express request object
  * @param res Express response object
  * @param next Next function to call the next middleware
@@ -49,12 +49,17 @@ export const verifyAuth = asyncHandler(
         throw new ApiError(401, [{ user: "Invalid token or user not found" }]);
       }
 
-      // Attach user to request object
-      req.user = user;
+      // Attach user to request object - ensure user has required id property
+      if (!user.id) {
+        throw new ApiError(401, [{ user: "Invalid user data" }]);
+      }
+      req.user = user as UserResponseDTO;
       next();
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
-        throw new ApiError(401, [{ token: "Session expired, please login again" }]);
+        throw new ApiError(401, [
+          { token: "Session expired, please login again" },
+        ]);
       } else if (error instanceof jwt.JsonWebTokenError) {
         throw new ApiError(401, [{ token: "Invalid token" }]);
       }
