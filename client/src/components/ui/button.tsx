@@ -63,7 +63,7 @@ function Button({
     >
       {loading ? (
         <>
-          <Loader className="ml-2 animate-spin" />
+          <Loader className="animate-spin" />
         </>
       ) : (
         children

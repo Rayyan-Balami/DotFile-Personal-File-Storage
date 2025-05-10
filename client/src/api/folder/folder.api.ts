@@ -1,5 +1,12 @@
 import API from "@/lib/axios";
-import { CreateFolderDto, FolderResponseDto, FolderResponseWithFilesDto, UpdateFolderDto } from "@/types/folder.dto";
+import { 
+  CreateFolderDto, 
+  FolderResponseDto, 
+  FolderResponseWithFilesDto, 
+  MoveFolderDto,
+  RenameFolderDto,
+  UpdateFolderDto 
+} from "@/types/folder.dto";
 
 /**
  * Folder API functions for authenticated users
@@ -20,6 +27,14 @@ const folderApi = {
   // Update a folder's properties
   updateFolder: (folderId: string, data: UpdateFolderDto) => 
     API.patch(`/folders/${folderId}`, data),
+
+  // Rename a folder
+  renameFolder: (folderId: string, data: RenameFolderDto) => 
+    API.post(`/folders/${folderId}/rename`, data),
+
+  // Move a folder to a different parent
+  moveFolder: (folderId: string, data: MoveFolderDto) => 
+    API.post(`/folders/${folderId}/move`, data),
 
   // Delete a folder by ID
   deleteFolder: (folderId: string) => 

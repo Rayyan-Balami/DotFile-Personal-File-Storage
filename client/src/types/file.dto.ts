@@ -39,3 +39,11 @@ export interface FileResponseDto {
   updatedAt: Date;
   deletedAt: Date | null;
 }
+
+export interface RenameFileDto {
+  newName: string;
+}
+
+export interface MoveFileDto {
+  newParentId: string | null;
+}

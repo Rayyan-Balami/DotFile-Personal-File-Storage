@@ -47,3 +47,11 @@ export interface FolderResponseWithFilesDto {
   files: FileResponseDto[];
   folders: FolderResponseDto[];
 }
+
+export interface RenameFolderDto {
+  newName: string;
+}
+
+export interface MoveFolderDto {
+  newParentId: string | null;
+}

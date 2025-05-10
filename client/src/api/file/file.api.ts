@@ -1,5 +1,5 @@
 import API from "@/lib/axios";
-import { CreateFileDto, FileResponseDto, UpdateFileDto } from "@/types/file.dto";
+import { MoveFileDto, RenameFileDto, UpdateFileDto } from "@/types/file.dto";
 
 /**
  * File API functions for authenticated users
@@ -40,7 +40,15 @@ const fileApi = {
   
   // Delete a file by ID
   deleteFile: (fileId: string) => 
-    API.delete(`/file/${fileId}`)
+    API.delete(`/file/${fileId}`),
+
+  // Rename a file
+  renameFile: (fileId: string, data: RenameFileDto) => 
+    API.post(`/file/${fileId}/rename`, data),
+
+  // Move a file to a different folder
+  moveFile: (fileId: string, data: MoveFileDto) => 
+    API.post(`/file/${fileId}/move`, data)
 };
 
 export default fileApi;

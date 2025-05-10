@@ -96,3 +96,46 @@ export const useDeleteFile = () => {
     },
   });
 };
+
+/**
+ * Hook to rename a file
+ */
+export const useRenameFile = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ fileId, newName }: { fileId: string; newName: string }) => 
+      fileApi.renameFile(fileId, { newName }).then((res) => res.data),
+      
+    onSuccess: (_, variables) => {
+      // Invalidate the specific file query
+      queryClient.invalidateQueries({
+        queryKey: FILE_KEYS.detail(variables.fileId),
+      });
+      
+      // Invalidate folder contents to reflect the renamed file
+      queryClient.invalidateQueries({
+        queryKey: FOLDER_KEYS.all,
+      });
+    },
+  });
+};
+
+/**
+ * Hook to move a file to a different folder
+ */
+export const useMoveFile = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ fileId, newParentId }: { fileId: string; newParentId: string | null }) => 
+      fileApi.moveFile(fileId, { newParentId }).then((res) => res.data),
+      
+    onSuccess: () => {
+      // Invalidate all folder contents as both source and destination folders need updates
+      queryClient.invalidateQueries({
+        queryKey: FOLDER_KEYS.all,
+      });
+    },
+  });
+};

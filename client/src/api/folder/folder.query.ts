@@ -96,3 +96,44 @@ export const useDeleteFolder = () => {
     },
   });
 };
+
+/**
+ * Hook to rename a folder
+ */
+export const useRenameFolder = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ folderId, newName }: { folderId: string; newName: string }) => 
+      folderApi.renameFolder(folderId, { newName }).then((res) => res.data),
+    onSuccess: (_, variables) => {
+      // Invalidate the specific folder query
+      queryClient.invalidateQueries({
+        queryKey: FOLDER_KEYS.detail(variables.folderId),
+      });
+      
+      // Invalidate parent folder contents to reflect the renamed folder
+      queryClient.invalidateQueries({
+        queryKey: FOLDER_KEYS.all,
+      });
+    },
+  });
+};
+
+/**
+ * Hook to move a folder to a different parent
+ */
+export const useMoveFolder = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ folderId, newParentId }: { folderId: string; newParentId: string | null }) => 
+      folderApi.moveFolder(folderId, { newParentId }).then((res) => res.data),
+    onSuccess: () => {
+      // Invalidate all folder contents as the folder structure has changed
+      queryClient.invalidateQueries({
+        queryKey: FOLDER_KEYS.all,
+      });
+    },
+  });
+};
