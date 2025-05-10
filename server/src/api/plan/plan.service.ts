@@ -7,8 +7,8 @@ import {
 } from "@api/plan/plan.dto.js";
 import { IPlan } from "@api/plan/plan.model.js";
 import userService from "@api/user/user.service.js";
-import { ApiError } from "@utils/apiError.js";
-import { sanitizeDocument } from "@utils/sanitizeDocument.js";
+import { ApiError } from "@utils/apiError.utils.js";
+import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
 
 /**
  * Service class for plan-related business logic

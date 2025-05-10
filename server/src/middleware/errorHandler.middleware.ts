@@ -1,5 +1,5 @@
-import { ApiError } from '@utils/apiError.js';
-import logger from '@utils/logger.js';
+import { ApiError } from '@utils/apiError.utils.js';
+import logger from '@utils/logger.utils.js';
 import { NextFunction, Request, Response } from 'express';
 
 /**

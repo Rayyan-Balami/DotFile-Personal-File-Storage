@@ -10,9 +10,9 @@ import {
 } from "@api/user/user.dto.js";
 import { IUser } from "@api/user/user.model.js";
 import { REFRESH_TOKEN_SECRET } from "@config/constants.js";
-import { ApiError } from "@utils/apiError.js";
-import logger from "@utils/logger.js";
-import { sanitizeDocument } from "@utils/sanitizeDocument.js";
+import { ApiError } from "@utils/apiError.utils.js";
+import logger from "@utils/logger.utils.js";
+import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
 import jwt from "jsonwebtoken";
 import { createUserDirectory } from "@utils/mkdir.utils.js";
 

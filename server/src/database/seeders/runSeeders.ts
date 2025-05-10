@@ -1,6 +1,6 @@
 import { connectDatabase } from "../connection.js";
 import { seedDefaultPlans } from "./planSeeder.js";
-import logger from "@utils/logger.js";
+import logger from "@utils/logger.utils.js";
 
 const forceUpdate = process.argv.includes('--force');
 

@@ -6,9 +6,9 @@ import {
 } from "@api/File/file.dto.js";
 import { IFile } from "@api/File/file.model.js";
 import folderService from "@api/Folder/folder.service.js";
-import { ApiError } from "@utils/apiError.js";
-import logger from "@utils/logger.js";
-import { sanitizeDocument } from "@utils/sanitizeDocument.js";
+import { ApiError } from "@utils/apiError.utils.js";
+import logger from "@utils/logger.utils.js";
+import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
 
 /**
  * Service class for file-related business logic

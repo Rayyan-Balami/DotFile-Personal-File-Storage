@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { NODE_ENV } from "@config/constants.js";
-import { ApiResponse } from "@utils/apiResponse.js";
+import { ApiResponse } from "@utils/apiResponse.utils.js";
 import userRoutes from "@api/user/user.routes.js";
 import planRoutes from "@api/plan/plan.routes.js";
 import folderRoutes from "./Folder/folder.routes.js";

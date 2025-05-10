@@ -1,7 +1,7 @@
-import { ApiError } from "@utils/apiError.js";
-import { ApiResponse } from "@utils/apiResponse.js";
-import asyncHandler from "@utils/asyncHandler.js";
-import logger from "@utils/logger.js";
+import { ApiError } from "@utils/apiError.utils.js";
+import { ApiResponse } from "@utils/apiResponse.utils.js";
+import asyncHandler from "@utils/asyncHandler.utils.js";
+import logger from "@utils/logger.utils.js";
 import folderService from "./folder.service.js";
 
 class FolderController {

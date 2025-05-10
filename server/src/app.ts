@@ -5,7 +5,7 @@ import apiRoutes from "@api/api.routes.js";
 import { $dirname, $filename, API_PREFIX, API_VERSION, CLIENT_ORIGIN, PORT, ROOT_DIR, UPLOADS_DIR } from "@config/constants.js";
 import { connectDatabase } from "@database/connection.js";
 import { errorHandler } from "@middleware/errorHandler.middleware.js";
-import logger from "@utils/logger.js";
+import logger from "@utils/logger.utils.js";
 import { addRequestId } from "@middleware/requestId.middleware.js"; // Import the middleware
 
 const app = express();

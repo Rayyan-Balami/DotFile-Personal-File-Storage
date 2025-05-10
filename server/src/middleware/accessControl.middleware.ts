@@ -1,6 +1,6 @@
 import { UserRole } from "@api/user/user.dto.js";
-import { ApiError } from "@utils/apiError.js";
-import { asyncHandler } from "@utils/asyncHandler.js";
+import { ApiError } from "@utils/apiError.utils.js";
+import { asyncHandler } from "@utils/asyncHandler.utils.js";
 import { NextFunction, Request, Response } from "express";
 
 /**

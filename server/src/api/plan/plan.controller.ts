@@ -1,7 +1,7 @@
 import planService from "@api/plan/plan.service.js";
-import { ApiError } from "@utils/apiError.js";
-import { ApiResponse } from "@utils/apiResponse.js";
-import asyncHandler from "@utils/asyncHandler.js";
+import { ApiError } from "@utils/apiError.utils.js";
+import { ApiResponse } from "@utils/apiResponse.utils.js";
+import asyncHandler from "@utils/asyncHandler.utils.js";
 import { Request, Response } from "express";
 
 class PlanController {

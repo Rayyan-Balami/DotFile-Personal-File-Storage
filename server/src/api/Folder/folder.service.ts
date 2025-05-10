@@ -1,7 +1,7 @@
 import folderDao from "@api/Folder/folder.dao.js";
 import { IFolder } from "@api/Folder/folder.model.js";
-import { ApiError } from "@utils/apiError.js";
-import { sanitizeDocument } from "@utils/sanitizeDocument.js";
+import { ApiError } from "@utils/apiError.utils.js";
+import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
 import {
   CreateFolderDto,
   FolderResponseDto,
@@ -12,7 +12,7 @@ import {
 import fileService from "@api/File/file.service.js";
 import { FileResponseDto } from "@api/File/file.dto.js";
 import fileDao from "@api/File/file.dao.js";
-import logger from "@utils/logger.js";
+import logger from "@utils/logger.utils.js";
 import mongoose from "mongoose";
 
 class FolderService {

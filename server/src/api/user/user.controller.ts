@@ -1,9 +1,9 @@
 import userService from "@api/user/user.service.js";
 import { IS_PRODUCTION, REFRESH_TOKEN_EXPIRY } from "@config/constants.js";
-import { ApiError } from "@utils/apiError.js";
-import { ApiResponse } from "@utils/apiResponse.js";
-import asyncHandler from "@utils/asyncHandler.js";
-import { jwtTimeToMs } from "@utils/jwtTimeToMs.js";
+import { ApiError } from "@utils/apiError.utils.js";
+import { ApiResponse } from "@utils/apiResponse.utils.js";
+import asyncHandler from "@utils/asyncHandler.utils.js";
+import { jwtTimeToMs } from "@utils/jwtTimeToMs.utils.js";
 import { Request, Response } from "express";
 
 class UserController {

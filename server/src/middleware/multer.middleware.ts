@@ -7,8 +7,8 @@ import {
   UPLOADS_DIR,
   ZIP_NAME_PREFIX,
 } from "@config/constants.js";
-import { ApiError } from "@utils/apiError.js";
-import logger from "@utils/logger.js";
+import { ApiError } from "@utils/apiError.utils.js";
+import logger from "@utils/logger.utils.js";
 import { getUserDirectoryPath } from "@utils/mkdir.utils.js";
 import AdmZip from "adm-zip";
 import crypto from "crypto";

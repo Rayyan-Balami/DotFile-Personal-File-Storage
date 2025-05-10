@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { AnyZodObject, ZodEffects, ZodError } from 'zod';
-import { ApiError } from '@utils/apiError.js';
-import { asyncHandler } from '@utils/asyncHandler.js';
+import { ApiError } from '@utils/apiError.utils.js';
+import { asyncHandler } from '@utils/asyncHandler.utils.js';
 
 // Type that covers both plain Zod objects and refined schemas
 type AnyZodSchema = AnyZodObject | ZodEffects<any, any, any>;

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import asyncHandler from "@utils/asyncHandler.js";
-import { ApiResponse } from "@utils/apiResponse.js";
+import asyncHandler from "@utils/asyncHandler.utils.js";
+import { ApiResponse } from "@utils/apiResponse.utils.js";
 import {
   upload,
   processZipFiles,
@@ -8,9 +8,9 @@ import {
 } from "@middleware/multer.middleware.js";
 import fileService from "@api/File/file.service.js";
 import folderService from "@api/Folder/folder.service.js";
-import { ApiError } from "@utils/apiError.js";
+import { ApiError } from "@utils/apiError.utils.js";
 import path from "path";
-import logger from "@utils/logger.js";
+import logger from "@utils/logger.utils.js";
 import fs from "fs";
 import { ZIP_NAME_PREFIX } from "@config/constants.js";
 import { MoveFileDto, RenameFileDto } from "./file.dto.js";
