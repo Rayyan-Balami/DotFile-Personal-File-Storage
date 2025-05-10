@@ -8,7 +8,6 @@ export interface IFile extends Document {
   folder: Schema.Types.ObjectId | null; // Virtual folder reference
   originalPath?: string; // Store original path from ZIP if applicable
   storageKey: string; // The actual filename in storage
-  workspace: Schema.Types.ObjectId | null;
   path: string;
   pathSegments: { name: string; id: Schema.Types.ObjectId }[];
   extension: string;
@@ -28,7 +27,6 @@ const FileSchema = new Schema<IFile>(
     folder: { type: Schema.Types.ObjectId, ref: 'Folder', default: null },
     originalPath: { type: String }, // Store original path from ZIP if applicable
     storageKey: { type: String, required: true },
-    workspace: { type: Schema.Types.ObjectId, ref: 'Workspace', default: null },
     path: { type: String, required: true },
     pathSegments: [
       {

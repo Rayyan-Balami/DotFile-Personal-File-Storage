@@ -98,34 +98,6 @@ class FileService {
   }
 
   /**
-   * Verifies that a file belongs to the specified user and includes workspace data
-   * 
-   * @param fileId The ID of the file to check
-   * @param userId The ID of the user who should own the file
-   * @returns The file with populated workspace if ownership is verified
-   * @throws ApiError if file not found or user is not the owner
-   */
-  async verifyFileOwnershipWithWorkspace(fileId: string, userId: string): Promise<IFile> {
-    if (!mongoose.Types.ObjectId.isValid(fileId)) {
-      throw new ApiError(400, [{ file: "Invalid file ID" }]);
-    }
-    
-    const file = await fileDao.getFileWithWorkspace(fileId);
-    if (!file) {
-      throw new ApiError(404, [{ file: "File not found" }]);
-    }
-    
-    // Check if the file belongs to the user
-    if (file.owner.toString() !== userId) {
-      throw new ApiError(403, [
-        { authorization: "You do not have permission to access this file" },
-      ]);
-    }
-    
-    return file;
-  }
-
-  /**
    * Create a file record from uploaded file
    * 
    * @param fileData File data from upload
@@ -145,51 +117,38 @@ class FileService {
   }
 
   /**
-   * Get user files by folder with optional workspace data
+   * Get user files by folder
    *
    * @param userId User ID who owns the files
    * @param folderId Optional folder ID to filter by
    * @param isDeleted Whether to return deleted files
-   * @param includeWorkspace Whether to include workspace data
    * @returns Array of file documents matching criteria
    */
   async getUserFilesByFolders(
     userId: string,
     folderId?: string | null,
-    isDeleted?: boolean,
-    includeWorkspace: boolean = false
+    isDeleted?: boolean
   ): Promise<FileResponseDto[]> {
-    // Get files with or without workspace data
-    const files = includeWorkspace
-      ? await fileDao.getUserFilesWithWorkspace(userId, folderId, isDeleted)
-      : await fileDao.getUserFilesByFolders(userId, folderId, isDeleted);
+    const files = await fileDao.getUserFilesByFolders(userId, folderId, isDeleted);
     
     // Return empty array instead of throwing error when no files are found
     return files.map(file => this.sanitizeFile(file));
   }
 
   /**
-   * Get a file by ID with optional workspace data
+   * Get a file by ID
    * 
    * @param fileId File ID
    * @param userId User ID for ownership verification
-   * @param includeWorkspace Whether to include workspace data in the response
    * @returns File document if found
    * @throws ApiError if file not found or user doesn't own it
    */
   async getFileById(
     fileId: string, 
-    userId: string, 
-    includeWorkspace: boolean = false
+    userId: string
   ): Promise<FileResponseDto> {
-    // Verify file ownership and get the file with or without workspace data
-    let file;
-    
-    if (includeWorkspace) {
-      file = await this.verifyFileOwnershipWithWorkspace(fileId, userId);
-    } else {
-      file = await this.verifyFileOwnership(fileId, userId); 
-    }
+    // Verify file ownership and get the file
+    const file = await this.verifyFileOwnership(fileId, userId);
     
     return this.sanitizeFile(file);
   }

@@ -38,25 +38,6 @@ class FileDao {
   }
 
   /**
-   * Get a file by ID with populated workspace data
-   *
-   * @param id MongoDB ObjectId string of the file
-   * @param includeDeleted Whether to include deleted files in query
-   * @returns File document with populated workspace if found, null otherwise
-   */
-  async getFileWithWorkspace(
-    id: string,
-    includeDeleted: boolean = false
-  ): Promise<IFile | null> {
-    if (!mongoose.Types.ObjectId.isValid(id)) return null;
-
-    return await File.findOne({
-      _id: id,
-      ...(includeDeleted ? {} : { deletedAt: null }),
-    }).populate('workspace');
-  }
-
-  /**
    * Update a file document
    *
    * @param id - MongoDB ObjectId string of the file
@@ -132,28 +113,6 @@ class FileDao {
       folder: folderId || null,
       deletedAt: isDeleted ? { $ne: null } : null,
     }).sort({ [isDeleted ? "deletedAt" : "createdAt"]: -1 });
-  }
-
-  /**
-   * Get all files in a folder with populated workspace data
-   *
-   * @param userId MongoDB ObjectId string of the user
-   * @param folderId MongoDB ObjectId string of the folder (optional)
-   * @param isDeleted When true, returns only deleted files
-   * @returns Array of file documents with populated workspace data
-   */
-  async getUserFilesWithWorkspace(
-    userId: string,
-    folderId?: string | null,
-    isDeleted?: boolean
-  ): Promise<IFile[]> {
-    return File.find({
-      owner: userId,
-      folder: folderId || null,
-      deletedAt: isDeleted ? { $ne: null } : null,
-    })
-    .populate('workspace')
-    .sort({ [isDeleted ? "deletedAt" : "createdAt"]: -1 });
   }
 
   /**

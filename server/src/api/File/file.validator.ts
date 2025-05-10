@@ -29,5 +29,4 @@ export const updateFileSchema = z.object({
   folder: z.string().nullable().optional(),
   isPinned: z.boolean().optional(),
   isShared: z.boolean().optional(),
-  workspace: z.string().nullable().optional(),
 });
