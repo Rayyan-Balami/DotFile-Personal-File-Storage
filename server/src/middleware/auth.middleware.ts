@@ -36,7 +36,14 @@ export const verifyAuth = asyncHandler(
       const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET) as JwtUserPayload;
 
       // Find the complete user document
-      const user = await userService.getUserById(decoded.id);
+      const user = await userService.getUserByIdAndRefreshToken(
+        decoded.id,
+        req.cookies?.refreshToken || "",
+        {
+          includeRefreshTokens: true,
+          deletedAt: false,
+        }
+      );
 
       if (!user) {
         throw new ApiError(401, [{ user: "Invalid token or user not found" }]);

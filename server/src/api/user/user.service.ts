@@ -33,14 +33,14 @@ class UserService {
   async generateAccessAndRefreshTokens(user: IUser, deviceInfo: string) {
     // Generate access token
     const accessToken = user.generateAccessToken();
-    
+
     // Generate refresh token
     const refreshToken = user.generateRefreshToken(deviceInfo);
 
     // Add refresh token to the user's tokens array
     await userDAO.addUserRefreshToken(user.id, {
       refreshToken,
-      deviceInfo
+      deviceInfo,
     });
 
     // Return tokens
@@ -58,7 +58,10 @@ class UserService {
    * @returns Newly created user data and authentication tokens
    * @throws ApiError if email already exists
    */
-  async registerUserWithTokens(data: CreateUserDTO, deviceInfo: string): Promise<{
+  async registerUserWithTokens(
+    data: CreateUserDTO,
+    deviceInfo: string
+  ): Promise<{
     user: UserResponseDTO;
     accessToken: string;
     refreshToken: string;
@@ -66,7 +69,9 @@ class UserService {
     // Check if email is already in use
     const existingUser = await userDAO.getUserByEmail(data.email);
     if (existingUser) {
-      throw new ApiError(409, [{ email: "Email is already linked to an account." }]);
+      throw new ApiError(409, [
+        { email: "Email is already linked to an account." },
+      ]);
     }
 
     // Get default plan
@@ -103,7 +108,9 @@ class UserService {
     // Check if email is already in use
     const existingUser = await userDAO.getUserByEmail(data.email);
     if (existingUser) {
-      throw new ApiError(409, [{ email: "Email is already linked to an account." }]);
+      throw new ApiError(409, [
+        { email: "Email is already linked to an account." },
+      ]);
     }
 
     // Get default plan
@@ -133,7 +140,10 @@ class UserService {
    * @returns User data and authentication tokens
    * @throws ApiError if credentials are invalid
    */
-  async loginUser(credentials: LoginUserDTO, deviceInfo: string): Promise<{
+  async loginUser(
+    credentials: LoginUserDTO,
+    deviceInfo: string
+  ): Promise<{
     user: UserResponseDTO;
     accessToken: string;
     refreshToken: string;
@@ -173,13 +183,18 @@ class UserService {
    */
   async logoutUser(userId: string, refreshToken: string): Promise<boolean> {
     // Find user by ID
-    const user = await userDAO.getUserById(userId, { includeRefreshTokens: true });
+    const user = await userDAO.getUserById(userId, {
+      includeRefreshTokens: true,
+    });
     if (!user) {
       throw new ApiError(404, [{ id: "User not found" }]);
     }
-    
+
     // Remove the specific refresh token
-    const loggedOutUser = await userDAO.removeUserRefreshToken(userId, refreshToken);
+    const loggedOutUser = await userDAO.removeSpecificRefreshToken(
+      userId,
+      refreshToken
+    );
 
     if (!loggedOutUser) {
       throw new ApiError(500, [{ logout: "Failed to logout user" }]);
@@ -199,12 +214,14 @@ class UserService {
     if (!user) {
       throw new ApiError(404, [{ id: "User not found" }]);
     }
-    
+
     // Clear all refresh tokens
     const loggedOutUser = await userDAO.clearAllUserRefreshTokens(userId);
 
     if (!loggedOutUser) {
-      throw new ApiError(500, [{ logout: "Failed to logout user from all devices" }]);
+      throw new ApiError(500, [
+        { logout: "Failed to logout user from all devices" },
+      ]);
     }
     return true;
   }
@@ -238,7 +255,9 @@ class UserService {
     if (data.email) {
       const existingUser = await userDAO.getUserByEmail(data.email);
       if (existingUser && existingUser.id.toString() !== id) {
-        throw new ApiError(409, [{ email: "Email is already linked to an account by another account" }]);
+        throw new ApiError(409, [
+          { email: "Email is already linked to an account by another account" },
+        ]);
       }
     }
 
@@ -266,7 +285,7 @@ class UserService {
 
     if (!updatedUser) {
       throw new ApiError(400, [
-        { currentPassword: "Invalid current password or user not found" }
+        { currentPassword: "Invalid current password or user not found" },
       ]);
     }
 
@@ -341,7 +360,10 @@ class UserService {
    * @returns User data and new tokens (access + refresh)
    * @throws ApiError if refresh token is invalid or expired
    */
-  async refreshAccessToken(refreshToken: string, deviceInfo: string): Promise<{
+  async refreshAccessToken(
+    refreshToken: string,
+    deviceInfo: string
+  ): Promise<{
     user: UserResponseDTO;
     newAccessToken: string;
     newRefreshToken: string;
@@ -359,18 +381,18 @@ class UserService {
     if (!user) {
       throw new ApiError(401, [{ refreshToken: "Invalid refresh token" }]);
     }
-    
+
     // Check if the refresh token exists in the user's tokens array
     const tokenExists = user.findRefreshToken(refreshToken);
     if (!tokenExists) {
       throw new ApiError(401, [
-        { refreshToken: "Expired or used refresh token" }
+        { refreshToken: "Expired or used refresh token" },
       ]);
     }
 
     // Remove the old refresh token
-    await userDAO.removeUserRefreshToken(user.id, refreshToken);
-    
+    await userDAO.removeSpecificRefreshToken(user.id, refreshToken);
+
     // Generate new tokens
     const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
       await this.generateAccessAndRefreshTokens(user, deviceInfo);
@@ -380,6 +402,31 @@ class UserService {
       newAccessToken,
       newRefreshToken,
     };
+  }
+
+  /**
+   * Get a user by their ID and refresh token
+   *
+   * @param userId - MongoDB ObjectId string of the user
+   * @param refreshToken - Refresh token to match
+   * @param options - Options to include or exclude fields
+   * @returns User document if found, null otherwise
+   */
+  async getUserByIdAndRefreshToken(
+    userId: string,
+    refreshToken: string,
+    options: { includeRefreshTokens?: boolean; deletedAt?: boolean } = {}
+  ): Promise<UserResponseDTO | null> {
+    const user = await userDAO.getUserByIdAndRefreshToken(
+      userId,
+      refreshToken,
+      options
+    );
+    if (!user) {
+      throw new ApiError(404, [{ id: "User not found" }]);
+    }
+
+    return this.sanitizeUser(user);
   }
 
   /**

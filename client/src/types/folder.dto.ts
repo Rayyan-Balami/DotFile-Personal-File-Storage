@@ -1,5 +1,24 @@
 import { FileResponseDto } from "./file.dto";
 
+export interface FolderDto {
+  id: string;
+  name: string;
+  path: string;
+  owner: string;
+  parent: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FolderResponseDto extends FolderDto {
+  // Any additional fields returned by API
+}
+
+export interface FolderResponseWithFilesDto extends FolderResponseDto {
+  files: FileResponseDto[];
+  subfolders: FolderResponseDto[];
+}
+
 export interface CreateFolderDto {
   name: string;
   parent?: string | null;
@@ -8,44 +27,6 @@ export interface CreateFolderDto {
 export interface UpdateFolderDto {
   name?: string;
   parent?: string | null;
-  workspace?: string | null;
-  isPinned?: boolean;
-  isShared?: boolean;
-  path?: string;
-  pathSegments?: { name: string; id: string }[];
-  items?: number;
-}
-
-export interface FolderResponseDto {
-  id: string;
-  name: string;
-  type: 'folder';
-  owner: string;
-  workspace: string | null;
-  parent: string | null;
-  items: number;
-  isPinned: boolean;
-  isShared: boolean;
-
-  /**
-   * Logical path representing folder hierarchy (e.g., "/Documents/Projects")
-   * Used for display and navigation purposes
-   */
-  path: string;
-
-  /**
-   * Structured array of ancestor folders for breadcrumb navigation
-   */
-  pathSegments: { name: string; id: string }[];
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt: Date | null;
-}
-
-
-export interface FolderResponseWithFilesDto {
-  files: FileResponseDto[];
-  folders: FolderResponseDto[];
 }
 
 export interface RenameFolderDto {

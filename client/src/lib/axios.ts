@@ -28,6 +28,15 @@ const onRefreshed = (token: string) => {
   refreshSubscribers = [];
 };
 
+// Function to handle failed authentication and redirect
+const handleAuthFailure = () => {
+  // Clear authentication data
+  useAuthStore.getState().clearAuth();
+  
+  // Redirect to login page
+  window.location.href = "/login";
+};
+
 // Request interceptor to add token to requests
 API.interceptors.request.use(
   (config) => {
@@ -58,9 +67,11 @@ API.interceptors.response.use(
       !originalRequest._retry && 
       useAuthStore.getState().accessToken // Only attempt refresh if we have a token
     ) {
+      // Mark that we've tried to refresh once
+      originalRequest._retry = true;
+      
       // Check if we're not already refreshing
       if (!isRefreshing) {
-        originalRequest._retry = true;
         isRefreshing = true;
 
         try {
@@ -91,20 +102,23 @@ API.interceptors.response.use(
           // Retry the original request
           return API(originalRequest);
         } catch (refreshError) {
-          // If refresh fails, logout
+          // If refresh fails, clear auth and redirect to login
           isRefreshing = false;
-          useAuthStore.getState().clearAuth();
+          handleAuthFailure();
           return Promise.reject(refreshError);
         }
       } else {
         // If we're already refreshing, queue this request
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
           addRefreshSubscriber((token) => {
             originalRequest.headers.Authorization = `Bearer ${token}`;
             resolve(API(originalRequest));
           });
         });
       }
+    } else if (error.response?.status === 401 && originalRequest._retry) {
+      // If we've already tried to refresh the token and got 401 again
+      handleAuthFailure();
     }
 
     return Promise.reject(error);

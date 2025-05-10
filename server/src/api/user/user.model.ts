@@ -28,6 +28,7 @@ interface IUserMethods {
 
 // Define the user interface
 export interface IUser extends Document, IUserMethods {
+  _id: string; // MongoDB ObjectId
   avatar: string;
   name: string;
   email: string;
@@ -43,7 +44,7 @@ export interface IUser extends Document, IUserMethods {
 
 // Create the refresh token schema
 const RefreshTokenSchema = new Schema({
-  token: {
+  token: { //stores the refresh token
     type: String,
     required: true,
   },
@@ -55,7 +56,7 @@ const RefreshTokenSchema = new Schema({
     type: Date,
     default: Date.now,
   }
-}, { _id: false });
+});
 
 // Create the schema
 const UserSchema: Schema = new Schema(

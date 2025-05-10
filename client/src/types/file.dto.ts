@@ -1,15 +1,22 @@
-export interface CreateFileDto {
+export interface FileDto {
+  id: string;
   name: string;
-  type: string;
+  originalName: string;
+  path: string;
   size: number;
+  type: string;
   owner: string;
-  folder?: string | null;
-  path?: string;
-  pathSegments?: { name: string; id: string }[];
-  storageKey: string;
+  folder: string | null;
   workspace?: string | null;
-  originalPath?: string;
-  extension?: string;
+  isPinned?: boolean;
+  isShared?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FileResponseDto extends FileDto {
+  // Any additional fields returned by API
+  downloadUrl?: string;
 }
 
 export interface UpdateFileDto {
@@ -18,26 +25,6 @@ export interface UpdateFileDto {
   isPinned?: boolean;
   isShared?: boolean;
   workspace?: string | null;
-}
-
-export interface FileResponseDto {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  owner: string;
-  folder: string | null;
-  path: string;
-  pathSegments: { name: string; id: string }[];
-  extension: string;
-  isPinned: boolean;
-  isShared: boolean;
-  workspace: string | null;
-  storageKey: string;
-  originalPath?: string;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt: Date | null;
 }
 
 export interface RenameFileDto {

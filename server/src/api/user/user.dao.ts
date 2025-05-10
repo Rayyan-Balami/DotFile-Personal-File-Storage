@@ -26,19 +26,19 @@ export class UserDAO {
   /**
    * Find a user by their ID
    *
-   * @param id - MongoDB ObjectId string of the user
+   * @param userId - MongoDB ObjectId string of the user
    * @param options - Options for including refresh token and/or deleted users
    * @returns User document if found, null otherwise
    */
   async getUserById(
-    id: string,
+    userId: string,
     options: { includeRefreshTokens?: boolean; deletedAt?: boolean } = {}
   ): Promise<IUser | null> {
-    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    if (!mongoose.Types.ObjectId.isValid(userId)) return null;
     const { includeRefreshTokens = false, deletedAt = false } = options;
     
     const query = User.findOne({
-      _id: id,
+      _id: userId,
       ...(deletedAt ? {} : { deletedAt: null }),
     });
     
@@ -87,19 +87,19 @@ export class UserDAO {
   /**
    * Update a user's information
    *
-   * @param id - MongoDB ObjectId string of the user
+   * @param userId - MongoDB ObjectId string of the user
    * @param user - Update data conforming to UpdateUserDTO
    * @param deletedAt - When true, allows updating soft-deleted users
    * @returns Updated user document if found and updated, null otherwise
    */
   async updateUser(
-    id: string,
+    userId: string,
     user: UpdateUserDTO,
     deletedAt: boolean = false
   ): Promise<IUser | null> {
-    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    if (!mongoose.Types.ObjectId.isValid(userId)) return null;
     return await User.findOneAndUpdate(
-      { _id: id, ...(deletedAt ? {} : { deletedAt: null }) },
+      { _id: userId, ...(deletedAt ? {} : { deletedAt: null }) },
       user,
       { new: true }
     );
@@ -108,18 +108,18 @@ export class UserDAO {
   /**
    * Update a user's password after verifying the old password
    *
-   * @param id - MongoDB ObjectId string of the user
+   * @param userId - MongoDB ObjectId string of the user
    * @param password - Object containing oldPassword and newPassword
    * @returns Updated user document if password change successful, null otherwise
    */
   async updateUserPassword(
-    id: string,
+    userId: string,
     password: UpdateUserPasswordDTO
   ): Promise<IUser | null> {
-    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    if (!mongoose.Types.ObjectId.isValid(userId)) return null;
 
     // Find user and verify they exist
-    const existingUser = await User.findById(id);
+    const existingUser = await User.findById(userId);
     if (!existingUser) return null;
 
     // Verify old password matches before allowing update
@@ -134,17 +134,17 @@ export class UserDAO {
   /**
    * Update a user's refresh token
    *
-   * @param id - MongoDB ObjectId string of the user
+   * @param userId - MongoDB ObjectId string of the user
    * @param refreshToken - New refresh token to set
    * @returns Updated user document if found and updated, null otherwise
    */
   async updateUserRefreshToken(
-    id: string,
+    userId: string,
     tokenData: UpdateUserRefreshTokenDTO
   ): Promise<IUser | null> {
-    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    if (!mongoose.Types.ObjectId.isValid(userId)) return null;
     return await User.findOneAndUpdate(
-      { _id: id },
+      { _id: userId },
       { refreshToken: tokenData.refreshToken },
       { new: true }
     );
@@ -153,17 +153,17 @@ export class UserDAO {
   /**
    * Add a refresh token to a user
    *
-   * @param id - MongoDB ObjectId string of the user
+   * @param userId - MongoDB ObjectId string of the user
    * @param tokenData - New refresh token and device info
    * @returns Updated user document if found and updated, null otherwise
    */
   async addUserRefreshToken(
-    id: string,
+    userId: string,
     tokenData: { refreshToken: string; deviceInfo: string }
   ): Promise<IUser | null> {
-    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    if (!mongoose.Types.ObjectId.isValid(userId)) return null;
     return await User.findOneAndUpdate(
-      { _id: id },
+      { _id: userId },
       { 
         $push: { 
           refreshTokens: {
@@ -180,17 +180,17 @@ export class UserDAO {
   /**
    * Remove a specific refresh token from a user
    *
-   * @param id - MongoDB ObjectId string of the user
+   * @param userId - MongoDB ObjectId string of the user
    * @param token - Refresh token to remove
    * @returns Updated user document if found and token removed, null otherwise
    */
-  async removeUserRefreshToken(
-    id: string,
+  async removeSpecificRefreshToken(
+    userId: string,
     token: string
   ): Promise<IUser | null> {
-    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    if (!mongoose.Types.ObjectId.isValid(userId)) return null;
     return await User.findOneAndUpdate(
-      { _id: id },
+      { _id: userId },
       { $pull: { refreshTokens: { token } } },
       { new: true }
     );
@@ -199,30 +199,63 @@ export class UserDAO {
   /**
    * Remove all refresh tokens from a user (logout from all devices)
    *
-   * @param id - MongoDB ObjectId string of the user
+   * @param userId - MongoDB ObjectId string of the user
    * @returns Updated user document with no refresh tokens if successful, null otherwise
    */
   async clearAllUserRefreshTokens(
-    id: string
+    userId: string
   ): Promise<IUser | null> {
-    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    if (!mongoose.Types.ObjectId.isValid(userId)) return null;
     return await User.findOneAndUpdate(
-      { _id: id },
+      { _id: userId },
       { $set: { refreshTokens: [] } },
       { new: true }
     );
   }
 
+
+  /**
+   * get a user by their ID and refresh token
+   *
+   * @param userId - MongoDB ObjectId string of the user
+   * @param refreshToken - Refresh token to match
+   * @returns User document if found, null otherwise
+   */
+   async getUserByIdAndRefreshToken(
+     userId: string,
+     refreshToken: string,
+     options: { includeRefreshTokens?: boolean; deletedAt?: boolean } = {}
+   ): Promise<IUser | null> {
+     if (!mongoose.Types.ObjectId.isValid(userId)) return null;
+     const { includeRefreshTokens = false, deletedAt = false } = options;
+
+     const query = User.findOne({
+       _id: userId,
+       ...(deletedAt ? {} : { deletedAt: null }),
+       refreshTokens: { $elemMatch: { token: refreshToken } },
+     });
+    
+    // Either exclude refreshTokens or include all fields
+    if (includeRefreshTokens) {
+      query.select("+refreshTokens");
+    }
+    
+    return await query.populate({
+      path: "plan",
+      select: "-description -features",
+    });
+  }
+
   /**
    * Soft delete a user by setting deletedAt timestamp
    *
-   * @param id - MongoDB ObjectId string of the user
+   * @param userId - MongoDB ObjectId string of the user
    * @returns Updated user document with deletedAt timestamp if successful, null otherwise
    */
-  async deleteUser(id: string): Promise<IUser | null> {
-    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+  async deleteUser(userId: string): Promise<IUser | null> {
+    if (!mongoose.Types.ObjectId.isValid(userId)) return null;
     return await User.findOneAndUpdate(
-      { _id: id },
+      { _id: userId },
       { deletedAt: new Date() },
       { new: true }
     );
