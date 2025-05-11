@@ -6,9 +6,7 @@ export interface IPublicShare extends Document {
   owner: Schema.Types.ObjectId;
   link: string; // unique link
   permission: IPublicSharePermission;
-  expiresAt?: Date; // optional expiration date
-  password?: string; // optional password for access
-  ipAddress?: string[]; // optional IP address for access
+  allowDownload: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -19,6 +17,7 @@ export interface IUserShare extends Document {
   sharedWith: {
     userId: Schema.Types.ObjectId;
     permission: IUserSharePermission;
+    allowDownload: boolean;
   }[];
   createdAt: Date;
   updatedAt: Date;
@@ -45,17 +44,9 @@ const PublicShareSchema = new Schema({
     enum: Object.values(IPublicSharePermission),
     default: IPublicSharePermission.RESTRICTED,
   },
-  expiresAt: {
-    type: Date,
-    default: null,
-  },
-  password: {
-    type: String,
-    default: null,
-  },
-  ipAddress: {
-    type: [String],
-    default: [],
+  allowDownload: {
+    type: Boolean,
+    default: false,
   },
 }, { timestamps: true });
 
@@ -80,7 +71,11 @@ const UserShareSchema = new Schema({
       type: String,
       enum: Object.values(IUserSharePermission),
       default: IUserSharePermission.VIEWER,
-    }
+    },
+    allowDownload: {
+      type: Boolean,
+      default: false,
+    },
   }],
 }, { timestamps: true });
 

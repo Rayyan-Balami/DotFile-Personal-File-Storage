@@ -1,11 +1,11 @@
 export enum IPublicSharePermission {
   RESTRICTED = 'restricted',
   VIEWER = 'viewer',
-  VIEWER_DOWNLOAD = 'viewer_download',
+  EDITOR = 'editor', //rename the folder, delete folder, move folder within the folder and rename the file, delete file, move file within the folder
 }
 
 export enum IUserSharePermission {
   VIEWER = 'viewer',
-  VIEWER_DOWNLOAD = 'viewer_download',
+  EDITOR = 'editor', //rename the folder, delete folder, move folder within the folder and rename the file, delete file, move file within the folder
 }
 
