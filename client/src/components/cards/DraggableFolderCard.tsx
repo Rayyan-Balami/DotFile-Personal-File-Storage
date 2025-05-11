@@ -29,7 +29,7 @@ export const DraggableFolderCard = memo(
     const addItem = useFileSystemStore((state) => state.addItem);
     const navigate = useNavigate();
 
-    const { id, type, title } = item;
+    const { id, type, name } = item;
 
     const {
       attributes,
@@ -41,7 +41,7 @@ export const DraggableFolderCard = memo(
       data: {
         type,
         id,
-        title,
+        name,
         variant,
         item,
       },
@@ -94,7 +94,7 @@ export const DraggableFolderCard = memo(
 
         const { files } = e.dataTransfer;
         if (files && files.length > 0) {
-          console.log(`Files dropped on folder "${title}" (ID: ${id})`);
+          console.log(`Files dropped on folder "${name}" (ID: ${id})`);
           console.log(`Total files: ${files.length}`);
 
           Array.from(files).forEach((file) => {
@@ -108,17 +108,17 @@ export const DraggableFolderCard = memo(
           - Type: ${file.type}
           - Extension: ${fileExtension}
           - Size: ${formatFileSize(file.size)}
-          - Target folder: ${title} (ID: ${id})
+          - Target folder: ${name} (ID: ${id})
           - Timestamp: ${new Date().toISOString()}
         `);
           });
 
           console.log(
-            `Drop operation completed for ${files.length} file(s) on folder "${title}"`
+            `Drop operation completed for ${files.length} file(s) on folder "${name}"`
           );
         }
       },
-      [id, title, type]
+      [id, name, type]
     );
 
     return (

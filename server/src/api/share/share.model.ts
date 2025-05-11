@@ -2,9 +2,9 @@ import mongoose, { Document, Schema } from "mongoose";
 import { IPublicSharePermission, IUserSharePermission } from "./share.dto.js";
 
 export interface IPublicShare extends Document {
-  fileSystemItem: Schema.Types.ObjectId;
+  resource: Schema.Types.ObjectId;
   owner: Schema.Types.ObjectId;
-  shareId: string; // unique link ID
+  link: string; // unique link
   permission: IPublicSharePermission;
   expiresAt?: Date; // optional expiration date
   password?: string; // optional password for access
@@ -14,17 +14,18 @@ export interface IPublicShare extends Document {
 }
 
 export interface IUserShare extends Document {
-  fileSystemItem: Schema.Types.ObjectId;
+  resource: Schema.Types.ObjectId;
   owner: Schema.Types.ObjectId;
-  userId: Schema.Types.ObjectId;
-  permission: IUserSharePermission;
-  addedAt: Date;
+  sharedWith: {
+    userId: Schema.Types.ObjectId;
+    permission: IUserSharePermission;
+  }[];
   createdAt: Date;
   updatedAt: Date;
 }
 
 const PublicShareSchema = new Schema({
-  fileSystemItem: {
+  resource: {
     type: Schema.Types.ObjectId,
     ref: 'FileSystemItem',
     required: true,
@@ -34,7 +35,7 @@ const PublicShareSchema = new Schema({
     ref: 'User',
     required: true,
   },
-  shareId: {
+  link: {
     type: String,
     required: true,
     unique: true,
@@ -59,7 +60,7 @@ const PublicShareSchema = new Schema({
 }, { timestamps: true });
 
 const UserShareSchema = new Schema({
-  fileSystemItem: {
+  resource: {
     type: Schema.Types.ObjectId,
     ref: 'FileSystemItem',
     required: true,
@@ -69,21 +70,23 @@ const UserShareSchema = new Schema({
     ref: 'User',
     required: true,
   },
-  userId: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-  permission: {
-    type: String,
-    enum: Object.values(IUserSharePermission),
-    default: IUserSharePermission.VIEWER,
-  },
+  sharedWith: [{
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    permission: {
+      type: String,
+      enum: Object.values(IUserSharePermission),
+      default: IUserSharePermission.VIEWER,
+    }
+  }],
 }, { timestamps: true });
 
 // Indexes for performance
-PublicShareSchema.index({ fileSystemItem: 1, owner: 1 });
-UserShareSchema.index({ fileSystemItem: 1, owner: 1, userId: 1 });
+PublicShareSchema.index({ resource: 1, owner: 1 });
+UserShareSchema.index({ resource: 1, owner: 1, 'sharedWith.userId': 1 });
 
 const PublicShare = mongoose.model<IPublicShare>('PublicShare', PublicShareSchema);
 const UserShare = mongoose.model<IUserShare>('UserShare', UserShareSchema);

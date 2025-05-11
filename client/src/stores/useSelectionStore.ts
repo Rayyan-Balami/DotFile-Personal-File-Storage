@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 export interface SelectableItem {
   id: string;
   type: 'folder' | 'document';
-  title: string;
+  name: string; // Changed from title to name
 }
 
 interface SelectionState {
@@ -107,7 +107,7 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
     if (folders.length > 0) {
       console.group(`Folders (${folders.length}):`);
       folders.forEach(folder => {
-        console.log(`- ${folder.title} (ID: ${folder.id})`);
+        console.log(`- ${folder.name} (ID: ${folder.id})`); // Changed title to name
       });
       console.groupEnd();
     }
@@ -115,7 +115,7 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
     if (documents.length > 0) {
       console.group(`Documents (${documents.length}):`);
       documents.forEach(doc => {
-        console.log(`- ${doc.title} (ID: ${doc.id})`);
+        console.log(`- ${doc.name} (ID: ${doc.id})`); // Changed title to name
       });
       console.groupEnd();
     }

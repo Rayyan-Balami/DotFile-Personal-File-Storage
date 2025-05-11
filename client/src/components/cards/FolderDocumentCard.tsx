@@ -5,10 +5,13 @@
 
 import { cn } from "@/lib/utils";
 import { useSelectionStore } from "@/stores/useSelectionStore";
-import { Workspace } from "@/types/desk";
-import { DocumentItem, FileSystemItem, FolderItem } from "@/types/folderDocumnet";
+import {
+  DocumentItem,
+  FileSystemItem,
+  FolderItem,
+} from "@/types/folderDocumnet";
 import { formatChildCount, formatFileSize } from "@/utils/formatUtils";
-import { EllipsisVertical, Loader2, Pin } from "lucide-react";
+import { EllipsisVertical, Loader2, Pin, EyeOff } from "lucide-react";
 import React, {
   lazy,
   Suspense,
@@ -34,6 +37,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { FolderIcon } from "../ui/folder-icon";
+import { WorkspaceResponseDto } from "@/types/workspace.dto";
 
 // Types remain the same
 export type CardVariant = "large" | "compact" | "list";
@@ -68,7 +72,7 @@ const VARIANT_STYLES = {
       selected: "w-[3.5px] h-[28%]",
       hover: "w-0 group-hover:w-[3.5px] h-0 group-hover:h-[28%]",
     },
-    icon: "aspect-[3/2] h-17",
+    icon: "aspect-[4/3] h-19.5",
     iconScale: "*:scale-65",
     docIconScale: "*:scale-35",
   },
@@ -79,7 +83,7 @@ const VARIANT_STYLES = {
       selected: "w-[3.5px] h-[38%]",
       hover: "w-0 group-hover:w-[3.5px] h-0 group-hover:h-[38%]",
     },
-    icon: "aspect-[1/1] h-15.5 lg:h-10.5",
+    icon: "aspect-[1/1] h-15.5 lg:h-12.5",
     iconScale: "*:scale-55",
     docIconScale: "*:scale-55",
   },
@@ -191,7 +195,7 @@ const FileOrFolderIcon = React.memo(
     previewUrl?: string;
     fileExtension?: string;
     title: string;
-    workspace?: Workspace;
+    workspace?: WorkspaceResponseDto;
   }) => {
     const styles = VARIANT_STYLES[variant];
 
@@ -260,16 +264,23 @@ const UserAvatars = React.memo(
     return (
       <div className="flex items-center">
         {visibleUsers.map((user, idx) => (
-          <Avatar key={idx} className="size-4.5 first:ml-0 -ml-1 hover:z-10 relative border border-primary-foreground">
+          <Avatar
+            key={idx}
+            className="size-4.5 first:ml-0 -ml-1 hover:z-10 relative border border-primary-foreground"
+          >
             {user.image && <AvatarImage src={user.image} alt="" />}
-            <AvatarFallback className="bg-primary text-primary-foreground text-[0.5rem] font-bold">{user.fallback}</AvatarFallback>
+            <AvatarFallback className="bg-primary text-primary-foreground text-[0.5rem] font-bold">
+              {user.fallback}
+            </AvatarFallback>
           </Avatar>
         ))}
 
         {extraCount > 0 && (
           <Avatar className="size-4.5 first:ml-0 -ml-1 hover:z-10 relative border border-primary-foreground">
-          <AvatarFallback className="bg-primary text-primary-foreground text-[0.5rem] font-bold">+{extraCount}</AvatarFallback>
-        </Avatar>
+            <AvatarFallback className="bg-primary text-primary-foreground text-[0.5rem] font-bold">
+              +{extraCount}
+            </AvatarFallback>
+          </Avatar>
         )}
       </div>
     );
@@ -286,27 +297,33 @@ const UserAvatars = React.memo(
 );
 UserAvatars.displayName = "UserAvatars";
 
-const ItemCount = React.memo(({ type, childCount, byteCount }: { 
-  type: CardType; 
-  childCount?: number; 
-  byteCount?: number;
-}) => {
-  if (type === 'folder') {
-    if (childCount === undefined) return null;
-    return (
-      <span className="flex-1 my-1.5 text-xs text-muted-foreground">
-        {formatChildCount(childCount)}
-      </span>
-    );
-  } else {
-    if (byteCount === undefined) return null;
-    return (
-      <span className="flex-1 my-1.5 text-xs text-muted-foreground">
-        {formatFileSize(byteCount)}
-      </span>
-    );
+const ItemCount = React.memo(
+  ({
+    type,
+    childCount,
+    byteCount,
+  }: {
+    type: CardType;
+    childCount?: number;
+    byteCount?: number;
+  }) => {
+    if (type === "folder") {
+      if (childCount === undefined) return null;
+      return (
+        <span className="flex-1 my-1.5 text-xs text-muted-foreground">
+          {formatChildCount(childCount)}
+        </span>
+      );
+    } else {
+      if (byteCount === undefined) return null;
+      return (
+        <span className="flex-1 my-1.5 text-xs text-muted-foreground">
+          {formatFileSize(byteCount)}
+        </span>
+      );
+    }
   }
-});
+);
 ItemCount.displayName = "ItemCount";
 
 // Lazy-loaded menu content components with better defaults
@@ -346,13 +363,7 @@ const CardContent = React.memo(
     dateModified: string;
   }) => {
     const [menuOpen, setMenuOpen] = useState(false);
-    
-    // Format the date for display
-    const formattedDate = new Date(dateModified).toLocaleDateString();
-    const formattedTime = new Date(dateModified).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
+
 
     // Only render dropdown content when menu is open
     const dropdownMenu = (
@@ -386,7 +397,7 @@ const CardContent = React.memo(
       return (
         <div className="px-1 flex-1 flex gap-6">
           <div className="flex-1 flex max-lg:flex-col lg:items-center">
-            <h3 className="text-sm font-[425] line-clamp-1 break-all max-w-sm w-full">
+            <h3 className="flex-1 text-sm font-[425] line-clamp-1 break-all max-w-sm w-full">
               {title}
             </h3>
             <div className="flex-1 flex items-center">
@@ -395,14 +406,13 @@ const CardContent = React.memo(
                 childCount={childCount}
                 byteCount={byteCount}
               />
-              {users.length > 0 && (
-                <div className="lg:flex-1">
+              <div className="lg:flex-1">
+                {users.length > 0 ? (
                   <UserAvatars users={users} />
-                </div>
-              )}
-            </div>
-            <div className="flex-1 text-xs text-muted-foreground max-xl:hidden">
-              {formattedDate} | {formattedTime}
+                ) : (
+                  <EyeOff className="size-4 text-muted-foreground" />
+                )}
+              </div>
             </div>
           </div>
           <div className="flex flex-col-reverse lg:flex-row-reverse justify-between items-center gap-4 max-lg:pt-0.75 max-lg:pb-0.5">
@@ -430,11 +440,13 @@ const CardContent = React.memo(
             childCount={childCount}
             byteCount={byteCount}
           />
-          {users.length > 0 && (
-            <div className="mt-auto">
-              <UserAvatars users={users} />
-            </div>
-          )}
+              <div className="lg:flex-1 my-2">
+                {users.length > 0 ? (
+                  <UserAvatars users={users} />
+                ) : (
+                  <EyeOff className="size-4 text-muted-foreground" />
+                )}
+              </div>
         </div>
         <div className="flex flex-col-reverse justify-between items-center gap-4 pt-0.75 pb-0.5">
           {dropdownMenu}
@@ -475,15 +487,19 @@ const FolderDocumentCard = React.memo(
     } = props;
 
     // Extract properties from item based on type
-    const { id, type, title, isPinned, dateModified } = item;
-    const childCount = type === 'folder' ? (item as FolderItem).childCount : undefined;
-    const workspace = type === 'folder' ? (item as FolderItem).desk : undefined;
-    const byteCount = type === 'document' ? (item as DocumentItem).byteCount : undefined;
-    const fileExtension = type === 'document' ? (item as DocumentItem).fileExtension : undefined;
-    const previewUrl = type === 'document' ? (item as DocumentItem).previewUrl || undefined : undefined;
+    const { id, type, name, isPinned, updatedAt } = item;
+    const items = type === "folder" ? (item as FolderItem).items : undefined;
+    const workspace =
+      type === "folder" ? (item as FolderItem).workspace : undefined;
+    const size = type === "document" ? (item as DocumentItem).size : undefined;
+    const extension =
+      type === "document" ? (item as DocumentItem).extension : undefined;
+
+    // For backward compatibility, handle if there's no sharedUsersPreview
+    const sharedUsersPreview = [];
 
     // Convert shared users to our internal user format
-    const users: User[] = item.sharedUsersPreview.map(user => ({
+    const users: User[] = (sharedUsersPreview || []).map((user) => ({
       image: user.image,
       fallback: user.name.charAt(0).toUpperCase(),
     }));
@@ -503,9 +519,9 @@ const FolderDocumentCard = React.memo(
           onOpen();
           return;
         }
-        console.log(`Action: ${action} on ${type} "${title}" (ID: ${id})`);
+        console.log(`Action: ${action} on ${type} "${name}" (ID: ${id})`);
       },
-      [id, onOpen, title, type]
+      [id, onOpen, name, type]
     );
 
     // Optimize container class calculation
@@ -591,23 +607,25 @@ const FolderDocumentCard = React.memo(
 
             <FileOrFolderIcon
               type={type}
-              previewUrl={previewUrl}
-              fileExtension={fileExtension}
-              title={title}
+              previewUrl={null}
+              fileExtension={extension || ""}
+              title={name}
               variant={variant}
               workspace={workspace}
             />
 
             <CardContent
               id={id}
-              title={title}
+              title={name}
               type={type}
-              childCount={childCount}
-              byteCount={byteCount}
+              childCount={items}
+              byteCount={size}
               users={users}
               isPinned={isPinned}
               variant={variant}
-              dateModified={dateModified}
+              dateModified={
+                updatedAt instanceof Date ? updatedAt.toISOString() : updatedAt
+              }
             />
           </div>
         </ContextMenuTrigger>
@@ -619,7 +637,7 @@ const FolderDocumentCard = React.memo(
               </ContextMenuItem>
             }
           >
-            <LazyContextMenuItems type={type} title={title} id={id} />
+            <LazyContextMenuItems type={type} title={name} id={id} />
           </Suspense>
         </ContextMenuContent>
       </ContextMenu>
@@ -631,9 +649,9 @@ const FolderDocumentCard = React.memo(
       prevProps.item.id === nextProps.item.id &&
       prevProps.variant === nextProps.variant &&
       prevProps.item.type === nextProps.item.type &&
-      prevProps.item.title === nextProps.item.title &&
+      prevProps.item.name === nextProps.item.name &&
       prevProps.item.isPinned === nextProps.item.isPinned &&
-      prevProps.item.dateModified === nextProps.item.dateModified &&
+      prevProps.item.updatedAt === nextProps.item.updatedAt &&
       prevProps.className === nextProps.className &&
       prevProps.alternateBg === nextProps.alternateBg &&
       prevProps.onOpen === nextProps.onOpen

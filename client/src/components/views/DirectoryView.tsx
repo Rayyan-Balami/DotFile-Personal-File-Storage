@@ -33,6 +33,14 @@ interface DirectoryViewProps {
   parentId?: string | null;
 }
 
+// Sorting function updated to use 'name' instead of 'title'
+const sortItems = (items: FileSystemItem[]) => {
+  return [...items].sort((a, b) => {
+    if (!a.name || !b.name) return 0;
+    return a.name.localeCompare(b.name);
+  });
+};
+
 export default function DirectoryView({
   items = [],
   currentPath = "/",
@@ -43,7 +51,7 @@ export default function DirectoryView({
   const setVisibleItems = useSelectionStore((state) => state.setVisibleItems);
 
   // Apply sorting
-  const sortedItems = useSortedItems(items);
+  const sortedItems = sortItems(items);
 
   // Callback for opening items
   const handleOpenItem = (id: string) => {
@@ -53,7 +61,7 @@ export default function DirectoryView({
         navigate({ to: `/folder/${item.id}` });
       } else {
         // Handle document opening logic
-        console.log(`Opening document: ${item.title}`);
+        console.log(`Opening document: ${item.name}`);
         // Implement document opening logic
       }
     }

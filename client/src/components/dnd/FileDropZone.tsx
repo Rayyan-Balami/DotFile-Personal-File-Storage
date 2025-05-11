@@ -56,7 +56,7 @@ export function FileDropZone({ children }: FileDropZoneProps) {
       return new Promise<void>((resolve) => {
         fileEntry.file((file) => {
           const newFileId = `doc-${nanoid(6)}`;
-          const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+          const extension = file.name.split('.').pop()?.toLowerCase() || '';
           
           // Create upload item
           const uploadId = addUpload(file, parentId);
@@ -71,16 +71,24 @@ export function FileDropZone({ children }: FileDropZoneProps) {
               clearInterval(interval);
               setUploadStatus(uploadId, 'success');
               
-              // Create file system item on successful upload
+              // Create file system item on successful upload with new structure
               addItem({
                 id: newFileId,
-                type: 'document',
-                title: file.name,
-                parentId: parentId,
-                fileExtension,
-                byteCount: file.size,
-                dateModified: new Date().toISOString(),
-                dateAdded: new Date().toISOString(),
+                type: file.type.split('/')[0] || 'document',
+                name: file.name,
+                owner: 'user-1',
+                folder: parentId,
+                path: `/${file.name.toLowerCase().replace(/\s+/g, '-')}`,
+                pathSegments: [],
+                extension,
+                size: file.size,
+                isPinned: false,
+                isShared: false,
+                workspace: null,
+                storageKey: `file-${nanoid()}.${extension}`,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                deletedAt: null
               });
               
               resolve();
@@ -103,16 +111,22 @@ export function FileDropZone({ children }: FileDropZoneProps) {
       setTimeout(() => {
         setUploadStatus(uploadId, 'success');
         
-        // Create folder item
+        // Create folder item with new structure
         addItem({
           id: newFolderId,
           type: 'folder',
-          title: entry.name,
-          parentId: parentId,
-          childCount: 0,
-          dateAdded: new Date().toISOString(),
-          dateModified: new Date().toISOString(),
-          children: []
+          name: entry.name,
+          owner: 'user-1',
+          parent: parentId,
+          path: `/${entry.name.toLowerCase().replace(/\s+/g, '-')}`,
+          pathSegments: [],
+          items: 0,
+          isPinned: false,
+          isShared: false,
+          workspace: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          deletedAt: null
         });
       }, 1000);
       
@@ -183,28 +197,35 @@ export function FileDropZone({ children }: FileDropZoneProps) {
       }
     } else {
       // Fallback for browsers without DataTransferItemList support
-      // Process dropped files (directories not supported in this case)
       const { files } = e.dataTransfer;
       if (files && files.length > 0) {
         console.log(`Processing ${files.length} files (directory support unavailable)...`);
         
         Array.from(files).forEach(file => {
-          // Create a new file item
+          // Create a new file item with new structure
           const newFileId = `doc-${nanoid(6)}`;
           
           // Determine file extension
-          const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+          const extension = file.name.split('.').pop()?.toLowerCase() || '';
           
-          // Create file system item
+          // Create file system item with new structure
           addItem({
             id: newFileId,
-            type: 'document',
-            title: file.name,
-            parentId: targetFolderId,
-            fileExtension,
-            byteCount: file.size,
-            dateModified: new Date().toISOString(),
-            dateAdded: new Date().toISOString(),
+            type: file.type.split('/')[0] || 'document',
+            name: file.name,
+            owner: 'user-1',
+            folder: targetFolderId,
+            path: `/${file.name.toLowerCase().replace(/\s+/g, '-')}`,
+            pathSegments: [],
+            extension,
+            size: file.size,
+            isPinned: false,
+            isShared: false,
+            workspace: null,
+            storageKey: `file-${nanoid()}.${extension}`,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            deletedAt: null
           });
           
           console.log(`Added file: "${file.name}" (Size: ${formatFileSize(file.size)}, Type: ${file.type}) to folder: ${targetFolderName} (${targetFolderId || 'root'})`);

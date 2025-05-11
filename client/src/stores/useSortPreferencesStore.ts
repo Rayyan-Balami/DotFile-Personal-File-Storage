@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 type SortDirection = "asc" | "desc";
+// Update sortBy to use 'name' instead of 'title'
 type SortBy = "name" | "kind" | "dateModified" | "dateAdded" | "dateOpened" | "size" | "desk";
 type FolderArrangement = "separated" | "mixed";
 

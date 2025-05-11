@@ -1,6 +1,5 @@
 import { FileResponseDto } from "@api/File/file.dto.js";
 import { WorkspaceResponseDto } from "@api/workspace/workspace.dto.js";
-import mongoose from "mongoose";
 
 export interface CreateFolderDto {
   name: string;
@@ -14,7 +13,7 @@ export interface UpdateFolderDto {
   isPinned?: boolean;
   isShared?: boolean;
   path?: string;
-  pathSegments?: { name: string; id: mongoose.Types.ObjectId | string }[];
+  pathSegments?: { name: string; id: string }[];
   items?: number;
 }
 

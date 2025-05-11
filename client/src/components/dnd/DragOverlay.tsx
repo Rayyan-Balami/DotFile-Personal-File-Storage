@@ -7,7 +7,7 @@ import { FileSystemItem } from '@/types/folderDocumnet';
 interface DragData {
   id: string;
   type: "folder" | "document";
-  title: string;
+  name: string;  // Changed from title to name
   variant?: "large" | "compact" | "list";
   item: FileSystemItem;
   [key: string]: any; // Allow other props
@@ -30,14 +30,17 @@ export function DragOverlay() {
   const item = data.item || {
     id: primaryItem.id,
     type: primaryItem.type || "folder",
-    title: primaryItem.title || "Untitled",
-    dateModified: new Date().toISOString(),
-    ownerId: "",
-    parentFolderId: null,
-    dateAdded: new Date().toISOString(),
-    trashedAt: null,
+    name: primaryItem.name || "Untitled",  // Changed from title to name
+    updatedAt: new Date(),
+    owner: "",
+    parent: null,
+    createdAt: new Date(),
+    deletedAt: null,
     isPinned: false,
-    sharedUsersPreview: [],
+    workspace: null,
+    path: "/",
+    pathSegments: [],
+    isShared: false
   };
   
   const variant = data.variant || "large";
