@@ -1,0 +1,67 @@
+@baseUrl = http://localhost:5000/api
+
+### Get all plans (public)
+GET {{baseUrl}}/plans
+
+### Get specific plan by ID (public)
+GET {{baseUrl}}/plans/5f8e973e8c2c491f9c5b6fdb
+
+### Subscribe to plan
+POST {{baseUrl}}/plans/subscribe/5f8e973e8c2c491f9c5b6fdb
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "paymentMethod": "card",
+  "paymentDetails": {
+    "cardToken": "tok_visa"
+  }
+}
+
+### Get current user's plan
+GET {{baseUrl}}/plans/my-plan
+Authorization: Bearer {{accessToken}}
+
+### Admin: Create new plan
+POST {{baseUrl}}/admin/plans
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Premium Plan",
+  "description": "Advanced features for power users",
+  "price": 9.99,
+  "currency": "USD",
+  "billingCycle": "monthly",
+  "features": [
+    "Unlimited storage",
+    "Advanced sharing",
+    "Priority support"
+  ],
+  "limits": {
+    "storage": 100, 
+    "files": 1000,
+    "shares": 50
+  },
+  "isActive": true
+}
+
+### Admin: Update existing plan
+PUT {{baseUrl}}/admin/plans/5f8e973e8c2c491f9c5b6fdb
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated Premium Plan",
+  "description": "Updated features for power users",
+  "price": 12.99,
+  "limits": {
+    "storage": 200,
+    "files": 2000,
+    "shares": 100
+  }
+}
+
+### Admin: Delete plan
+DELETE {{baseUrl}}/admin/plans/5f8e973e8c2c491f9c5b6fdb
+Authorization: Bearer {{accessToken}}

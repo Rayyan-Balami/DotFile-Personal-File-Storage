@@ -1,0 +1,52 @@
+@baseUrl = http://localhost:5000/api
+
+### Upload Files
+POST {{baseUrl}}/file/upload
+Authorization: Bearer {{accessToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="files"; filename="test-file.txt"
+Content-Type: text/plain
+
+< ./path/to/your/file.txt
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="parentFolder"
+
+folderId123
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Get File by ID
+GET {{baseUrl}}/file/5f8e973e8c2c491f9c5b6fdb
+Authorization: Bearer {{accessToken}}
+
+### Update File
+PATCH {{baseUrl}}/file/5f8e973e8c2c491f9c5b6fdb
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "description": "Updated file description"
+}
+
+### Rename File
+POST {{baseUrl}}/file/5f8e973e8c2c491f9c5b6fdb/rename
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "newName": "renamed-file.txt"
+}
+
+### Move File to Different Folder
+POST {{baseUrl}}/file/5f8e973e8c2c491f9c5b6fdb/move
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "destinationFolderId": "5f8e973e8c2c491f9c5b6fdc"
+}
+
+### Delete File
+DELETE {{baseUrl}}/file/5f8e973e8c2c491f9c5b6fdb
+Authorization: Bearer {{accessToken}}

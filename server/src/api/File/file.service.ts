@@ -11,6 +11,8 @@ import logger from "@utils/logger.utils.js";
 import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
 import path from "path";
 import mongoose from "mongoose";
+import shareService from "@api/share/share.service.js";
+import { IUserSharePermission } from "@api/share/share.dto.js";
 
 /**
  * Service class for file-related business logic
@@ -143,12 +145,46 @@ class FileService {
    * @returns File document if found
    * @throws ApiError if file not found or user doesn't own it
    */
+  /**
+   * Get file by ID with support for shared resources
+   * - Checks if user owns the file
+   * - If not, checks if file is shared with user with sufficient permissions
+   * 
+   * @param fileId File ID to retrieve
+   * @param userId User ID requesting access
+   * @param requiredPermission Optional minimum permission level required
+   * @returns File document or error if unauthorized
+   */
   async getFileById(
     fileId: string, 
-    userId: string
+    userId: string,
+    requiredPermission?: IUserSharePermission
   ): Promise<FileResponseDto> {
-    // Verify file ownership and get the file
-    const file = await this.verifyFileOwnership(fileId, userId);
+    if (!mongoose.Types.ObjectId.isValid(fileId)) {
+      throw new ApiError(400, [{ file: "Invalid file ID" }]);
+    }
+    
+    // Get the file
+    const file = await fileDao.getFileById(fileId);
+    if (!file) {
+      throw new ApiError(404, [{ file: "File not found" }]);
+    }
+
+    const fileOwnerId = file.owner.toString();
+
+    // Check if user has permission (either as owner or via shares)
+    const permissionResult = await shareService.verifyPermission(
+      fileId,
+      userId,
+      fileOwnerId,
+      requiredPermission
+    );
+    
+    if (!permissionResult.hasPermission) {
+      throw new ApiError(403, [
+        { authorization: "You do not have permission to access this file" }
+      ]);
+    }
     
     return this.sanitizeFile(file);
   }
@@ -546,6 +582,76 @@ class FileService {
       .replace(/\s+/g, "-") // Replace spaces with hyphens
       .replace(/[\/\\:*?"<>|]/g, "") // Remove invalid filesystem characters
       .toLowerCase(); // Lowercase for consistency
+  }
+
+  /**
+   * Get file with sharing information
+   * 
+   * @param fileId ID of the file to retrieve
+   * @param userId ID of the user making the request
+   * @returns File with populated sharing information
+   */
+  async getFileWithShareInfo(
+    fileId: string, 
+    userId: string
+  ): Promise<FileResponseDto & { shareInfo?: any }> {
+    // First verify the user has access to this file
+    const file = await this.getFileById(fileId, userId);
+    
+    if (!file) {
+      throw new ApiError(404, [{ file: "File not found" }]);
+    }
+    
+    // Ensure user has permission to access this file
+    const permissionResult = await shareService.verifyPermission(
+      fileId, 
+      userId,
+      file.owner.toString()
+    );
+    
+    if (!permissionResult.hasPermission) {
+      throw new ApiError(403, [{ permission: "You do not have permission to access this file" }]);
+    }
+    
+    // Create response object with type assertion for shareInfo
+    const response = { 
+      ...file, 
+      shareInfo: { 
+        isOwner: permissionResult.isOwner 
+      } as any
+    };
+
+    // If owner, fetch all sharing information
+    if (permissionResult.isOwner) {
+      // Get public share if exists
+      try {
+        const publicShare = await shareService.getPublicShareByResource(fileId, userId);
+        if (publicShare) {
+          response.shareInfo.public = publicShare;
+        }
+      } catch (error) {
+        // No public share exists - that's fine
+      }
+      
+      // Get user shares if exist
+      try {
+        const userShare = await shareService.getUserShareByResource(fileId, userId);
+        if (userShare) {
+          response.shareInfo.users = userShare;
+        }
+      } catch (error) {
+        // No user shares exist - that's fine
+      }
+    } else {
+      // For non-owners, include their specific permissions
+      response.shareInfo = {
+        ...response.shareInfo,
+        permission: permissionResult.permissionLevel,
+        allowDownload: permissionResult.allowDownload
+      } as any;
+    }
+    
+    return response;
   }
 }
 

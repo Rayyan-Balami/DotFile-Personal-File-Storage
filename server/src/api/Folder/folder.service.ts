@@ -15,6 +15,8 @@ import { FileResponseDto } from "@api/File/file.dto.js";
 import fileDao from "@api/File/file.dao.js";
 import logger from "@utils/logger.utils.js";
 import mongoose from "mongoose";
+import shareService from "@api/share/share.service.js";
+import { IUserSharePermission } from "@api/share/share.dto.js";
 
 class FolderService {
   // Create a new folder
@@ -132,11 +134,27 @@ class FolderService {
    * @returns The folder if found and owned by the user
    * @throws ApiError if folder not found or user doesn't own it
    */
+  /**
+   * Get folder by ID with support for shared resources
+   * - Checks if user owns the folder
+   * - If not, checks if folder is shared with user with sufficient permissions
+   * 
+   * @param folderId Folder ID to retrieve
+   * @param userId User ID requesting access
+   * @param includeWorkspace Whether to include workspace details
+   * @param requiredPermission Optional minimum permission level required
+   * @returns Folder document or error if unauthorized
+   */
   async getFolderById(
     folderId: string,
-    ownerId: string,
-    includeWorkspace: boolean = false
+    userId: string,
+    includeWorkspace: boolean = false,
+    requiredPermission?: IUserSharePermission
   ): Promise<FolderResponseDto> {
+    if (!mongoose.Types.ObjectId.isValid(folderId)) {
+      throw new ApiError(400, [{ folder: "Invalid folder ID" }]);
+    }
+
     // Get folder with or without workspace data
     const folder = includeWorkspace 
       ? await folderDao.getFolderWithWorkspace(folderId)
@@ -146,10 +164,19 @@ class FolderService {
       throw new ApiError(404, [{ folder: "Folder not found" }]);
     }
 
-    // Check ownership
-    if (folder.owner.toString() !== ownerId) {
+    const folderOwnerId = folder.owner.toString();
+
+    // Check if user has permission (either as owner or via shares)
+    const permissionResult = await shareService.verifyPermission(
+      folderId,
+      userId,
+      folderOwnerId,
+      requiredPermission
+    );
+    
+    if (!permissionResult.hasPermission) {
       throw new ApiError(403, [
-        { folder: "You don't have permission to access this folder" },
+        { authorization: "You do not have permission to access this folder" }
       ]);
     }
 
@@ -611,6 +638,74 @@ class FolderService {
       excludeFields: ["__v"],
       recursive: true,
     });
+  }
+
+  /**
+   * Get folder with sharing information
+   * 
+   * @param folderId ID of the folder to retrieve
+   * @param userId ID of the user making the request
+   * @returns Folder with populated sharing information
+   */
+  async getFolderWithShareInfo(
+    folderId: string, 
+    userId: string
+  ): Promise<FolderResponseDto & { shareInfo?: any }> {
+    // First verify the user has access to this folder
+    const folder = await this.getFolderById(folderId, userId);
+    
+    if (!folder) {
+      throw new ApiError(404, [{ folder: "Folder not found" }]);
+    }
+    
+    // Check if this is the owner
+    const isOwner = folder.owner.toString() === userId;
+    
+    // Create response object with type assertion for shareInfo
+    const response = { 
+      ...folder, 
+      shareInfo: { 
+        isOwner 
+      } as any 
+    };
+
+    // If owner, fetch all sharing information
+    if (isOwner) {
+      // Get public share if exists
+      try {
+        const publicShare = await shareService.getPublicShareByResource(folderId, userId);
+        if (publicShare) {
+          response.shareInfo.public = publicShare;
+        }
+      } catch (error) {
+        // No public share exists - that's fine
+      }
+      
+      // Get user shares if exist
+      try {
+        const userShare = await shareService.getUserShareByResource(folderId, userId);
+        if (userShare) {
+          response.shareInfo.users = userShare;
+        }
+      } catch (error) {
+        // No user shares exist - that's fine
+      }
+    } else {
+      // For non-owners, get their specific permissions
+      const permissionResult = await shareService.verifyPermission(
+        folderId, 
+        userId,
+        folder.owner.toString()
+      );
+      
+      response.shareInfo = {
+        ...response.shareInfo,
+        permission: permissionResult.permissionLevel || IUserSharePermission.VIEWER,
+        allowDownload: permissionResult.allowDownload || false
+      } as any;
+    }
+    
+    return response;
   }
 }
 

@@ -8,7 +8,7 @@ import {
 } from "@config/constants.js";
 import bcryptjs from "bcryptjs";
 import jwt, { Secret, SignOptions } from "jsonwebtoken";
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { Document, Schema, Types } from "mongoose";
 
 // Define the refresh token interface
 interface IRefreshToken {
@@ -28,7 +28,7 @@ interface IUserMethods {
 
 // Define the user interface
 export interface IUser extends Document, IUserMethods {
-  _id: string; // MongoDB ObjectId
+  _id: Types.ObjectId;
   avatar: string;
   name: string;
   email: string;

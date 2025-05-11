@@ -1,7 +1,8 @@
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { Document, Schema, Types } from "mongoose";
 
 // Define the plan interface
 export interface IPlan extends Document {
+  _id: Types.ObjectId;
   name: string;
   storageLimit: number; //in bytes
   price: number;

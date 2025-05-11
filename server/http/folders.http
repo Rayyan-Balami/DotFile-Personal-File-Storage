@@ -1,0 +1,37 @@
+@baseUrl = http://localhost:5000/api
+
+### Create new folder
+POST {{baseUrl}}/folders/
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "New Folder",
+  "parentId": null
+}
+
+### Get contents of root folder
+GET {{baseUrl}}/folders/contents
+Authorization: Bearer {{accessToken}}
+
+### Get contents of specific folder
+GET {{baseUrl}}/folders/contents/5f8e973e8c2c491f9c5b6fdb
+Authorization: Bearer {{accessToken}}
+
+### Rename folder
+POST {{baseUrl}}/folders/5f8e973e8c2c491f9c5b6fdb/rename
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "newName": "Renamed Folder"
+}
+
+### Move folder to a different parent folder
+POST {{baseUrl}}/folders/5f8e973e8c2c491f9c5b6fdb/move
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "destinationFolderId": "5f8e973e8c2c491f9c5b6fdc"
+}
