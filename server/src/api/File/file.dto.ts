@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 
 export interface CreateFileDto {
   name: string;
@@ -7,7 +6,7 @@ export interface CreateFileDto {
   owner: string;
   folder?: string | null;
   path?: string;
-  pathSegments?: { name: string; id: mongoose.Types.ObjectId | string }[];
+  pathSegments?: { name: string; id: string }[];
   storageKey: string;
   workspace?: string | null;
   originalPath?: string;
@@ -21,7 +20,7 @@ export interface UpdateFileDto {
   isShared?: boolean;
   workspace?: string | null;
   path?: string;
-  pathSegments?: { name: string; id: mongoose.Types.ObjectId | string }[];
+  pathSegments?: { name: string; id: string }[];
 }
 
 export interface RenameFileDto {

@@ -3,29 +3,30 @@ import { WorkspaceResponseDto } from "./workspace.dto";
 // Define types for your file system items
 export interface BaseItem {
   id: string;
-  type: 'folder' | 'document';
-  title: string;
-  ownerId: string;
-  parentFolderId: string | null; 
-  dateModified: string;
-  dateAdded: string;
-  trashedAt: string | null;
+  name: string;
+  type: string;
+  owner: string;
+  workspace: WorkspaceResponseDto | null;
+  path: string;
+  pathSegments: { name: string; id: string }[];
   isPinned: boolean;
-  sharedUsersPreview: SharedUsersPreview[];
+  isShared: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
 }
 
 export interface FolderItem extends BaseItem {
   type: 'folder';
-  desk: WorkspaceResponseDto;
-  childCount: number;
-  children: string[];
+  parent: string | null;
+  items: number;
 }
 
 export interface DocumentItem extends BaseItem {
-  type: 'document';
-  fileExtension: string;
-  byteCount: number;
-  previewUrl?: string | null;
+  size: number;
+  folder: string | null;
+  storageKey: string;
+  extension: string;
 }
 
 export interface SharedUsersPreview {
@@ -35,3 +36,9 @@ export interface SharedUsersPreview {
 }
 
 export type FileSystemItem = FolderItem | DocumentItem;
+
+// Structure matching the API response
+export interface FolderContentsResponse {
+  folders: FolderItem[];
+  files: DocumentItem[];
+}
