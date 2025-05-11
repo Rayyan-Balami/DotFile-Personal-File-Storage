@@ -22,7 +22,8 @@ class WorkspaceController {
    * Get workspace by ID
    */
   getWorkspaceById = asyncHandler(async (req: Request, res: Response) => {
-    const workspace = await workspaceService.getWorkspaceById(req.params.id);
+    if (!req.user) throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    const workspace = await workspaceService.getWorkspaceById(req.params.id, req.user.id);
     if (!workspace) throw new ApiError(404, [{ workspace: "Workspace not found" }]);
     
     res.json(new ApiResponse(200, { workspace }, "Workspace retrieved successfully"));
@@ -91,6 +92,57 @@ class WorkspaceController {
     if (!renamedWorkspace) throw new ApiError(404, [{ workspace: "Workspace not found" }]);
     
     res.json(new ApiResponse(200, { workspace: renamedWorkspace }, "Workspace renamed successfully"));
+  });
+
+  /**
+   * Add folder to workspace
+   */
+  addFolderToWorkspace = asyncHandler(async (req: Request, res: Response) => {
+    const { id: workspaceId } = req.params;
+    const { folderId } = req.body;
+    
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+    
+    const updatedWorkspace = await workspaceService.addFolderToWorkspace(
+      workspaceId,
+      folderId,
+      req.user.id
+    );
+    
+    res.status(200).json(
+      new ApiResponse(
+        200, 
+        { workspace: updatedWorkspace }, 
+        "Folder added to workspace successfully"
+      )
+    );
+  });
+
+  /**
+   * Remove folder from workspace
+   */
+  removeFolderFromWorkspace = asyncHandler(async (req: Request, res: Response) => {
+    const { id: workspaceId, folderId } = req.params;
+    
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+    
+    const updatedWorkspace = await workspaceService.removeFolderFromWorkspace(
+      workspaceId,
+      folderId,
+      req.user.id
+    );
+    
+    res.status(200).json(
+      new ApiResponse(
+        200, 
+        { workspace: updatedWorkspace }, 
+        "Folder removed from workspace successfully"
+      )
+    );
   });
 }
 

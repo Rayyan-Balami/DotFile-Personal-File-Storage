@@ -8,6 +8,7 @@ import {
   FolderResponseWithFilesDto,
   MoveFolderDto,
   RenameFolderDto,
+  UpdateFolderDto,
 } from "./folder.dto.js";
 import fileService from "@api/File/file.service.js";
 import { FileResponseDto } from "@api/File/file.dto.js";
@@ -376,6 +377,32 @@ class FolderService {
       [] // No path segment updates needed for move
     );
 
+    return this.sanitizeFolder(updatedFolder);
+  }
+
+  /**
+   * Update a folder with the provided data
+   * 
+   * @param folderId ID of the folder to update
+   * @param updateData Object containing the fields to update
+   * @param userId ID of the user who should own the folder
+   * @returns Updated folder
+   */
+  async updateFolder(
+    folderId: string,
+    updateData: UpdateFolderDto,
+    userId: string
+  ): Promise<FolderResponseDto> {
+    // Verify folder ownership
+    await this.verifyFolderOwnership(folderId, userId);
+    
+    // Update the folder
+    const updatedFolder = await folderDao.updateFolder(folderId, updateData);
+    
+    if (!updatedFolder) {
+      throw new ApiError(500, [{ folder: "Failed to update folder" }]);
+    }
+    
     return this.sanitizeFolder(updatedFolder);
   }
 

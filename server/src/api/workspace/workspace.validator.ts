@@ -19,3 +19,8 @@ export const updateWorkspaceSchema = z.object({
 export const renameWorkspaceSchema = z.object({
   newName: z.string().min(1, "New workspace name is required").max(100, "Workspace name cannot exceed 100 characters"),
 });
+
+// Validation schema for adding a folder to a workspace
+export const addFolderToWorkspaceSchema = z.object({
+  folderId: z.string().trim().min(1, "Folder ID is required"),
+});

@@ -74,7 +74,7 @@ class FolderDao {
   async checkFolderExists(
     name: string,
     ownerId: string,
-    parentId: string | null | undefined
+    parentId: string | null | undefined,
   ): Promise<IFolder | null> {
     return Folder.findOne({
       name,
