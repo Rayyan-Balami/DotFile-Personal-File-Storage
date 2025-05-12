@@ -17,6 +17,8 @@ import logger from "@utils/logger.utils.js";
 import mongoose from "mongoose";
 import shareService from "@api/share/share.service.js";
 import { IUserSharePermission } from "@api/share/share.dto.js";
+import fs from "fs/promises";
+import path from "path";
 
 class FolderService {
   // Create a new folder
@@ -696,6 +698,154 @@ class FolderService {
     }
     
     return response;
+  }
+
+  /**
+   * Soft delete a folder (move to trash)
+   * 
+   * @param folderId ID of the folder to soft delete
+   * @param userId ID of the user who owns the folder
+   * @returns The soft-deleted folder
+   */
+  async softDeleteFolder(folderId: string, userId: string): Promise<FolderResponseDto> {
+    // Verify folder ownership
+    const folder = await this.verifyFolderOwnership(folderId, userId);
+    
+    // If folder has a parent, decrement its item count
+    if (folder.parent) {
+      await this.decrementParentItemCount(folder.parent.toString());
+    }
+    
+    // Soft delete the folder
+    const deletedFolder = await folderDao.softDeleteFolder(folderId);
+    
+    if (!deletedFolder) {
+      throw new ApiError(500, [{ folder: "Failed to delete folder" }]);
+    }
+    
+    // Note: We don't need to soft delete child items as they 
+    // won't be shown in user home when the parent is deleted
+    
+    return this.sanitizeFolder(deletedFolder);
+  }
+  
+  /**
+   * Permanently delete a folder and its contents
+   * 
+   * @param folderId ID of the folder to permanently delete
+   * @param userId ID of the user who owns the folder
+   * @returns Result of the delete operation
+   */
+  async permanentDeleteFolder(folderId: string, userId: string): Promise<{ acknowledged: boolean; deletedCount: number }> {
+    // Verify folder exists and belongs to user (include deleted folders)
+    const folder = await folderDao.getFolderById(folderId);
+    
+    if (!folder) {
+      throw new ApiError(404, [{ folder: "Folder not found" }]);
+    }
+    
+    if (folder.owner.toString() !== userId) {
+      throw new ApiError(403, [{ authentication: "You do not have permission to delete this folder" }]);
+    }
+    
+    // Get all files in this folder and its subfolders
+    const folderPath = folder.path;
+    const files = await fileDao.getFilesByPath(folderPath);
+    
+    // Delete all physical files
+    for (const file of files) {
+      try {
+        const userStorageDir = `uploads/user-${userId}`;
+        const filePath = path.join(process.cwd(), userStorageDir, file.storageKey);
+        
+        await fs.access(filePath);
+        await fs.unlink(filePath);
+        logger.debug(`Physical file deleted: ${filePath}`);
+      } catch (error) {
+        logger.error(`Failed to delete physical file: ${error}`);
+      }
+      
+      // Delete the file record
+      await fileDao.permanentDeleteFile(file._id.toString());
+    }
+    
+    // Delete all subfolders
+    const subfolders = await folderDao.getAllDescendantFolders(folderId);
+    for (const subfolder of subfolders) {
+      await folderDao.permanentDeleteFolder(subfolder._id.toString());
+    }
+    
+    // Finally, delete the folder itself
+    const deleteResult = await folderDao.permanentDeleteFolder(folderId);
+    
+    return { 
+      acknowledged: !!deleteResult, 
+      deletedCount: deleteResult ? 1 : 0 
+    };
+  }
+  
+  /**
+   * Restore a folder from trash
+   * 
+   * @param folderId ID of the folder to restore
+   * @param userId ID of the user who owns the folder
+   * @returns The restored folder
+   */
+  async restoreFolder(folderId: string, userId: string): Promise<FolderResponseDto> {
+    // Find the folder (including deleted ones)
+    const folder = await folderDao.getFolderById(folderId);
+    
+    if (!folder) {
+      throw new ApiError(404, [{ folder: "Folder not found" }]);
+    }
+    
+    if (folder.owner.toString() !== userId) {
+      throw new ApiError(403, [{ authentication: "You do not have permission to restore this folder" }]);
+    }
+    
+    if (folder.deletedAt === null) {
+      throw new ApiError(400, [{ folder: "Folder is not in trash" }]);
+    }
+    
+    // If folder has a parent, check if parent exists and is not deleted
+    if (folder.parent) {
+      try {
+        const parentFolder = await this.getFolderById(folder.parent.toString(), userId);
+        
+        // If parent exists and is not deleted, increment its item count
+        if (parentFolder) {
+          await this.incrementParentItemCount(folder.parent.toString());
+        }
+      } catch (error) {
+        // If parent is deleted or doesn't exist, move folder to root
+        folder.parent = null;
+        folder.path = `/${folder.name}`;
+        folder.pathSegments = [];
+      }
+    }
+    
+    // Restore the folder
+    const restoredFolder = await folderDao.restoreDeletedFolder(folderId);
+    
+    if (!restoredFolder) {
+      throw new ApiError(500, [{ folder: "Failed to restore folder" }]);
+    }
+    
+    return this.sanitizeFolder(restoredFolder);
+  }
+  
+  /**
+   * Get all folders in trash
+   * 
+   * @param userId ID of the user
+   * @returns List of deleted folders
+   */
+  async getTrashFolders(userId: string): Promise<FolderResponseDto[]> {
+    // Get deleted folders for this user
+    const deletedFolders = await folderDao.getUserDeletedFolders(userId);
+    
+    // Sanitize for response
+    return deletedFolders.map(folder => this.sanitizeFolder(folder));
   }
 }
 

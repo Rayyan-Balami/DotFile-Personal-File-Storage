@@ -337,6 +337,19 @@ class FileDao {
       modifiedCount: modifiedCount,
     };
   }
+
+  /**
+   * Get all deleted files for a user
+   * 
+   * @param userId ID of the user
+   * @returns Array of soft-deleted files
+   */
+  async getUserDeletedFiles(userId: string): Promise<IFile[]> {
+    return await File.find({
+      owner: userId,
+      deletedAt: { $ne: null }
+    }).sort({ deletedAt: -1 });
+  }
 }
 
 export default new FileDao();

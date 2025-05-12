@@ -1,0 +1,55 @@
+### Trash API Tests
+@baseUrl = http://localhost:3000/api
+
+### Get bearer token (log in first)
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "YourPassword123"
+}
+
+### Set token from login response
+@authToken = {{login.response.body.data.accessToken}}
+
+### Get All Trash Contents (files + folders)
+GET {{baseUrl}}/trash/contents
+Authorization: Bearer {{authToken}}
+
+### Empty Trash (permanently delete all trash contents)
+DELETE {{baseUrl}}/trash/empty
+Authorization: Bearer {{authToken}}
+
+### Soft Delete a File (move to trash)
+DELETE {{baseUrl}}/files/64a5b7e9c12e456789abcdef
+Authorization: Bearer {{authToken}}
+
+### Permanently Delete a File
+DELETE {{baseUrl}}/files/64a5b7e9c12e456789abcdef/permanent
+Authorization: Bearer {{authToken}}
+
+### Restore a File from Trash
+POST {{baseUrl}}/files/64a5b7e9c12e456789abcdef/restore
+Authorization: Bearer {{authToken}}
+
+### Get Trashed Files
+GET {{baseUrl}}/files/trash/contents
+Authorization: Bearer {{authToken}}
+
+### Soft Delete a Folder (move to trash)
+DELETE {{baseUrl}}/folders/64a5b7e9c12e456789abcdef
+Authorization: Bearer {{authToken}}
+
+### Permanently Delete a Folder
+DELETE {{baseUrl}}/folders/64a5b7e9c12e456789abcdef/permanent
+Authorization: Bearer {{authToken}}
+
+### Restore a Folder from Trash
+POST {{baseUrl}}/folders/64a5b7e9c12e456789abcdef/restore
+Authorization: Bearer {{authToken}}
+
+### Get Trashed Folders
+GET {{baseUrl}}/folders/trash/contents
+Authorization: Bearer {{authToken}}

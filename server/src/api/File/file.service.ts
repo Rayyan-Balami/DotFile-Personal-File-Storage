@@ -13,6 +13,7 @@ import path from "path";
 import mongoose from "mongoose";
 import shareService from "@api/share/share.service.js";
 import { IUserSharePermission } from "@api/share/share.dto.js";
+import fs from "fs/promises";
 
 /**
  * Service class for file-related business logic
@@ -652,6 +653,108 @@ class FileService {
     }
     
     return response;
+  }
+
+  /**
+   * Permanently delete a file from database and storage
+   * 
+   * @param fileId ID of the file to delete 
+   * @param userId ID of the user who owns the file
+   * @returns Result of the delete operation
+   */
+  async permanentDeleteFile(fileId: string, userId: string): Promise<{ acknowledged: boolean; deletedCount: number }> {
+    // First verify the file exists and belongs to the user
+    const file = await this.verifyFileOwnership(fileId, userId);
+    
+    if (!file) {
+      throw new ApiError(404, [{ file: "File not found" }]);
+    }
+
+    // Try to delete the physical file from storage
+    try {
+      // Build the physical storage path
+      const userStorageDir = `uploads/user-${userId}`;
+      const filePath = path.join(process.cwd(), userStorageDir, file.storageKey);
+      
+      // Check if file exists before attempting to delete
+      await fs.access(filePath);
+      await fs.unlink(filePath);
+      logger.debug(`Physical file deleted: ${filePath}`);
+    } catch (error) {
+      // If file doesn't exist or there's a permission issue, log but continue
+      logger.error(`Failed to delete physical file: ${error}`);
+    }
+    
+    // Delete from database
+    return await fileDao.permanentDeleteFile(fileId);
+  }
+
+  /**
+   * Restore a soft-deleted file
+   * 
+   * @param fileId ID of the file to restore
+   * @param userId ID of the user who owns the file
+   * @returns The restored file
+   */
+  async restoreFile(fileId: string, userId: string): Promise<FileResponseDto> {
+    // Verify file exists and belongs to user (include deleted files in search)
+    const file = await fileDao.getFileById(fileId, true);
+    
+    if (!file) {
+      throw new ApiError(404, [{ file: "File not found" }]);
+    }
+    
+    if (file.owner.toString() !== userId) {
+      throw new ApiError(403, [{ authentication: "You do not have permission to restore this file" }]);
+    }
+    
+    if (file.deletedAt === null) {
+      throw new ApiError(400, [{ file: "File is not in trash" }]);
+    }
+    
+    // Check if folder still exists (if file was in a folder)
+    if (file.folder) {
+      try {
+        const folder = await folderService.getFolderById(file.folder.toString(), userId);
+        
+        // If folder exists and is not deleted, increment its item count
+        if (folder) {
+          await folderService.incrementFolderItemCount(file.folder.toString());
+        }
+      } catch (error) {
+        // If folder is deleted or doesn't exist, move file to root
+        file.folder = null;
+        file.path = "/";
+        file.pathSegments = [];
+      }
+    }
+    
+    // Restore the file
+    const restoredFile = await fileDao.restoreDeletedFile(fileId);
+    
+    if (!restoredFile) {
+      throw new ApiError(500, [{ file: "Failed to restore file" }]);
+    }
+    
+    return this.sanitizeFile(restoredFile);
+  }
+
+  /**
+   * Get all files in user's trash
+   * 
+   * @param userId ID of the user
+   * @returns List of deleted files
+   */
+  async getTrashContents(userId: string): Promise<{ files: FileResponseDto[] }> {
+    // Get deleted files for this user
+    const deletedFiles = await fileDao.getUserDeletedFiles(userId);
+    
+    // Sanitize for response
+    const sanitizedFiles = deletedFiles.map(file => this.sanitizeFile(file));
+    
+    return {
+      files: sanitizedFiles
+    };
   }
 }
 

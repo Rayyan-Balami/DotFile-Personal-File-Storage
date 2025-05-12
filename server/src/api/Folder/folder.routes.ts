@@ -19,7 +19,11 @@ authRoutes
   .get("/contents", FolderController.getFolderContents)       // Handle root contents
   .get("/contents/:id", FolderController.getFolderContents)   // Handle contents with ID
   .post("/:id/rename", validateData(renameFolderSchema), FolderController.renameFolder) // Rename a folder
-  .post("/:id/move", validateData(moveFolderSchema), FolderController.moveFolder);      // Move a folder to a new parent
+  .post("/:id/move", validateData(moveFolderSchema), FolderController.moveFolder)      // Move a folder to a new parent
+  .delete("/:id", FolderController.softDeleteFolder)          // Soft delete folder (move to trash)
+  .delete("/:id/permanent", FolderController.permanentDeleteFolder) // Permanently delete folder
+  .post("/:id/restore", FolderController.restoreFolder)       // Restore folder from trash
+  .get("/trash/contents", FolderController.getTrashFolders);  // Get trash folders
 
 const folderRoutes = Router();
 folderRoutes.use("/folders", authRoutes);

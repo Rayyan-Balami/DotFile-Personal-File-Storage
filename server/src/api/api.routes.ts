@@ -7,6 +7,7 @@ import folderRoutes from "./Folder/folder.routes.js";
 import fileRoutes from "./File/file.routes.js";
 import workspaceRoutes from "./workspace/workspace.routes.js";
 import shareRoutes from "./share/share.routes.js";
+import trashRoutes from "./trash/trash.routes.js";
 
 const apiRoutes = Router();
 
@@ -44,6 +45,7 @@ apiRoutes.use("/", userRoutes);
 apiRoutes.use("/", planRoutes);
 apiRoutes.use("/", folderRoutes);
 apiRoutes.use("/", fileRoutes);
+apiRoutes.use("/trash", trashRoutes);
 apiRoutes.use("/workspaces", workspaceRoutes);
 apiRoutes.use("/shares", shareRoutes);
 

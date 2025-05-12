@@ -22,6 +22,9 @@ authRoutes.patch("/:id", validateData(updateFileSchema), FileController.updateFi
 authRoutes.delete("/:id", FileController.softDeleteFile);
 authRoutes.post("/:id/rename", validateData(renameFileSchema), FileController.renameFile); // Rename a file
 authRoutes.post("/:id/move", validateData(moveFileSchema), FileController.moveFile);     // Move a file to a different folder
+authRoutes.delete("/:id/permanent", FileController.permanentDeleteFile);                // Permanently delete file
+authRoutes.post("/:id/restore", FileController.restoreFile);                           // Restore a file from trash
+authRoutes.get("/trash/contents", FileController.getTrashContents);                    // Get trash contents
 
 //=============================================================================
 // ROUTE REGISTRATION

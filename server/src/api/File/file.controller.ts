@@ -180,6 +180,56 @@ class FileController {
       new ApiResponse(200, { file: updatedFile }, "File moved successfully")
     );
   });
+
+  /**
+   * Permanently delete a file from database and storage
+   */
+  permanentDeleteFile = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+
+    const fileId = req.params.id;
+    const result = await fileService.permanentDeleteFile(fileId, userId);
+
+    res.json(
+      new ApiResponse(200, { result }, "File permanently deleted")
+    );
+  });
+
+  /**
+   * Restore a soft-deleted file
+   */
+  restoreFile = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+
+    const fileId = req.params.id;
+    const restoredFile = await fileService.restoreFile(fileId, userId);
+
+    res.json(
+      new ApiResponse(200, { file: restoredFile }, "File restored successfully")
+    );
+  });
+
+  /**
+   * Get trash contents (soft-deleted files)
+   */
+  getTrashContents = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+
+    const trashContents = await fileService.getTrashContents(userId);
+
+    res.json(
+      new ApiResponse(200, { trash: trashContents }, "Trash contents retrieved successfully")
+    );
+  });
 }
 
 export default new FileController();

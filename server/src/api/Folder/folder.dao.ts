@@ -22,6 +22,21 @@ class FolderDao {
       .sort({ [isDeleted ? "deletedAt" : "createdAt"]: -1 });
   }
 
+  /**
+   * Get all deleted folders for a user
+   * 
+   * @param userId ID of the user whose deleted folders to retrieve
+   * @returns Array of deleted folders
+   */
+  async getUserDeletedFolders(userId: string): Promise<IFolder[]> {
+    return Folder.find({
+      owner: userId,
+      deletedAt: { $ne: null }
+    })
+    .populate("workspace")
+    .sort({ deletedAt: -1 });
+  }
+
   async getFolderById(folderId: string): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
     return Folder.findById(folderId);

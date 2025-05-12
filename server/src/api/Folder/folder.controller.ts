@@ -71,6 +71,69 @@ class FolderController {
       .status(200)
       .json(new ApiResponse(200, { folder: updatedFolder }, "Folder moved successfully"));
   });
+
+  // Soft delete a folder (move to trash)
+  softDeleteFolder = asyncHandler(async (req, res) => {
+    logger.info("Soft deleting folder");
+    const folderId = req.params.id;
+    
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+    const userId = req.user.id;
+    
+    const deletedFolder = await folderService.softDeleteFolder(folderId, userId);
+    res
+      .status(200)
+      .json(new ApiResponse(200, { folder: deletedFolder }, "Folder moved to trash"));
+  });
+  
+  // Permanently delete a folder
+  permanentDeleteFolder = asyncHandler(async (req, res) => {
+    logger.info("Permanently deleting folder");
+    const folderId = req.params.id;
+    
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+    const userId = req.user.id;
+    
+    const result = await folderService.permanentDeleteFolder(folderId, userId);
+    res
+      .status(200)
+      .json(new ApiResponse(200, { result }, "Folder permanently deleted"));
+  });
+  
+  // Restore a folder from trash
+  restoreFolder = asyncHandler(async (req, res) => {
+    logger.info("Restoring folder from trash");
+    const folderId = req.params.id;
+    
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+    const userId = req.user.id;
+    
+    const restoredFolder = await folderService.restoreFolder(folderId, userId);
+    res
+      .status(200)
+      .json(new ApiResponse(200, { folder: restoredFolder }, "Folder restored successfully"));
+  });
+  
+  // Get trash contents (all deleted folders)
+  getTrashFolders = asyncHandler(async (req, res) => {
+    logger.info("Getting trash folders");
+    
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+    const userId = req.user.id;
+    
+    const trashFolders = await folderService.getTrashFolders(userId);
+    res
+      .status(200)
+      .json(new ApiResponse(200, { folders: trashFolders }, "Trash folders retrieved successfully"));
+  });
 }
 
 export default new FolderController();
