@@ -83,7 +83,7 @@ class FolderDao {
     );
   }
 
-  async restoreFolder(folderId: string): Promise<IFolder | null> {
+  async restoreDeletedFolder(folderId: string): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
     return Folder.findByIdAndUpdate(
       folderId,

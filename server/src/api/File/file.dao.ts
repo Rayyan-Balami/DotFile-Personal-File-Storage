@@ -109,7 +109,7 @@ class FileDao {
    * @param id - MongoDB ObjectId string of the file
    * @returns Updated file document with cleared deletedAt timestamp if successful, null otherwise
    */
-  async restoreFile(id: string): Promise<IFile | null> {
+  async restoreDeletedFile(id: string): Promise<IFile | null> {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
     return await File.findOneAndUpdate(
       { _id: id, deletedAt: { $ne: null } },
