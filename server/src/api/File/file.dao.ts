@@ -339,16 +339,49 @@ class FileDao {
   }
 
   /**
-   * Get all deleted files for a user
+   * Get all files in a folder and its subfolders (for permanent deletion)
    * 
-   * @param userId ID of the user
-   * @returns Array of soft-deleted files
+   * @param folderId ID of the folder
+   * @param includeDeleted Whether to include deleted files
+   * @returns Array of files in the folder and subfolders
    */
-  async getUserDeletedFiles(userId: string): Promise<IFile[]> {
+  async getDeletedUserFilesByFolders(
+    userId: string,
+    folderId: string,
+  ): Promise<IFile[]> {
+    if (!mongoose.Types.ObjectId.isValid(folderId)) {
+      return [];
+    }
+    
     return await File.find({
-      owner: userId,
-      deletedAt: { $ne: null }
+      folder: folderId,
+      deletedAt: { $ne: null },
+      owner: userId
+    })
+    .sort({ deletedAt: -1 });
+  }
+
+  async getAllDeletedFiles(
+    userId: string
+  ): Promise<IFile[]> {
+    return await File.find({
+      deletedAt: { $ne: null },
+      owner: userId
     }).sort({ deletedAt: -1 });
+  }
+
+  async permanentDeleteAllDeletedFiles(
+    userId: string
+  ): Promise<{ acknowledged: boolean; deletedCount: number }> {
+    const result = await File.deleteMany({
+      deletedAt: { $ne: null },
+      owner: userId
+    });
+
+    return {
+      acknowledged: result.acknowledged,
+      deletedCount: result.deletedCount,
+    };
   }
 }
 

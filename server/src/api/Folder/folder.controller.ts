@@ -120,19 +120,42 @@ class FolderController {
       .json(new ApiResponse(200, { folder: restoredFolder }, "Folder restored successfully"));
   });
   
-  // Get trash contents (all deleted folders)
-  getTrashFolders = asyncHandler(async (req, res) => {
-    logger.info("Getting trash folders");
+
+  /**
+   * Get all folders in trash
+   */
+  getTrashFolderContents = asyncHandler(async (req, res) => {
+    logger.info("Getting trash folder contents");
     
     if (!req.user) {
       throw new ApiError(401, [{ authentication: "Unauthorized" }]);
     }
     const userId = req.user.id;
     
-    const trashFolders = await folderService.getTrashFolders(userId);
+    const trashFolders = await folderService.getTrashContents(userId);
+    
     res
       .status(200)
-      .json(new ApiResponse(200, { folders: trashFolders }, "Trash folders retrieved successfully"));
+      .json(new ApiResponse(200, { folders: trashFolders }, "Trash folder contents retrieved successfully"));
+  });
+
+  /**
+   * Empty trash - permanently delete all trashed folders
+   */
+  emptyTrash = asyncHandler(async (req, res) => {
+    logger.info("Emptying folder trash");
+    
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+    const userId = req.user.id;
+    
+    // Get all deleted folders for this user
+    const result = await folderService.emptyTrash(userId);
+    
+    res
+      .status(200)
+      .json(new ApiResponse(200, { result }, "Folder trash emptied successfully"));
   });
 }
 

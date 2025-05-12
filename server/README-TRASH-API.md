@@ -40,3 +40,9 @@ This document describes the API endpoints for trash management in the system.
 4. Restoring a folder will check if its parent folder still exists (and is not deleted). If the parent is missing or deleted, the folder will be restored to the root level.
 
 5. Similarly, restoring a file will check if its parent folder still exists. If not, the file will be restored to the root level.
+
+6. When emptying the trash (`/api/trash/empty`), all soft-deleted files and folders are permanently deleted in an efficient way that preserves referential integrity:
+   - Physical files are deleted from storage first
+   - Then file records are removed from the database
+   - Folders are deleted from the deepest level first, to avoid dependency issues
+   - The operation returns counts of the deleted files and folders

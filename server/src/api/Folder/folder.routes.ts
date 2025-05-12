@@ -23,7 +23,8 @@ authRoutes
   .delete("/:id", FolderController.softDeleteFolder)          // Soft delete folder (move to trash)
   .delete("/:id/permanent", FolderController.permanentDeleteFolder) // Permanently delete folder
   .post("/:id/restore", FolderController.restoreFolder)       // Restore folder from trash
-  .get("/trash/contents", FolderController.getTrashFolders);  // Get trash folders
+  .get("/trash/contents", FolderController.getTrashFolderContents)  // Get trash folders
+  .post("/trash/empty", FolderController.emptyTrash);      // Empty trash (delete everything)
 
 const folderRoutes = Router();
 folderRoutes.use("/folders", authRoutes);

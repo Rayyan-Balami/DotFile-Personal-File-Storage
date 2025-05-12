@@ -1,4 +1,8 @@
-import { MoveFolderDto, RenameFolderDto, UpdateFolderDto } from "@api/Folder/folder.dto.js";
+import {
+  MoveFolderDto,
+  RenameFolderDto,
+  UpdateFolderDto,
+} from "@api/Folder/folder.dto.js";
 import { Folder, IFolder } from "@api/Folder/folder.model.js";
 import mongoose from "mongoose";
 
@@ -24,17 +28,17 @@ class FolderDao {
 
   /**
    * Get all deleted folders for a user
-   * 
+   *
    * @param userId ID of the user whose deleted folders to retrieve
    * @returns Array of deleted folders
    */
   async getUserDeletedFolders(userId: string): Promise<IFolder[]> {
     return Folder.find({
       owner: userId,
-      deletedAt: { $ne: null }
+      deletedAt: { $ne: null },
     })
-    .populate("workspace")
-    .sort({ deletedAt: -1 });
+      .populate("workspace")
+      .sort({ deletedAt: -1 });
   }
 
   async getFolderById(folderId: string): Promise<IFolder | null> {
@@ -84,7 +88,13 @@ class FolderDao {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
     return Folder.findByIdAndUpdate(
       folderId,
-      { $set: { parent: moveData.parent, path: moveData.path, pathSegments: moveData.pathSegments } },
+      {
+        $set: {
+          parent: moveData.parent,
+          path: moveData.path,
+          pathSegments: moveData.pathSegments,
+        },
+      },
       { new: true }
     );
   }
@@ -110,6 +120,29 @@ class FolderDao {
   async permanentDeleteFolder(folderId: string): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
     return Folder.findByIdAndDelete(folderId);
+  }
+
+  async getAllDeletedFolders(
+    userId: string,
+    parentId: string | null
+  ): Promise<IFolder[]> {
+    return Folder.find({
+      owner: userId,
+      parent: parentId || null,
+      deletedAt: { $ne: null },
+    })
+      .populate("workspace")
+      .sort({ deletedAt: -1 });
+  }
+
+  async permanentDeleteAllDeletedFolders(
+    userId: string
+  ): Promise<{ acknowledged: boolean; deletedCount: number }> {
+    const result = await Folder.deleteMany({
+      owner: userId,
+      deletedAt: { $ne: null },
+    });
+    return { acknowledged: true, deletedCount: result.deletedCount };
   }
 
   async checkFolderExists(

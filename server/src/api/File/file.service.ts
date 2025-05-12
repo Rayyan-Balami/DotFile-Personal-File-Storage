@@ -416,7 +416,7 @@ class FileService {
               name: fileName,
               type: fileExtension,
               size: file.size,
-              storageKey: file.originalname,
+              storageKey: file.filename,  // Use file.filename instead of file.originalname to match actual file on disk
               originalPath: virtualPath,
             },
             userId,
@@ -745,16 +745,77 @@ class FileService {
    * @param userId ID of the user
    * @returns List of deleted files
    */
-  async getTrashContents(userId: string): Promise<{ files: FileResponseDto[] }> {
+  async getDeletedUserFilesByFolders(userId: string, folderId: string): Promise<{ files: FileResponseDto[] }> {
     // Get deleted files for this user
-    const deletedFiles = await fileDao.getUserDeletedFiles(userId);
-    
+    const deletedFiles = await fileDao.getDeletedUserFilesByFolders(userId, folderId);
+
     // Sanitize for response
     const sanitizedFiles = deletedFiles.map(file => this.sanitizeFile(file));
     
     return {
       files: sanitizedFiles
     };
+  }
+
+  /**
+   * Get all deleted files for a user
+   * 
+   * @param userId ID of the user
+   * @returns List of all deleted files, regardless of folder
+   */
+  async getAllDeletedFiles(userId: string): Promise<FileResponseDto[]> {
+    // Get all deleted files for this user
+    const deletedFiles = await fileDao.getAllDeletedFiles(userId);
+    
+    // Sanitize for response
+    return deletedFiles.map(file => this.sanitizeFile(file));
+  }
+
+  async permanentDeleteAllDeletedFiles(userId: string): Promise<{ acknowledged: boolean; deletedCount: number }> {
+    // Get all deleted files for this user
+    const deletedFiles = await fileDao.getAllDeletedFiles(userId);
+    // remove all files from upload directory
+    for (const file of deletedFiles) {
+            const userStorageDir = `uploads/user-${userId}`;
+      const filePath = path.join(process.cwd(), userStorageDir, file.storageKey);
+      try {
+        // Check if file exists before attempting to delete
+        await fs.access(filePath);
+        await fs.unlink(filePath);
+        logger.debug(`Physical file deleted: ${filePath}`);
+      } catch (error) {
+        // If file doesn't exist or there's a permission issue, log but continue
+        logger.error(`Failed to delete physical file: ${error}`);
+      }
+    }
+    // Permanently delete all files recorded in the database
+    const result = await fileDao.permanentDeleteAllDeletedFiles(userId);
+    if (!result) {
+      throw new ApiError(500, [{ delete: "Failed to empty trash" }]);
+    }
+    return result;
+  }
+  /**
+   * Bulk update file paths
+   * 
+   * @param oldPathPrefix The old path prefix to match
+   * @param newPathPrefix The new path prefix to replace it with
+   * @param pathSegmentsToUpdate Additional path segments to update or replace
+   * @returns Result of the update operation
+   */
+  async bulkUpdateFilePaths(
+    oldPathPrefix: string,
+    newPathPrefix: string,
+    pathSegmentsToUpdate: {
+      index: number;
+      value: { name: string; id: string };
+    }[] = []
+  ): Promise<{ acknowledged: boolean; modifiedCount: number }> {
+    return await fileDao.bulkUpdateFilePaths(
+      oldPathPrefix,
+      newPathPrefix,
+      pathSegmentsToUpdate
+    );
   }
 }
 
