@@ -12,7 +12,13 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction
 ): void => {
-  logger.error(err);
+  logger.error("Error handler caught:", err);
+  
+  // Prevent multiple responses if headers have already been sent
+  if (res.headersSent) {
+    logger.warn("Headers already sent, can't send error response");
+    return;
+  }
   
   // Default to 500 internal server error
   let statusCode = 500;
@@ -28,6 +34,13 @@ export const errorHandler = (
     // For other errors, create a generic message
     message = err.message || 'Internal Server Error';
     errors = [{ error: err.name || 'Error' }];
+  }
+  
+  // Clear any cookies that might have been set before the error
+  if (statusCode === 401) {
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
+    res.clearCookie('sessionId');
   }
   
   // Send JSON response with proper status code

@@ -22,11 +22,12 @@ export const asyncHandler = (
     } catch (error) {
       logger.error(error as Error);
 
+      // Don't try to handle errors if headers have already been sent
       if (res.headersSent) {
         return next(error);
       }
 
-      // If error is already an ApiError, pass it along
+      // If error is already an ApiError, pass it to the error handler
       if (error instanceof ApiError) {
         return next(error);
       }

@@ -26,6 +26,15 @@ export interface UpdateUserPasswordDTO {
   newPassword: string;
 }
 
+export interface AdminSetPasswordDTO {
+  newPassword: string;
+  confirmNewPassword: string;
+}
+
+export interface UpdateUserRoleDTO {
+  role: UserRole;
+}
+
 export interface UpdateUserRefreshTokenDTO {
   refreshToken: string | null;
   deviceInfo: string;

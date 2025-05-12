@@ -3,6 +3,7 @@ import {
   UpdateUserDTO,
   UpdateUserPasswordDTO,
   UpdateUserRefreshTokenDTO,
+  UserRole,
 } from "@api/user/user.dto.js";
 import User, { IUser } from "@api/user/user.model.js";
 import mongoose from "mongoose";
@@ -119,7 +120,7 @@ export class UserDAO {
     if (!mongoose.Types.ObjectId.isValid(userId)) return null;
 
     // Find user and verify they exist
-    const existingUser = await User.findById(userId);
+    const existingUser = await User.findById(userId).select("+password");
     if (!existingUser) return null;
 
     // Verify old password matches before allowing update
@@ -128,6 +129,28 @@ export class UserDAO {
 
     // Set new password and save (password hashing occurs in pre-save hook)
     existingUser.password = password.newPassword;
+    return await existingUser.save();
+  }
+
+  /**
+   * Set a user's password directly (admin only, no old password required)
+   *
+   * @param userId - MongoDB ObjectId string of the user
+   * @param newPassword - New password to set
+   * @returns Updated user document if password set successfully, null otherwise
+   */
+  async adminSetUserPassword(
+    userId: string,
+    newPassword: string
+  ): Promise<IUser | null> {
+    if (!mongoose.Types.ObjectId.isValid(userId)) return null;
+
+    // Find user and verify they exist
+    const existingUser = await User.findById(userId);
+    if (!existingUser) return null;
+
+    // Set new password and save (password hashing occurs in pre-save hook)
+    existingUser.password = newPassword;
     return await existingUser.save();
   }
 
@@ -243,6 +266,25 @@ export class UserDAO {
   }
 
   /**
+   * Update a user's role (admin only)
+   *
+   * @param userId - MongoDB ObjectId string of the user
+   * @param role - New role from UserRole enum
+   * @returns Updated user document if found and updated, null otherwise
+   */
+  async updateUserRole(
+    userId: string,
+    role: UserRole
+  ): Promise<IUser | null> {
+    if (!mongoose.Types.ObjectId.isValid(userId)) return null;
+    return await User.findOneAndUpdate(
+      { _id: userId, deletedAt: null },
+      { role },
+      { new: true }
+    );
+  }
+
+  /**
    * get a user by their ID and refresh token
    *
    * @param userId - MongoDB ObjectId string of the user
@@ -280,7 +322,7 @@ export class UserDAO {
    * @param userId - MongoDB ObjectId string of the user
    * @returns Updated user document with deletedAt timestamp if successful, null otherwise
    */
-  async deleteUser(userId: string): Promise<IUser | null> {
+  async softDeleteUser(userId: string): Promise<IUser | null> {
     if (!mongoose.Types.ObjectId.isValid(userId)) return null;
     return await User.findOneAndUpdate(
       { _id: userId },
@@ -298,6 +340,9 @@ export class UserDAO {
   async getAllUsers(deletedAt: boolean = false): Promise<IUser[]> {
     return await User.find({
       deletedAt: deletedAt ? { $ne: null } : null,
+    }).populate({
+      path: "plan",
+      select: "-description -features",
     });
   }
 }

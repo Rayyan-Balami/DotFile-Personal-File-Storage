@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { UserRole } from "./user.dto.js";
 
 // Extract common validations
 const passwordSchema = z
@@ -69,10 +70,30 @@ const refreshTokenSchema = z.object({
   refreshToken: z.string().optional(),
 });
 
+const updateUserRoleSchema = z.object({
+  role: z.nativeEnum(UserRole, {
+    errorMap: () => ({ message: "Role must be either 'user' or 'admin'" }),
+  }),
+});
+
+const adminSetPasswordSchema = z
+  .object({
+    newPassword: passwordSchema,
+    confirmNewPassword: z
+      .string()
+      .min(1, { message: "Please confirm the new password" }),
+  })
+  .refine((data) => data.newPassword === data.confirmNewPassword, {
+    message: "Passwords do not match",
+    path: ["confirmNewPassword"],
+  });
+
 export {
   loginUserSchema,
   refreshTokenSchema,
   registerUserSchema,
   updateUserPasswordSchema,
+  updateUserRoleSchema,
   updateUserSchema,
+  adminSetPasswordSchema,
 };

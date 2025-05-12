@@ -48,7 +48,7 @@ class UserController {
       .status(200)
       .cookie("accessToken", accessToken, this.cookieOptions)
       .cookie("refreshToken", refreshToken, this.cookieOptions)
-      .cookie("sessionId", sessionId, this.cookieOptions) // Add session ID cookie
+      .cookie("sessionId", sessionId, this.cookieOptions)
       .json(new ApiResponse(200, { user, accessToken }, "Login successful"));
   });
 
@@ -99,12 +99,49 @@ class UserController {
   });
 
   /**
+   * Set user password (admin only)
+   */
+  adminSetUserPassword = asyncHandler(async (req: Request, res: Response) => {
+    const updatedUser = await userService.adminSetUserPassword(
+      req.params.id,
+      req.body
+    );
+    res.json(
+      new ApiResponse(
+        200,
+        { user: updatedUser },
+        "User password set successfully"
+      )
+    );
+  });
+
+  /**
+   * Update a user's role (admin only)
+   */
+  updateUserRole = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    // don't allow updating own role for admin
+    if (req.user && req.user.id === id) {
+      throw new ApiError(403, [{ role: "You cannot update your own role" }]);
+    }
+    const updatedUser = await userService.updateUserRole(id, req.body);
+    
+    res.json(
+      new ApiResponse(
+        200,
+        { user: updatedUser },
+        "User role updated successfully"
+      )
+    );
+  });
+
+  /**
    * Delete a user (soft delete)
    */
-  deleteUser = asyncHandler(async (req: Request, res: Response) => {
-    const deletedUser = await userService.deleteUser(req.params.id);
+  softDeleteUser = asyncHandler(async (req: Request, res: Response) => {
+    const deletedUser = await userService.softDeleteUser(req.params.id);
     res.json(
-      new ApiResponse(200, { user: deletedUser }, "User deleted successfully")
+      new ApiResponse(200, { user: deletedUser }, "User soft deleted successfully")
     );
   });
 

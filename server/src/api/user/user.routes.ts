@@ -1,10 +1,12 @@
 import userController from "@api/user/user.controller.js";
 import { UserRole } from "@api/user/user.dto.js";
 import {
+  adminSetPasswordSchema,
   loginUserSchema,
   refreshTokenSchema,
   registerUserSchema,
   updateUserPasswordSchema,
+  updateUserRoleSchema,
   updateUserSchema,
 } from "@api/user/user.validator.js";
 import { restrictTo } from "@middleware/accessControl.middleware.js";
@@ -66,10 +68,15 @@ adminRoutes
   .put("/:id", validateData(updateUserSchema), userController.updateUser)
   .patch(
     "/:id/password",
-    validateData(updateUserPasswordSchema),
-    userController.updateUserPassword
+    validateData(adminSetPasswordSchema),
+    userController.adminSetUserPassword
   )
-  .delete("/:id", userController.deleteUser);
+  .patch(
+    "/:id/role",
+    validateData(updateUserRoleSchema),
+    userController.updateUserRole
+  )
+  .delete("/:id", userController.softDeleteUser);
 
 //=============================================================================
 // ROUTE REGISTRATION

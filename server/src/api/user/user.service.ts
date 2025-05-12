@@ -1,11 +1,13 @@
 import planService from "@api/plan/plan.service.js";
 import userDAO from "@api/user/user.dao.js";
 import {
+  AdminSetPasswordDTO,
   CreateUserDTO,
   JwtUserPayload,
   LoginUserDTO,
   UpdateUserDTO,
   UpdateUserPasswordDTO,
+  UpdateUserRoleDTO,
   UserResponseDTO,
 } from "@api/user/user.dto.js";
 import { IUser } from "@api/user/user.model.js";
@@ -170,15 +172,18 @@ class UserService {
     const user = await userDAO.getUserByEmail(credentials.email, {
       includePassword: true,
     });
-    logger.info("user found", user);
+    
     if (!user) {
-      throw new ApiError(401, [{ email: "Invalid credentials" }]);
+      // Use a generic error message that doesn't reveal if the email exists
+      throw new ApiError(401, [{ auth: "Invalid email or password" }]);
     }
 
     // Verify password
     const validPassword = await user.checkPassword(credentials.password);
+    
     if (!validPassword) {
-      throw new ApiError(401, [{ password: "Invalid credentials" }]);
+      // Use the same generic error message to prevent user enumeration
+      throw new ApiError(401, [{ auth: "Invalid email or password" }]);
     }
 
     // Generate tokens
@@ -344,14 +349,67 @@ class UserService {
   }
 
   /**
+   * Set user password (admin only)
+   *
+   * @param id User ID
+   * @param passwordData Password data with new password
+   * @returns Updated user data
+   * @throws ApiError if user not found
+   */
+  async adminSetUserPassword(
+    id: string,
+    passwordData: AdminSetPasswordDTO
+  ): Promise<UserResponseDTO> {
+    // Set the new password
+    const updatedUser = await userDAO.adminSetUserPassword(
+      id,
+      passwordData.newPassword
+    );
+
+    if (!updatedUser) {
+      throw new ApiError(404, [{ id: "User not found" }]);
+    }
+
+    return this.sanitizeUser(updatedUser);
+  }
+
+  /**
+   * Update a user's role (admin only)
+   *
+   * @param userId User ID
+   * @param roleData Object containing the new role
+   * @returns Updated user data
+   * @throws ApiError if user not found
+   */
+  async updateUserRole(
+    userId: string,
+    roleData: UpdateUserRoleDTO
+  ): Promise<UserResponseDTO> {
+    // Ensure the user exists first
+    const existingUser = await userDAO.getUserById(userId);
+    if (!existingUser) {
+      throw new ApiError(404, [{ id: "User not found" }]);
+    }
+
+    // Update the user role
+    const updatedUser = await userDAO.updateUserRole(userId, roleData.role);
+    
+    if (!updatedUser) {
+      throw new ApiError(500, [{ role: "Failed to update user role" }]);
+    }
+
+    return this.sanitizeUser(updatedUser);
+  }
+
+  /**
    * Soft delete a user account
    *
    * @param id User ID
    * @returns Deleted user data
    * @throws ApiError if user not found
    */
-  async deleteUser(id: string): Promise<UserResponseDTO> {
-    const deletedUser = await userDAO.deleteUser(id);
+  async softDeleteUser(id: string): Promise<UserResponseDTO> {
+    const deletedUser = await userDAO.softDeleteUser(id);
 
     if (!deletedUser) {
       throw new ApiError(404, [{ id: "User not found" }]);
