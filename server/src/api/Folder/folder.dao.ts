@@ -17,7 +17,9 @@ class FolderDao {
       owner: userId,
       parent: parentId || null,
       deletedAt: isDeleted ? { $ne: null } : null,
-    }).sort({ [isDeleted ? "deletedAt" : "createdAt"]: -1 });
+    })
+      .populate("workspace")
+      .sort({ [isDeleted ? "deletedAt" : "createdAt"]: -1 });
   }
 
   async getFolderById(folderId: string): Promise<IFolder | null> {
@@ -33,7 +35,7 @@ class FolderDao {
    */
   async getFolderWithWorkspace(folderId: string): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
-    return Folder.findById(folderId).populate('workspace');
+    return Folder.findById(folderId).populate("workspace");
   }
 
   async updateFolder(
@@ -74,7 +76,7 @@ class FolderDao {
   async checkFolderExists(
     name: string,
     ownerId: string,
-    parentId: string | null | undefined,
+    parentId: string | null | undefined
   ): Promise<IFolder | null> {
     return Folder.findOne({
       name,
@@ -82,28 +84,6 @@ class FolderDao {
       parent: parentId || null,
       deletedAt: null,
     });
-  }
-
-  /**
-   * Get user folders with populated workspace data
-   *
-   * @param userId User ID who owns the folders
-   * @param parentId Parent folder ID (optional, null for root folders)
-   * @param isDeleted When true, returns deleted folders
-   * @returns Array of folders with populated workspace data
-   */
-  async getUserFoldersWithWorkspace(
-    userId: string,
-    parentId?: string | null,
-    isDeleted?: boolean
-  ): Promise<IFolder[]> {
-    return Folder.find({
-      owner: userId,
-      parent: parentId || null,
-      deletedAt: isDeleted ? { $ne: null } : null,
-    })
-      .populate('workspace')
-      .sort({ [isDeleted ? "deletedAt" : "createdAt"]: -1 });
   }
 
   /**

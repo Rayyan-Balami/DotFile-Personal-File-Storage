@@ -44,43 +44,40 @@ export const verifyAuth = asyncHandler(
       req.headers["authorization"]?.replace("Bearer ", "");
 
     if (!token) {
-      // Clear cookies if present but no valid token
-      clearAuthCookies(res);
       throw new ApiError(401, [{ token: "No token provided" }]);
     }
 
     try {
-      // Type assertion to handle the jwt.verify return type
+      // Verify token
       const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET) as JwtUserPayload;
+        const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken || "";
 
-      // Find the complete user document
-      const user = await userService.getUserByIdAndRefreshToken(
-        decoded.id,
-        req.cookies?.refreshToken || "",
-        {
-          includeRefreshTokens: true,
-          deletedAt: false,
-        }
-      );
-
+      // Check if the user exists in the database
+      const user = await userService.getUserById(decoded.id);
       if (!user) {
-        // Clear cookies if user not found or token invalid
+        throw new ApiError(401, [
+          { user: "User not found. Please login again." },
+        ]);
+      }
+      // Check if the refresh token is valid
+      const userWithRefreshToken = await userService.getUserByIdAndRefreshToken(
+        user.id,
+        refreshToken,
+        { includeRefreshTokens: true, deletedAt: false }
+      );
+      if (!userWithRefreshToken) {
+        // Only clear cookies if user is not found
         clearAuthCookies(res);
         throw new ApiError(401, [
-          { user: "Session expired or invalidated. Please login again." },
+          { user: "Session expired. Please login again." },
         ]);
       }
 
-      // Attach user to request object - ensure user has required id property
-      if (!user.id) {
-        clearAuthCookies(res);
-        throw new ApiError(401, [{ user: "Invalid user data" }]);
-      }
+      // Attach authenticated user to request
       req.user = user as UserResponseDTO;
       next();
     } catch (error) {
-      // Clear cookies on any auth error
-      clearAuthCookies(res);
+      // Do not clear cookies unless user is not found
 
       if (error instanceof jwt.TokenExpiredError) {
         throw new ApiError(401, [
@@ -89,6 +86,7 @@ export const verifyAuth = asyncHandler(
       } else if (error instanceof jwt.JsonWebTokenError) {
         throw new ApiError(401, [{ token: "Invalid token" }]);
       }
+
       throw error;
     }
   }

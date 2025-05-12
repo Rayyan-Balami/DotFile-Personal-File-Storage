@@ -75,14 +75,11 @@ class FolderService {
   async getFolderContents(
     folderId: string | null,
     userId: string,
-    includeWorkspace: boolean = false
   ): Promise<FolderResponseWithFilesDto> {
     // if folderId is null then return all the folders and files having null parent (root level)
     if (!folderId) {
       // Get root folders with or without workspace data
-      const rootFolders = includeWorkspace 
-        ? await folderDao.getUserFoldersWithWorkspace(userId)
-        : await folderDao.getUserFolders(userId);
+      const rootFolders = await folderDao.getUserFolders(userId);
       
       const rootFiles = await fileService.getUserFilesByFolders(userId);
       return {
@@ -97,15 +94,8 @@ class FolderService {
     }
     
     // Get folders by parent ID, with or without workspace data
-    const folders = includeWorkspace
-      ? await folderDao.getUserFoldersWithWorkspace(userId, folderId)
-      : await folderDao.getUserFolders(userId, folderId);
-      
-    const files = await fileService.getUserFilesByFolders(userId, folderId);
-    
-    if (!folders || folders.length === 0) {
-      throw new ApiError(404, [{ folder: "Folder not found" }]);
-    }
+    const folders = await folderDao.getUserFolders(userId, folderId);
+    const files = await fileService.getUserFilesByFolders(userId, folderId)
     
     // Sanitize and return the folders
     return {
