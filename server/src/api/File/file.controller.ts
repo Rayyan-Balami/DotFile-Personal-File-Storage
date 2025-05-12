@@ -152,9 +152,9 @@ class FileController {
     }
 
     const fileId = req.params.id;
-    const renameData: RenameFileDto = req.body;
+    const { name } = req.body;
 
-    const updatedFile = await fileService.renameFile(fileId, renameData.name, userId);
+    const updatedFile = await fileService.renameFile(fileId, name, userId);
 
     res.json(
       new ApiResponse(200, { file: updatedFile }, "File renamed successfully")
@@ -172,9 +172,9 @@ class FileController {
     }
 
     const fileId = req.params.id;
-    const moveData: MoveFileDto = req.body;
+    const { destinationFolderId } = req.body;
 
-    const updatedFile = await fileService.moveFile(fileId, moveData.folder, userId);
+    const updatedFile = await fileService.moveFile(fileId, destinationFolderId, userId);
 
     res.json(
       new ApiResponse(200, { file: updatedFile }, "File moved successfully")
@@ -190,7 +190,7 @@ class FileController {
       throw new ApiError(401, [{ authentication: "Unauthorized" }]);
     }
 
-    
+
 
     const fileId = req.params.id;
     const result = await fileService.permanentDeleteFile(fileId, userId);

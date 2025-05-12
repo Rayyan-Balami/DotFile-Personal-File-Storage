@@ -34,7 +34,7 @@ export const updateFolderSchema = z.object({
 
 // Validation schema for renaming a folder
 export const renameFolderSchema = z.object({
-  newName: folderNameSchema.refine(
+  name: folderNameSchema.refine(
     (name) => name.trim().length > 0,
     { message: "Folder name cannot be empty" }
   ),
@@ -42,5 +42,5 @@ export const renameFolderSchema = z.object({
 
 // Validation schema for moving a folder
 export const moveFolderSchema = z.object({
-  newParentId: z.string().nullable(),
+  parent: z.string().nullable(),
 });

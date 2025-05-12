@@ -1,37 +1,80 @@
 @baseUrl = http://localhost:5000/api
 
+//=============================================================================
+// AUTHORIZATION - Set your access token here
+//=============================================================================
+@accessToken = your_access_token_here
+
+//=============================================================================
+// FOLDER MANAGEMENT OPERATIONS
+//=============================================================================
+
 ### Create new folder
+# Creates a folder at specified location
 POST {{baseUrl}}/folders/
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
   "name": "New Folder",
-  "parentId": null
+  "parent": null  // null for root, or folder ID
 }
 
 ### Get contents of root folder
+# Lists all files and folders at root level
 GET {{baseUrl}}/folders/contents
 Authorization: Bearer {{accessToken}}
 
 ### Get contents of specific folder
+# Lists all files and subfolders in the specified folder
 GET {{baseUrl}}/folders/contents/5f8e973e8c2c491f9c5b6fdb
 Authorization: Bearer {{accessToken}}
 
 ### Rename folder
+# Updates only the folder name
 POST {{baseUrl}}/folders/5f8e973e8c2c491f9c5b6fdb/rename
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "newName": "Renamed Folder"
+  "name": "Renamed Folder"
 }
 
 ### Move folder to a different parent folder
+# Relocates folder and all its contents
 POST {{baseUrl}}/folders/5f8e973e8c2c491f9c5b6fdb/move
 Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "destinationFolderId": "5f8e973e8c2c491f9c5b6fdc"
+  "parent": "5f8e973e8c2c491f9c5b6fdc"  // ID of destination folder, or null for root
 }
+
+//=============================================================================
+// FOLDER TRASH OPERATIONS
+//=============================================================================
+
+### Move folder to trash (soft delete)
+# Folder and contents remain recoverable from trash
+DELETE {{baseUrl}}/folders/5f8e973e8c2c491f9c5b6fdb
+Authorization: Bearer {{accessToken}}
+
+### Restore folder from trash
+# Recovers previously deleted folder and its contents
+POST {{baseUrl}}/folders/5f8e973e8c2c491f9c5b6fdb/restore
+Authorization: Bearer {{accessToken}}
+
+### Permanently delete folder
+# Removes folder and all contents completely (unrecoverable)
+DELETE {{baseUrl}}/folders/5f8e973e8c2c491f9c5b6fdb/permanent
+Authorization: Bearer {{accessToken}}
+
+### Get trash folder contents
+# Lists all folders and files in trash
+GET {{baseUrl}}/folders/trash/contents
+Authorization: Bearer {{accessToken}}
+
+### Empty trash (delete all trashed folders and files)
+# Permanently removes all items in trash
+POST {{baseUrl}}/folders/trash/empty
+Authorization: Bearer {{accessToken}}

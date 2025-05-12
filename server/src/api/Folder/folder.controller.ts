@@ -42,7 +42,9 @@ class FolderController {
   renameFolder = asyncHandler(async (req, res) => {
     logger.info("Renaming folder");
     const folderId = req.params.id;
-    const renameData = req.body;
+    const renameData = {
+      name: req.body.name
+    };
     
     if (!req.user) {
       throw new ApiError(401, [{ authentication: "Unauthorized" }]);
@@ -59,7 +61,9 @@ class FolderController {
   moveFolder = asyncHandler(async (req, res) => {
     logger.info("Moving folder");
     const folderId = req.params.id;
-    const moveData = req.body;
+    const moveData = {
+      parent: req.body.parent
+    };
     
     if (!req.user) {
       throw new ApiError(401, [{ authentication: "Unauthorized" }]);

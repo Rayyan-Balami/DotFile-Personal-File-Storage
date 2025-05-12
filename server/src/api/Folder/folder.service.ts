@@ -1,7 +1,14 @@
+import fileService from "@api/File/file.service.js";
 import folderDao from "@api/Folder/folder.dao.js";
 import { IFolder } from "@api/Folder/folder.model.js";
+import { IUserSharePermission } from "@api/share/share.dto.js";
+import shareService from "@api/share/share.service.js";
 import { ApiError } from "@utils/apiError.utils.js";
+import logger from "@utils/logger.utils.js";
 import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
+import fs from "fs/promises";
+import mongoose from "mongoose";
+import path from "path";
 import {
   CreateFolderDto,
   FolderResponseDto,
@@ -10,14 +17,6 @@ import {
   RenameFolderDto,
   UpdateFolderDto,
 } from "./folder.dto.js";
-import fileService from "@api/File/file.service.js";
-import { FileResponseDto } from "@api/File/file.dto.js";
-import logger from "@utils/logger.utils.js";
-import mongoose from "mongoose";
-import shareService from "@api/share/share.service.js";
-import { IUserSharePermission } from "@api/share/share.dto.js";
-import fs from "fs/promises";
-import path from "path";
 
 class FolderService {
   // Create a new folder
@@ -212,8 +211,7 @@ class FolderService {
 
     // Get the old path for updates
     const oldPath = folder.path;
-    const oldName = folder.name;
-
+    
     // Create new path with new name (sanitized)
     const sanitizedNewName = this.sanitizePathSegment(newName);
 

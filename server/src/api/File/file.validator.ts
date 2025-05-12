@@ -12,7 +12,7 @@ const fileNameSchema = z
 
 // Validation schema for renaming a file
 export const renameFileSchema = z.object({
-  newName: fileNameSchema.refine(
+  name: fileNameSchema.refine(
     (name) => name.trim().length > 0,
     { message: "File name cannot be empty" }
   ),
@@ -20,7 +20,7 @@ export const renameFileSchema = z.object({
 
 // Validation schema for moving a file
 export const moveFileSchema = z.object({
-  newParentId: z.string().nullable(),
+  destinationFolderId: z.string().nullable(),
 });
 
 // Validation schema for updating a file
