@@ -213,6 +213,34 @@ export class UserDAO {
     );
   }
 
+  /**
+   * Remove a refresh token by its ID from a user
+   *
+   * @param userId - MongoDB ObjectId string of the user
+   * @param tokenId - MongoDB ObjectId string of the refresh token
+   * @returns Updated user document if token removed, null otherwise
+   */
+  async removeRefreshTokenBySessionId(
+    userId: string,
+    tokenId: string
+  ): Promise<IUser | null> {
+    if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(tokenId)) {
+      return null;
+    }
+
+    // does the user has this token?
+    const user = await User.findOne({
+      _id: userId,
+      refreshTokens: { $elemMatch: { _id: tokenId } },
+    });
+    if (!user) return null;
+    
+    return await User.findOneAndUpdate(
+      { _id: userId },
+      { $pull: { refreshTokens: { _id: tokenId } } },
+      { new: true }
+    );
+  }
 
   /**
    * get a user by their ID and refresh token

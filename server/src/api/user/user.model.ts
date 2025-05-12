@@ -12,6 +12,7 @@ import mongoose, { Document, Schema, Types } from "mongoose";
 
 // Define the refresh token interface
 interface IRefreshToken {
+  _id: Types.ObjectId;
   token: string;
   deviceInfo: string;
   createdAt: Date;

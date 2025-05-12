@@ -19,30 +19,37 @@ export const verifyGuest = asyncHandler(
       req.cookies?.accessToken ||
       req.headers["authorization"]?.replace("Bearer ", "");
 
+    // If no token, user is definitely a guest
     if (!token) {
-      return next(); // no token = user is not logged in = allow
+      return next();
     }
 
     try {
-      // First verify if the token is valid JWT
+      // Try to verify the token
       const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET) as JwtUserPayload;
       
       if (decoded?.id) {
-        // Token is valid, now check if user session is valid
-        const refreshToken = req.cookies?.refreshToken || "";
+        // Get refresh token from cookies or request body
+        const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken || "";
+        
         try {
+          // Check if this is a valid user with a valid session
           const user = await userService.getUserByIdAndRefreshToken(
             decoded.id,
             refreshToken,
             { includeRefreshTokens: true, deletedAt: false }
           );
           
-          // Only block access if we find a valid user with this token
+          // If we found a valid user with this token combination, deny access
           if (user) {
-            throw new ApiError(403, [{ auth: "Already authenticated" }]);
+            throw new ApiError(403, [{ auth: "Already authenticated. Please logout first." }]);
           }
         } catch (userError) {
-          // User not found or token not valid in database
+          // If the error is our own ApiError, rethrow it
+          if (userError instanceof ApiError) {
+            throw userError;
+          }
+          // Otherwise, user not found or token not valid in database
           // Allow access as this means the token is stale
           return next();
         }
@@ -51,8 +58,7 @@ export const verifyGuest = asyncHandler(
       // If we reach here, token was valid but user wasn't found
       return next();
     } catch (err) {
-      // Any JWT verification error means token is invalid
-      // This includes expired tokens, invalid signatures, etc.
+      // Handle specific JWT errors
       if (err instanceof jwt.JsonWebTokenError || 
           err instanceof jwt.TokenExpiredError ||
           err instanceof jwt.NotBeforeError) {
@@ -60,11 +66,12 @@ export const verifyGuest = asyncHandler(
         return next();
       }
       
+      // Rethrow our own errors
       if (err instanceof ApiError) {
-        throw err; // Re-throw our "already authenticated" error
+        throw err;
       }
       
-      // Any other error, allow access as guest
+      // Any other unexpected error, allow access as guest
       return next();
     }
   }

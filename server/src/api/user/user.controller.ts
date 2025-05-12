@@ -38,7 +38,7 @@ class UserController {
     // Get device info from user agent or custom header
     const deviceInfo = req.headers["user-agent"] || "unknown-device";
     
-    const { user, accessToken, refreshToken } = await userService.loginUser(
+    const { user, accessToken, refreshToken, sessionId } = await userService.loginUser(
       req.body,
       deviceInfo
     );
@@ -48,6 +48,7 @@ class UserController {
       .status(200)
       .cookie("accessToken", accessToken, this.cookieOptions)
       .cookie("refreshToken", refreshToken, this.cookieOptions)
+      .cookie("sessionId", sessionId, this.cookieOptions) // Add session ID cookie
       .json(new ApiResponse(200, { user, accessToken }, "Login successful"));
   });
 
@@ -149,6 +150,39 @@ class UserController {
       .clearCookie("refreshToken", this.cookieOptions)
       .clearCookie("accessToken", this.cookieOptions)
       .json(new ApiResponse(200, {}, "Logged out from all devices successfully"));
+  });
+
+  /**
+   * Logout user from a specific device/session
+   */
+  logoutSession = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+
+    const { sessionId } = req.params;
+    
+    if (!sessionId) {
+      throw new ApiError(400, [{ session: "Session ID is required" }]);
+    }
+
+    try {
+      const loggedOutUser = await userService.logoutUserSession(req.user.id, sessionId);
+
+      console.log("Logged out user:", loggedOutUser);
+      // If the current session is being logged out, clear cookies
+      const currentSessionId = req.cookies?.sessionId || req.body?.sessionId;
+      if (currentSessionId === sessionId) {
+        res
+          .clearCookie("refreshToken", this.cookieOptions)
+          .clearCookie("accessToken", this.cookieOptions);
+      }
+      
+      res.json(new ApiResponse(200, {}, "Session logged out successfully"));
+    } catch (error) {
+      // Re-throw for error handler
+      throw error;
+    }
   });
 
   /**

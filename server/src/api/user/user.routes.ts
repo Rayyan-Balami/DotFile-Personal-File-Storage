@@ -50,6 +50,7 @@ authRoutes
     userController.updateCurrentUserPassword
   )
   .post("/logout", userController.logout)
+  .post("/logout/:sessionId", userController.logoutSession)
   .post("/logout-all", userController.logoutAllDevices);
 
 //=============================================================================

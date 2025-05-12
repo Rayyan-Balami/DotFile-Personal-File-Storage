@@ -15,6 +15,7 @@ import logger from "@utils/logger.utils.js";
 import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
 import jwt from "jsonwebtoken";
 import { createUserDirectory } from "@utils/mkdir.utils.js";
+import { console } from "inspector";
 
 /**
  * Service class for user-related business logic
@@ -38,15 +39,31 @@ class UserService {
     const refreshToken = user.generateRefreshToken(deviceInfo);
 
     // Add refresh token to the user's tokens array
-    await userDAO.addUserRefreshToken(user.id, {
+    const updatedUser = await userDAO.addUserRefreshToken(user.id, {
       refreshToken,
       deviceInfo,
     });
 
-    // Return tokens
+    // Check if user and refreshTokens exist before accessing
+    if (
+      !updatedUser ||
+      !updatedUser.refreshTokens ||
+      updatedUser.refreshTokens.length === 0
+    ) {
+      throw new ApiError(500, [{ auth: "Failed to create session" }]);
+    }
+
+    // Get the ID of the newly added token (last in the array)
+    const sessionId =
+      updatedUser.refreshTokens[
+        updatedUser.refreshTokens.length - 1
+      ]._id.toString();
+
+    // Return tokens and session ID
     return {
       accessToken,
       refreshToken,
+      sessionId,
     };
   }
 
@@ -147,6 +164,7 @@ class UserService {
     user: UserResponseDTO;
     accessToken: string;
     refreshToken: string;
+    sessionId: string;
   }> {
     // Find user by email
     const user = await userDAO.getUserByEmail(credentials.email, {
@@ -164,13 +182,14 @@ class UserService {
     }
 
     // Generate tokens
-    const { accessToken, refreshToken } =
+    const { accessToken, refreshToken, sessionId } =
       await this.generateAccessAndRefreshTokens(user, deviceInfo);
 
     return {
       user: this.sanitizeUser(user),
       accessToken,
       refreshToken,
+      sessionId,
     };
   }
 
@@ -199,6 +218,38 @@ class UserService {
     if (!loggedOutUser) {
       throw new ApiError(500, [{ logout: "Failed to logout user" }]);
     }
+    return true;
+  }
+
+  /**
+   * Logout user from a specific device by the session ID
+   *
+   * @param userId User ID
+   * @param sessionId ID of the session/refresh token to invalidate
+   * @returns Boolean indicating success
+   */
+  async logoutUserSession(userId: string, sessionId: string): Promise<boolean> {
+    // Find user by ID
+    const user = await userDAO.getUserById(userId, {
+      includeRefreshTokens: true,
+    });
+
+    if (!user) {
+      throw new ApiError(404, [{ id: "User not found" }]);
+    }
+
+    // Remove the specific refresh token by ID
+    const loggedOutUser = await userDAO.removeRefreshTokenBySessionId(
+      userId,
+      sessionId
+    );
+
+    if (!loggedOutUser) {
+      throw new ApiError(404, [
+        { session: "Session not found or already logged out" },
+      ]);
+    }
+
     return true;
   }
 
@@ -436,10 +487,27 @@ class UserService {
    * @returns Sanitized user object safe for client
    */
   private sanitizeUser(user: IUser): UserResponseDTO {
-    return sanitizeDocument<UserResponseDTO>(user, {
-      excludeFields: ["password", "refreshToken", "__v"],
+    // First use the general sanitizer
+    const sanitized = sanitizeDocument<UserResponseDTO>(user, {
+      excludeFields: ["password", "__v"],
       recursive: true,
     });
+
+    // If refresh tokens are included, transform them to safe session objects
+    if (user.refreshTokens && user.refreshTokens.length > 0) {
+      sanitized.activeSessions = user.refreshTokens.map((token) => ({
+        id: token._id.toString(),
+        deviceInfo: token.deviceInfo,
+        createdAt: token.createdAt.toISOString(),
+      }));
+    }
+
+    // Remove the original refresh tokens if they exist in the sanitized output
+    if ("refreshTokens" in sanitized) {
+      delete sanitized.refreshTokens;
+    }
+
+    return sanitized;
   }
 }
 
