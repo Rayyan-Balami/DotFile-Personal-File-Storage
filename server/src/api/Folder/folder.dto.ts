@@ -7,22 +7,21 @@ export interface CreateFolderDto {
 }
 
 export interface UpdateFolderDto {
-  name?: string;
-  parent?: string | null;
   workspace?: string | null;
   isPinned?: boolean;
   isShared?: boolean;
-  path?: string;
-  pathSegments?: { name: string; id: string }[];
   items?: number;
 }
 
 export interface RenameFolderDto {
-  newName: string;
+  name: string;
+  path?: string;
 }
 
 export interface MoveFolderDto {
-  newParentId: string | null;
+  parent: string | null;
+  path?: string;
+  pathSegments?: { name: string; id: string }[];
 }
 
 export interface FolderResponseDto {

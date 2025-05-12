@@ -24,11 +24,15 @@ export interface UpdateFileDto {
 }
 
 export interface RenameFileDto {
-  newName: string;
+  name: string;
+  path?: string;
 }
 
 export interface MoveFileDto {
-  newParentId: string | null;
+  folder: string | null;
+  path?: string;
+  pathSegments?: { name: string; id: string }[];
+  name: string;
 }
 
 export interface FileResponseDto {

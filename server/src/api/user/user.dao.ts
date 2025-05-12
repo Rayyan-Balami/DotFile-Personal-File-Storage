@@ -331,6 +331,22 @@ export class UserDAO {
     );
   }
 
+
+  /**
+   * Restore a soft-deleted user by removing the deletedAt timestamp
+   *
+   * @param userId - MongoDB ObjectId string of the user
+   * @returns Updated user document with deletedAt set to null if successful, null otherwise
+   */
+  async restoreUser(userId: string): Promise<IUser | null> {
+    if (!mongoose.Types.ObjectId.isValid(userId)) return null;
+    return await User.findOneAndUpdate(
+      { _id: userId },
+      { deletedAt: null },
+      { new: true }
+    );
+  }
+
   /**
    * Get all users, optionally filtering for active or deleted users
    *

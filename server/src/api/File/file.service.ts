@@ -220,12 +220,12 @@ class FileService {
    * @returns Deleted file document
    * @throws ApiError if file not found, user doesn't own it, or deletion fails
    */
-  async deleteFile(fileId: string, userId: string): Promise<FileResponseDto> {
+  async softDeleteFile(fileId: string, userId: string): Promise<FileResponseDto> {
     // Verify file ownership
     const existingFile = await this.verifyFileOwnership(fileId, userId);
     
     // Soft delete the file
-    const deletedFile = await fileDao.deleteFile(fileId);
+    const deletedFile = await fileDao.softDeleteFile(fileId);
     
     if (!deletedFile) {
       throw new ApiError(500, [{ delete: "Failed to delete file" }]);
@@ -264,7 +264,7 @@ class FileService {
     const newPath = `/${sanitizedName}`;
     
     // Update the file
-    const updatedFile = await fileDao.updateFile(fileId, {
+    const updatedFile = await fileDao.renameFile(fileId, {
       name: uniqueName,
       path: newPath
     });
@@ -280,11 +280,11 @@ class FileService {
    * Move a file to a new parent folder
    * 
    * @param fileId File ID to move
-   * @param newParentId New parent folder ID or null for root
+   * @param newFolderId New parent folder ID or null for root
    * @param userId User ID for ownership verification
    * @returns Updated file document
    */
-  async moveFile(fileId: string, newParentId: string | null, userId: string): Promise<FileResponseDto> {
+  async moveFile(fileId: string, newFolderId: string | null, userId: string): Promise<FileResponseDto> {
     // Verify file ownership
     const existingFile = await this.verifyFileOwnership(fileId, userId);
     
@@ -292,9 +292,9 @@ class FileService {
     let parentFolder = null;
     let newPathSegments: { name: string; id: string }[] = [];
     
-    if (newParentId) {
+    if (newFolderId) {
       // Get the destination folder and verify ownership
-      parentFolder = await folderService.verifyFolderOwnership(newParentId, userId);
+      parentFolder = await folderService.verifyFolderOwnership(newFolderId, userId);
       
       // Use the parent's pathSegments for the file
       newPathSegments = [...parentFolder.pathSegments.map(segment => ({
@@ -308,14 +308,14 @@ class FileService {
       existingFile.name,
       existingFile.extension,
       userId,
-      newParentId
+      newFolderId
     );
     
     // Sanitize the name for path consistency
     const sanitizedName = this.sanitizePathSegment(uniqueName);
     
     // Calculate new path
-    const newPath = newParentId && parentFolder 
+    const newPath = newFolderId && parentFolder 
       ? `${parentFolder.path}/${sanitizedName}` 
       : `/${sanitizedName}`;
     
@@ -325,9 +325,9 @@ class FileService {
     }
     
     // Update the file
-    const updatedFile = await fileDao.updateFile(fileId, {
+    const updatedFile = await fileDao.moveFile(fileId, {
       name: uniqueName,
-      folder: newParentId,
+      folder: newFolderId,
       path: newPath,
       pathSegments: newPathSegments
     });
@@ -337,8 +337,8 @@ class FileService {
     }
     
     // If file is moved to a folder, increment that folder's item count
-    if (newParentId) {
-      await folderService.incrementFolderItemCount(newParentId);
+    if (newFolderId) {
+      await folderService.incrementFolderItemCount(newFolderId);
     }
     
     return this.sanitizeFile(updatedFile);

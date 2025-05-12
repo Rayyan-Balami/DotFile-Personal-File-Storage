@@ -127,14 +127,14 @@ class FileController {
   /**
    * Delete a file
    */
-  deleteFile = asyncHandler(async (req: Request, res: Response) => {
+  softDeleteFile = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
     if (!userId) {
       throw new ApiError(401, [{ authentication: "Unauthorized" }]);
     }
 
     const fileId = req.params.id;
-    const deletedFile = await fileService.deleteFile(fileId, userId);
+    const deletedFile = await fileService.softDeleteFile(fileId, userId);
 
     res.json(
       new ApiResponse(200, { file: deletedFile }, "File deleted successfully")
@@ -154,7 +154,7 @@ class FileController {
     const fileId = req.params.id;
     const renameData: RenameFileDto = req.body;
 
-    const updatedFile = await fileService.renameFile(fileId, renameData.newName, userId);
+    const updatedFile = await fileService.renameFile(fileId, renameData.name, userId);
 
     res.json(
       new ApiResponse(200, { file: updatedFile }, "File renamed successfully")
@@ -174,7 +174,7 @@ class FileController {
     const fileId = req.params.id;
     const moveData: MoveFileDto = req.body;
 
-    const updatedFile = await fileService.moveFile(fileId, moveData.newParentId, userId);
+    const updatedFile = await fileService.moveFile(fileId, moveData.folder, userId);
 
     res.json(
       new ApiResponse(200, { file: updatedFile }, "File moved successfully")

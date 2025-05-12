@@ -19,7 +19,7 @@ authRoutes.use(verifyAuth);
 authRoutes.post("/upload", FileController.uploadFiles); // Single unified upload endpoint
 authRoutes.get("/:id", FileController.getFileById);
 authRoutes.patch("/:id", validateData(updateFileSchema), FileController.updateFile);
-authRoutes.delete("/:id", FileController.deleteFile);
+authRoutes.delete("/:id", FileController.softDeleteFile);
 authRoutes.post("/:id/rename", validateData(renameFileSchema), FileController.renameFile); // Rename a file
 authRoutes.post("/:id/move", validateData(moveFileSchema), FileController.moveFile);     // Move a file to a different folder
 

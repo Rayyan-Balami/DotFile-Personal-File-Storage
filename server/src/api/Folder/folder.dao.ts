@@ -1,4 +1,4 @@
-import { UpdateFolderDto } from "@api/Folder/folder.dto.js";
+import { MoveFolderDto, RenameFolderDto, UpdateFolderDto } from "@api/Folder/folder.dto.js";
 import { Folder, IFolder } from "@api/Folder/folder.model.js";
 import mongoose from "mongoose";
 
@@ -50,7 +50,31 @@ class FolderDao {
     );
   }
 
-  async trashFolder(folderId: string): Promise<IFolder | null> {
+  async renameFolder(
+    folderId: string,
+    renameData: RenameFolderDto
+  ): Promise<IFolder | null> {
+    if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
+    return Folder.findByIdAndUpdate(
+      folderId,
+      { $set: { name: renameData.name, path: renameData.path } },
+      { new: true }
+    );
+  }
+
+  async moveFolder(
+    folderId: string,
+    moveData: MoveFolderDto
+  ): Promise<IFolder | null> {
+    if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
+    return Folder.findByIdAndUpdate(
+      folderId,
+      { $set: { parent: moveData.parent, path: moveData.path, pathSegments: moveData.pathSegments } },
+      { new: true }
+    );
+  }
+
+  async softDeleteFolder(folderId: string): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
     return Folder.findByIdAndUpdate(
       folderId,
@@ -68,7 +92,7 @@ class FolderDao {
     );
   }
 
-  async permanentlyDeleteFolder(folderId: string): Promise<IFolder | null> {
+  async permanentDeleteFolder(folderId: string): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
     return Folder.findByIdAndDelete(folderId);
   }

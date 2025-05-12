@@ -212,7 +212,7 @@ class FolderService {
 
     // Sanitize and ensure unique name at this level
     const newName = await this.ensureUniqueNameAtLevel(
-      renameData.newName,
+      renameData.name,
       userId,
       folder.parent ? folder.parent.toString() : null
     );
@@ -231,8 +231,8 @@ class FolderService {
     const newPath = pathSegments.join("/");
 
     // Update this folder
-    const updatedFolder = await folderDao.updateFolder(folderId, {
-      name: newName,
+    const updatedFolder = await folderDao.renameFolder(folderId, {
+      name: sanitizedNewName,
       path: newPath,
     });
 
@@ -286,19 +286,19 @@ class FolderService {
     
     // If the folder is already in the target parent, no need to move
     if (
-      (moveData.newParentId === null && folder.parent === null) ||
-      (moveData.newParentId !== null &&
+      (moveData.parent === null && folder.parent === null) ||
+      (moveData.parent !== null &&
         folder.parent !== null &&
-        folder.parent.toString() === moveData.newParentId)
+        folder.parent.toString() === moveData.parent)
     ) {
       return this.sanitizeFolder(folder);
     }
 
     // Verify the target parent exists if not moving to root
     let newParentFolder = null;
-    if (moveData.newParentId !== null) {
+    if (moveData.parent !== null) {
       // Verify the destination folder exists and the user owns it
-      newParentFolder = await this.verifyFolderOwnership(moveData.newParentId, userId);
+      newParentFolder = await this.verifyFolderOwnership(moveData.parent, userId);
 
       // Check that we're not moving a folder into its own descendant
       if (
@@ -325,7 +325,7 @@ class FolderService {
     let newPath = "";
     let newPathSegments: { name: string; id: string }[] = [];
 
-    if (!moveData.newParentId) {
+    if (!moveData.parent) {
       // Moving to root level
       newPath = `/${this.sanitizePathSegment(folder.name)}`;
       newPathSegments = []; // Root level has no path segments
@@ -357,8 +357,8 @@ class FolderService {
     }
 
     // Update the folder's parent and path
-    const updatedFolder = await folderDao.updateFolder(folderId, {
-      parent: moveData.newParentId,
+    const updatedFolder = await folderDao.moveFolder(folderId, {
+      parent: moveData.parent,
       path: newPath,
       pathSegments: newPathSegments,
     });
@@ -374,8 +374,8 @@ class FolderService {
     }
 
     // Increment count on the new parent
-    if (moveData.newParentId) {
-      await this.incrementParentItemCount(moveData.newParentId);
+    if (moveData.parent) {
+      await this.incrementParentItemCount(moveData.parent);
     }
 
     logger.debug(`Moving folder. Old path: ${oldPath}, New path: ${newPath}`);

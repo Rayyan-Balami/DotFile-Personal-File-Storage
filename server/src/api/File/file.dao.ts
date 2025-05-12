@@ -1,4 +1,4 @@
-import { CreateFileDto, UpdateFileDto } from "@api/File/file.dto.js";
+import { CreateFileDto, MoveFileDto, RenameFileDto, UpdateFileDto } from "@api/File/file.dto.js";
 import File, { IFile } from "@api/File/file.model.js";
 import mongoose from "mongoose";
 
@@ -59,13 +59,41 @@ class FileDao {
     );
   }
 
+  async renameFile(
+    id: string,
+    data: RenameFileDto
+  ): Promise<IFile | null> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    return await File.findOneAndUpdate(
+      { _id: id, deletedAt: null },
+      { name: data.name, path: data.path },
+      { new: true }
+    );
+  }
+
+  async moveFile(
+    id: string,
+    data: MoveFileDto
+  ): Promise<IFile | null> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    return await File.findOneAndUpdate(
+      { _id: id, deletedAt: null },
+      {
+        folder: data.folder,
+        path: data.path,
+        pathSegments: data.pathSegments,
+      },
+      { new: true }
+    );
+  }
+
   /**
    * Soft delete a file by setting deletedAt timestamp
    *
    * @param id - MongoDB ObjectId string of the file
    * @returns Updated file document with deletedAt timestamp if successful, null otherwise
    */
-  async deleteFile(id: string): Promise<IFile | null> {
+  async softDeleteFile(id: string): Promise<IFile | null> {
     if (!mongoose.Types.ObjectId.isValid(id)) return null;
 
     return await File.findOneAndUpdate(
@@ -76,12 +104,27 @@ class FileDao {
   }
 
   /**
+   * Restore a soft-deleted file by clearing the deletedAt timestamp
+   *
+   * @param id - MongoDB ObjectId string of the file
+   * @returns Updated file document with cleared deletedAt timestamp if successful, null otherwise
+   */
+  async restoreFile(id: string): Promise<IFile | null> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    return await File.findOneAndUpdate(
+      { _id: id, deletedAt: { $ne: null } },
+      { deletedAt: null },
+      { new: true }
+    );
+  }
+
+  /**
    * Permanently delete a file from the database
    *
    * @param id - MongoDB ObjectId string of the file
    * @returns Deletion result object with acknowledged and deletedCount properties
    */
-  async permanentlyDeleteFile(
+  async permanentDeleteFile(
     id: string
   ): Promise<{ acknowledged: boolean; deletedCount: number }> {
     if (!mongoose.Types.ObjectId.isValid(id)) {
