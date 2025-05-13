@@ -48,6 +48,15 @@ export const verifyAuth = asyncHandler(
         deletedAt: false,
       });
 
+      console.log("User from DB:", user);
+      console.log("Decoded JWT:", decoded);
+      console.log("Refresh Token from Cookies:", refreshToken);
+      console.log("Session ID from Cookies:", sessionId);
+      console.log("User Refresh Tokens:", user?.refreshTokens);
+      console.log("User Refresh Tokens Match:", user?.refreshTokens?.some(
+        (t) => t.token === refreshToken && t.id === sessionId
+      ));
+
       if (!user) {
         throw new ApiError(401, [{ user: "User not found. Please login again." }]);
       }

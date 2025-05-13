@@ -53,13 +53,6 @@ export interface RefreshTokenRecord {
   createdAt: Date;
 }
 
-// Add this interface for session info
-export interface SessionInfo {
-  id: string;
-  deviceInfo: string;
-  createdAt: string;
-}
-
 export enum UserRole {
   USER = "user",
   ADMIN = "admin",
@@ -73,8 +66,6 @@ export interface UserResponseDTO {
   role: UserRole;
   plan: string | UserPlanResponseDTO;
   storageUsed: number;
-  // Instead of refresh tokens, return sessions
-  activeSessions?: SessionInfo[];
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;

@@ -13,42 +13,35 @@ export const errorHandler = (
   _next: NextFunction
 ): void => {
   logger.error("Error handler caught:", err);
-  
+
   // Prevent multiple responses if headers have already been sent
   if (res.headersSent) {
     logger.warn("Headers already sent, can't send error response");
     return;
   }
-  
-  // Default to 500 internal server error
+
+  // Default error values
   let statusCode = 500;
   let message = 'Something went wrong';
   let errors: Record<string, string>[] | undefined;
-  
-  // If error is an ApiError, use its properties
+
+  // Customize for ApiError
   if (err instanceof ApiError) {
     statusCode = err.statusCode;
     message = err.message;
     errors = err.errors;
   } else {
-    // For other errors, create a generic message
+    // Generic error fallback
     message = err.message || 'Internal Server Error';
     errors = [{ error: err.name || 'Error' }];
   }
-  
-  // Clear any cookies that might have been set before the error
-  if (statusCode === 401) {
-    res.clearCookie('accessToken');
-    res.clearCookie('refreshToken');
-    res.clearCookie('sessionId');
-  }
-  
-  // Send JSON response with proper status code
+
+  // Final error response
   res.status(statusCode).json({
     success: false,
     statusCode,
     message,
     errors,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   });
 };

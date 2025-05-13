@@ -21,8 +21,7 @@ export const verifyGuest = asyncHandler(
 
       const refreshToken =
         req.cookies?.refreshToken || req.body?.refreshToken || "";
-      const sessionId =
-        req.cookies?.sessionId || req.body?.sessionId || "";
+      const sessionId = req.cookies?.sessionId || req.body?.sessionId || "";
 
       const user = await userService.getUserById(decoded.id, {
         includeRefreshTokens: true,

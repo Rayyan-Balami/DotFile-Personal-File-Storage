@@ -524,26 +524,10 @@ class UserService {
    */
   private sanitizeUser(user: IUser): UserResponseDTO {
     // First use the general sanitizer
-    const sanitized = sanitizeDocument<UserResponseDTO>(user, {
+    return sanitizeDocument<UserResponseDTO>(user, {
       excludeFields: ["password", "__v"],
       recursive: true,
     });
-
-    // If refresh tokens are included, transform them to safe session objects
-    if (user.refreshTokens && user.refreshTokens.length > 0) {
-      sanitized.activeSessions = user.refreshTokens.map((token) => ({
-        id: token._id.toString(),
-        deviceInfo: token.deviceInfo,
-        createdAt: token.createdAt.toISOString(),
-      }));
-    }
-
-    // Remove the original refresh tokens if they exist in the sanitized output
-    if ("refreshTokens" in sanitized) {
-      delete sanitized.refreshTokens;
-    }
-
-    return sanitized;
   }
 }
 
