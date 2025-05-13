@@ -1,27 +1,3 @@
-// export interface IPublicShare extends Document {
-//   _id: Types.ObjectId;
-//   resource: Schema.Types.ObjectId;
-//   owner: Schema.Types.ObjectId;
-//   link: string; // unique link
-//   permission: IPublicSharePermission;
-//   allowDownload: boolean;
-//   createdAt: Date;
-//   updatedAt: Date;
-// }
-
-// export interface IUserShare extends Document {
-//   _id: Types.ObjectId;
-//   resource: Schema.Types.ObjectId;
-//   owner: Schema.Types.ObjectId;
-//   sharedWith: {
-//     userId: Schema.Types.ObjectId;
-//     permission: IUserSharePermission;
-//     allowDownload: boolean;
-//   }[];
-//   createdAt: Date;
-//   updatedAt: Date;
-// }
-
 export enum IPublicSharePermission {
   RESTRICTED = 'restricted',
   VIEWER = 'viewer',

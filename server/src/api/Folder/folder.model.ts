@@ -11,6 +11,8 @@ export interface IFolder extends Document {
   pathSegments: { name: string; id: Schema.Types.ObjectId }[]; // For breadcrumb navigation
   items: number;
   isPinned: boolean;
+  publicShare: Schema.Types.ObjectId | null;
+  userShare: Schema.Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;

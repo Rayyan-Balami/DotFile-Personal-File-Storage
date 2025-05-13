@@ -12,6 +12,8 @@ export interface IFile extends Document {
   pathSegments: { name: string; id: Schema.Types.ObjectId }[];
   extension: string;
   isPinned: boolean;
+    publicShare: Schema.Types.ObjectId | null;
+  userShare: Schema.Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
