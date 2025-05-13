@@ -283,10 +283,15 @@ class FileDao {
     if (oldPathPrefix === newPathPrefix && pathSegmentsToUpdate.length === 0) {
       return { acknowledged: true, modifiedCount: 0 };
     }
+    
+    // Remove leading slashes from paths for matching
+    const oldPathWithoutSlash = oldPathPrefix.startsWith('/') ? oldPathPrefix.substring(1) : oldPathPrefix;
+    const newPathWithoutSlash = newPathPrefix.startsWith('/') ? newPathPrefix.substring(1) : newPathPrefix;
 
     // Find all matching files to update
     const filesToUpdate = await File.find({
-      path: { $regex: `^${oldPathPrefix}` },
+      // Match any file path that starts with the old path prefix (without leading slash)
+      path: { $regex: `^${oldPathWithoutSlash}` },
       deletedAt: null,
     });
 
@@ -296,16 +301,20 @@ class FileDao {
 
     // Track successful updates
     let modifiedCount = 0;
+    
+    console.log(`bulkUpdateFilePaths: Found ${filesToUpdate.length} files to update`);
+    console.log(`Replacing '${oldPathWithoutSlash}' with '${newPathWithoutSlash}'`);
 
     // Process each file individually with string replacements
     for (const file of filesToUpdate) {
       // Update the path with string replacement
       let newPath = file.path;
-      if (oldPathPrefix !== newPathPrefix) {
+      if (oldPathWithoutSlash !== newPathWithoutSlash) {
         newPath = file.path.replace(
-          new RegExp(`^${oldPathPrefix}`),
-          newPathPrefix
+          new RegExp(`^${oldPathWithoutSlash}`),
+          newPathWithoutSlash
         );
+        console.log(`File path update: '${file.path}' -> '${newPath}'`);
       }
 
       // Prepare updates object

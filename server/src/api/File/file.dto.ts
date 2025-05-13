@@ -9,7 +9,6 @@ export interface CreateFileDto {
   pathSegments?: { name: string; id: string }[];
   storageKey: string;
   workspace?: string | null;
-  originalPath?: string;
   extension?: string;
 }
 
@@ -49,7 +48,6 @@ export interface FileResponseDto {
   isShared: boolean;
   workspace: string | null;
   storageKey: string;
-  originalPath?: string;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;

@@ -337,7 +337,7 @@ export const processZipFiles = async (
           // Get the directory path for this file from the zip
           const dirPath = path.dirname(entry.entryName);
           
-          // Store the original path for later reference
+          // Store the path for later reference - this will be incorporated into the file path
           fileToFolderMap[randomFilename] = dirPath;
 
           // Make sure we have a session

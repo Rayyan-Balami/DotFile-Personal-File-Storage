@@ -34,7 +34,7 @@ class FileService {
       type: string;
       size: number;
       storageKey: string;
-      originalPath?: string;
+      path?: string; // Optional path from ZIP files
     },
     userId: string,
     folderId?: string | null
@@ -52,15 +52,23 @@ class FileService {
     // Sanitize the name for path consistency
     const sanitizedName = this.sanitizePathSegment(uniqueName);
 
+    // Construct the file path, incorporating any original path from ZIP
+    let filePath = fileData.path ? 
+      // For ZIP files, incorporate the virtual path
+      `/${fileData.path}/${sanitizedName}` :
+      // For regular files, just use the name
+      `/${sanitizedName}`;
+    
+    // Normalize path to avoid any double slashes
+    filePath = filePath.replace(/\/+/g, '/');
+
     // Create the file document
     const file = await fileDao.createFile({
       ...fileData,
       name: uniqueName,
       owner: userId,
       folder: folderId || null,
-      // Using flat storage, so the path is directly in user directory
-      path: `/${sanitizedName}`,
-      // Add the extension field - use the file type as extension
+      path: filePath, // Use the constructed path
       extension: fileData.type || ''
     });
     
@@ -417,7 +425,7 @@ class FileService {
               type: fileExtension,
               size: file.size,
               storageKey: file.filename,  // Use file.filename instead of file.originalname to match actual file on disk
-              originalPath: virtualPath,
+              path: virtualPath, // Pass the virtual path to be incorporated into the file path
             },
             userId,
             targetFolderId
@@ -428,7 +436,7 @@ class FileService {
             name: savedFile.name,
             size: savedFile.size,
             folder: targetFolderId || null,
-            virtualPath: virtualPath,
+            virtualPath: virtualPath, // Keep this for backwards compatibility
           });
           
         } else {
@@ -443,6 +451,7 @@ class FileService {
               type: fileExtension,
               size: file.size,
               storageKey: file.filename,
+              // No need to pass a path for regular files, it will be constructed from just the filename
             },
             userId,
             folderId

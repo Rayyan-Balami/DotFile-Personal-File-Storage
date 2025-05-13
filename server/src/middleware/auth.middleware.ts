@@ -59,6 +59,8 @@ export const verifyAuth = asyncHandler(
           { user: "User not found. Please login again." },
         ]);
       }
+      console.log("user", user);
+      console.log("refreshToken", refreshToken);
       // Check if the refresh token is valid
       const userWithRefreshToken = await userService.getUserByIdAndRefreshToken(
         user.id,
@@ -67,7 +69,7 @@ export const verifyAuth = asyncHandler(
       );
       if (!userWithRefreshToken) {
         // Only clear cookies if user is not found
-        clearAuthCookies(res);
+        // clearAuthCookies(res);
         throw new ApiError(401, [
           { user: "Session expired. Please login again." },
         ]);
