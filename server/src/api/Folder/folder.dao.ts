@@ -248,6 +248,7 @@ class FolderDao {
 
       allDescendants.push(...subfolders);
       queue.push(...subfolders);
+      console.log(`Found ${subfolders.length} subfolders for ${currentId}`);
     }
 
     return allDescendants;
@@ -320,7 +321,7 @@ class FolderDao {
           if (update.index < pathSegments.length) {
             pathSegments[update.index] = {
               name: update.value.name,
-              id: new mongoose.Types.ObjectId(update.value.id),
+              id: new mongoose.Schema.Types.ObjectId(update.value.id),
             };
           }
         });
@@ -341,6 +342,17 @@ class FolderDao {
       acknowledged: true,
       modifiedCount,
     };
+  }
+
+
+  async permanentDeleteAllDeletedFolders(
+    userId: string
+  ): Promise<{ acknowledged: boolean; deletedCount: number }> {
+    const result = await Folder.deleteMany({
+      owner: userId,
+      deletedAt: { $ne: null },
+    });
+    return { acknowledged: true, deletedCount: result.deletedCount };
   }
 }
 

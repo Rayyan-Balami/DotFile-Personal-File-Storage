@@ -26,7 +26,7 @@ class ShareController {
     if (resourceType === 'file') {
       resource = await fileService.getFileById(resourceId, user.id);
     } else if (resourceType === 'folder') {
-      resource = await folderService.getFolderById(resourceId, user.id, false);
+      resource = await folderService.getFolderById(resourceId, user.id);
     } else {
       throw new ApiError(400, [{ resourceType: 'Invalid resource type' }]);
     }
@@ -125,7 +125,7 @@ class ShareController {
       
       if (!resource) {
         // If not found as file, try as folder
-        resource = await folderService.getFolderById(share.resource.toString(), share.owner.toString(), false);
+        resource = await folderService.getFolderById(share.resource.toString(), share.owner.toString());
       }
     } catch (error) {
       // Handle errors
@@ -165,7 +165,7 @@ class ShareController {
     if (resourceType === 'file') {
       resource = await fileService.getFileById(resourceId, user.id);
     } else if (resourceType === 'folder') {
-      resource = await folderService.getFolderById(resourceId, user.id, false);
+      resource = await folderService.getFolderById(resourceId, user.id);
     } else {
       throw new ApiError(400, [{ resourceType: 'Invalid resource type' }]);
     }
@@ -265,7 +265,6 @@ class ShareController {
             const folderDetails = await folderService.getFolderById(
               item.resource._id.toString(),
               user.id,
-              false // Don't include workspace details
             );
             result.resource = folderDetails;
           }
@@ -313,7 +312,7 @@ class ShareController {
                 if (fileResult) resourceType = 'file';
               } catch {
                 try {
-                  const folderResult = await folderService.getFolderById(resourceId, user.id, false);
+                  const folderResult = await folderService.getFolderById(resourceId, user.id);
                   if (folderResult) resourceType = 'folder';
                 } catch {
                   // Resource might be inaccessible or deleted
@@ -344,7 +343,7 @@ class ShareController {
                 if (fileResult) resourceType = 'file';
               } catch {
                 try {
-                  const folderResult = await folderService.getFolderById(resourceId, user.id, false);
+                  const folderResult = await folderService.getFolderById(resourceId, user.id);
                   if (folderResult) resourceType = 'folder';
                 } catch {
                   // Resource might be inaccessible or deleted
@@ -377,7 +376,7 @@ class ShareController {
     if (resourceType === 'file') {
       return await fileService.getFileById(resourceId, userId);
     } else if (resourceType === 'folder') {
-      return await folderService.getFolderById(resourceId, userId, false);
+      return await folderService.getFolderById(resourceId, userId);
     }
     return null;
   }

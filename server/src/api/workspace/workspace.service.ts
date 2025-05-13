@@ -109,7 +109,7 @@ class WorkspaceService {
     await this.validateWorkspaceOwnership(workspaceId, userId, "modify");
 
     // Check if the folder already exists in the workspace
-    const folder = await folderService.getFolderById(folderId, userId, true);
+    const folder = await folderService.getFolderById(folderId, userId);
     if (!folder) {
       throw new ApiError(404, [{ folder: "Folder not found" }]);
     }
@@ -138,7 +138,7 @@ class WorkspaceService {
     await this.validateWorkspaceOwnership(workspaceId, userId, "modify");
 
     // Check if the folder exists in the workspace
-    const folder = await folderService.getFolderById(folderId, userId, true);
+    const folder = await folderService.getFolderById(folderId, userId);
     if (!folder) {
       throw new ApiError(404, [{ folder: "Folder not found" }]);
     }

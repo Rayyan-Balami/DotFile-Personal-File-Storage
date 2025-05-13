@@ -428,12 +428,9 @@ class FolderService {
     // Get all descendants of the potential parent folder
     const descendants = await folderDao.getAllDescendantFolders(folderId);
 
+    console.log(descendants);
     // Check if our target folder is among the descendants
-    return descendants.some((descendant) => {
-      const descendantId =
-        descendant._id instanceof mongoose.Types.ObjectId
-          ? descendant._id.toString()
-          : String(descendant._id);
+    return descendants.some((descendantId) => {
       return descendantId === potentialDescendantId;
     });
   }
@@ -453,7 +450,7 @@ class FolderService {
     enhancedData.name = await this.ensureUniqueNameAtLevel(
       folderData.name,
       ownerId,
-      folderData.parent
+      folderData.parent || null
     );
 
     // Set path, pathSegments based on parent
@@ -511,7 +508,7 @@ class FolderService {
   private async ensureUniqueNameAtLevel(
     name: string,
     ownerId: string,
-    parentId: string | null | undefined
+    parentId: string | null
   ): Promise<string> {
     let finalName = name;
     let counter = 1;
@@ -714,10 +711,7 @@ class FolderService {
     );
 
     // Get all descendant folders for recursive deletion
-    const descendantFolders = await folderDao.getAllDescendantFolders(folderId);
-    const descendantFolderIds = descendantFolders.map((subfolder) =>
-      subfolder._id.toString()
-    );
+    const descendantFolderIds = await folderDao.getAllDescendantFolders(folderId);
 
     // Collect all files in descendant folders
     let allFiles = [...directFiles];
@@ -752,8 +746,8 @@ class FolderService {
     }
 
     // Delete all subfolders
-    for (const subfolder of descendantFolders) {
-      await folderDao.permanentDeleteFolder(subfolder._id.toString());
+    for (const subfolderId of descendantFolderIds) {
+      await folderDao.permanentDeleteFolder(subfolderId);
     }
 
     // Finally, delete the folder itself
