@@ -47,6 +47,7 @@ export interface RefreshTokenDTO {
 
 // Add this new interface
 export interface RefreshTokenRecord {
+  id: string;
   token: string;
   deviceInfo: string;
   createdAt: Date;
@@ -77,6 +78,7 @@ export interface UserResponseDTO {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
+  refreshTokens?: RefreshTokenRecord[]; // Optional, only if you want to include them
 }
 
 export interface JwtUserPayload {

@@ -285,38 +285,6 @@ export class UserDAO {
   }
 
   /**
-   * get a user by their ID and refresh token
-   *
-   * @param userId - MongoDB ObjectId string of the user
-   * @param refreshToken - Refresh token to match
-   * @returns User document if found, null otherwise
-   */
-   async getUserByIdAndRefreshToken(
-     userId: string,
-     refreshToken: string,
-     options: { includeRefreshTokens?: boolean; deletedAt?: boolean } = {}
-   ): Promise<IUser | null> {
-     if (!mongoose.Types.ObjectId.isValid(userId)) return null;
-     const { includeRefreshTokens = false, deletedAt = false } = options;
-
-     const query = User.findOne({
-       _id: userId,
-       ...(deletedAt ? {} : { deletedAt: null }),
-       refreshTokens: { $elemMatch: { token: refreshToken } },
-     });
-    
-    // Either exclude refreshTokens or include all fields
-    if (includeRefreshTokens) {
-      query.select("+refreshTokens");
-    }
-    
-    return await query.populate({
-      path: "plan",
-      select: "-description -features",
-    });
-  }
-
-  /**
    * Soft delete a user by setting deletedAt timestamp
    *
    * @param userId - MongoDB ObjectId string of the user

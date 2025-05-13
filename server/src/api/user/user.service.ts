@@ -172,7 +172,7 @@ class UserService {
     const user = await userDAO.getUserByEmail(credentials.email, {
       includePassword: true,
     });
-    
+
     if (!user) {
       // Use a generic error message that doesn't reveal if the email exists
       throw new ApiError(401, [{ auth: "Invalid email or password" }]);
@@ -180,7 +180,7 @@ class UserService {
 
     // Verify password
     const validPassword = await user.checkPassword(credentials.password);
-    
+
     if (!validPassword) {
       // Use the same generic error message to prevent user enumeration
       throw new ApiError(401, [{ auth: "Invalid email or password" }]);
@@ -289,8 +289,11 @@ class UserService {
    * @returns User data if found
    * @throws ApiError if user not found
    */
-  async getUserById(id: string): Promise<UserResponseDTO> {
-    const user = await userDAO.getUserById(id);
+  async getUserById(
+    id: string,
+    options?: { includeRefreshTokens?: boolean; deletedAt?: boolean }
+  ): Promise<UserResponseDTO> {
+    const user = await userDAO.getUserById(id, options);
     if (!user) {
       throw new ApiError(404, [{ id: "User not found" }]);
     }
@@ -393,7 +396,7 @@ class UserService {
 
     // Update the user role
     const updatedUser = await userDAO.updateUserRole(userId, roleData.role);
-    
+
     if (!updatedUser) {
       throw new ApiError(500, [{ role: "Failed to update user role" }]);
     }
@@ -511,31 +514,6 @@ class UserService {
       newAccessToken,
       newRefreshToken,
     };
-  }
-
-  /**
-   * Get a user by their ID and refresh token
-   *
-   * @param userId - MongoDB ObjectId string of the user
-   * @param refreshToken - Refresh token to match
-   * @param options - Options to include or exclude fields
-   * @returns User document if found, null otherwise
-   */
-  async getUserByIdAndRefreshToken(
-    userId: string,
-    refreshToken: string,
-    options: { includeRefreshTokens?: boolean; deletedAt?: boolean } = {}
-  ): Promise<UserResponseDTO | null> {
-    const user = await userDAO.getUserByIdAndRefreshToken(
-      userId,
-      refreshToken,
-      options
-    );
-    if (!user) {
-      throw new ApiError(404, [{ id: "User not found" }]);
-    }
-
-    return this.sanitizeUser(user);
   }
 
   /**
