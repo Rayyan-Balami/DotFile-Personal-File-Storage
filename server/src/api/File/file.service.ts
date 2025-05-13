@@ -584,10 +584,15 @@ class FileService {
    * @returns Sanitized file object safe for client
    */
   private sanitizeFile(file: IFile): FileResponseDto {
-    return sanitizeDocument<FileResponseDto>(file, {
+    const sanitized = sanitizeDocument<FileResponseDto>(file, {
       excludeFields: ["__v"],
       recursive: true,
     });
+    
+    // Calculate isShared property based on publicShare and userShare
+    sanitized.isShared = !!(sanitized.publicShare || sanitized.userShare);
+    
+    return sanitized;
   }
   
   /**

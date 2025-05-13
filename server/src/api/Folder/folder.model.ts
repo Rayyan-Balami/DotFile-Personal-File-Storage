@@ -34,6 +34,8 @@ const FolderSchema = new Schema<IFolder>(
     ],
     items: { type: Number, default: 0 },
     isPinned: { type: Boolean, default: false },
+    publicShare: { type: Schema.Types.ObjectId, ref: "PublicShare", default: null },
+    userShare: { type: Schema.Types.ObjectId, ref: "UserShare", default: null },
     deletedAt: { type: Date, default: null },
   },
   { timestamps: true }

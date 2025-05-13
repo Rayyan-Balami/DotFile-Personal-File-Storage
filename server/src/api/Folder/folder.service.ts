@@ -564,10 +564,15 @@ class FolderService {
   }
 
   private sanitizeFolder(folder: IFolder): FolderResponseDto {
-    return sanitizeDocument<FolderResponseDto>(folder, {
+    const sanitized = sanitizeDocument<FolderResponseDto>(folder, {
       excludeFields: ["__v"],
       recursive: true,
     });
+    
+    // Calculate isShared property based on publicShare and userShare
+    sanitized.isShared = !!(sanitized.publicShare || sanitized.userShare);
+    
+    return sanitized;
   }
 
   /**

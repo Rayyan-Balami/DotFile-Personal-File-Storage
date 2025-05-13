@@ -11,9 +11,9 @@ class ShareController {
   // Public Share Controllers
   createPublicShare = asyncHandler(async (req: Request, res: Response) => {
     const { resourceId, resourceType, permission, allowDownload } = req.body;
-    const userId = req.user?._id;
+    const user = req.user;
 
-    if (!userId) {
+    if (!user) {
       throw new ApiError(401, [{ auth: 'User not authenticated' }]);
     }
 
@@ -24,9 +24,9 @@ class ShareController {
     // Verify resource exists and user is the owner
     let resource;
     if (resourceType === 'file') {
-      resource = await fileService.getFileById(resourceId, userId);
+      resource = await fileService.getFileById(resourceId, user.id);
     } else if (resourceType === 'folder') {
-      resource = await folderService.getFolderById(resourceId, userId, false);
+      resource = await folderService.getFolderById(resourceId, user.id, false);
     } else {
       throw new ApiError(400, [{ resourceType: 'Invalid resource type' }]);
     }
@@ -36,16 +36,17 @@ class ShareController {
     }
 
     // Verify ownership
-    if (resource.owner.toString() !== userId) {
+    if (resource.owner.toString() !== user.id) {
       throw new ApiError(403, [{ authorization: 'Only the owner can create shares' }]);
     }
 
     // Create public share
     const share = await shareService.createPublicShare(
       resourceId,
-      userId,
+      user.id,
       permission as IPublicSharePermission,
-      allowDownload
+      allowDownload,
+      resourceType
     );
 
     return res.status(201).json(
@@ -55,13 +56,12 @@ class ShareController {
 
   getPublicShare = asyncHandler(async (req: Request, res: Response) => {
     const { resourceId } = req.params;
-    const userId = req.user?._id;
-
-    if (!userId) {
+    const user = req.user;
+    if (!user) {
       throw new ApiError(401, [{ auth: 'User not authenticated' }]);
     }
 
-    const share = await shareService.getPublicShareByResource(resourceId, userId);
+    const share = await shareService.getPublicShareByResource(resourceId, user.id);
 
     if (!share) {
       throw new ApiError(404, [{ share: 'Public share not found' }]);
@@ -75,15 +75,14 @@ class ShareController {
   updatePublicShare = asyncHandler(async (req: Request, res: Response) => {
     const { resourceId } = req.params;
     const { permission, allowDownload } = req.body;
-    const userId = req.user?._id;
-
-    if (!userId) {
+    const user = req.user;
+    if (!user) {
       throw new ApiError(401, [{ auth: 'User not authenticated' }]);
     }
 
     const share = await shareService.updatePublicShare(
       resourceId,
-      userId,
+      user.id,
       { permission, allowDownload }
     );
 
@@ -94,13 +93,12 @@ class ShareController {
 
   deletePublicShare = asyncHandler(async (req: Request, res: Response) => {
     const { resourceId } = req.params;
-    const userId = req.user?._id;
-
-    if (!userId) {
+    const user = req.user;
+    if (!user) {
       throw new ApiError(401, [{ auth: 'User not authenticated' }]);
     }
 
-    const share = await shareService.deletePublicShare(resourceId, userId);
+    const share = await shareService.deletePublicShare(resourceId, user.id);
 
     return res.status(200).json(
       new ApiResponse(200, share, 'Public share deleted successfully')
@@ -153,9 +151,8 @@ class ShareController {
   // User Share Controllers
   shareWithUser = asyncHandler(async (req: Request, res: Response) => {
     const { resourceId, resourceType, targetUserId, permission, allowDownload } = req.body;
-    const userId = req.user?._id;
-
-    if (!userId) {
+    const user = req.user;
+    if (!user) {
       throw new ApiError(401, [{ auth: 'User not authenticated' }]);
     }
 
@@ -166,9 +163,9 @@ class ShareController {
     // Verify resource exists and user is the owner
     let resource;
     if (resourceType === 'file') {
-      resource = await fileService.getFileById(resourceId, userId);
+      resource = await fileService.getFileById(resourceId, user.id);
     } else if (resourceType === 'folder') {
-      resource = await folderService.getFolderById(resourceId, userId, false);
+      resource = await folderService.getFolderById(resourceId, user.id, false);
     } else {
       throw new ApiError(400, [{ resourceType: 'Invalid resource type' }]);
     }
@@ -178,17 +175,18 @@ class ShareController {
     }
 
     // Verify ownership
-    if (resource.owner.toString() !== userId) {
+    if (resource.owner.toString() !== user.id) {
       throw new ApiError(403, [{ authorization: 'Only the owner can share resources' }]);
     }
 
     // Share with user
     const share = await shareService.addUserToSharedResource(
       resourceId,
-      userId,
+      user.id,
       targetUserId,
       permission as IUserSharePermission,
-      allowDownload
+      allowDownload,
+      resourceType
     );
 
     return res.status(201).json(
@@ -198,13 +196,13 @@ class ShareController {
 
   getUserShare = asyncHandler(async (req: Request, res: Response) => {
     const { resourceId } = req.params;
-    const userId = req.user?._id;
+    const user = req.user;
 
-    if (!userId) {
+    if (!user) {
       throw new ApiError(401, [{ auth: 'User not authenticated' }]);
     }
 
-    const share = await shareService.getUserShareByResource(resourceId, userId);
+    const share = await shareService.getUserShareByResource(resourceId, user.id);
 
     if (!share) {
       throw new ApiError(404, [{ share: 'User share not found' }]);
@@ -217,15 +215,15 @@ class ShareController {
 
   removeUserShare = asyncHandler(async (req: Request, res: Response) => {
     const { resourceId, targetUserId } = req.params;
-    const userId = req.user?._id;
+    const user = req.user;
 
-    if (!userId) {
+    if (!user) {
       throw new ApiError(401, [{ auth: 'User not authenticated' }]);
     }
 
     const share = await shareService.removeUserFromSharedResource(
       resourceId,
-      userId,
+      user.id,
       targetUserId
     );
 
@@ -236,14 +234,14 @@ class ShareController {
 
   // Get all resources shared with current user
   getMySharedResources = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user?._id;
+    const user = req.user;
 
-    if (!userId) {
+    if (!user) {
       throw new ApiError(401, [{ auth: 'User not authenticated' }]);
     }
 
     // Get raw shared resources first
-    const sharedResources = await shareService.getResourcesSharedWithUser(userId);
+    const sharedResources = await shareService.getResourcesSharedWithUser(user.id);
 
     // Process the resources to add file/folder specific data
     const processedResources = await Promise.all(
@@ -260,13 +258,13 @@ class ShareController {
         try {
           if (item.resource.type === 'file') {
             // Get file details
-            const fileDetails = await fileService.getFileById(item.resource._id.toString(), userId);
+            const fileDetails = await fileService.getFileById(item.resource._id.toString(), user.id);
             result.resource = fileDetails;
           } else if (item.resource.type === 'folder') {
             // Get folder details
             const folderDetails = await folderService.getFolderById(
-              item.resource._id.toString(), 
-              userId,
+              item.resource._id.toString(),
+              user.id,
               false // Don't include workspace details
             );
             result.resource = folderDetails;
@@ -289,13 +287,13 @@ class ShareController {
    * Get all resources the current user has shared with others
    */
   getMySharedOutResources = asyncHandler(async (req: Request, res: Response) => {
-    const userId = req.user?._id;
+    const user = req.user;
 
-    if (!userId) {
+    if (!user) {
       throw new ApiError(401, [{ auth: 'User not authenticated' }]);
     }
 
-    const sharedResources = await shareService.getResourcesSharedByUser(userId);
+    const sharedResources = await shareService.getResourcesSharedByUser(user.id);
 
     // Process each share to add full resource information
     const enhancedData = {
@@ -311,19 +309,19 @@ class ShareController {
               
               // Try to load the resource first to get its type
               try {
-                const fileResult = await fileService.getFileById(resourceId, userId);
+                const fileResult = await fileService.getFileById(resourceId, user.id);
                 if (fileResult) resourceType = 'file';
               } catch {
                 try {
-                  const folderResult = await folderService.getFolderById(resourceId, userId, false);
+                  const folderResult = await folderService.getFolderById(resourceId, user.id, false);
                   if (folderResult) resourceType = 'folder';
                 } catch {
                   // Resource might be inaccessible or deleted
                 }
               }
             }
-            
-            const resourceInfo = await this.getResourceInfo(resourceId, resourceType, userId);
+
+            const resourceInfo = await this.getResourceInfo(resourceId, resourceType, user.id);
             return { ...share, resourceInfo };
           } catch (error) {
             return share;
@@ -342,19 +340,19 @@ class ShareController {
               
               // Try to load the resource first to get its type
               try {
-                const fileResult = await fileService.getFileById(resourceId, userId);
+                const fileResult = await fileService.getFileById(resourceId, user.id);
                 if (fileResult) resourceType = 'file';
               } catch {
                 try {
-                  const folderResult = await folderService.getFolderById(resourceId, userId, false);
+                  const folderResult = await folderService.getFolderById(resourceId, user.id, false);
                   if (folderResult) resourceType = 'folder';
                 } catch {
                   // Resource might be inaccessible or deleted
                 }
               }
             }
-            
-            const resourceInfo = await this.getResourceInfo(resourceId, resourceType, userId);
+
+            const resourceInfo = await this.getResourceInfo(resourceId, resourceType, user.id);
             return { ...share, resourceInfo };
           } catch (error) {
             return share;

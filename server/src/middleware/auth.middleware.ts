@@ -66,7 +66,7 @@ export const verifyAuth = asyncHandler(
       );
 
       if (!matched) {
-        clearAuthCookies(res);
+        // clearAuthCookies(res);
         throw new ApiError(401, [{ session: "Session expired. Please login again." }]);
       }
 

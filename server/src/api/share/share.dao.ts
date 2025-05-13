@@ -10,18 +10,33 @@ class ShareDao {
   }
 
   async getPublicShareByResource(resourceId: string): Promise<IPublicShare | null> {
-    return await PublicShare.findOne({ resource: new mongoose.Types.ObjectId(resourceId) });
+    return await PublicShare.findOne({ resource: new mongoose.Types.ObjectId(resourceId) })
+      .populate({
+        path: 'resource',
+        refPath: 'resourceModel'
+      })
+      .populate('owner');
   }
 
   async getPublicShareByLink(link: string): Promise<IPublicShare | null> {
-    return await PublicShare.findOne({ link });
+    return await PublicShare.findOne({ link })
+      .populate({
+        path: 'resource',
+        refPath: 'resourceModel'
+      })
+      .populate('owner');
   }
 
   async updatePublicShare(
     shareId: string,
     updateData: Partial<IPublicShare>
   ): Promise<IPublicShare | null> {
-    return await PublicShare.findByIdAndUpdate(shareId, updateData, { new: true });
+    return await PublicShare.findByIdAndUpdate(shareId, updateData, { new: true })
+      .populate({
+        path: 'resource',
+        refPath: 'resourceModel'
+      })
+      .populate('owner');
   }
 
   async deletePublicShare(resourceId: string): Promise<IPublicShare | null> {
@@ -47,7 +62,12 @@ class ShareDao {
   async getUserShareByResource(resourceId: string): Promise<IUserShare | null> {
     return await UserShare.findOne({ 
       resource: new mongoose.Types.ObjectId(resourceId) 
-    }).populate({
+    })
+    .populate({
+      path: 'resource',
+      refPath: 'resourceModel'
+    })
+    .populate({
       path: 'sharedWith.userId',
       select: 'name email avatar'
     });
@@ -61,7 +81,12 @@ class ShareDao {
       { resource: new mongoose.Types.ObjectId(resourceId) },
       updateData,
       { new: true }
-    ).populate({
+    )
+    .populate({
+      path: 'resource',
+      refPath: 'resourceModel'
+    })
+    .populate({
       path: 'sharedWith.userId',
       select: 'name email avatar'
     });
@@ -78,7 +103,8 @@ class ShareDao {
     ownerId: string,
     userId: string, 
     permission: IUserSharePermission,
-    allowDownload: boolean = false
+    allowDownload: boolean = false,
+    resourceModel: string = 'File'
   ): Promise<IUserShare | null> {
     // Check if user share exists for this resource
     let userShare = await UserShare.findOne({ 
@@ -91,6 +117,7 @@ class ShareDao {
       // Create a proper document using the model constructor
       userShare = new UserShare({
         resource: new mongoose.Types.ObjectId(resourceId),
+        resourceModel, // Add the resourceModel field
         owner: new mongoose.Types.ObjectId(ownerId),
         sharedWith: [{
           userId: new mongoose.Types.ObjectId(userId),
@@ -123,10 +150,18 @@ class ShareDao {
       await userShare.save();
     }
 
-    return userShare ? userShare.populate({
-      path: 'sharedWith.userId',
-      select: 'name email avatar'
-    }) : null;
+    if (userShare) {
+      await userShare.populate({
+        path: 'resource',
+        refPath: 'resourceModel'
+      });
+      await userShare.populate({
+        path: 'sharedWith.userId',
+        select: 'name email avatar'
+      });
+    }
+    
+    return userShare;
   }
 
   async removeUserFromSharedResource(
@@ -159,7 +194,8 @@ class ShareDao {
     })
     .populate({
       path: 'resource',
-      select: 'name type path owner'
+      refPath: 'resourceModel',
+      select: 'name type path owner size extension'
     })
     .populate({
       path: 'owner',
@@ -197,7 +233,8 @@ class ShareDao {
     })
     .populate({
       path: 'resource',
-      select: 'name type path owner'
+      refPath: 'resourceModel',
+      select: 'name type path owner size extension'
     })
     .populate({
       path: 'owner',
@@ -210,7 +247,8 @@ class ShareDao {
     })
     .populate({
       path: 'resource',
-      select: 'name type path owner'
+      refPath: 'resourceModel',
+      select: 'name type path owner size extension'
     })
     .populate({
       path: 'owner',

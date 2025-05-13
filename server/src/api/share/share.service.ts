@@ -24,7 +24,8 @@ class ShareService {
     resourceId: string,
     ownerId: string,
     permission: IPublicSharePermission = IPublicSharePermission.RESTRICTED,
-    allowDownload: boolean = false
+    allowDownload: boolean = false,
+    resourceType: string = 'file'
   ): Promise<PublicShareResponseDto> {
     // Check if a public share already exists for this resource
     const existingShare = await shareDao.getPublicShareByResource(resourceId);
@@ -35,10 +36,14 @@ class ShareService {
     // Generate a unique link token
     const link = this.generateShareLink();
 
+    // Determine resource model based on type
+    const resourceModel = resourceType === 'folder' ? 'Folder' : 'File';
+
     // Create the public share 
     // Using type assertion to bypass TypeScript strictness while maintaining runtime correctness
     const shareData = {
       resource: resourceId,
+      resourceModel,
       owner: ownerId,
       link,
       permission,
@@ -46,6 +51,14 @@ class ShareService {
     };
 
     const newShare = await shareDao.createPublicShare(shareData as any);
+    
+    // Update the resource with the share reference
+    await this.updateResourceWithShareReference(
+      resourceId, 
+      newShare._id.toString(), 
+      'public'
+    );
+    
     return this.sanitizePublicShare(newShare);
   }
 
@@ -121,6 +134,20 @@ class ShareService {
     
     // Delete the share
     const deletedShare = await shareDao.deletePublicShare(resourceId);
+    
+    if (deletedShare) {
+      try {
+        // Clear the reference from the resource
+        const fileDao = (await import('@api/File/file.dao.js')).default;
+        const folderDao = (await import('@api/Folder/folder.dao.js')).default;
+        
+        await fileDao.updateFile(resourceId, { publicShare: null });
+        await folderDao.updateFolder(resourceId, { publicShare: null });
+      } catch (error) {
+        console.error('Error clearing public share reference:', error);
+      }
+    }
+    
     return deletedShare ? this.sanitizePublicShare(deletedShare) : null;
   }
 
@@ -130,20 +157,34 @@ class ShareService {
     ownerId: string,
     targetUserId: string,
     permission: IUserSharePermission = IUserSharePermission.VIEWER,
-    allowDownload: boolean = false
+    allowDownload: boolean = false,
+    resourceType: string = 'file'
   ): Promise<UserShareResponseDto | null> {
     // Ensure the owner is not trying to share with themselves
     if (ownerId === targetUserId) {
       throw new ApiError(400, [{ share: "Cannot share resource with yourself" }]);
     }
+    
+    // Determine resource model based on type
+    const resourceModel = resourceType === 'folder' ? 'Folder' : 'File';
 
     const userShare = await shareDao.addUserToSharedResource(
       resourceId,
       ownerId,
       targetUserId,
       permission,
-      allowDownload
+      allowDownload,
+      resourceModel
     );
+    
+    if (userShare) {
+      // Update the resource with the share reference
+      await this.updateResourceWithShareReference(
+        resourceId, 
+        userShare._id.toString(), 
+        'user'
+      );
+    }
 
     return userShare ? this.sanitizeUserShare(userShare) : null;
   }
@@ -188,6 +229,21 @@ class ShareService {
       resourceId,
       targetUserId
     );
+    
+    // If no share is returned, it means the share was deleted
+    // because there are no more users shared with
+    if (!updatedShare) {
+      try {
+        // Clear the reference from the resource
+        const fileDao = (await import('@api/File/file.dao.js')).default;
+        const folderDao = (await import('@api/Folder/folder.dao.js')).default;
+        
+        await fileDao.updateFile(resourceId, { userShare: null });
+        await folderDao.updateFolder(resourceId, { userShare: null });
+      } catch (error) {
+        console.error('Error clearing user share reference:', error);
+      }
+    }
     
     return updatedShare ? this.sanitizeUserShare(updatedShare) : null;
   }
@@ -346,6 +402,56 @@ class ShareService {
       excludeFields: ["__v"],
       recursive: true
     });
+  }
+  
+  /**
+   * Update the resource (File or Folder) to include a reference to the created share
+   * This makes sure the share information is directly accessible from the resource
+   * 
+   * @param resourceId ID of the resource (file or folder)
+   * @param shareId ID of the share (public or user share)
+   * @param shareType Type of share ('public' or 'user')
+   */
+  async updateResourceWithShareReference(
+    resourceId: string,
+    shareId: string,
+    shareType: 'public' | 'user'
+  ): Promise<boolean> {
+    try {
+      // Dynamically import the DAOs to avoid circular dependencies
+      const fileDao = (await import('@api/File/file.dao.js')).default;
+      const folderDao = (await import('@api/Folder/folder.dao.js')).default;
+      
+      // Try to find the resource as a file first
+      let file = await fileDao.getFileById(resourceId);
+      if (file) {
+        // Update the file with the share reference
+        const updateData = shareType === 'public' 
+          ? { publicShare: shareId } 
+          : { userShare: shareId };
+        
+        await fileDao.updateFile(resourceId, updateData);
+        return true;
+      }
+      
+      // If not a file, try as a folder
+      let folder = await folderDao.getFolderById(resourceId);
+      if (folder) {
+        // Update the folder with the share reference
+        const updateData = shareType === 'public'
+          ? { publicShare: shareId }
+          : { userShare: shareId };
+        
+        await folderDao.updateFolder(resourceId, updateData);
+        return true;
+      }
+      
+      // Resource not found
+      return false;
+    } catch (error) {
+      console.error('Error updating resource with share reference:', error);
+      return false;
+    }
   }
 }
 

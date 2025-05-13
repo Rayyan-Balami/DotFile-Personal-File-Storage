@@ -29,8 +29,13 @@ const PublicShareSchema = new Schema(
   {
     resource: {
       type: Schema.Types.ObjectId,
-      ref: "FileSystemItem",
+      refPath: "resourceModel",
       required: true,
+    },
+    resourceModel: {
+      type: String,
+      required: true,
+      enum: ["Folder", "File"]
     },
     owner: {
       type: Schema.Types.ObjectId,
@@ -59,8 +64,13 @@ const UserShareSchema = new Schema(
   {
     resource: {
       type: Schema.Types.ObjectId,
-      ref: "FileSystemItem",
+      refPath: "resourceModel",
       required: true,
+    },
+    resourceModel: {
+      type: String,
+      required: true,
+      enum: ["Folder", "File"]
     },
     owner: {
       type: Schema.Types.ObjectId,
