@@ -268,9 +268,20 @@ class FileService {
       existingFile.folder ? existingFile.folder.toString() : null
     );
     
-    // Calculate the new path - simply update the last segment of the path
+    // Calculate the new path - preserve the folder path and update just the filename
     const sanitizedName = this.sanitizePathSegment(uniqueName);
-    const newPath = `/${sanitizedName}`;
+    
+    // If file is in a folder, preserve its path structure
+    let newPath: string;
+    if (existingFile.folder) {
+      // Split the path into segments and replace just the last part
+      const pathSegments = existingFile.path.split('/');
+      pathSegments[pathSegments.length - 1] = sanitizedName;
+      newPath = pathSegments.join('/');
+    } else {
+      // For root files, just use the sanitized name
+      newPath = `/${sanitizedName}`;
+    }
     
     // Update the file
     const updatedFile = await fileDao.renameFile(fileId, {

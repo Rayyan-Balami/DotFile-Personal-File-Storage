@@ -284,14 +284,18 @@ class FileDao {
       return { acknowledged: true, modifiedCount: 0 };
     }
     
-    // Remove leading slashes from paths for matching
-    const oldPathWithoutSlash = oldPathPrefix.startsWith('/') ? oldPathPrefix.substring(1) : oldPathPrefix;
-    const newPathWithoutSlash = newPathPrefix.startsWith('/') ? newPathPrefix.substring(1) : newPathPrefix;
+    // Normalize paths for consistency (ensure they start with /)
+    const normalizedOldPath = oldPathPrefix.startsWith('/') ? oldPathPrefix : `/${oldPathPrefix}`;
+    const normalizedNewPath = newPathPrefix.startsWith('/') ? newPathPrefix : `/${newPathPrefix}`;
+    
+    // For the database query, keep the paths with leading slashes as stored in the database
+    const oldPath = normalizedOldPath;
+    const newPath = normalizedNewPath;
 
     // Find all matching files to update
     const filesToUpdate = await File.find({
-      // Match any file path that starts with the old path prefix (without leading slash)
-      path: { $regex: `^${oldPathWithoutSlash}` },
+      // Match any file path that starts with the old path
+      path: { $regex: `^${oldPath.replace(/\//g, '\\/')}` },
       deletedAt: null,
     });
 
@@ -303,22 +307,22 @@ class FileDao {
     let modifiedCount = 0;
     
     console.log(`bulkUpdateFilePaths: Found ${filesToUpdate.length} files to update`);
-    console.log(`Replacing '${oldPathWithoutSlash}' with '${newPathWithoutSlash}'`);
+    console.log(`Replacing path prefix '${oldPath}' with '${newPath}'`);
 
     // Process each file individually with string replacements
     for (const file of filesToUpdate) {
       // Update the path with string replacement
-      let newPath = file.path;
-      if (oldPathWithoutSlash !== newPathWithoutSlash) {
-        newPath = file.path.replace(
-          new RegExp(`^${oldPathWithoutSlash}`),
-          newPathWithoutSlash
+      let updatedFilePath = file.path;
+      if (oldPath !== newPath) {
+        updatedFilePath = file.path.replace(
+          new RegExp(`^${oldPath.replace(/\//g, '\\/')}`),
+          newPath
         );
-        console.log(`File path update: '${file.path}' -> '${newPath}'`);
+        console.log(`File path update: '${file.path}' -> '${updatedFilePath}'`);
       }
 
       // Prepare updates object
-      const updates: any = { path: newPath };
+      const updates: any = { path: updatedFilePath };
 
       // Apply path segment updates if any provided
       if (pathSegmentsToUpdate.length > 0) {
