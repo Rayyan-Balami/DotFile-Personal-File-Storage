@@ -24,7 +24,6 @@ export const updateFolderSchema = z.object({
   parent: folderParentSchema,
   workspace: z.string().nullable().optional(),
   isPinned: z.boolean().optional(),
-  isShared: z.boolean().optional(),
   path: z.string().optional(),
   pathSegments: z
     .array(z.object({ name: z.string(), id: z.string() }))

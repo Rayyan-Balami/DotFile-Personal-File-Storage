@@ -12,7 +12,6 @@ export interface IFile extends Document {
   pathSegments: { name: string; id: Schema.Types.ObjectId }[];
   extension: string;
   isPinned: boolean;
-  isShared: boolean;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -35,7 +34,6 @@ const FileSchema = new Schema<IFile>(
     ],
     extension: { type: String, required: true },
     isPinned: { type: Boolean, default: false },
-    isShared: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
   },
   { timestamps: true }

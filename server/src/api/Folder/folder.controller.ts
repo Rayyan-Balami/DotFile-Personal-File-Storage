@@ -22,6 +22,22 @@ class FolderController {
       .json(new ApiResponse(201, { folder: newFolder }, "Folder created successfully"));
   });
 
+  getFolderById = asyncHandler(async (req, res) => {
+    logger.info("Getting folder by ID");
+    const folderId = req.params.id;
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+    const folder = await folderService.getFolderById(folderId, req.user.id);
+    if (!folder) {
+      throw new ApiError(404, [{ folder: "Folder not found" }]);
+    }
+    res
+      .status(200)
+      .json(new ApiResponse(200, { folder }, "Folder retrieved successfully"));
+  });
+
+
   getFolderContents = asyncHandler(async (req, res) => {
     logger.info("Getting folder contents");
     const folderId = req.params.id || null;

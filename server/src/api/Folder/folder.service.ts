@@ -123,24 +123,20 @@ class FolderService {
    *
    * @param folderId Folder ID to retrieve
    * @param userId User ID requesting access
-   * @param includeWorkspace Whether to include workspace details
    * @param requiredPermission Optional minimum permission level required
    * @returns Folder document or error if unauthorized
    */
   async getFolderById(
     folderId: string,
     userId: string,
-    includeWorkspace: boolean = false,
     requiredPermission?: IUserSharePermission
   ): Promise<FolderResponseDto> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) {
       throw new ApiError(400, [{ folder: "Invalid folder ID" }]);
     }
 
-    // Get folder with or without workspace data
-    const folder = includeWorkspace
-      ? await folderDao.getFolderWithWorkspace(folderId)
-      : await folderDao.getFolderById(folderId);
+    // Get folder without workspace data
+    const folder = await folderDao.getFolderById(folderId);
 
     if (!folder) {
       throw new ApiError(404, [{ folder: "Folder not found" }]);

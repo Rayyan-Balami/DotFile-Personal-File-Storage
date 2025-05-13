@@ -9,7 +9,6 @@ export interface CreateFolderDto {
 export interface UpdateFolderDto {
   workspace?: string | null;
   isPinned?: boolean;
-  isShared?: boolean;
   items?: number;
 }
 
@@ -33,7 +32,6 @@ export interface FolderResponseDto {
   parent: string | null;
   items: number;
   isPinned: boolean;
-  isShared: boolean;
 
   /**
    * Logical path representing folder hierarchy (e.g., "/Documents/Projects")

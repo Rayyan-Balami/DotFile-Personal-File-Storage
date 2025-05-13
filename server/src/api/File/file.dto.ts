@@ -8,18 +8,12 @@ export interface CreateFileDto {
   path?: string;
   pathSegments?: { name: string; id: string }[];
   storageKey: string;
-  workspace?: string | null;
   extension?: string;
 }
 
 export interface UpdateFileDto {
-  name?: string;
   folder?: string | null;
   isPinned?: boolean;
-  isShared?: boolean;
-  workspace?: string | null;
-  path?: string;
-  pathSegments?: { name: string; id: string }[];
 }
 
 export interface RenameFileDto {
@@ -45,7 +39,6 @@ export interface FileResponseDto {
   pathSegments: { name: string; id: string }[];
   extension: string;
   isPinned: boolean;
-  isShared: boolean;
   workspace: string | null;
   storageKey: string;
   createdAt: Date;

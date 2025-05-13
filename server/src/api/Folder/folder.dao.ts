@@ -43,17 +43,6 @@ class FolderDao {
 
   async getFolderById(folderId: string): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
-    return Folder.findById(folderId);
-  }
-
-  /**
-   * Get folder by ID with populated workspace data
-   *
-   * @param folderId The ID of the folder to retrieve
-   * @returns Folder with populated workspace or null if not found
-   */
-  async getFolderWithWorkspace(folderId: string): Promise<IFolder | null> {
-    if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
     return Folder.findById(folderId).populate("workspace");
   }
 
