@@ -1,43 +1,41 @@
-import { WorkspaceResponseDto } from "./workspace.dto";
+import { FolderResponseDto, PathSegment } from "./folder.dto";
 
-// Define types for your file system items
-export interface BaseItem {
+// Unified BaseItem interface
+interface BaseItem {
   id: string;
   name: string;
   type: string;
   owner: string;
-  workspace: WorkspaceResponseDto | null;
-  path: string;
-  pathSegments: { name: string; id: string }[];
   isPinned: boolean;
-  isShared: boolean;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
 }
 
+// Folder item based on FolderResponseDto
 export interface FolderItem extends BaseItem {
-  type: 'folder';
+  type: "folder";
+  color: string;
   parent: string | null;
   items: number;
+  path: string;
+  pathSegments: PathSegment[];
 }
 
+// Document (file) item based on FileResponseDto
 export interface DocumentItem extends BaseItem {
   size: number;
-  folder: string | null;
+  folder: FolderResponseDto | null;
   storageKey: string;
   extension: string;
+  path: string;
+  pathSegments: PathSegment[];
 }
 
-export interface SharedUsersPreview {
-  id: string;
-  name: string;
-  image: string;
-}
-
+// Combined type
 export type FileSystemItem = FolderItem | DocumentItem;
 
-// Structure matching the API response
+// API response format for folder contents
 export interface FolderContentsResponse {
   folders: FolderItem[];
   files: DocumentItem[];

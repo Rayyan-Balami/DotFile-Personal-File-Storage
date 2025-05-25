@@ -1,3 +1,4 @@
+import { FolderResponseDto } from "./folder.dto";
 
 export interface CreateFileDto {
   name: string;
@@ -5,30 +6,23 @@ export interface CreateFileDto {
   size: number;
   owner: string;
   folder?: string | null;
-  path?: string;
-  pathSegments?: { name: string; id: string }[];
   storageKey: string;
-  workspace?: string | null;
-  originalPath?: string;
-  extension?: string;
+  extension: string;
 }
 
 export interface UpdateFileDto {
   name?: string;
   folder?: string | null;
   isPinned?: boolean;
-  isShared?: boolean;
-  workspace?: string | null;
-  path?: string;
-  pathSegments?: { name: string; id: string }[];
 }
 
 export interface RenameFileDto {
-  newName: string;
+  name: string;
 }
 
 export interface MoveFileDto {
-  newParentId: string | null;
+  folder: string | null;
+  name: string;
 }
 
 export interface FileResponseDto {
@@ -37,16 +31,11 @@ export interface FileResponseDto {
   type: string;
   size: number;
   owner: string;
-  folder: string | null;
-  path: string;
-  pathSegments: { name: string; id: string }[];
+  folder: FolderResponseDto | null;
+  storageKey: string;
   extension: string;
   isPinned: boolean;
-  isShared: boolean;
-  workspace: string | null;
-  storageKey: string;
-  originalPath?: string;
+  deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
-  deletedAt: Date | null;
 }
