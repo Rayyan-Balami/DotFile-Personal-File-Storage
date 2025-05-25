@@ -6,8 +6,8 @@ export interface User {
   name: string;
   email: string;
   role: string;
-  plan: Plan;
   storageUsed: number;
+  maxStorageLimit: number;
   deletedAt: null | string;
   createdAt: string;
   updatedAt: string;

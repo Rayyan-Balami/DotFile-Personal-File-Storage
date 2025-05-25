@@ -34,6 +34,7 @@ import { getInitials } from "@/lib/utils"
 import { Badge } from "./ui/badge"
 import { Progress } from "./ui/progress"
 import { VITE_API_URL } from "@/config/constants"
+import { formatBytes } from "@/lib/utils"
 
 export function NavUser() {
   const { user, clearAuth } = useAuthStore();
@@ -104,16 +105,20 @@ export function NavUser() {
           </DropdownMenuLabel>
 
           <DropdownMenuSeparator />
-          {/* Users plan */}
+          {/* Users storage usage */}
           <DropdownMenuLabel className="font-normal flex items-center justify-between gap-2">
-            <span>Plan</span>
-            <Badge variant={"secondary"} className="truncate h-6 rounded-full text-xs font-normal">{user.plan?.name}</Badge>
-            </DropdownMenuLabel>
+            <span>Storage</span>
+            <Badge variant={"secondary"} className="truncate h-6 rounded-full text-xs font-normal">
+              {((user.storageUsed / user.maxStorageLimit) * 100).toFixed(0)}% used
+            </Badge>
+          </DropdownMenuLabel>
           <DropdownMenuLabel className="font-normal flex flex-col justify-between gap-2.5 ">
             {/* progress bar */}
-            <Progress value={33} />
-            <span className="font-light text-xs">34% of 15MB</span>
-            </DropdownMenuLabel>
+            <Progress value={Math.round((user.storageUsed / user.maxStorageLimit) * 100)} />
+            <span className="font-light text-xs">
+              {formatBytes(user.storageUsed)} of {formatBytes(user.maxStorageLimit)}
+            </span>
+          </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuLabel className="font-normal flex items-center justify-between gap-2">
             <span>Theme</span>
@@ -125,10 +130,6 @@ export function NavUser() {
               <BadgeCheck className="mr-1 h-4 w-4" />
               Settings
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Bell className="mr-1 h-4 w-4" />
-              Plan: {user.plan?.name}
-            </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
 
@@ -136,13 +137,6 @@ export function NavUser() {
             <LogOut className="mr-1 h-4 w-4" />
             Log out
           </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          {user.plan?.isDefault && (
-            <DropdownMenuItem className="text-primary focus:text-primary font-medium transition-all focus:bg-primary/15">
-              <Sparkles className="mr-1 h-4 w-4 text-inherit stroke-[2.25]" />
-              Upgrade Plan
-            </DropdownMenuItem>
-          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </SidebarMenuItem>
