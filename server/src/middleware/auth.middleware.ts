@@ -1,5 +1,3 @@
-import { NextFunction, Request, Response } from "express";
-import jwt from "jsonwebtoken";
 import { JwtUserPayload, UserResponseDTO } from "@api/user/user.dto.js";
 import userService from "@api/user/user.service.js";
 import {
@@ -10,6 +8,8 @@ import {
 import { ApiError } from "@utils/apiError.utils.js";
 import { asyncHandler } from "@utils/asyncHandler.utils.js";
 import { jwtTimeToMs } from "@utils/jwtTimeToMs.utils.js";
+import { NextFunction, Request, Response } from "express";
+import jwt from "jsonwebtoken";
 
 const cookieOptions = {
   httpOnly: true,
@@ -38,39 +38,23 @@ export const verifyAuth = asyncHandler(
     try {
       const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET) as JwtUserPayload;
 
-      const refreshToken =
-        req.cookies?.refreshToken || req.body?.refreshToken || "";
-      const sessionId =
-        req.cookies?.sessionId || req.body?.sessionId || "";
+      const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken || "";
 
       const user = await userService.getUserById(decoded.id, {
-        includeRefreshTokens: true,
+        includeRefreshToken: true,
         deletedAt: false,
       });
-
-      console.log("User from DB:", user);
-      console.log("Decoded JWT:", decoded);
-      console.log("Refresh Token from Cookies:", refreshToken);
-      console.log("Session ID from Cookies:", sessionId);
-      console.log("User Refresh Tokens:", user?.refreshTokens);
-      console.log("User Refresh Tokens Match:", user?.refreshTokens?.some(
-        (t) => t.token === refreshToken && t.id === sessionId
-      ));
 
       if (!user) {
         throw new ApiError(401, [{ user: "User not found. Please login again." }]);
       }
 
-      const matched = user.refreshTokens?.some(
-        (t) => t.token === refreshToken && t.id === sessionId
-      );
-
-      if (!matched) {
-        // clearAuthCookies(res);
+      if (user.refreshToken !== refreshToken) {
+        clearAuthCookies(res);
         throw new ApiError(401, [{ session: "Session expired. Please login again." }]);
       }
 
-      req.user = user as UserResponseDTO;
+      req.user = user;
       next();
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
@@ -87,6 +71,5 @@ export const verifyAuth = asyncHandler(
 function clearAuthCookies(res: Response): void {
   res
     .clearCookie("accessToken", cookieOptions)
-    .clearCookie("refreshToken", cookieOptions)
-    .clearCookie("sessionId", cookieOptions);
+    .clearCookie("refreshToken", cookieOptions);
 }

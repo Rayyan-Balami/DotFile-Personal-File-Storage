@@ -1,19 +1,21 @@
-import fileDao from "@api/File/file.dao.js";
+import fileDao from "@api/file/file.dao.js";
 import {
   CreateFileDto,
   FileResponseDto,
   UpdateFileDto
-} from "@api/File/file.dto.js";
-import { IFile } from "@api/File/file.model.js";
-import folderService from "@api/Folder/folder.service.js";
+} from "@api/file/file.dto.js";
+import { IFile } from "@api/file/file.model.js";
+import folderService from "@api/folder/folder.service.js";
+import { IUser } from "@api/user/user.model.js";
 import { ApiError } from "@utils/apiError.utils.js";
 import logger from "@utils/logger.utils.js";
+import { getUserDirectoryPath, removeFile } from "@utils/mkdir.utils.js";
 import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
+import { decryptFileBuffer } from "@utils/cryptoUtil.utils.js"; // Import decryption utility
+import fs from "fs";
+import * as fsPromises from "fs/promises";
+import { Types } from "mongoose";
 import path from "path";
-import mongoose from "mongoose";
-import shareService from "@api/share/share.service.js";
-import { IUserSharePermission } from "@api/share/share.dto.js";
-import fs from "fs/promises";
 
 /**
  * Service class for file-related business logic
@@ -34,7 +36,6 @@ class FileService {
       type: string;
       size: number;
       storageKey: string;
-      path?: string; // Optional path from ZIP files
     },
     userId: string,
     folderId?: string | null
@@ -49,26 +50,12 @@ class FileService {
       folderId
     );
 
-    // Sanitize the name for path consistency
-    const sanitizedName = this.sanitizePathSegment(uniqueName);
-
-    // Construct the file path, incorporating any original path from ZIP
-    let filePath = fileData.path ? 
-      // For ZIP files, incorporate the virtual path
-      `/${fileData.path}/${sanitizedName}` :
-      // For regular files, just use the name
-      `/${sanitizedName}`;
-    
-    // Normalize path to avoid any double slashes
-    filePath = filePath.replace(/\/+/g, '/');
-
     // Create the file document
     const file = await fileDao.createFile({
       ...fileData,
       name: uniqueName,
       owner: userId,
       folder: folderId || null,
-      path: filePath, // Use the constructed path
       extension: fileData.type || ''
     });
     
@@ -89,7 +76,7 @@ class FileService {
    * @throws ApiError if file not found or user is not the owner
    */
   async verifyFileOwnership(fileId: string, userId: string): Promise<IFile> {
-    if (!mongoose.Types.ObjectId.isValid(fileId)) {
+    if (!Types.ObjectId.isValid(fileId)) {
       throw new ApiError(400, [{ file: "Invalid file ID" }]);
     }
     
@@ -99,7 +86,7 @@ class FileService {
     }
     
     // Check if the file belongs to the user
-    if (file.owner.toString() !== userId) {
+    if ((file.owner as IUser)._id.toString() !== userId) {
       throw new ApiError(403, [
         { authorization: "You do not have permission to access this file" },
       ]);
@@ -121,7 +108,7 @@ class FileService {
     
     // If file was added to a folder, increment the folder's item count
     if (fileData.folder) {
-      await folderService.incrementFolderItemCount(fileData.folder);
+      await folderService.incrementFolderItemCount(fileData.folder.toString());
     }
     
     return this.sanitizeFile(file);
@@ -141,7 +128,8 @@ class FileService {
     isDeleted?: boolean
   ): Promise<FileResponseDto[]> {
     const files = await fileDao.getUserFilesByFolders(userId, folderId, isDeleted);
-    
+    logger.info("User files by folders:", files);
+
     // Return empty array instead of throwing error when no files are found
     return files.map(file => this.sanitizeFile(file));
   }
@@ -154,42 +142,22 @@ class FileService {
    * @returns File document if found
    * @throws ApiError if file not found or user doesn't own it
    */
-  /**
-   * Get file by ID with support for shared resources
-   * - Checks if user owns the file
-   * - If not, checks if file is shared with user with sufficient permissions
-   * 
-   * @param fileId File ID to retrieve
-   * @param userId User ID requesting access
-   * @param requiredPermission Optional minimum permission level required
-   * @returns File document or error if unauthorized
-   */
   async getFileById(
     fileId: string, 
-    userId: string,
-    requiredPermission?: IUserSharePermission
+    userId: string
   ): Promise<FileResponseDto> {
-    if (!mongoose.Types.ObjectId.isValid(fileId)) {
+    if (!Types.ObjectId.isValid(fileId)) {
       throw new ApiError(400, [{ file: "Invalid file ID" }]);
     }
     
     // Get the file
-    const file = await fileDao.getFileById(fileId);
+    const file = await this.verifyFileOwnership(fileId, userId);
     if (!file) {
       throw new ApiError(404, [{ file: "File not found" }]);
     }
 
-    const fileOwnerId = file.owner.toString();
-
-    // Check if user has permission (either as owner or via shares)
-    const permissionResult = await shareService.verifyPermission(
-      fileId,
-      userId,
-      fileOwnerId,
-      requiredPermission
-    );
-    
-    if (!permissionResult.hasPermission) {
+    // Check if user owns the file
+    if ((file.owner as IUser)._id.toString() !== userId) {
       throw new ApiError(403, [
         { authorization: "You do not have permission to access this file" }
       ]);
@@ -231,7 +199,7 @@ class FileService {
    */
   async softDeleteFile(fileId: string, userId: string): Promise<FileResponseDto> {
     // Verify file ownership
-    const existingFile = await this.verifyFileOwnership(fileId, userId);
+    const existingFile = await this.getFileById(fileId, userId);
     
     // Soft delete the file
     const deletedFile = await fileDao.softDeleteFile(fileId);
@@ -242,7 +210,9 @@ class FileService {
     
     // If file was in a folder, decrement the folder's item count
     if (existingFile.folder) {
-      await folderService.decrementFolderItemCount(existingFile.folder.toString());
+      // Safely handle both string IDs and folder objects
+      const folderId = typeof existingFile.folder === 'string' ? existingFile.folder : existingFile.folder.id;
+      await folderService.decrementFolderItemCount(folderId);
     }
     
     return this.sanitizeFile(deletedFile);
@@ -258,35 +228,19 @@ class FileService {
    */
   async renameFile(fileId: string, newName: string, userId: string): Promise<FileResponseDto> {
     // Verify file ownership
-    const existingFile = await this.verifyFileOwnership(fileId, userId);
+    const existingFile = await this.getFileById(fileId, userId);
     
     // Ensure name is unique within the folder
     const uniqueName = await this.ensureUniqueNameAtLevel(
       newName,
       existingFile.extension,
       userId,
-      existingFile.folder ? existingFile.folder.toString() : null
+      existingFile.folder ? (typeof existingFile.folder === 'string' ? existingFile.folder : existingFile.folder.id) : null
     );
-    
-    // Calculate the new path - preserve the folder path and update just the filename
-    const sanitizedName = this.sanitizePathSegment(uniqueName);
-    
-    // If file is in a folder, preserve its path structure
-    let newPath: string;
-    if (existingFile.folder) {
-      // Split the path into segments and replace just the last part
-      const pathSegments = existingFile.path.split('/');
-      pathSegments[pathSegments.length - 1] = sanitizedName;
-      newPath = pathSegments.join('/');
-    } else {
-      // For root files, just use the sanitized name
-      newPath = `/${sanitizedName}`;
-    }
     
     // Update the file
     const updatedFile = await fileDao.renameFile(fileId, {
-      name: uniqueName,
-      path: newPath
+      name: uniqueName
     });
     
     if (!updatedFile) {
@@ -306,21 +260,22 @@ class FileService {
    */
   async moveFile(fileId: string, newFolderId: string | null, userId: string): Promise<FileResponseDto> {
     // Verify file ownership
-    const existingFile = await this.verifyFileOwnership(fileId, userId);
-    
+    const existingFile = await this.getFileById(fileId, userId);
+    if (!existingFile) {
+      throw new ApiError(404, [{ file: "File not found" }]);
+    }
     // Verify the destination folder exists and user owns it (if not moving to root)
-    let parentFolder = null;
-    let newPathSegments: { name: string; id: string }[] = [];
-    
     if (newFolderId) {
       // Get the destination folder and verify ownership
-      parentFolder = await folderService.verifyFolderOwnership(newFolderId, userId);
-      
-      // Use the parent's pathSegments for the file
-      newPathSegments = [...parentFolder.pathSegments.map(segment => ({
-        name: segment.name,
-        id: segment.id instanceof mongoose.Types.ObjectId ? segment.id.toString() : String(segment.id)
-      }))];
+      await folderService.verifyFolderOwnership(newFolderId, userId);
+    }
+
+    // if moving to same folder, return the file
+    if (existingFile.folder) {
+      const currentFolderId = typeof existingFile.folder === 'string' ? existingFile.folder : existingFile.folder.id;
+      if (currentFolderId === newFolderId) {
+        throw new ApiError(400, [{ move: "File is already in the target folder" }]);
+      }
     }
     
     // Ensure name is unique within the new parent folder
@@ -331,25 +286,18 @@ class FileService {
       newFolderId
     );
     
-    // Sanitize the name for path consistency
-    const sanitizedName = this.sanitizePathSegment(uniqueName);
-    
-    // Calculate new path
-    const newPath = newFolderId && parentFolder 
-      ? `${parentFolder.path}/${sanitizedName}` 
-      : `/${sanitizedName}`;
-    
     // If file was in a folder, decrement that folder's item count
     if (existingFile.folder) {
-      await folderService.decrementFolderItemCount(existingFile.folder.toString());
+      logger.info("existingFile.folder", existingFile.folder);
+      // Safely handle both string IDs and folder objects
+      const folderId = typeof existingFile.folder === 'string' ? existingFile.folder : existingFile.folder.id;
+      await folderService.decrementFolderItemCount(folderId);
     }
     
     // Update the file
     const updatedFile = await fileDao.moveFile(fileId, {
       name: uniqueName,
-      folder: newFolderId,
-      path: newPath,
-      pathSegments: newPathSegments
+      folder: newFolderId
     });
     
     if (!updatedFile) {
@@ -358,6 +306,7 @@ class FileService {
     
     // If file is moved to a folder, increment that folder's item count
     if (newFolderId) {
+      logger.info("newFolderId:", newFolderId);
       await folderService.incrementFolderItemCount(newFolderId);
     }
     
@@ -371,7 +320,6 @@ class FileService {
    * @param userId User ID who owns the files
    * @param folderId Optional target folder ID
    * @param fileToFolderMap Map of filenames to their virtual folder paths (for zip extraction)
-   * @param virtualFolders Map of paths to folder IDs (for zip extraction)
    * @returns Array of processed file results
    */
   async processUploadedFiles(
@@ -379,105 +327,52 @@ class FileService {
     userId: string,
     folderId: string | null | undefined,
     fileToFolderMap: Record<string, string> = {},
-    virtualFolders: Record<string, string> = {}
-  ): Promise<Array<{id: string; name: string; size: number; folder: string | null; virtualPath?: string}>> {
+  ): Promise<FileResponseDto[]> {
     logger.debug(`Processing ${files.length} files in service layer`);
     
-    // Initialize results array
-    const uploadResults: Array<{id: string; name: string; size: number; folder: string | null; virtualPath?: string}> = [];
-    
-    // Create a map for virtual folders from the input object
-    const virtualFolderCache = new Map<string, string>(Object.entries(virtualFolders));
-    
-    // Track processed filenames to avoid duplicates
-    const processedFilenames = new Set<string>();
-    
+    const uploadResults: Array<FileResponseDto> = [];
+
     for (const file of files) {
       try {
-        // Skip if we've already processed this file
-        if (processedFilenames.has(file.filename)) {
-          logger.debug(`Skipping duplicate file: ${file.filename}`);
-          continue;
-        }
-        processedFilenames.add(file.filename);
-        
-        // Check if this file is part of a zip folder structure
-        const virtualPath = fileToFolderMap[file.filename];
-        
-        if (virtualPath) {
-          // This file came from a zip with folder structure
-          logger.debug(`Processing extracted file: ${file.filename} from path: ${virtualPath}`);
-          let targetFolderId: string | null | undefined = folderId;
-          
-          // If we have a non-root directory path, find the corresponding folder ID
-          if (virtualPath !== "." && virtualPath !== "/") {
-            // Check if the folder was already created in processZipFiles middleware
-            if (virtualFolderCache.has(virtualPath)) {
-              targetFolderId = virtualFolderCache.get(virtualPath)!;
-            } else {
-              // Create folder structure
-              targetFolderId = await this.createFolderStructure(
-                virtualPath, 
-                folderId, 
-                userId, 
-                virtualFolderCache
-              );
-            }
-          }
-          
-          // Extract file extension and name
+        if (fileToFolderMap[file.filename]) {
+          // File from ZIP archive - use the mapped folder ID directly
+          const targetFolderId = fileToFolderMap[file.filename];
           const fileExtension = path.extname(file.originalname).substring(1);
           const fileName = path.basename(file.originalname, `.${fileExtension}`);
-          
-          // Create file record in the database
-          const savedFile = await this.createFileWithVirtualFolder(
-            {
-              name: fileName,
-              type: fileExtension,
-              size: file.size,
-              storageKey: file.filename,  // Use file.filename instead of file.originalname to match actual file on disk
-              path: virtualPath, // Pass the virtual path to be incorporated into the file path
-            },
-            userId,
-            targetFolderId
-          );
-          
-          uploadResults.push({
-            id: savedFile.id,
-            name: savedFile.name,
-            size: savedFile.size,
-            folder: targetFolderId || null,
-            virtualPath: virtualPath, // Keep this for backwards compatibility
-          });
-          
-        } else {
-          // Regular file upload (not from ZIP)
-          const fileExtension = path.extname(file.originalname).substring(1);
-          const fileName = path.basename(file.originalname, `.${fileExtension}`);
-          
-          // Create file record in the database
+
           const savedFile = await this.createFileWithVirtualFolder(
             {
               name: fileName,
               type: fileExtension,
               size: file.size,
               storageKey: file.filename,
-              // No need to pass a path for regular files, it will be constructed from just the filename
+            },
+            userId,
+            targetFolderId
+          );
+          
+          uploadResults.push(savedFile);
+          
+        } else {
+          // Regular file upload
+          const fileExtension = path.extname(file.originalname).substring(1);
+          const fileName = path.basename(file.originalname, `.${fileExtension}`);
+          
+          const savedFile = await this.createFileWithVirtualFolder(
+            {
+              name: fileName,
+              type: fileExtension,
+              size: file.size,
+              storageKey: file.filename,
             },
             userId,
             folderId
           );
           
-          uploadResults.push({
-            id: savedFile.id,
-            name: savedFile.name,
-            size: savedFile.size,
-            folder: folderId || null,
-          });
+          uploadResults.push(savedFile);
         }
       } catch (fileError) {
         logger.error(`Error processing uploaded file ${file.filename}:`, fileError);
-        // Continue processing other files
       }
     }
     
@@ -578,116 +473,30 @@ class FileService {
   }
 
   /**
-   * Remove sensitive data from file object
-   * 
-   * @param file File document
-   * @returns Sanitized file object safe for client
+   * Sanitize file document for client response
    */
   private sanitizeFile(file: IFile): FileResponseDto {
-    const sanitized = sanitizeDocument<FileResponseDto>(file, {
+    return sanitizeDocument<FileResponseDto>(file, {
       excludeFields: ["__v"],
       recursive: true,
     });
-    
-    // Calculate isShared property based on publicShare and userShare
-    sanitized.isShared = !!(sanitized.publicShare || sanitized.userShare);
-    
-    return sanitized;
   }
   
   /**
-   * Helper to sanitize path segments - replaces spaces with hyphens and removes invalid chars
-   * Keeping consistent with the folder path sanitization
-   * 
-   * @param name Name to sanitize for path use
-   * @returns Sanitized name suitable for paths
+   * Sanitize a path segment (file or folder name)
    */
   private sanitizePathSegment(name: string): string {
     return name
-      .trim()
-      .replace(/\s+/g, "-") // Replace spaces with hyphens
-      .replace(/[\/\\:*?"<>|]/g, "") // Remove invalid filesystem characters
-      .toLowerCase(); // Lowercase for consistency
-  }
-
-  /**
-   * Get file with sharing information
-   * 
-   * @param fileId ID of the file to retrieve
-   * @param userId ID of the user making the request
-   * @returns File with populated sharing information
-   */
-  async getFileWithShareInfo(
-    fileId: string, 
-    userId: string
-  ): Promise<FileResponseDto & { shareInfo?: any }> {
-    // First verify the user has access to this file
-    const file = await this.getFileById(fileId, userId);
-    
-    if (!file) {
-      throw new ApiError(404, [{ file: "File not found" }]);
-    }
-    
-    // Ensure user has permission to access this file
-    const permissionResult = await shareService.verifyPermission(
-      fileId, 
-      userId,
-      file.owner.toString()
-    );
-    
-    if (!permissionResult.hasPermission) {
-      throw new ApiError(403, [{ permission: "You do not have permission to access this file" }]);
-    }
-    
-    // Create response object with type assertion for shareInfo
-    const response = { 
-      ...file, 
-      shareInfo: { 
-        isOwner: permissionResult.isOwner 
-      } as any
-    };
-
-    // If owner, fetch all sharing information
-    if (permissionResult.isOwner) {
-      // Get public share if exists
-      try {
-        const publicShare = await shareService.getPublicShareByResource(fileId, userId);
-        if (publicShare) {
-          response.shareInfo.public = publicShare;
-        }
-      } catch (error) {
-        // No public share exists - that's fine
-      }
-      
-      // Get user shares if exist
-      try {
-        const userShare = await shareService.getUserShareByResource(fileId, userId);
-        if (userShare) {
-          response.shareInfo.users = userShare;
-        }
-      } catch (error) {
-        // No user shares exist - that's fine
-      }
-    } else {
-      // For non-owners, include their specific permissions
-      response.shareInfo = {
-        ...response.shareInfo,
-        permission: permissionResult.permissionLevel,
-        allowDownload: permissionResult.allowDownload
-      } as any;
-    }
-    
-    return response;
+      .replace(/[<>:"/\\|?*\x00-\x1F]/g, '') // Remove invalid characters
+      .replace(/^\.+/, '')                    // Remove leading dots
+      .replace(/\s+/g, ' ')                   // Replace multiple spaces with single space
+      .trim();                                // Remove leading/trailing whitespace
   }
 
   /**
    * Permanently delete a file from database and storage
-   * 
-   * @param fileId ID of the file to delete 
-   * @param userId ID of the user who owns the file
-   * @returns Result of the delete operation
    */
-  async permanentDeleteFile(fileId: string, userId: string): Promise<{ acknowledged: boolean; deletedCount: number }> {
+  async permanentDeleteFile(fileId: string, userId: string): Promise<void> {
     // First verify the file exists and belongs to the user
     const file = await this.verifyFileOwnership(fileId, userId);
     
@@ -695,23 +504,22 @@ class FileService {
       throw new ApiError(404, [{ file: "File not found" }]);
     }
 
-    // Try to delete the physical file from storage
-    try {
-      // Build the physical storage path
-      const userStorageDir = `uploads/user-${userId}`;
-      const filePath = path.join(process.cwd(), userStorageDir, file.storageKey);
-      
-      // Check if file exists before attempting to delete
-      await fs.access(filePath);
-      await fs.unlink(filePath);
-      logger.debug(`Physical file deleted: ${filePath}`);
-    } catch (error) {
-      // If file doesn't exist or there's a permission issue, log but continue
-      logger.error(`Failed to delete physical file: ${error}`);
+    // Delete the physical file
+    const filePath = path.join(getUserDirectoryPath(userId), file.storageKey);
+    const fileDeleted = removeFile(filePath);
+
+    if (!fileDeleted) {
+      logger.error(`Failed to delete file ${filePath}`);
     }
     
     // Delete from database
-    return await fileDao.permanentDeleteFile(fileId);
+    const result = await fileDao.permanentDeleteFile(fileId);
+
+    if (!result.acknowledged || result.deletedCount === 0) {
+      throw new ApiError(500, [
+        { server: "Failed to delete file from database" },
+      ]);
+    }
   }
 
   /**
@@ -729,7 +537,7 @@ class FileService {
       throw new ApiError(404, [{ file: "File not found" }]);
     }
     
-    if (file.owner.toString() !== userId) {
+    if ((file.owner as IUser)._id.toString() !== userId) {
       throw new ApiError(403, [{ authentication: "You do not have permission to restore this file" }]);
     }
     
@@ -749,8 +557,6 @@ class FileService {
       } catch (error) {
         // If folder is deleted or doesn't exist, move file to root
         file.folder = null;
-        file.path = "/";
-        file.pathSegments = [];
       }
     }
     
@@ -796,17 +602,17 @@ class FileService {
     return deletedFiles.map(file => this.sanitizeFile(file));
   }
 
-  async permanentDeleteAllDeletedFiles(userId: string): Promise<{ acknowledged: boolean; deletedCount: number }> {
+  async permanentDeleteAllDeletedFiles(userId: string): Promise<void> {
     // Get all deleted files for this user
     const deletedFiles = await fileDao.getAllDeletedFiles(userId);
     // remove all files from upload directory
     for (const file of deletedFiles) {
-            const userStorageDir = `uploads/user-${userId}`;
+      const userStorageDir = `uploads/user-${userId}`;
       const filePath = path.join(process.cwd(), userStorageDir, file.storageKey);
       try {
         // Check if file exists before attempting to delete
-        await fs.access(filePath);
-        await fs.unlink(filePath);
+        await fsPromises.access(filePath);
+        await fsPromises.unlink(filePath);
         logger.debug(`Physical file deleted: ${filePath}`);
       } catch (error) {
         // If file doesn't exist or there's a permission issue, log but continue
@@ -818,29 +624,91 @@ class FileService {
     if (!result) {
       throw new ApiError(500, [{ delete: "Failed to empty trash" }]);
     }
-    return result;
   }
+
   /**
-   * Bulk update file paths
+   * Get file stream for viewing
    * 
-   * @param oldPathPrefix The old path prefix to match
-   * @param newPathPrefix The new path prefix to replace it with
-   * @param pathSegmentsToUpdate Additional path segments to update or replace
-   * @returns Result of the update operation
+   * @param fileId File ID to view
+   * @param userId User ID who owns the file
+   * @returns Object containing file stream, mime type, and filename
+   * @throws ApiError if file not found or user doesn't own it
    */
-  async bulkUpdateFilePaths(
-    oldPathPrefix: string,
-    newPathPrefix: string,
-    pathSegmentsToUpdate: {
-      index: number;
-      value: { name: string; id: string };
-    }[] = []
-  ): Promise<{ acknowledged: boolean; modifiedCount: number }> {
-    return await fileDao.bulkUpdateFilePaths(
-      oldPathPrefix,
-      newPathPrefix,
-      pathSegmentsToUpdate
-    );
+  async getFileStream(
+    fileId: string,
+    userId: string
+  ): Promise<{ stream: fs.ReadStream; mimeType: string; filename: string }> {
+    // Verify file ownership
+    const file = await this.verifyFileOwnership(fileId, userId);
+    
+    // Construct file path
+    const filePath = path.join(getUserDirectoryPath(userId), file.storageKey);
+    
+    try {
+      // Check if file exists
+      await fsPromises.access(filePath);
+      
+      // Read the encrypted file content
+      const encryptedBuffer = await fsPromises.readFile(filePath);
+      
+      // Decrypt the file content using the user's key
+      const decryptedBuffer = decryptFileBuffer(encryptedBuffer, userId);
+      
+      // Log the decrypted data to the console for debugging
+      logger.debug(`Decrypted file data (${file.name}.${file.extension}):`);
+      
+      // For text files, log the content as string
+      if (['txt', 'json', 'csv', 'md', 'html', 'css', 'js', 'ts'].includes(file.extension.toLowerCase())) {
+        // Convert buffer to string and log - limit to 1000 chars to avoid console overflow
+        const textContent = decryptedBuffer.toString('utf8');
+        logger.debug(textContent.length > 1000 
+          ? `${textContent.substring(0, 1000)}... (truncated, ${textContent.length} chars total)` 
+          : textContent);
+      } else {
+        // For binary files, just log buffer info
+        logger.debug(`Binary data: ${decryptedBuffer.length} bytes`);
+      }
+      
+      // Create a temporary decrypted file path
+      const tempDir = path.join(getUserDirectoryPath(userId), 'temp');
+      
+      // Ensure temp directory exists
+      if (!fs.existsSync(tempDir)) {
+        await fsPromises.mkdir(tempDir, { recursive: true });
+      }
+      
+      const tempFilePath = path.join(tempDir, `decrypted-${file.storageKey}`);
+      
+      // Write the decrypted content to temp file
+      await fsPromises.writeFile(tempFilePath, decryptedBuffer);
+      
+      // Create read stream from the decrypted temp file
+      const stream = fs.createReadStream(tempFilePath);
+      
+      // Set up cleanup of temp file after stream ends
+      stream.on('end', async () => {
+        try {
+          // Delete temporary decrypted file after it's been streamed
+          await fsPromises.unlink(tempFilePath);
+        } catch (err) {
+          logger.error(`Error cleaning up temp file ${tempFilePath}:`, err);
+        }
+      });
+      
+      // Determine mime type from file extension
+      const mimeType = file.type ? 
+        `application/${file.type}` : 
+        'application/octet-stream';
+      
+      return {
+        stream,
+        mimeType,
+        filename: `${file.name}.${file.extension}`
+      };
+    } catch (error) {
+      logger.error('Error serving file:', error);
+      throw new ApiError(404, [{ file: "File not found or could not be decrypted" }]);
+    }
   }
 }
 

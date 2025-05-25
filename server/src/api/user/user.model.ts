@@ -10,21 +10,11 @@ import bcryptjs from "bcryptjs";
 import jwt, { Secret, SignOptions } from "jsonwebtoken";
 import mongoose, { Document, Schema, Types } from "mongoose";
 
-// Define the refresh token interface
-interface IRefreshToken {
-  _id: Types.ObjectId;
-  token: string;
-  deviceInfo: string;
-  createdAt: Date;
-}
-
 // Define interface for User methods
 interface IUserMethods {
   checkPassword(password: string): Promise<boolean>;
   generateAccessToken(): string;
-  generateRefreshToken(deviceInfo: string): string;
-  findRefreshToken(token: string): IRefreshToken | undefined;
-  removeRefreshToken(token: string): boolean;
+  generateRefreshToken(): string;
 }
 
 // Define the user interface
@@ -35,29 +25,13 @@ export interface IUser extends Document, IUserMethods {
   email: string;
   password: string;
   role: UserRole;
-  plan: Schema.Types.ObjectId;
   storageUsed: number;
-  refreshTokens: IRefreshToken[];
+  maxStorageLimit: number;
+  refreshToken: string;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
 }
-
-// Create the refresh token schema
-const RefreshTokenSchema = new Schema({
-  token: { //stores the refresh token
-    type: String,
-    required: true,
-  },
-  deviceInfo: {
-    type: String,
-    required: true,
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  }
-});
 
 // Create the schema
 const UserSchema: Schema = new Schema(
@@ -87,17 +61,17 @@ const UserSchema: Schema = new Schema(
       enum: Object.values(UserRole),
       default: UserRole.USER,
     },
-    plan: {
-      type: Schema.Types.ObjectId,
-      ref: "Plan",
+    maxStorageLimit: {
+      type: Number,
+      default: 15728640, // 15MB in bytes (15 * 1024 * 1024)
     },
     storageUsed: {
       type: Number,
       default: 0,
     },
-    refreshTokens: {
-      type: [RefreshTokenSchema],
-      default: [],
+    refreshToken: {
+      type: String,
+      default: null,
       select: false,
     },
     deletedAt: {
@@ -145,7 +119,7 @@ UserSchema.methods.generateAccessToken = function () {
 };
 
 // Add a method to generate refresh token
-UserSchema.methods.generateRefreshToken = function (deviceInfo: string) {
+UserSchema.methods.generateRefreshToken = function () {
   const payload: JwtUserPayload = {
     id: this._id,
     email: this.email,
@@ -161,18 +135,6 @@ UserSchema.methods.generateRefreshToken = function (deviceInfo: string) {
     throw new Error("JWT secret is not configured");
   }
   return jwt.sign(payload, secret, options);
-};
-
-// Add a method to find a refresh token
-UserSchema.methods.findRefreshToken = function (token: string) {
-  return this.refreshTokens.find((rt: IRefreshToken) => rt.token === token);
-};
-
-// Add a method to remove a refresh token
-UserSchema.methods.removeRefreshToken = function (token: string) {
-  const initialLength = this.refreshTokens.length;
-  this.refreshTokens = this.refreshTokens.filter((rt: IRefreshToken) => rt.token !== token);
-  return this.refreshTokens.length < initialLength;
 };
 
 // Create and export the model

@@ -48,8 +48,8 @@ const updateUserSchema = z.object({
   name: nameSchema.optional(),
   email: emailSchema.optional(),
   avatar: z.string().url({ message: "Invalid URL" }).optional(),
-  plan: z.string().optional(),
-  storageUsed: z.number().optional(),
+  maxStorageLimit: z.number().min(0).optional(),
+  storageUsed: z.number().min(0).optional(),
   deletedAt: z.date().nullable().optional(),
 });
 
@@ -88,12 +88,14 @@ const adminSetPasswordSchema = z
     path: ["confirmNewPassword"],
   });
 
+const updateStorageLimitSchema = z.object({
+  maxStorageLimit: z.number().min(0, { message: "Storage limit cannot be negative" }),
+});
+
 export {
-  loginUserSchema,
+  adminSetPasswordSchema, loginUserSchema,
   refreshTokenSchema,
-  registerUserSchema,
-  updateUserPasswordSchema,
+  registerUserSchema, updateStorageLimitSchema, updateUserPasswordSchema,
   updateUserRoleSchema,
-  updateUserSchema,
-  adminSetPasswordSchema,
+  updateUserSchema
 };

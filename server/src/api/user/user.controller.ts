@@ -35,12 +35,8 @@ class UserController {
    * Login existing user
    */
   login = asyncHandler(async (req: Request, res: Response) => {
-    // Get device info from user agent or custom header
-    const deviceInfo = req.headers["user-agent"] || "unknown-device";
-    
-    const { user, accessToken, refreshToken, sessionId } = await userService.loginUser(
-      req.body,
-      deviceInfo
+    const { user, accessToken, refreshToken } = await userService.loginUser(
+      req.body
     );
 
     // Return user data and access token
@@ -48,7 +44,6 @@ class UserController {
       .status(200)
       .cookie("accessToken", accessToken, this.cookieOptions)
       .cookie("refreshToken", refreshToken, this.cookieOptions)
-      .cookie("sessionId", sessionId, this.cookieOptions)
       .json(new ApiResponse(200, { user, accessToken }, "Login successful"));
   });
 
@@ -146,17 +141,15 @@ class UserController {
   });
 
   /**
-   * Logout user by removing refresh token for this device
+   * Logout user by clearing refresh token
    */
   logout = asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
       throw new ApiError(401, [{ authentication: "Unauthorized" }]);
     }
 
-    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
-
     try {
-      await userService.logoutUser(req.user.id, refreshToken);
+      await userService.logoutUser(req.user.id);
 
       res
         .clearCookie("refreshToken", this.cookieOptions)
@@ -174,62 +167,11 @@ class UserController {
   });
 
   /**
-   * Logout user from all devices
-   */
-  logoutAllDevices = asyncHandler(async (req: Request, res: Response) => {
-    if (!req.user) {
-      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
-    }
-
-    await userService.logoutFromAllDevices(req.user.id);
-
-    res
-      .clearCookie("refreshToken", this.cookieOptions)
-      .clearCookie("accessToken", this.cookieOptions)
-      .json(new ApiResponse(200, {}, "Logged out from all devices successfully"));
-  });
-
-  /**
-   * Logout user from a specific device/session
-   */
-  logoutSession = asyncHandler(async (req: Request, res: Response) => {
-    if (!req.user) {
-      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
-    }
-
-    const { sessionId } = req.params;
-    
-    if (!sessionId) {
-      throw new ApiError(400, [{ session: "Session ID is required" }]);
-    }
-
-    try {
-      const loggedOutUser = await userService.logoutUserSession(req.user.id, sessionId);
-
-      console.log("Logged out user:", loggedOutUser);
-      // If the current session is being logged out, clear cookies
-      const currentSessionId = req.cookies?.sessionId || req.body?.sessionId;
-      if (currentSessionId === sessionId) {
-        res
-          .clearCookie("refreshToken", this.cookieOptions)
-          .clearCookie("accessToken", this.cookieOptions);
-      }
-      
-      res.json(new ApiResponse(200, {}, "Session logged out successfully"));
-    } catch (error) {
-      // Re-throw for error handler
-      throw error;
-    }
-  });
-
-  /**
    * Refresh access token using refresh token
    */
   refreshToken = asyncHandler(async (req: Request, res: Response) => {
     // Try to get token from cookies first, then body
     const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
-    // Get device info from user agent or custom header
-    const deviceInfo = req.headers["user-agent"] || "unknown-device";
 
     if (!refreshToken) {
       throw new ApiError(400, [{ refreshToken: "Refresh token is required" }]);
@@ -237,7 +179,7 @@ class UserController {
 
     // Get new tokens using the refresh token
     const { user, newAccessToken, newRefreshToken } =
-      await userService.refreshAccessToken(refreshToken, deviceInfo);
+      await userService.refreshAccessToken(refreshToken);
 
     // Return user data and set cookies with new tokens
     res
@@ -299,6 +241,36 @@ class UserController {
       );
     }
   );
+
+  /**
+   * Update a user's storage limit (admin only)
+   */
+  updateUserStorageLimit = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const updatedUser = await userService.updateUserStorageLimit(id, req.body);
+    res.json(
+      new ApiResponse(
+        200,
+        { user: updatedUser },
+        "User storage limit updated successfully"
+      )
+    );
+  });
+
+  /**
+   * Restore a soft-deleted user (admin only)
+   */
+  restoreUser = asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const restoredUser = await userService.restoreUser(id);
+    res.json(
+      new ApiResponse(
+        200,
+        { user: restoredUser },
+        "User restored successfully"
+      )
+    );
+  });
 }
 
 export default new UserController();

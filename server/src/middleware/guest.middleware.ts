@@ -1,10 +1,10 @@
-import { NextFunction, Request, Response } from "express";
-import jwt from "jsonwebtoken";
 import { JwtUserPayload } from "@api/user/user.dto.js";
 import userService from "@api/user/user.service.js";
 import { ACCESS_TOKEN_SECRET } from "@config/constants.js";
 import { ApiError } from "@utils/apiError.utils.js";
 import { asyncHandler } from "@utils/asyncHandler.utils.js";
+import { NextFunction, Request, Response } from "express";
+import jwt from "jsonwebtoken";
 
 export const verifyGuest = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -21,19 +21,14 @@ export const verifyGuest = asyncHandler(
 
       const refreshToken =
         req.cookies?.refreshToken || req.body?.refreshToken || "";
-      const sessionId = req.cookies?.sessionId || req.body?.sessionId || "";
 
       const user = await userService.getUserById(decoded.id, {
-        includeRefreshTokens: true,
+        includeRefreshToken: true,
         deletedAt: false,
       });
 
-      const matched = user?.refreshTokens?.some(
-        (t) => t.token === refreshToken && t.id === sessionId
-      );
-
       // If a valid session exists, block guest access
-      if (matched) {
+      if (user?.refreshToken === refreshToken) {
         throw new ApiError(403, [
           { auth: "Already authenticated. Please logout first." },
         ]);

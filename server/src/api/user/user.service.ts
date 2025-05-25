@@ -1,7 +1,7 @@
-import planService from "@api/plan/plan.service.js";
 import userDAO from "@api/user/user.dao.js";
 import {
   AdminSetPasswordDTO,
+  AdminUpdateStorageDTO,
   CreateUserDTO,
   JwtUserPayload,
   LoginUserDTO,
@@ -13,11 +13,9 @@ import {
 import { IUser } from "@api/user/user.model.js";
 import { REFRESH_TOKEN_SECRET } from "@config/constants.js";
 import { ApiError } from "@utils/apiError.utils.js";
-import logger from "@utils/logger.utils.js";
+import { createUserDirectory } from "@utils/mkdir.utils.js";
 import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
 import jwt from "jsonwebtoken";
-import { createUserDirectory } from "@utils/mkdir.utils.js";
-import { console } from "inspector";
 
 /**
  * Service class for user-related business logic
@@ -30,42 +28,30 @@ class UserService {
    * Generate access and refresh tokens for a user
    *
    * @param user User object
-   * @param deviceInfo Device information
    * @returns Object containing access and refresh tokens
    */
-  async generateAccessAndRefreshTokens(user: IUser, deviceInfo: string) {
+  async generateAccessAndRefreshTokens(user: IUser) {
     // Generate access token
     const accessToken = user.generateAccessToken();
 
     // Generate refresh token
-    const refreshToken = user.generateRefreshToken(deviceInfo);
+    const refreshToken = user.generateRefreshToken();
 
-    // Add refresh token to the user's tokens array
-    const updatedUser = await userDAO.addUserRefreshToken(user.id, {
-      refreshToken,
-      deviceInfo,
-    });
+    // Set refresh token for the user
+    const updatedUser = await userDAO.setUserRefreshToken(
+      user.id,
+      refreshToken
+    );
 
-    // Check if user and refreshTokens exist before accessing
-    if (
-      !updatedUser ||
-      !updatedUser.refreshTokens ||
-      updatedUser.refreshTokens.length === 0
-    ) {
+    // Check if user exists and refresh token was set
+    if (!updatedUser || !updatedUser.refreshToken) {
       throw new ApiError(500, [{ auth: "Failed to create session" }]);
     }
 
-    // Get the ID of the newly added token (last in the array)
-    const sessionId =
-      updatedUser.refreshTokens[
-        updatedUser.refreshTokens.length - 1
-      ]._id.toString();
-
-    // Return tokens and session ID
+    // Return tokens
     return {
       accessToken,
       refreshToken,
-      sessionId,
     };
   }
 
@@ -73,14 +59,10 @@ class UserService {
    * Register a new user and generate authentication tokens
    *
    * @param data User registration data
-   * @param deviceInfo Information about the device being used
    * @returns Newly created user data and authentication tokens
    * @throws ApiError if email already exists
    */
-  async registerUserWithTokens(
-    data: CreateUserDTO,
-    deviceInfo: string
-  ): Promise<{
+  async registerUserWithTokens(data: CreateUserDTO): Promise<{
     user: UserResponseDTO;
     accessToken: string;
     refreshToken: string;
@@ -93,21 +75,12 @@ class UserService {
       ]);
     }
 
-    // Get default plan
-    const defaultPlan = await planService.getDefaultPlan();
-    if (!defaultPlan) {
-      throw new ApiError(500, [{ plan: "Default plan not found" }]);
-    }
-
-    // Create user with default plan
-    const user = await userDAO.createUser({
-      ...data,
-      plan: defaultPlan.id,
-    });
+    // Create user with default storage limit
+    const user = await userDAO.createUser(data);
 
     // Generate tokens
     const { accessToken, refreshToken } =
-      await this.generateAccessAndRefreshTokens(user, deviceInfo);
+      await this.generateAccessAndRefreshTokens(user);
 
     return {
       user: this.sanitizeUser(user),
@@ -132,17 +105,8 @@ class UserService {
       ]);
     }
 
-    // Get default plan
-    const defaultPlan = await planService.getDefaultPlan();
-    if (!defaultPlan) {
-      throw new ApiError(500, [{ plan: "Default plan not found" }]);
-    }
-
-    // Create user with default plan
-    const user = await userDAO.createUser({
-      ...data,
-      plan: defaultPlan.id,
-    });
+    // Create user with default storage limit
+    const user = await userDAO.createUser(data);
 
     // Create user directory after user is created
     createUserDirectory(user.id);
@@ -159,14 +123,10 @@ class UserService {
    * @returns User data and authentication tokens
    * @throws ApiError if credentials are invalid
    */
-  async loginUser(
-    credentials: LoginUserDTO,
-    deviceInfo: string
-  ): Promise<{
+  async loginUser(credentials: LoginUserDTO): Promise<{
     user: UserResponseDTO;
     accessToken: string;
     refreshToken: string;
-    sessionId: string;
   }> {
     // Find user by email
     const user = await userDAO.getUserByEmail(credentials.email, {
@@ -187,97 +147,34 @@ class UserService {
     }
 
     // Generate tokens
-    const { accessToken, refreshToken, sessionId } =
-      await this.generateAccessAndRefreshTokens(user, deviceInfo);
+    const { accessToken, refreshToken } =
+      await this.generateAccessAndRefreshTokens(user);
 
     return {
       user: this.sanitizeUser(user),
       accessToken,
       refreshToken,
-      sessionId,
     };
   }
 
   /**
-   * Logout user from a specific device by removing the refresh token
-   *
-   * @param userId User ID
-   * @param refreshToken Refresh token to invalidate
-   * @returns Boolean indicating success
-   */
-  async logoutUser(userId: string, refreshToken: string): Promise<boolean> {
-    // Find user by ID
-    const user = await userDAO.getUserById(userId, {
-      includeRefreshTokens: true,
-    });
-    if (!user) {
-      throw new ApiError(404, [{ id: "User not found" }]);
-    }
-
-    // Remove the specific refresh token
-    const loggedOutUser = await userDAO.removeSpecificRefreshToken(
-      userId,
-      refreshToken
-    );
-
-    if (!loggedOutUser) {
-      throw new ApiError(500, [{ logout: "Failed to logout user" }]);
-    }
-    return true;
-  }
-
-  /**
-   * Logout user from a specific device by the session ID
-   *
-   * @param userId User ID
-   * @param sessionId ID of the session/refresh token to invalidate
-   * @returns Boolean indicating success
-   */
-  async logoutUserSession(userId: string, sessionId: string): Promise<boolean> {
-    // Find user by ID
-    const user = await userDAO.getUserById(userId, {
-      includeRefreshTokens: true,
-    });
-
-    if (!user) {
-      throw new ApiError(404, [{ id: "User not found" }]);
-    }
-
-    // Remove the specific refresh token by ID
-    const loggedOutUser = await userDAO.removeRefreshTokenBySessionId(
-      userId,
-      sessionId
-    );
-
-    if (!loggedOutUser) {
-      throw new ApiError(404, [
-        { session: "Session not found or already logged out" },
-      ]);
-    }
-
-    return true;
-  }
-
-  /**
-   * Logout user from all devices by clearing all refresh tokens
+   * Logout user by clearing refresh token
    *
    * @param userId User ID
    * @returns Boolean indicating success
    */
-  async logoutFromAllDevices(userId: string): Promise<boolean> {
+  async logoutUser(userId: string): Promise<boolean> {
     // Find user by ID
     const user = await userDAO.getUserById(userId);
     if (!user) {
       throw new ApiError(404, [{ id: "User not found" }]);
     }
 
-    // Clear all refresh tokens
-    const loggedOutUser = await userDAO.clearAllUserRefreshTokens(userId);
+    // Clear the refresh token
+    const loggedOutUser = await userDAO.clearUserRefreshToken(userId);
 
     if (!loggedOutUser) {
-      throw new ApiError(500, [
-        { logout: "Failed to logout user from all devices" },
-      ]);
+      throw new ApiError(500, [{ logout: "Failed to logout user" }]);
     }
     return true;
   }
@@ -291,7 +188,7 @@ class UserService {
    */
   async getUserById(
     id: string,
-    options?: { includeRefreshTokens?: boolean; deletedAt?: boolean }
+    options?: { includeRefreshToken?: boolean; deletedAt?: boolean }
   ): Promise<UserResponseDTO> {
     const user = await userDAO.getUserById(id, options);
     if (!user) {
@@ -472,10 +369,7 @@ class UserService {
    * @returns User data and new tokens (access + refresh)
    * @throws ApiError if refresh token is invalid or expired
    */
-  async refreshAccessToken(
-    refreshToken: string,
-    deviceInfo: string
-  ): Promise<{
+  async refreshAccessToken(refreshToken: string): Promise<{
     user: UserResponseDTO;
     newAccessToken: string;
     newRefreshToken: string;
@@ -488,32 +382,96 @@ class UserService {
 
     // Find user by ID
     const user = await userDAO.getUserById(decoded.id, {
-      includeRefreshTokens: true,
+      includeRefreshToken: true,
     });
     if (!user) {
       throw new ApiError(401, [{ refreshToken: "Invalid refresh token" }]);
     }
 
-    // Check if the refresh token exists in the user's tokens array
-    const tokenExists = user.findRefreshToken(refreshToken);
-    if (!tokenExists) {
+    // Check if the refresh token matches the stored one
+    if (user.refreshToken !== refreshToken) {
       throw new ApiError(401, [
         { refreshToken: "Expired or used refresh token" },
       ]);
     }
 
-    // Remove the old refresh token
-    await userDAO.removeSpecificRefreshToken(user.id, refreshToken);
-
     // Generate new tokens
     const { accessToken: newAccessToken, refreshToken: newRefreshToken } =
-      await this.generateAccessAndRefreshTokens(user, deviceInfo);
+      await this.generateAccessAndRefreshTokens(user);
 
     return {
       user: this.sanitizeUser(user),
       newAccessToken,
       newRefreshToken,
     };
+  }
+
+  /**
+   * Update user's storage limit (admin only)
+   *
+   * @param userId User ID to update
+   * @param storageData New storage limit data
+   * @returns Updated user data
+   * @throws ApiError if user not found or invalid storage limit
+   */
+  async updateUserStorageLimit(
+    userId: string,
+    storageData: AdminUpdateStorageDTO
+  ): Promise<UserResponseDTO> {
+    // First check if user exists
+    const user = await userDAO.getUserById(userId);
+    if (!user) {
+      throw new ApiError(404, [{ id: "User not found" }]);
+    }
+
+    // Validate new storage limit
+    if (storageData.maxStorageLimit < user.storageUsed) {
+      throw new ApiError(400, [
+        {
+          maxStorageLimit:
+            "New storage limit cannot be less than current storage used",
+        },
+      ]);
+    }
+
+    // Update the storage limit
+    const updatedUser = await userDAO.updateUserStorageLimit(
+      userId,
+      storageData.maxStorageLimit
+    );
+
+    if (!updatedUser) {
+      throw new ApiError(500, [{ storage: "Failed to update storage limit" }]);
+    }
+
+    return this.sanitizeUser(updatedUser);
+  }
+
+  /**
+   * Restore a soft-deleted user (admin only)
+   * 
+   * @param userId User ID to restore
+   * @returns Restored user data
+   * @throws ApiError if user not found or not deleted
+   */
+  async restoreUser(userId: string): Promise<UserResponseDTO> {
+    // First check if user exists and is deleted
+    const user = await userDAO.getUserById(userId, { deletedAt: true });
+    if (!user) {
+      throw new ApiError(404, [{ id: "User not found" }]);
+    }
+
+    if (!user.deletedAt) {
+      throw new ApiError(400, [{ user: "User is not deleted" }]);
+    }
+
+    // Restore the user
+    const restoredUser = await userDAO.restoreUser(userId);
+    if (!restoredUser) {
+      throw new ApiError(500, [{ restore: "Failed to restore user" }]);
+    }
+
+    return this.sanitizeUser(restoredUser);
   }
 
   /**

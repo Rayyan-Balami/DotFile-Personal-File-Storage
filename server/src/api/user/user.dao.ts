@@ -33,25 +33,22 @@ export class UserDAO {
    */
   async getUserById(
     userId: string,
-    options: { includeRefreshTokens?: boolean; deletedAt?: boolean } = {}
+    options: { includeRefreshToken?: boolean; deletedAt?: boolean } = {}
   ): Promise<IUser | null> {
     if (!mongoose.Types.ObjectId.isValid(userId)) return null;
-    const { includeRefreshTokens = false, deletedAt = false } = options;
+    const { includeRefreshToken = false, deletedAt = false } = options;
     
     const query = User.findOne({
       _id: userId,
       ...(deletedAt ? {} : { deletedAt: null }),
     });
     
-    // Either exclude refreshTokens or include all fields
-    if (includeRefreshTokens) {
-      query.select("+refreshTokens");
+    // Either exclude refreshToken or include all fields
+    if (includeRefreshToken) {
+      query.select("+refreshToken");
     }
     
-    return await query.populate({
-      path: "plan",
-      select: "-description -features",
-    });
+    return await query;
   }
 
   /**
@@ -67,8 +64,6 @@ export class UserDAO {
   ): Promise<IUser | null> {
     const { includePassword = false, deletedAt = false } = options;
 
-    // Instead of only selecting the password field
-    // We want to either include or exclude the password
     const query = User.findOne({
       email,
       ...(deletedAt ? {} : { deletedAt: null }),
@@ -79,10 +74,7 @@ export class UserDAO {
       query.select("+password");
     }
 
-    return await query.populate({
-      path: "plan",
-      select: "-description -features",
-    });
+    return await query;
   }
 
   /**
@@ -174,93 +166,37 @@ export class UserDAO {
   }
 
   /**
-   * Add a refresh token to a user
+   * Set a refresh token for a user
    *
    * @param userId - MongoDB ObjectId string of the user
-   * @param tokenData - New refresh token and device info
+   * @param refreshToken - New refresh token
    * @returns Updated user document if found and updated, null otherwise
    */
-  async addUserRefreshToken(
+  async setUserRefreshToken(
     userId: string,
-    tokenData: { refreshToken: string; deviceInfo: string }
+    refreshToken: string
   ): Promise<IUser | null> {
     if (!mongoose.Types.ObjectId.isValid(userId)) return null;
     return await User.findOneAndUpdate(
       { _id: userId },
-      { 
-        $push: { 
-          refreshTokens: {
-            token: tokenData.refreshToken,
-            deviceInfo: tokenData.deviceInfo,
-            createdAt: new Date()
-          }
-        }
-      },
+      { refreshToken },
       { new: true }
-    ).select("+refreshTokens");
+    ).select("+refreshToken");
   }
 
   /**
-   * Remove a specific refresh token from a user
+   * Clear the refresh token for a user
    *
    * @param userId - MongoDB ObjectId string of the user
-   * @param token - Refresh token to remove
    * @returns Updated user document if found and token removed, null otherwise
    */
-  async removeSpecificRefreshToken(
-    userId: string,
-    token: string
-  ): Promise<IUser | null> {
-    if (!mongoose.Types.ObjectId.isValid(userId)) return null;
-    return await User.findOneAndUpdate(
-      { _id: userId },
-      { $pull: { refreshTokens: { token } } },
-      { new: true }
-    );
-  }
-
-  /**
-   * Remove all refresh tokens from a user (logout from all devices)
-   *
-   * @param userId - MongoDB ObjectId string of the user
-   * @returns Updated user document with no refresh tokens if successful, null otherwise
-   */
-  async clearAllUserRefreshTokens(
+  async clearUserRefreshToken(
     userId: string
   ): Promise<IUser | null> {
     if (!mongoose.Types.ObjectId.isValid(userId)) return null;
     return await User.findOneAndUpdate(
       { _id: userId },
-      { $set: { refreshTokens: [] } },
-      { new: true }
-    );
-  }
-
-  /**
-   * Remove a refresh token by its ID from a user
-   *
-   * @param userId - MongoDB ObjectId string of the user
-   * @param tokenId - MongoDB ObjectId string of the refresh token
-   * @returns Updated user document if token removed, null otherwise
-   */
-  async removeRefreshTokenBySessionId(
-    userId: string,
-    tokenId: string
-  ): Promise<IUser | null> {
-    if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(tokenId)) {
-      return null;
-    }
-
-    // does the user has this token?
-    const user = await User.findOne({
-      _id: userId,
-      refreshTokens: { $elemMatch: { _id: tokenId } },
-    });
-    if (!user) return null;
-    
-    return await User.findOneAndUpdate(
-      { _id: userId },
-      { $pull: { refreshTokens: { _id: tokenId } } },
+      { $set: { refreshToken: null } },
       { new: true }
     );
   }
@@ -324,10 +260,26 @@ export class UserDAO {
   async getAllUsers(deletedAt: boolean = false): Promise<IUser[]> {
     return await User.find({
       deletedAt: deletedAt ? { $ne: null } : null,
-    }).populate({
-      path: "plan",
-      select: "-description -features",
     });
+  }
+
+  /**
+   * Update a user's storage limit (admin only)
+   * 
+   * @param userId - MongoDB ObjectId string of the user
+   * @param maxStorageLimit - New storage limit in bytes
+   * @returns Updated user document if found and updated, null otherwise
+   */
+  async updateUserStorageLimit(
+    userId: string,
+    maxStorageLimit: number
+  ): Promise<IUser | null> {
+    if (!mongoose.Types.ObjectId.isValid(userId)) return null;
+    return await User.findOneAndUpdate(
+      { _id: userId, deletedAt: null },
+      { maxStorageLimit },
+      { new: true }
+    );
   }
 }
 

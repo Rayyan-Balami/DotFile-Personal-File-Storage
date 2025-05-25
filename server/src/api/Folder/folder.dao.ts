@@ -1,10 +1,9 @@
-// filepath: /Users/rayyanbalami/Documents/proj/server/src/api/Folder/folder.dao.ts
 import {
   MoveFolderDto,
   RenameFolderDto,
   UpdateFolderDto,
-} from "@api/Folder/folder.dto.js";
-import { Folder, IFolder } from "@api/Folder/folder.model.js";
+} from "@api/folder/folder.dto.js";
+import { Folder, IFolder } from "@api/folder/folder.model.js";
 import mongoose from "mongoose";
 
 class FolderDao {
@@ -18,15 +17,20 @@ class FolderDao {
     parentId?: string | null,
     isDeleted?: boolean
   ): Promise<IFolder[]> {
-    return Folder.find({
+    const query: any = {
       owner: userId,
-      parent: parentId || null,
       deletedAt: isDeleted ? { $ne: null } : null,
-    })
-      .populate("workspace")
-      .populate("publicShare")
-      .populate("userShare")
-      .sort({ [isDeleted ? "deletedAt" : "createdAt"]: -1 });
+    };
+
+    if (parentId === null) {
+      query.parent = null;
+    } else if (parentId) {
+      query.parent = parentId;
+    }
+
+    return await Folder.find(query)
+      .populate("parent")
+      .sort({ isPinned: -1, updatedAt: -1 });
   }
 
   /**
@@ -36,22 +40,28 @@ class FolderDao {
    * @returns Array of deleted folders
    */
   async getUserDeletedFolders(userId: string): Promise<IFolder[]> {
-    return Folder.find({
+    return await Folder.find({
       owner: userId,
       deletedAt: { $ne: null },
     })
-      .populate("workspace")
-      .populate("publicShare")
-      .populate("userShare")
-      .sort({ deletedAt: -1 });
+      .populate("owner")
+      .populate("parent")
+      .sort({ updatedAt: -1 });
   }
 
-  async getFolderById(folderId: string): Promise<IFolder | null> {
-    if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
-    return Folder.findById(folderId)
-      .populate("workspace")
-      .populate("publicShare")
-      .populate("userShare");
+  async getFolderById(folderId: string, includeDeleted: boolean = false): Promise<IFolder | null> {
+    if (!mongoose.Types.ObjectId.isValid(folderId)) {
+      return null;
+    }
+
+    const query: any = { _id: folderId };
+    if (!includeDeleted) {
+      query.deletedAt = null;
+    }
+
+    // Don't populate owner to avoid type issues with ID comparison
+    return await Folder.findOne(query)
+      .populate("parent");
   }
 
   async updateFolder(
@@ -59,14 +69,9 @@ class FolderDao {
     updateData: UpdateFolderDto
   ): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
-    return Folder.findByIdAndUpdate(
-      folderId,
-      { $set: updateData },
-      { new: true }
-    )
-      .populate("workspace")
-      .populate("publicShare")
-      .populate("userShare");
+    return await Folder.findByIdAndUpdate(folderId, updateData, { new: true })
+      .populate("owner")
+      .populate("parent");
   }
 
   async renameFolder(
@@ -74,14 +79,13 @@ class FolderDao {
     renameData: RenameFolderDto
   ): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
-    return Folder.findByIdAndUpdate(
+    return await Folder.findByIdAndUpdate(
       folderId,
-      { $set: { name: renameData.name, path: renameData.path } },
+      { name: renameData.name },
       { new: true }
     )
-      .populate("workspace")
-      .populate("publicShare")
-      .populate("userShare");
+      .populate("owner")
+      .populate("parent");
   }
 
   async moveFolder(
@@ -89,59 +93,40 @@ class FolderDao {
     moveData: MoveFolderDto
   ): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
-    return Folder.findByIdAndUpdate(
+    return await Folder.findByIdAndUpdate(
       folderId,
-      {
-        $set: {
-          parent: moveData.parent,
-          path: moveData.path,
-          pathSegments: moveData.pathSegments,
-        },
-      },
+      { parent: moveData.parent },
       { new: true }
     )
-      .populate("workspace")
-      .populate("publicShare")
-      .populate("userShare");
+      .populate("owner")
+      .populate("parent");
   }
 
   async softDeleteFolder(folderId: string): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
-    return Folder.findByIdAndUpdate(
+    return await Folder.findByIdAndUpdate(
       folderId,
-      { $set: { deletedAt: new Date() } },
+      { deletedAt: new Date() },
       { new: true }
     )
-      .populate("workspace")
-      .populate("publicShare")
-      .populate("userShare");
+      .populate("owner")
+      .populate("parent");
   }
 
   async restoreDeletedFolder(folderId: string): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
-    return Folder.findByIdAndUpdate(
+    return await Folder.findByIdAndUpdate(
       folderId,
-      { $set: { deletedAt: null } },
+      { deletedAt: null },
       { new: true }
     )
-      .populate("workspace")
-      .populate("publicShare")
-      .populate("userShare");
+      .populate("owner")
+      .populate("parent");
   }
 
-  async permanentDeleteFolder(folderId: string): Promise<{
-    acknowledged: boolean;
-    deletedCount: number;
-  }> {
-    if (!mongoose.Types.ObjectId.isValid(folderId)) {
-      return { acknowledged: false, deletedCount: 0 };
-    }
-
+  async permanentDeleteFolder(folderId: string): Promise<boolean> {
     const result = await Folder.deleteOne({ _id: folderId });
-    return {
-      acknowledged: result.acknowledged,
-      deletedCount: result.deletedCount,
-    };
+    return result.deletedCount === 1;
   }
 
   /**
@@ -160,45 +145,11 @@ class FolderDao {
     return await Folder.findOne({
       name,
       owner: ownerId,
-      parent: parentId || null,
-      deletedAt: null, // Only check non-deleted folders
+      parent: parentId,
+      deletedAt: null,
     })
-      .populate("workspace")
-      .populate("publicShare")
-      .populate("userShare");
-  }
-
-  /**
-   * Update a folder's path and pathSegments when its parent folder is renamed
-   *
-   * @param parentFolderId The ID of the parent folder
-   * @param newPathPrefix The new path prefix for all folders under this parent
-   * @param newPathSegments The updated path segments for all folders under this parent
-   * @returns Result of the update operation
-   */
-  async updateFoldersPathByParent(
-    parentFolderId: string,
-    newPathPrefix: string,
-    newPathSegments: { name: string; id: string }[]
-  ): Promise<{ acknowledged: boolean; modifiedCount: number }> {
-    if (!mongoose.Types.ObjectId.isValid(parentFolderId)) {
-      return { acknowledged: false, modifiedCount: 0 };
-    }
-
-    const result = await Folder.updateMany(
-      { parent: parentFolderId, deletedAt: null },
-      {
-        $set: {
-          path: newPathPrefix,
-          pathSegments: newPathSegments,
-        },
-      }
-    );
-
-    return {
-      acknowledged: result.acknowledged,
-      modifiedCount: result.modifiedCount,
-    };
+      .populate("owner")
+      .populate("parent");
   }
 
   /**
@@ -235,32 +186,25 @@ class FolderDao {
     folderId: string,
     includeDeleted: boolean = false
   ): Promise<string[]> {
-    if (!mongoose.Types.ObjectId.isValid(folderId)) {
-      return [];
-    }
-
-    const allDescendants: string[] = [];
-    const queue: string[] = [folderId];
+    const descendants: string[] = [];
+    const queue = [folderId];
 
     while (queue.length > 0) {
       const currentId = queue.shift()!;
-      const subfolders = await this.getSubfolders(currentId, includeDeleted);
+      const children = await Folder.find({ parent: currentId }, { _id: 1 });
 
-      allDescendants.push(...subfolders);
-      queue.push(...subfolders);
-      console.log(`Found ${subfolders.length} subfolders for ${currentId}`);
+      for (const child of children) {
+        descendants.push(child._id.toString());
+        queue.push(child._id.toString());
+      }
     }
 
-    return allDescendants;
+    return descendants;
   }
 
   /**
-   * Bulk update all folders when an ancestor folder is renamed or moved
-   *
-   * @param oldPathPrefix The old path prefix to match
-   * @param newPathPrefix The new path prefix to replace it with
-   * @param pathSegmentsToUpdate Additional path segments to update or replace
-   * @returns Result of the update operation
+   * Update folder paths in bulk
+   * This is used when moving or renaming folders to update all child paths
    */
   async bulkUpdateFolderPaths(
     oldPathPrefix: string,
@@ -270,80 +214,40 @@ class FolderDao {
       value: { name: string; id: string };
     }[] = []
   ): Promise<{ acknowledged: boolean; modifiedCount: number }> {
-    // If old and new paths are the same and no segments to update, no need to proceed
-    if (oldPathPrefix === newPathPrefix && pathSegmentsToUpdate.length === 0) {
-      return { acknowledged: true, modifiedCount: 0 };
+    const updateOperations: any = {};
+
+    // Update path prefix
+    if (oldPathPrefix && newPathPrefix) {
+      updateOperations.$set = {
+        path: {
+          $replaceOne: {
+            find: `^${oldPathPrefix}`,
+            replacement: newPathPrefix,
+          },
+        },
+      };
     }
 
-    // Normalize paths for consistency
-    const normalizedOldPath = oldPathPrefix.startsWith("/") ? oldPathPrefix : `/${oldPathPrefix}`;
-    const normalizedNewPath = newPathPrefix.startsWith("/") ? newPathPrefix : `/${newPathPrefix}`;
-
-    // Use normalized paths for database queries
-    const oldPath = normalizedOldPath;
-    const newPath = normalizedNewPath;
-
-    // Find all matching folders to update (with paths starting with the old path)
-    const foldersToUpdate = await Folder.find({
-      path: { $regex: `^${oldPath.replace(/\//g, "\\/")}` },
-      deletedAt: null,
-    });
-
-    if (foldersToUpdate.length === 0) {
-      return { acknowledged: true, modifiedCount: 0 };
+    // Update specific path segments if provided
+    if (pathSegmentsToUpdate.length > 0) {
+      pathSegmentsToUpdate.forEach(({ index, value }) => {
+        updateOperations.$set[`pathSegments.${index}`] = value;
+      });
     }
 
-    // Track successful updates
-    let modifiedCount = 0;
-
-    console.log(`bulkUpdateFolderPaths: Found ${foldersToUpdate.length} folders to update`);
-    console.log(`Replacing path prefix '${oldPath}' with '${newPath}'`);
-
-    // Process each folder individually with string replacements
-    for (const folder of foldersToUpdate) {
-      // Update the path with string replacement
-      let updatedFolderPath = folder.path;
-      if (oldPath !== newPath) {
-        updatedFolderPath = folder.path.replace(
-          new RegExp(`^${oldPath.replace(/\//g, "\\/")}`),
-          newPath
-        );
-        console.log(`Folder path update: '${folder.path}' -> '${updatedFolderPath}'`);
-      }
-
-      // Prepare updates object
-      const updates: any = { path: updatedFolderPath };
-
-      // Apply path segment updates if any provided
-      if (pathSegmentsToUpdate.length > 0) {
-        const pathSegments = [...folder.pathSegments]; // Clone the array
-        pathSegmentsToUpdate.forEach((update) => {
-          if (update.index < pathSegments.length) {
-            pathSegments[update.index] = {
-              name: update.value.name,
-              id: new mongoose.Schema.Types.ObjectId(update.value.id),
-            };
-          }
-        });
-        updates.pathSegments = pathSegments;
-      }
-
-      // Update this folder
-      const result = await Folder.updateOne(
-        { _id: folder._id },
-        { $set: updates }
-      );
-      if (result.modifiedCount > 0) {
-        modifiedCount++;
-      }
-    }
+    // Execute the update
+    const result = await Folder.updateMany(
+      {
+        path: { $regex: `^${oldPathPrefix}` },
+      },
+      updateOperations
+    );
 
     return {
-      acknowledged: true,
-      modifiedCount,
+      acknowledged: result.acknowledged,
+      modifiedCount: result.modifiedCount,
     };
   }
-
 
   async permanentDeleteAllDeletedFolders(
     userId: string
@@ -352,7 +256,10 @@ class FolderDao {
       owner: userId,
       deletedAt: { $ne: null },
     });
-    return { acknowledged: true, deletedCount: result.deletedCount };
+    return {
+      acknowledged: result.acknowledged,
+      deletedCount: result.deletedCount || 0,
+    };
   }
 }
 

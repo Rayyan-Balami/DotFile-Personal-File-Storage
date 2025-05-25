@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import { join, dirname } from 'path';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 // Load environment variables
@@ -44,3 +44,6 @@ export const MAX_FILES_PER_FOLDER = Number(process.env.MAX_FILES_PER_FOLDER) || 
 export const MAX_FILES_PER_UPLOAD_BATCH = Number(process.env.MAX_FILES_PER_UPLOAD_BATCH) || 50;
 export const MAX_SIZE_PER_UPLOAD_BATCH = Number(process.env.MAX_SIZE_PER_UPLOAD_BATCH) || 262144000; // 250 MB
 export const ZIP_NAME_PREFIX = process.env.ZIP_NAME_PREFIX || '__fezip__-';
+
+// Get master key from environment variables
+export const MASTER_KEY = process.env.MASTER_KEY || 'CollegeProjectAESMasterKey2025';

@@ -5,6 +5,7 @@ import {
   loginUserSchema,
   refreshTokenSchema,
   registerUserSchema,
+  updateStorageLimitSchema,
   updateUserPasswordSchema,
   updateUserRoleSchema,
   updateUserSchema,
@@ -51,9 +52,7 @@ authRoutes
     validateData(updateUserPasswordSchema),
     userController.updateCurrentUserPassword
   )
-  .post("/logout", userController.logout)
-  .post("/logout/:sessionId", userController.logoutSession)
-  .post("/logout-all", userController.logoutAllDevices);
+  .post("/logout", userController.logout);
 
 //=============================================================================
 // ADMIN ROUTES - Requires admin privileges
@@ -76,7 +75,13 @@ adminRoutes
     validateData(updateUserRoleSchema),
     userController.updateUserRole
   )
-  .delete("/:id", userController.softDeleteUser);
+  .patch(
+    "/:id/storage",
+    validateData(updateStorageLimitSchema),
+    userController.updateUserStorageLimit
+  )
+  .delete("/:id", userController.softDeleteUser)
+  .post("/:id/restore", userController.restoreUser);
 
 //=============================================================================
 // ROUTE REGISTRATION

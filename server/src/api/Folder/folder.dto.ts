@@ -1,28 +1,29 @@
-import { FileResponseDto } from "@api/File/file.dto.js";
-import { WorkspaceResponseDto } from "@api/workspace/workspace.dto.js";
 
 export interface CreateFolderDto {
   name: string;
   parent?: string | null;
+  color?: string;
+  items?: number;
 }
 
 export interface UpdateFolderDto {
-  workspace?: string | null;
+  color?: string;
   isPinned?: boolean;
   items?: number;
-  publicShare?: String | null;
-  userShare?: String | null;
-}
-
-export interface RenameFolderDto {
-  name: string;
-  path?: string;
 }
 
 export interface MoveFolderDto {
   parent: string | null;
-  path?: string;
-  pathSegments?: { name: string; id: string }[];
+  name: string;
+}
+
+export interface RenameFolderDto {
+  name: string;
+}
+
+export interface PathSegment {
+  id: string | null;
+  name: string;
 }
 
 export interface FolderResponseDto {
@@ -30,30 +31,17 @@ export interface FolderResponseDto {
   name: string;
   type: "folder";
   owner: string;
-  workspace: WorkspaceResponseDto | null;
+  color: string;
   parent: string | null;
   items: number;
   isPinned: boolean;
-
-  /**
-   * Logical path representing folder hierarchy (e.g., "/Documents/Projects")
-   * Used for display and navigation purposes
-   */
-  path: string;
-
-  /**
-   * Structured array of ancestor folders for breadcrumb navigation
-   */
-  pathSegments: { name: string; id: string }[];
-  publicShare: any | null;
-  userShare: any | null;
-  isShared: boolean;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
 }
 
 export interface FolderResponseWithFilesDto {
-  files: FileResponseDto[];
   folders: FolderResponseDto[];
+  files: any[];
+  pathSegments?: PathSegment[];
 }

@@ -1,12 +1,9 @@
-import planRoutes from "@api/plan/plan.routes.js";
-import userRoutes from "@api/user/user.routes.js";
 import { NODE_ENV } from "@config/constants.js";
 import { ApiResponse } from "@utils/apiResponse.utils.js";
 import { Router } from "express";
-import fileRoutes from "./File/file.routes.js";
-import folderRoutes from "./Folder/folder.routes.js";
-import shareRoutes from "./share/share.routes.js";
-import workspaceRoutes from "./workspace/workspace.routes.js";
+import fileRoutes from "@api/file/file.routes.js";
+import folderRoutes from "./folder/folder.routes.js";
+import userRoutes from "./user/user.routes.js";
 
 const apiRoutes = Router();
 
@@ -40,11 +37,9 @@ apiRoutes
   );
 });
 
+// Mount routes
 apiRoutes.use("/", userRoutes);
-apiRoutes.use("/", planRoutes);
-apiRoutes.use("/", folderRoutes);
 apiRoutes.use("/", fileRoutes);
-apiRoutes.use("/workspaces", workspaceRoutes);
-apiRoutes.use("/shares", shareRoutes);
+apiRoutes.use("/", folderRoutes);
 
 export default apiRoutes;

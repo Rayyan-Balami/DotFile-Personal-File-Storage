@@ -1,7 +1,6 @@
-// filepath: /Users/rayyanbalami/Documents/proj/server/src/api/File/file.dao.ts
-import { CreateFileDto, MoveFileDto, RenameFileDto, UpdateFileDto } from "@api/File/file.dto.js";
-import File, { IFile } from "@api/File/file.model.js";
-import mongoose from "mongoose";
+import { CreateFileDto, MoveFileDto, RenameFileDto, UpdateFileDto } from "@api/file/file.dto.js";
+import File, { IFile } from "@api/file/file.model.js";
+import { Types } from "mongoose";
 
 /**
  * Data Access Object for File operations
@@ -15,7 +14,11 @@ class FileDao {
    * @returns Newly created file document
    */
   async createFile(data: CreateFileDto): Promise<IFile> {
-    const newFile = new File(data);
+    const newFile = new File({
+      ...data,
+      owner: new Types.ObjectId(data.owner.toString()),
+      folder: data.folder ? new Types.ObjectId(data.folder.toString()) : null
+    });
     return await newFile.save();
   }
 
@@ -30,14 +33,16 @@ class FileDao {
     id: string,
     includeDeleted: boolean = false
   ): Promise<IFile | null> {
-    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    if (!Types.ObjectId.isValid(id)) return null;
 
-    return await File.findOne({
-      _id: id,
-      ...(includeDeleted ? {} : { deletedAt: null }),
-    })
-      .populate('publicShare')
-      .populate('userShare');
+    const query: any = { _id: id };
+    if (!includeDeleted) {
+      query.deletedAt = null;
+    }
+
+    return await File.findOne(query)
+      .populate("owner")
+      .populate("folder");
   }
 
   /**
@@ -53,47 +58,31 @@ class FileDao {
     data: UpdateFileDto,
     includeDeleted: boolean = false
   ): Promise<IFile | null> {
-    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    if (!Types.ObjectId.isValid(id)) return null;
 
-    return await File.findOneAndUpdate(
-      { _id: id, ...(includeDeleted ? {} : { deletedAt: null }) },
-      data,
-      { new: true }
-    )
-      .populate('publicShare')
-      .populate('userShare');
+    return await File.findByIdAndUpdate(id, data, { new: true })
+      .populate("owner")
+      .populate("folder");
   }
 
   async renameFile(
     id: string,
     data: RenameFileDto
   ): Promise<IFile | null> {
-    if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    return await File.findOneAndUpdate(
-      { _id: id, deletedAt: null },
-      { name: data.name, path: data.path },
-      { new: true }
-    )
-      .populate('publicShare')
-      .populate('userShare');
+    if (!Types.ObjectId.isValid(id)) return null;
+    return await File.findByIdAndUpdate(id, data, { new: true })
+      .populate("owner")
+      .populate("folder");
   }
 
   async moveFile(
     id: string,
     data: MoveFileDto
   ): Promise<IFile | null> {
-    if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    return await File.findOneAndUpdate(
-      { _id: id, deletedAt: null },
-      {
-        folder: data.folder,
-        path: data.path,
-        pathSegments: data.pathSegments,
-      },
-      { new: true }
-    )
-      .populate('publicShare')
-      .populate('userShare');
+    if (!Types.ObjectId.isValid(id)) return null;
+    return await File.findByIdAndUpdate(id, data, { new: true })
+      .populate("owner")
+      .populate("folder");
   }
 
   /**
@@ -103,15 +92,15 @@ class FileDao {
    * @returns Updated file document with deletedAt timestamp if successful, null otherwise
    */
   async softDeleteFile(id: string): Promise<IFile | null> {
-    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    if (!Types.ObjectId.isValid(id)) return null;
 
-    return await File.findOneAndUpdate(
-      { _id: id, deletedAt: null },
+    return await File.findByIdAndUpdate(
+      id,
       { deletedAt: new Date() },
       { new: true }
     )
-      .populate('publicShare')
-      .populate('userShare');
+      .populate("owner")
+      .populate("folder");
   }
 
   /**
@@ -121,14 +110,14 @@ class FileDao {
    * @returns Updated file document with cleared deletedAt timestamp if successful, null otherwise
    */
   async restoreDeletedFile(id: string): Promise<IFile | null> {
-    if (!mongoose.Types.ObjectId.isValid(id)) return null;
-    return await File.findOneAndUpdate(
-      { _id: id, deletedAt: { $ne: null } },
+    if (!Types.ObjectId.isValid(id)) return null;
+    return await File.findByIdAndUpdate(
+      id,
       { deletedAt: null },
       { new: true }
     )
-      .populate('publicShare')
-      .populate('userShare');
+      .populate("owner")
+      .populate("folder");
   }
 
   /**
@@ -140,7 +129,7 @@ class FileDao {
   async permanentDeleteFile(
     id: string
   ): Promise<{ acknowledged: boolean; deletedCount: number }> {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!Types.ObjectId.isValid(id)) {
       return { acknowledged: false, deletedCount: 0 };
     }
 
@@ -164,14 +153,21 @@ class FileDao {
     folderId?: string | null,
     isDeleted?: boolean
   ): Promise<IFile[]> {
-    return File.find({
+    const query: any = {
       owner: userId,
-      folder: folderId || null,
       deletedAt: isDeleted ? { $ne: null } : null,
-    })
-      .populate('publicShare')
-      .populate('userShare')
-      .sort({ [isDeleted ? "deletedAt" : "createdAt"]: -1 });
+    };
+
+    if (folderId === null) {
+      query.folder = null;
+    } else if (folderId) {
+      query.folder = folderId;
+    }
+
+    return await File.find(query)
+      .populate("owner")
+      .populate("folder")
+      .sort({ isPinned: -1, updatedAt: -1 });
   }
 
   /**
@@ -189,186 +185,15 @@ class FileDao {
     ownerId: string,
     folderId: string | null
   ): Promise<IFile | null> {
-    const query = {
+    return await File.findOne({
       name,
       extension,
-      owner: new mongoose.Types.ObjectId(ownerId),
-      folder: folderId ? new mongoose.Types.ObjectId(folderId) : null,
-      deletedAt: null, // Only check non-deleted files
-    };
-
-    return await File.findOne(query)
-      .populate('publicShare')
-      .populate('userShare');
-  }
-
-  /**
-   * Update a file's path and pathSegments when its parent folder is renamed
-   *
-   * @param folderId The ID of the parent folder
-   * @param newPathPrefix The new path prefix for all files in this folder
-   * @param newPathSegments The updated path segments for all files in this folder
-   * @returns Result of the update operation
-   */
-  async updateFilesPathByFolder(
-    folderId: string,
-    newPathPrefix: string,
-    newPathSegments: { name: string; id: string }[]
-  ): Promise<{ acknowledged: boolean; modifiedCount: number }> {
-    if (!mongoose.Types.ObjectId.isValid(folderId)) {
-      return { acknowledged: false, modifiedCount: 0 };
-    }
-
-    const result = await File.updateMany(
-      { folder: folderId, deletedAt: null },
-      {
-        $set: {
-          path: newPathPrefix,
-          pathSegments: newPathSegments,
-        },
-      }
-    );
-
-    return {
-      acknowledged: result.acknowledged,
-      modifiedCount: result.modifiedCount,
-    };
-  }
-
-  /**
-   * Bulk update files' folder, path, and pathSegments when they are moved
-   *
-   * @param fileIds Array of file IDs to update
-   * @param newFolderId The new parent folder ID
-   * @param newPathPrefix The new path prefix for the files
-   * @param newPathSegments The updated path segments for the files
-   * @returns Result of the update operation
-   */
-  async moveFiles(
-    fileIds: string[],
-    newFolderId: string | null,
-    newPathPrefix: string,
-    newPathSegments: { name: string; id: string }[]
-  ): Promise<{ acknowledged: boolean; modifiedCount: number }> {
-    if (!fileIds.length) {
-      return { acknowledged: true, modifiedCount: 0 };
-    }
-
-    // Validate all IDs are proper MongoDB ObjectIds
-    const validIds = fileIds
-      .filter((id) => mongoose.Types.ObjectId.isValid(id))
-      .map((id) => new mongoose.Types.ObjectId(id));
-
-    if (!validIds.length) {
-      return { acknowledged: false, modifiedCount: 0 };
-    }
-
-    const result = await File.updateMany(
-      { _id: { $in: validIds }, deletedAt: null },
-      {
-        $set: {
-          folder: newFolderId,
-          path: newPathPrefix,
-          pathSegments: newPathSegments,
-        },
-      }
-    );
-
-    return {
-      acknowledged: result.acknowledged,
-      modifiedCount: result.modifiedCount,
-    };
-  }
-
-  /**
-   * Update files when a specific folder is recursively updated
-   * This is used when a parent folder is renamed or moved
-   *
-   * @param oldPathPrefix The old path prefix to match
-   * @param newPathPrefix The new path prefix to replace it with
-   * @param pathSegmentsToUpdate Additional path segments to update or replace
-   * @returns Result of the update operation
-   */
-  async bulkUpdateFilePaths(
-    oldPathPrefix: string,
-    newPathPrefix: string,
-    pathSegmentsToUpdate: {
-      index: number;
-      value: { name: string; id: string };
-    }[] = []
-  ): Promise<{ acknowledged: boolean; modifiedCount: number }> {
-    // If old and new paths are the same, only update path segments if needed
-    if (oldPathPrefix === newPathPrefix && pathSegmentsToUpdate.length === 0) {
-      return { acknowledged: true, modifiedCount: 0 };
-    }
-    
-    // Normalize paths for consistency (ensure they start with /)
-    const normalizedOldPath = oldPathPrefix.startsWith('/') ? oldPathPrefix : `/${oldPathPrefix}`;
-    const normalizedNewPath = newPathPrefix.startsWith('/') ? newPathPrefix : `/${newPathPrefix}`;
-    
-    // For the database query, keep the paths with leading slashes as stored in the database
-    const oldPath = normalizedOldPath;
-    const newPath = normalizedNewPath;
-
-    // Find all matching files to update
-    const filesToUpdate = await File.find({
-      // Match any file path that starts with the old path
-      path: { $regex: `^${oldPath.replace(/\//g, '\\/')}` },
+      owner: new Types.ObjectId(ownerId),
+      folder: folderId ? new Types.ObjectId(folderId) : null,
       deletedAt: null,
     })
-      .populate('publicShare')
-      .populate('userShare');
-
-    if (filesToUpdate.length === 0) {
-      return { acknowledged: true, modifiedCount: 0 };
-    }
-
-    // Track successful updates
-    let modifiedCount = 0;
-    
-    console.log(`bulkUpdateFilePaths: Found ${filesToUpdate.length} files to update`);
-    console.log(`Replacing path prefix '${oldPath}' with '${newPath}'`);
-
-    // Process each file individually with string replacements
-    for (const file of filesToUpdate) {
-      // Update the path with string replacement
-      let updatedFilePath = file.path;
-      if (oldPath !== newPath) {
-        updatedFilePath = file.path.replace(
-          new RegExp(`^${oldPath.replace(/\//g, '\\/')}`),
-          newPath
-        );
-        console.log(`File path update: '${file.path}' -> '${updatedFilePath}'`);
-      }
-
-      // Prepare updates object
-      const updates: any = { path: updatedFilePath };
-
-      // Apply path segment updates if any provided
-      if (pathSegmentsToUpdate.length > 0) {
-        const pathSegments = [...file.pathSegments]; // Clone the array
-        pathSegmentsToUpdate.forEach((update) => {
-          if (update.index < pathSegments.length) {
-            pathSegments[update.index] = {
-              name: update.value.name,
-              id: new mongoose.Schema.Types.ObjectId(update.value.id),
-            };
-          }
-        });
-        updates.pathSegments = pathSegments;
-      }
-
-      // Update this file
-      const result = await File.updateOne({ _id: file._id }, { $set: updates });
-      if (result.modifiedCount > 0) {
-        modifiedCount++;
-      }
-    }
-
-    return {
-      acknowledged: true,
-      modifiedCount: modifiedCount,
-    };
+      .populate("owner")
+      .populate("folder");
   }
 
   /**
@@ -382,38 +207,40 @@ class FileDao {
     userId: string,
     folderId: string,
   ): Promise<IFile[]> {
-    if (!mongoose.Types.ObjectId.isValid(folderId)) {
+    if (!Types.ObjectId.isValid(folderId)) {
       return [];
     }
     
-    return await File.find({
+    const query = {
+      owner: userId,
       folder: folderId,
       deletedAt: { $ne: null },
-      owner: userId
-    })
-      .populate('publicShare')
-      .populate('userShare')
-      .sort({ deletedAt: -1 });
+    };
+
+    return await File.find(query)
+      .populate("owner")
+      .populate("folder")
+      .sort({ updatedAt: -1 });
   }
 
   async getAllDeletedFiles(
     userId: string
   ): Promise<IFile[]> {
     return await File.find({
+      owner: userId,
       deletedAt: { $ne: null },
-      owner: userId
     })
-      .populate('publicShare')
-      .populate('userShare')
-      .sort({ deletedAt: -1 });
+      .populate("owner")
+      .populate("folder")
+      .sort({ updatedAt: -1 });
   }
 
   async permanentDeleteAllDeletedFiles(
     userId: string
   ): Promise<{ acknowledged: boolean; deletedCount: number }> {
     const result = await File.deleteMany({
+      owner: userId,
       deletedAt: { $ne: null },
-      owner: userId
     });
 
     return {

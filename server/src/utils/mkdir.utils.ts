@@ -1,7 +1,7 @@
-import fs from 'fs';
-import path from 'path';
 import { UPLOADS_DIR } from '@config/constants.js';
 import logger from '@utils/logger.utils.js';
+import fs from 'fs';
+import path from 'path';
 
 /**
  * Type guard to check if an error is an Error object

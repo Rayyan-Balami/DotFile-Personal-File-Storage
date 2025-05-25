@@ -1,12 +1,12 @@
-import cookieParser from "cookie-parser";
-import cors from "cors";
-import express from "express";
 import apiRoutes from "@api/api.routes.js";
 import { $dirname, $filename, API_PREFIX, API_VERSION, CLIENT_ORIGIN, PORT, ROOT_DIR, UPLOADS_DIR } from "@config/constants.js";
 import { connectDatabase } from "@database/connection.js";
 import { errorHandler } from "@middleware/errorHandler.middleware.js";
-import logger from "@utils/logger.utils.js";
 import { addRequestId } from "@middleware/requestId.middleware.js"; // Import the middleware
+import logger from "@utils/logger.utils.js";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import express from "express";
 
 const app = express();
 
@@ -39,10 +39,10 @@ app.use(`${API_PREFIX}/${API_VERSION}`, apiRoutes);
 // Error handling middleware - must be after all routes
 app.use(errorHandler);
 
-console.log('File path:', $filename);
-console.log('Directory path:', $dirname);
-console.log('Root directory:', ROOT_DIR);
-console.log('Uploads directory:', UPLOADS_DIR);
+logger.info('File path:', $filename);
+logger.info('Directory path:', $dirname);
+logger.info('Root directory:', ROOT_DIR);
+logger.info('Uploads directory:', UPLOADS_DIR);
 
 // Start server
 app.listen(PORT, () => {

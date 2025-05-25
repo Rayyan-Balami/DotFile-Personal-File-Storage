@@ -1,8 +1,8 @@
-import express from "express";
-import FileController from "@api/File/file.controller.js";
+import FileController from "@api/file/file.controller.js";
+import { moveFileSchema, renameFileSchema, updateFileSchema } from "@api/file/file.validator.js";
 import { verifyAuth } from "@middleware/auth.middleware.js";
 import { validateData } from "@middleware/validate.middleware.js";
-import { renameFileSchema, moveFileSchema, updateFileSchema } from "./file.validator.js";
+import express from "express";
 
 //=============================================================================
 // ROUTE INITIALIZATION
@@ -24,6 +24,9 @@ authRoutes.post("/:id/rename", validateData(renameFileSchema), FileController.re
 authRoutes.post("/:id/move", validateData(moveFileSchema), FileController.moveFile);     // Move a file to a different folder
 authRoutes.delete("/:id/permanent", FileController.permanentDeleteFile);                // Permanently delete file
 authRoutes.post("/:id/restore", FileController.restoreFile);                           // Restore a file from trash
+authRoutes.get("/", FileController.getUserFiles);
+authRoutes.get("/:id/view", FileController.viewFile);
+authRoutes.get("/:id/download", FileController.downloadFile);  // Add download endpoint
 
 //=============================================================================
 // ROUTE REGISTRATION

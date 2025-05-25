@@ -1,22 +1,26 @@
-import fileService from "@api/File/file.service.js";
+import fileService from "@api/file/file.service.js";
+import { FolderResponseDto } from "@api/folder/folder.dto.js";
+import folderService from "@api/folder/folder.service.js";
 import {
   processZipFiles,
   updateUserStorageUsage,
   upload,
 } from "@middleware/multer.middleware.js";
+import { encryptFiles } from "@middleware/fileEncryption.middleware.js"; // Import the encryption middleware
 import { ApiError } from "@utils/apiError.utils.js";
 import { ApiResponse } from "@utils/apiResponse.utils.js";
 import asyncHandler from "@utils/asyncHandler.utils.js";
 import logger from "@utils/logger.utils.js";
 import { Request, Response } from "express";
-import { MoveFileDto, RenameFileDto } from "./file.dto.js";
+
 class FileController {
   /**
    * Universal file upload handler that processes both regular files and folders (as zip)
    * This single handler replaces multiple separate upload endpoints
    */
   uploadFiles = [
-    upload.array("files"), // Use array for all uploads - even a single file is just an array of one
+    upload.array("files"),
+    encryptFiles, // Add encryption middleware before processing
     processZipFiles,
     updateUserStorageUsage,
     asyncHandler(async (req: Request, res: Response) => {
@@ -25,22 +29,35 @@ class FileController {
         throw new ApiError(401, [{ file: "Unauthorized" }]);
       }
       
-      const folderId = req.body.folderId || null;
-      const files = req.files as Express.Multer.File[] || [];
+      // Safely handle the folderId from the request body
+      const folderId = req.body && req.body.folderId ? req.body.folderId : null;
+      
+      // Ensure files is always an array
+      const files = Array.isArray(req.files) ? req.files : 
+                    (req.files ? Array.isArray(req.files.files) ? req.files.files : 
+                    Object.values(req.files).flat() : []);
+      
+      // Make sure fileToFolderMap and virtualFolders are initialized properly
       const fileToFolderMap = req.fileToFolderMap || {};
       const virtualFolders = req.virtualFolders || {};
       
-      // Check if we're dealing with a ZIP file that only had folders and no actual files
       const folderKeys = Object.keys(virtualFolders);
       const hasCreatedFolders = folderKeys.length > 0;
       const folderCount = folderKeys.length;
       
-      // Validate upload - but allow empty req.files if folders were created from a ZIP
       if (!hasCreatedFolders && (!files || files.length === 0)) {
         throw new ApiError(400, [{ file: "No files uploaded" }]);
       }
       
-      // Special case: ZIP with only folders, no files
+      // Get complete folder information if folders were created
+      let folders: Record<string, FolderResponseDto> = {};
+      if (hasCreatedFolders) {
+        for (const [path, folderId] of Object.entries(virtualFolders)) {
+          const folder = await folderService.getFolderById(folderId, userId);
+          folders[path] = folder;
+        }
+      }
+      
       if (hasCreatedFolders && (!files || files.length === 0)) {
         logger.debug(`ZIP contained only folders (${folderCount}) with no files`);
         
@@ -49,7 +66,7 @@ class FileController {
             201,
             {
               files: [],
-              folders: virtualFolders,
+              folders,
               count: 0,
               folderCount: folderCount
             },
@@ -59,16 +76,13 @@ class FileController {
         return;
       }
       
-      // Standard case with files
       logger.debug(`Passing ${files.length} files to service layer for processing`);
       
-      // Process the files through the service layer
       const uploadResults = await fileService.processUploadedFiles(
         files,
         userId,
         folderId,
-        fileToFolderMap,
-        virtualFolders
+        fileToFolderMap || {},
       );
 
       res.status(201).json(
@@ -76,7 +90,7 @@ class FileController {
           201,
           {
             files: uploadResults,
-            folders: hasCreatedFolders ? virtualFolders : undefined,
+            folders,
             count: uploadResults.length,
             folderCount: folderCount
           },
@@ -215,6 +229,66 @@ class FileController {
     res.json(
       new ApiResponse(200, { file: restoredFile }, "File restored successfully")
     );
+  });
+
+  /**
+   * Stream file for viewing
+   */
+  viewFile = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+
+    const { stream, mimeType, filename } = await fileService.getFileStream(
+      req.params.id,
+      req.user.id
+    );
+
+    // Set headers for streaming
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+
+    // Pipe file stream to response
+    stream.pipe(res);
+  });
+
+  /**
+   * Download file (forces download instead of inline viewing)
+   */
+  downloadFile = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+
+    const { stream, mimeType, filename } = await fileService.getFileStream(
+      req.params.id,
+      req.user.id
+    );
+
+    // Set headers for download instead of viewing
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    // Pipe file stream to response
+    stream.pipe(res);
+  });
+
+  /**
+   * Get user's files, optionally filtered by folder
+   */
+  getUserFiles = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+
+    const folderId = req.query.folderId as string | undefined;
+    logger.info("Folder ID:", folderId);
+    const isDeleted = req.query.includeDeleted === 'true';
+    
+    const files = await fileService.getUserFilesByFolders(userId, folderId || null, isDeleted);
+    
+    res.json(new ApiResponse(200, { files }, "Files retrieved successfully"));
   });
 
 }

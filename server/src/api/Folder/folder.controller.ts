@@ -1,8 +1,8 @@
+import folderService from "@api/folder/folder.service.js";
 import { ApiError } from "@utils/apiError.utils.js";
 import { ApiResponse } from "@utils/apiResponse.utils.js";
 import asyncHandler from "@utils/asyncHandler.utils.js";
 import logger from "@utils/logger.utils.js";
-import folderService from "./folder.service.js";
 
 class FolderController {
   // Create a new folder
@@ -78,7 +78,8 @@ class FolderController {
     logger.info("Moving folder");
     const folderId = req.params.id;
     const moveData = {
-      parent: req.body.parent
+      parent: req.body.parent,
+      name: req.body.name || '' // Provide a default name to satisfy the DTO
     };
     
     if (!req.user) {
@@ -176,6 +177,26 @@ class FolderController {
     res
       .status(200)
       .json(new ApiResponse(200, { result }, "Folder trash emptied successfully"));
+  });
+
+  // Update a folder
+  updateFolder = asyncHandler(async (req, res) => {
+    logger.info("Updating folder");
+    const folderId = req.params.id;
+    const updateData = {
+      color: req.body.color,
+      isPinned: req.body.isPinned
+    };
+    
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+    const userId = req.user.id;
+    
+    const updatedFolder = await folderService.updateFolder(folderId, updateData, userId);
+    res
+      .status(200)
+      .json(new ApiResponse(200, { folder: updatedFolder }, "Folder updated successfully"));
   });
 }
 

@@ -1,21 +1,21 @@
+import folderService from "@api/folder/folder.service.js";
 import userService from "@api/user/user.service.js";
-import folderService from "@api/Folder/folder.service.js";
 import {
   MAX_FILES_PER_FOLDER,
   MAX_FILES_PER_UPLOAD_BATCH,
   MAX_SIZE_PER_UPLOAD_BATCH,
-  UPLOADS_DIR,
-  ZIP_NAME_PREFIX,
+  UPLOADS_DIR
 } from "@config/constants.js";
 import { ApiError } from "@utils/apiError.utils.js";
 import logger from "@utils/logger.utils.js";
 import { getUserDirectoryPath } from "@utils/mkdir.utils.js";
+import { encryptFileBuffer } from "@utils/cryptoUtil.utils.js"; // Add import for encryption
 import AdmZip from "adm-zip";
 import crypto from "crypto";
+import { NextFunction, Request, Response } from "express";
 import fs from "fs";
 import multer, { FileFilterCallback, StorageEngine } from "multer";
 import path from "path";
-import { Request, Response, NextFunction } from "express";
 
 // Types
 interface UploadedFile {
@@ -34,9 +34,8 @@ interface UploadSession {
 // Extended type for extracting virtual folder structure from ZIP
 interface VirtualFolder {
   name: string;
-  path: string; // Full path from ZIP root
-  parentPath: string | null; // Parent folder path
-  folderId?: string; // MongoDB ID once created
+  parentPath: string | null;
+  folderId?: string;
 }
 
 declare module "express-serve-static-core" {
@@ -45,12 +44,11 @@ declare module "express-serve-static-core" {
     requestId?: string;
     uploadedFiles?: UploadedFile[];
     fileToFolderMap?: Record<string, string>;
-    virtualFolders?: Record<string, string>; // path -> folderId mapping
+    virtualFolders?: Record<string, string>;
   }
 }
 
 const uploadSessions = new Map<string, UploadSession>();
-export const fileToFolderMap: Record<string, string> = {};
 
 // Generate a completely random filename with the original extension
 const generateRandomFilename = (originalFilename: string): string => {
@@ -65,78 +63,96 @@ const getErrorMessage = (err: unknown): string =>
 /**
  * Build a folder hierarchy from ZIP entries
  * This creates a map of folder paths and their metadata
- * 
- * @param entries ZIP entries from AdmZip
- * @returns Map of folder paths and folder objects
  */
 const buildFolderHierarchy = (entries: AdmZip.IZipEntry[]): Map<string, VirtualFolder> => {
   const folders = new Map<string, VirtualFolder>();
   
   // First pass: identify all folders
   entries.forEach(entry => {
-    // Skip files and junk entries
     if (!entry.isDirectory) return;
     
     const folderPath = entry.entryName.endsWith('/') 
-      ? entry.entryName.slice(0, -1)  // Remove trailing slash
+      ? entry.entryName.slice(0, -1)
       : entry.entryName;
-    
-    // Skip hidden or system folders
+
+    // Skip empty paths
+    if (folderPath === '') return;
+
+    // Skip system/hidden folders
     if (
-      folderPath.startsWith('__') || 
-      folderPath.startsWith('.') || 
-      folderPath.includes('/.') || 
-      folderPath === ''
+      folderPath.startsWith('__') ||                      // __MACOSX, __something
+      folderPath.startsWith('.') ||                       // .git, .hidden
+      folderPath.includes('/.') ||                        // any hidden folder in path
+      folderPath.includes('/__')                          // any system folder in path
     ) {
       return;
     }
     
-    // Get folder name (last segment of path)
+    // Get folder name and parent path
     const segments = folderPath.split('/');
     const name = segments[segments.length - 1];
-    
-    // Get parent path
+
+    // Skip if folder name is a system or hidden folder
+    if (
+      name.startsWith('.') ||
+      name.startsWith('__') ||
+      name === 'Thumbs.db' ||
+      name === '.DS_Store'
+    ) {
+      return;
+    }
+
     const parentPath = segments.length > 1 
       ? segments.slice(0, -1).join('/')
       : null;
     
-    // Add folder to map
-    folders.set(folderPath, {
-      name,
-      path: folderPath,
-      parentPath
-    });
+    folders.set(folderPath, { name, parentPath });
   });
   
-  // Second pass: extract folders from file paths that might not have explicit directory entries
+  // Second pass: extract folders from file paths
   entries.forEach(entry => {
-    if (entry.isDirectory) return; // Skip directories we've already processed
+    if (entry.isDirectory) return;
+
+    const entryName = entry.entryName;
+    const baseName = path.basename(entryName);
+
+    // Skip system/hidden files
+    if (
+      entryName.startsWith('__') ||                      // __MACOSX, __something
+      baseName.startsWith('._') || baseName.startsWith('.') || // ._nepal.jpg, .hidden
+      baseName === 'Thumbs.db' || baseName === '.DS_Store' ||  // known junk files
+      entryName.includes('/.') ||                       // any hidden folder
+      entry.header.size === 0                           // empty files
+    ) {
+      return;
+    }
     
-    // Get directory path from file path
     const dirPath = path.dirname(entry.entryName);
-    if (dirPath === '.' || folders.has(dirPath)) return; // Skip root level or existing folders
+    if (dirPath === '.' || folders.has(dirPath)) return;
     
-    // Split into path segments
     const segments = dirPath.split('/');
-    
-    // Create each folder in path that doesn't exist yet
     let currentPath = '';
+    
     for (let i = 0; i < segments.length; i++) {
       const segment = segments[i];
       
-      // Skip empty segments or hidden folders
-      if (!segment || segment.startsWith('.') || segment.startsWith('__')) continue;
+      // Skip empty segments or system/hidden folders
+      if (
+        !segment ||
+        segment.startsWith('.') ||
+        segment.startsWith('__') ||
+        segment === 'Thumbs.db' ||
+        segment === '.DS_Store'
+      ) {
+        continue;
+      }
       
-      // Build current path
       currentPath = currentPath ? `${currentPath}/${segment}` : segment;
       
-      // If this path doesn't exist in our folder map, add it
       if (!folders.has(currentPath)) {
         const parentPath = i > 0 ? segments.slice(0, i).join('/') : null;
-        
         folders.set(currentPath, {
           name: segment,
-          path: currentPath,
           parentPath
         });
       }
@@ -166,7 +182,7 @@ const storage: StorageEngine = multer.diskStorage({
       };
 
       if (filesInFolder + session.fileCount >= MAX_FILES_PER_FOLDER) {
-        return cb(new Error("Folder file limit exceeded"), "");
+        return cb(new Error("Storage limit exceeded, Buy more"), "");
       }
 
       uploadSessions.set(req.requestId!, session);
@@ -198,256 +214,240 @@ const fileFilter = async (
       files: [],
     };
 
-    const totalSize = user.storageUsed + session.totalSize + file.size;
-    if (typeof user.plan === "object" && totalSize > user.plan.storageLimit)
-      return cb(new ApiError(413, [{ storage: "Storage limit exceeded" }]));
-    if (session.fileCount + 1 > MAX_FILES_PER_UPLOAD_BATCH)
-      return cb(new ApiError(413, [{ files: "File count limit exceeded" }]));
+    // Check file count limit
+    if (session.fileCount >= MAX_FILES_PER_UPLOAD_BATCH) {
+      return cb(
+        new ApiError(400, [
+          { files: `Maximum ${MAX_FILES_PER_UPLOAD_BATCH} files per upload` },
+        ])
+      );
+    }
 
-    if (session.totalSize + file.size > MAX_SIZE_PER_UPLOAD_BATCH)
-      return cb(new ApiError(413, [{ batch: "Batch size limit exceeded" }]));
+    // Check total upload size limit
+    const newTotalSize = session.totalSize + file.size;
+    if (newTotalSize > MAX_SIZE_PER_UPLOAD_BATCH) {
+      return cb(
+        new ApiError(400, [
+          {
+            files: `Total upload size cannot exceed ${Math.floor(
+              MAX_SIZE_PER_UPLOAD_BATCH / (1024 * 1024)
+            )}MB`,
+          },
+        ])
+      );
+    }
 
-    session.totalSize += file.size;
-    session.fileCount += 1;
+    // Update session
+    session.totalSize = newTotalSize;
+    session.fileCount++;
     uploadSessions.set(req.requestId!, session);
 
     cb(null, true);
   } catch (err) {
-    cb(new ApiError(500, [{ error: getErrorMessage(err) }]));
+    cb(new ApiError(500, [{ server: getErrorMessage(err) }]));
   }
 };
 
 export const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: MAX_SIZE_PER_UPLOAD_BATCH },
+  limits: {
+    fileSize: MAX_SIZE_PER_UPLOAD_BATCH,
+  },
 });
 
-// Middleware: process ZIP files
 export const processZipFiles = async (
   req: Request,
   _res: Response,
   next: NextFunction
 ) => {
   try {
-    const files: Express.Multer.File[] = Array.isArray(req.files)
-      ? req.files
-      : req.file
-        ? [req.file]
-        : [];
-    const session = uploadSessions.get(req.requestId!);
+    const userId = req.user?.id;
+    if (!userId || !req.files) return next();
+
+    const files = req.files as Express.Multer.File[];
+    const zipFiles = files.filter((file) =>
+      file.originalname.toLowerCase().endsWith(".zip")
+    );
+
+    if (zipFiles.length === 0) {
+      // Initialize these properties even if no zip files
+      req.fileToFolderMap = req.fileToFolderMap || {};
+      req.virtualFolders = req.virtualFolders || {};
+      return next();
+    }
+
+    // Remove ZIP files from req.files so they don't get saved to the database
+    req.files = files.filter(file => !file.originalname.toLowerCase().endsWith(".zip"));
+
+    // Create local maps for this request
+    const fileToFolderMap: Record<string, string> = {};
     
-    // Store mapping of virtual folder paths to MongoDB folder IDs
-    const virtualFoldersMap: Record<string, string> = {};
-    req.virtualFolders = virtualFoldersMap;
+    // Process each ZIP file
+    for (const zipFile of zipFiles) {
+      const zip = new AdmZip(zipFile.path);
+      const entries = zip.getEntries();
 
-    for (const file of files) {
-      if (
-        file.originalname.endsWith(".zip") && 
-        file.originalname.startsWith(ZIP_NAME_PREFIX)
-      ) {
-        const zipPath = path.join(file.destination, file.filename);
-        const zip = new AdmZip(zipPath);
-        const entries = zip.getEntries();
-        
-        // Process the folder structure first
-        if (req.user?.id) {
-          const userId = req.user.id;
-          const folderId = req.body.folderId || null;  // Parent folder ID from request
-          
-          // Extract folder hierarchy from zip entries
-          const folderHierarchy = buildFolderHierarchy(entries);
-          
-          // Create folders in MongoDB in the correct order (parents first)
-          // Need to sort by path depth to ensure parent folders are created before their children
-          const sortedFolders = Array.from(folderHierarchy.values())
-            .sort((a, b) => {
-              return (a.path?.split('/').length || 0) - (b.path?.split('/').length || 0);
-            });
-            
-          for (const folder of sortedFolders) {
-            try {
-              // Determine the parent folder ID
-              let parentId = folderId;
-              
-              // If this folder has a parent path in the ZIP, use its MongoDB ID
-              if (folder.parentPath && virtualFoldersMap[folder.parentPath]) {
-                parentId = virtualFoldersMap[folder.parentPath];
-              }
-              
-              // Create folder in MongoDB
-              const newFolder = await folderService.createFolder(
-                { 
-                  name: folder.name,
-                  parent: parentId
-                },
-                userId
-              );
-              
-              // Store the mapping from virtual path to MongoDB folder ID
-              virtualFoldersMap[folder.path] = newFolder.id;
-              
-              // If this is the root folder of a file's path, store its ID for direct lookup in the controller
-              Object.keys(fileToFolderMap).forEach(filename => {
-                if (fileToFolderMap[filename] === folder.path) {
-                  logger.debug(`Associating file ${filename} with folder ${newFolder.id} at path ${folder.path}`);
-                }
-              });
-              
-              logger.debug(`Created virtual folder: ${folder.path} -> ${newFolder.id}`);
-            } catch (folderError) {
-              logger.error(`Error creating folder ${folder.path}:`, folderError);
-              // Continue processing other folders
-            }
-          }
-        }
-        
-        // Now process files
-        for (const entry of entries) {
-          const entryName = entry.entryName;
-          const baseName = path.basename(entryName);
+      // Build folder hierarchy
+      const folders = buildFolderHierarchy(entries);
+      const virtualFolders: Record<string, string> = {};
+      const extractedFiles: Express.Multer.File[] = [];
 
-          // Skip directories
-          if (entry.isDirectory) continue;
+      // Create folders in order (parents first)
+      const folderPaths = Array.from(folders.keys());
+      for (const folderPath of folderPaths) {
+        const folder = folders.get(folderPath)!;
+        const parentId = folder.parentPath ? virtualFolders[folder.parentPath] : null;
 
-          // Skip system/hidden folders or files
-          if (
-            entryName.startsWith('__') ||                      // __MACOSX, __something
-            baseName.startsWith('._') || baseName.startsWith('.') || // ._nepal.jpg, .hidden
-            baseName === 'Thumbs.db' || baseName === '.DS_Store' ||  // known junk files
-            entryName.includes('/.') ||                       // any hidden folder
-            entry.header.size === 0                           // empty files
-          ) {
-            continue;
-          }
-
-          // Generate a completely random filename for the extracted file
-          const randomFilename = generateRandomFilename(entry.entryName);
-          
-          // Extract the file
-          zip.extractEntryTo(
-            entry.entryName,
-            file.destination,
-            false,
-            true,
-            false,
-            randomFilename
+        try {
+          // Create folder in database
+          const newFolder = await folderService.createFolder(
+            {
+              name: folder.name,
+              parent: parentId,
+            },
+            userId
           );
-          
-          // Get the directory path for this file from the zip
-          const dirPath = path.dirname(entry.entryName);
-          
-          // Store the path for later reference - this will be incorporated into the file path
-          fileToFolderMap[randomFilename] = dirPath;
 
-          // Make sure we have a session
-          if (!session) {
-            logger.error(`No upload session found for request ID ${req.requestId}`);
-            continue;
+          virtualFolders[folderPath] = newFolder.id;
+        } catch (error) {
+          // If folder already exists, try to get its ID
+          if (error instanceof ApiError && error.statusCode === 409) {
+            const existingFolder = await folderService.getFolderByNameAndParent(
+              folder.name,
+              parentId,
+              userId
+            );
+            if (existingFolder) {
+              virtualFolders[folderPath] = existingFolder.id;
+            }
+          } else {
+            throw error;
           }
-          
-          // Add the extracted file to the session files list so it gets processed by the controller
-          session.files.push({
-            originalname: baseName, // Keep track of original name for reference
-            filename: randomFilename,
-            size: entry.header.size,
-            destination: file.destination,
-          });
         }
-        
-        // Delete the original ZIP file as we've extracted its contents
-        fs.unlinkSync(zipPath);
-        
-        logger.info(`Processed ZIP file with ${Object.keys(virtualFoldersMap).length} folders extracted`);
-      } else {
-        // Regular file upload (not a ZIP)
-        session?.files.push({
-          originalname: file.originalname,
-          filename: file.filename,
-          size: file.size,
-          destination: file.destination,
-        });
       }
+
+      // Extract files
+      for (const entry of entries) {
+        if (entry.isDirectory) continue;
+
+        const entryName = entry.entryName;
+        const baseName = path.basename(entryName);
+
+        // Skip system/hidden folders or files
+        if (
+          entryName.startsWith('__') ||                      // __MACOSX, __something
+          baseName.startsWith('._') || baseName.startsWith('.') || // ._nepal.jpg, .hidden
+          baseName === 'Thumbs.db' || baseName === '.DS_Store' ||  // known junk files
+          entryName.includes('/.') ||                       // any hidden folder
+          entry.header.size === 0                           // empty files
+        ) {
+          continue;
+        }
+
+        const dirPath = path.dirname(entry.entryName);
+        const fileName = generateRandomFilename(path.basename(entry.entryName));
+        const filePath = path.join(getUserDirectoryPath(userId), fileName);
+
+        // Extract file synchronously
+        const fileData = entry.getData();
+        fs.writeFileSync(filePath, fileData);
+
+        // Create a multer file object for the extracted file
+        const extractedFile: Express.Multer.File = {
+          fieldname: 'file',
+          originalname: baseName,
+          encoding: '7bit',
+          mimetype: 'application/octet-stream', // You might want to determine this based on file extension
+          destination: getUserDirectoryPath(userId),
+          filename: fileName,
+          path: filePath,
+          size: entry.header.size,
+          buffer: fileData
+        } as Express.Multer.File;
+
+        extractedFiles.push(extractedFile);
+
+        // Map file to its folder ID, not the path
+        const folderId = dirPath === "." ? null : virtualFolders[dirPath];
+        if (folderId) {
+          fileToFolderMap[fileName] = folderId; // Store the folder ID instead of the path
+        }
+      }
+
+      // Clean up the original ZIP file
+      fs.unlinkSync(zipFile.path);
+
+      // Add extracted files to req.files
+      req.files = Array.isArray(req.files) 
+        ? [...req.files, ...extractedFiles]
+        : [...(Object.values(req.files || {}).flat()), ...extractedFiles];
+
+      // Store mappings in request for file service to use
+      req.fileToFolderMap = fileToFolderMap;
+      req.virtualFolders = virtualFolders;
     }
 
     next();
-  } catch (err) {
-    logger.error("ZIP processing error:", err);
-    next(new ApiError(500, [{ error: getErrorMessage(err) }]));
+  } catch (error) {
+    // Clean up any extracted files if there's an error
+    if (req.files) {
+      const filesToClean = Array.isArray(req.files) 
+        ? req.files 
+        : Object.values(req.files).flat();
+        
+      for (const file of filesToClean) {
+        try {
+          if (fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+          }
+        } catch (cleanupError) {
+          logger.error('Error cleaning up file:', cleanupError);
+        }
+      }
+    }
+    next(error);
   }
 };
 
-// Middleware: update user storage
 export const updateUserStorageUsage = async (
   req: Request,
   _res: Response,
   next: NextFunction
 ) => {
   try {
-    const session = uploadSessions.get(req.requestId!);
-    const totalAdded = session?.files.reduce((sum, f) => sum + f.size, 0) || 0;
+    const userId = req.user?.id;
+    if (!userId || !req.files) return next();
 
-    if (totalAdded > 0) {
-      await userService.updateUserStorageUsage(req.user!.id, totalAdded);
-    }
+    const files = req.files as Express.Multer.File[];
+    const totalSize = files.reduce((sum, file) => sum + file.size, 0);
 
-    req.uploadedFiles = session?.files || [];
-    req.fileToFolderMap = fileToFolderMap;
-    
-    // Update req.files with extracted files so they get processed by the controller
-    if (req.files && Array.isArray(req.files) && session?.files) {
-      // Create list of original ZIP files to be excluded
-      const zipFilenames = (req.files as Express.Multer.File[])
-        .filter(f => f.originalname.endsWith('.zip') && f.originalname.startsWith(ZIP_NAME_PREFIX))
-        .map(f => f.filename);
-      
-      // Filter out the original ZIP files from current files array
-      const filteredOriginalFiles = (req.files as Express.Multer.File[])
-        .filter(f => !zipFilenames.includes(f.filename));
-      
-      // Get only extracted files from the session (from ZIP files)
-      // This is the key change - only include files that are extracted from ZIP archives
-      const extractedFiles = session.files
-        .filter(f => Object.keys(fileToFolderMap).includes(f.filename))
-        .map(f => ({
-          originalname: f.originalname,
-          filename: f.filename,
-          size: f.size,
-          destination: f.destination,
-          path: path.join(f.destination, f.filename),
-          mimetype: ''  // Could be determined from extension if needed
-        } as Express.Multer.File));
-      
-      // Log information about extracted files
-      logger.debug(`Adding ${extractedFiles.length} extracted files to req.files for processing`);
-      extractedFiles.forEach(f => {
-        logger.debug(`Extracted file: ${f.filename}, original name: ${f.originalname}, virtual path: ${fileToFolderMap[f.filename] || 'none'}`);
-      });
-      
-      req.files = [
-        ...filteredOriginalFiles,
-        ...extractedFiles
-      ];
-    }
-    
-    uploadSessions.delete(req.requestId!);
-
+    await userService.updateUserStorageUsage(userId, totalSize);
     next();
-  } catch (err) {
-    logger.error("Update storage error:", err);
-    next(new ApiError(500, [{ error: getErrorMessage(err) }]));
+  } catch (error) {
+    next(error);
   }
 };
 
-// Rollback utility
 export const rollbackUploadedFiles = async (req: Request) => {
   try {
-    const files = req.uploadedFiles || [];
-    files.forEach((file) => {
-      const filePath = path.join(file.destination, file.filename);
-      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    });
-  } catch (err) {
-    logger.error("Rollback cleanup error:", err);
+    const userId = req.user?.id;
+    if (!userId || !req.files) return;
+
+    const files = req.files as Express.Multer.File[];
+    for (const file of files) {
+      try {
+        fs.unlinkSync(file.path);
+      } catch (err) {
+        logger.error(`Failed to delete file ${file.path}:`, err);
+      }
+    }
+
+    // Clear upload session
+    if (req.requestId) {
+      uploadSessions.delete(req.requestId);
+    }
+  } catch (error) {
+    logger.error("Error in rollbackUploadedFiles:", error);
   }
 };
