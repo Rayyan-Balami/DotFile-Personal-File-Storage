@@ -7,7 +7,6 @@ import {
   upload,
 } from "@middleware/multer.middleware.js";
 import { encryptFiles } from "@middleware/fileEncryption.middleware.js"; // Import the encryption middleware
-import { generatePreviews } from "@middleware/previewGeneration.middleware.js"; // Import the preview generation middleware
 import { ApiError } from "@utils/apiError.utils.js";
 import { ApiResponse } from "@utils/apiResponse.utils.js";
 import asyncHandler from "@utils/asyncHandler.utils.js";
@@ -21,9 +20,8 @@ class FileController {
    */
   uploadFiles = [
     upload.array("files"),
-    encryptFiles, // Add encryption middleware before processing
-    processZipFiles,
-    generatePreviews, // Add preview generation middleware after processing
+    processZipFiles, // Process ZIP files first to extract files
+    encryptFiles, // Then encrypt all files (including extracted ones)
     updateUserStorageUsage,
     asyncHandler(async (req: Request, res: Response) => {
       const userId = req.user?.id;
@@ -85,7 +83,6 @@ class FileController {
         userId,
         folderId,
         fileToFolderMap || {},
-        req.previewResults || {},
       );
 
       res.status(201).json(
@@ -292,28 +289,6 @@ class FileController {
     const files = await fileService.getUserFilesByFolders(userId, folderId || null, isDeleted);
     
     res.json(new ApiResponse(200, { files }, "Files retrieved successfully"));
-  });
-
-  /**
-   * Stream preview for a file
-   */
-  viewPreview = asyncHandler(async (req: Request, res: Response) => {
-    if (!req.user) {
-      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
-    }
-
-    const { stream, mimeType, filename } = await fileService.getPreviewStream(
-      req.params.id,
-      req.user.id
-    );
-
-    // Set headers for streaming preview
-    res.setHeader('Content-Type', mimeType);
-    res.setHeader('Content-Disposition', `inline; filename="preview_${filename}"`);
-    res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
-
-    // Pipe preview stream to response
-    stream.pipe(res);
   });
 
 }

@@ -1,8 +1,9 @@
-import { FileResponseDto } from "@api/file/file.dto.js";
 
 export interface CreateFolderDto {
   name: string;
   parent?: string | null;
+  color?: string;
+  items?: number;
 }
 
 export interface UpdateFolderDto {
@@ -41,6 +42,6 @@ export interface FolderResponseDto {
 
 export interface FolderResponseWithFilesDto {
   folders: FolderResponseDto[];
-  files: FileResponseDto[];
+  files: any[];
   pathSegments?: PathSegment[];
 }
