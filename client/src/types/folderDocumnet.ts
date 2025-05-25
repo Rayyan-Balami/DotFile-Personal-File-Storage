@@ -29,6 +29,7 @@ export interface DocumentItem extends BaseItem {
   folder: FolderResponseDto | null;
   storageKey: string;
   extension: string;
+  hasPreview: boolean;
   path: string;
   pathSegments: PathSegment[];
 }

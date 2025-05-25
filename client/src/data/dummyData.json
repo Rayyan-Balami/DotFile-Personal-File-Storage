@@ -21,6 +21,59 @@
             ],
             "files": [
                 {
+                    "id": "68330c4874e6e9881bd15af7",
+                    "name": "pp",
+                    "type": "jpeg",
+                    "size": 89190,
+                    "owner": {
+                        "id": "68240b68e72b28292896f545",
+                        "avatar": "/images/default-user-avatar.png",
+                        "name": "John Doe",
+                        "email": "user@example.com",
+                        "role": "user",
+                        "maxStorageLimit": 15728640,
+                        "storageUsed": 471489,
+                        "deletedAt": null,
+                        "createdAt": "2025-05-14T03:18:00.505Z",
+                        "updatedAt": "2025-05-25T12:25:44.501Z"
+                    },
+                    "folder": null,
+                    "storageKey": "file-65c64dc60d6058e5ded7cc128ab90706.jpeg",
+                    "extension": "jpeg",
+                    "isPinned": false,
+                    "hasPreview": true,
+                    "deletedAt": null,
+                    "createdAt": "2025-05-25T12:25:44.602Z",
+                    "updatedAt": "2025-05-25T12:25:44.602Z"
+                },
+                {
+                    "id": "6832ee06cbfbad06484a6523",
+                    "name": "Main Before (2)",
+                    "type": "jpg",
+                    "size": 46806,
+                    "owner": {
+                        "id": "68240b68e72b28292896f545",
+                        "avatar": "/images/default-user-avatar.png",
+                        "name": "John Doe",
+                        "email": "user@example.com",
+                        "role": "user",
+                        "maxStorageLimit": 15728640,
+                        "storageUsed": 471489,
+                        "deletedAt": null,
+                        "createdAt": "2025-05-14T03:18:00.505Z",
+                        "updatedAt": "2025-05-25T12:25:44.501Z"
+                    },
+                    "folder": null,
+                    "storageKey": "file-39540269183a7b6e8abf7ec165540905.jpg",
+                    "extension": "jpg",
+                    "isPinned": false,
+                    "hasPreview": true,
+                    "deletedAt": null,
+                    "createdAt": "2025-05-25T10:16:38.543Z",
+                    "updatedAt": "2025-05-25T10:16:38.543Z"
+                },
+                {
+                    "hasPreview": false,
                     "id": "6832cfa4941cb540f70ae77f",
                     "name": "Main Before",
                     "type": "jpg",
@@ -32,10 +85,10 @@
                         "email": "user@example.com",
                         "role": "user",
                         "maxStorageLimit": 15728640,
-                        "storageUsed": 335493,
+                        "storageUsed": 471489,
                         "deletedAt": null,
                         "createdAt": "2025-05-14T03:18:00.505Z",
-                        "updatedAt": "2025-05-25T08:07:00.732Z"
+                        "updatedAt": "2025-05-25T12:25:44.501Z"
                     },
                     "folder": null,
                     "storageKey": "file-cc34582eec132fe73492d130def5b174.jpg",
@@ -46,6 +99,7 @@
                     "updatedAt": "2025-05-25T08:07:00.848Z"
                 },
                 {
+                    "hasPreview": false,
                     "id": "682431564cb0d59e1a14bdff",
                     "name": "about_me_summary (3)",
                     "type": "txt",
@@ -57,10 +111,10 @@
                         "email": "user@example.com",
                         "role": "user",
                         "maxStorageLimit": 15728640,
-                        "storageUsed": 335493,
+                        "storageUsed": 471489,
                         "deletedAt": null,
                         "createdAt": "2025-05-14T03:18:00.505Z",
-                        "updatedAt": "2025-05-25T08:07:00.732Z"
+                        "updatedAt": "2025-05-25T12:25:44.501Z"
                     },
                     "folder": null,
                     "storageKey": "file-636ef0ac8901b70404e936335ff54dd4.txt",
@@ -71,6 +125,7 @@
                     "updatedAt": "2025-05-14T05:59:50.303Z"
                 },
                 {
+                    "hasPreview": false,
                     "id": "68242c797cc210a9a1d03fe9",
                     "name": "about_me_summary (2)",
                     "type": "txt",
@@ -82,10 +137,10 @@
                         "email": "user@example.com",
                         "role": "user",
                         "maxStorageLimit": 15728640,
-                        "storageUsed": 335493,
+                        "storageUsed": 471489,
                         "deletedAt": null,
                         "createdAt": "2025-05-14T03:18:00.505Z",
-                        "updatedAt": "2025-05-25T08:07:00.732Z"
+                        "updatedAt": "2025-05-25T12:25:44.501Z"
                     },
                     "folder": null,
                     "storageKey": "file-da87dc2aafb89e8cf8e7efc0604285d1.txt",
@@ -96,6 +151,7 @@
                     "updatedAt": "2025-05-14T05:39:05.781Z"
                 },
                 {
+                    "hasPreview": false,
                     "id": "68241b01f18d863b93877982",
                     "name": "about_me_summary",
                     "type": "txt",
@@ -107,10 +163,10 @@
                         "email": "user@example.com",
                         "role": "user",
                         "maxStorageLimit": 15728640,
-                        "storageUsed": 335493,
+                        "storageUsed": 471489,
                         "deletedAt": null,
                         "createdAt": "2025-05-14T03:18:00.505Z",
-                        "updatedAt": "2025-05-25T08:07:00.732Z"
+                        "updatedAt": "2025-05-25T12:25:44.501Z"
                     },
                     "folder": null,
                     "storageKey": "file-1b291a01f5afb73efa39376f1ef8ed45.txt",
@@ -121,6 +177,7 @@
                     "updatedAt": "2025-05-14T04:24:33.060Z"
                 },
                 {
+                    "hasPreview": false,
                     "id": "682419a0f18d863b93877975",
                     "name": " ",
                     "type": "jpg",
@@ -132,10 +189,10 @@
                         "email": "user@example.com",
                         "role": "user",
                         "maxStorageLimit": 15728640,
-                        "storageUsed": 335493,
+                        "storageUsed": 471489,
                         "deletedAt": null,
                         "createdAt": "2025-05-14T03:18:00.505Z",
-                        "updatedAt": "2025-05-25T08:07:00.732Z"
+                        "updatedAt": "2025-05-25T12:25:44.501Z"
                     },
                     "folder": null,
                     "storageKey": "file-472754725c20654193fd630045424f31.jpg",
@@ -146,6 +203,7 @@
                     "updatedAt": "2025-05-14T04:18:40.559Z"
                 },
                 {
+                    "hasPreview": false,
                     "id": "68240bcbe72b28292896f586",
                     "name": "cropped-Screenshot 2025-04-30 at 5.54.57 PM",
                     "type": "png",
@@ -157,10 +215,10 @@
                         "email": "user@example.com",
                         "role": "user",
                         "maxStorageLimit": 15728640,
-                        "storageUsed": 335493,
+                        "storageUsed": 471489,
                         "deletedAt": null,
                         "createdAt": "2025-05-14T03:18:00.505Z",
-                        "updatedAt": "2025-05-25T08:07:00.732Z"
+                        "updatedAt": "2025-05-25T12:25:44.501Z"
                     },
                     "folder": {
                         "id": "68240bcae72b28292896f578",
@@ -191,5 +249,5 @@
             ]
         }
     },
-    "timestamp": "2025-05-25T08:07:19.996Z"
+    "timestamp": "2025-05-25T12:25:48.980Z"
 }
