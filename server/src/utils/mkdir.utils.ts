@@ -100,6 +100,73 @@ export const getUserDirectoryPath = (userId: string): string => {
 };
 
 /**
+ * Returns the path to a user's files directory
+ * @param userId The user ID
+ * @returns The path to the user's files directory
+ */
+export const getUserFilesDirectoryPath = (userId: string): string => {
+  try {
+    const userFilesPath = path.join(UPLOADS_DIR, `user-${userId}`, 'files');
+    logger.debug(`Resolved user files directory path: ${userFilesPath}`);
+    
+    // Create the directory if it doesn't exist
+    if (!fs.existsSync(userFilesPath)) {
+      fs.mkdirSync(userFilesPath, { recursive: true });
+      logger.info(`Created user files directory: ${userFilesPath}`);
+    }
+    
+    return userFilesPath;
+  } catch (error: unknown) {
+    logger.error(`Failed to get user files directory path for ${userId}:`, error);
+    throw new Error(`Failed to get user files directory path: ${getErrorMessage(error)}`);
+  }
+};
+
+/**
+ * Returns the path to a user's previews directory
+ * @param userId The user ID
+ * @returns The path to the user's previews directory
+ */
+export const getUserPreviewsDirectoryPath = (userId: string): string => {
+  try {
+    const userPreviewsPath = path.join(UPLOADS_DIR, `user-${userId}`, 'previews');
+    logger.debug(`Resolved user previews directory path: ${userPreviewsPath}`);
+    
+    // Create the directory if it doesn't exist
+    if (!fs.existsSync(userPreviewsPath)) {
+      fs.mkdirSync(userPreviewsPath, { recursive: true });
+      logger.info(`Created user previews directory: ${userPreviewsPath}`);
+    }
+    
+    return userPreviewsPath;
+  } catch (error: unknown) {
+    logger.error(`Failed to get user previews directory path for ${userId}:`, error);
+    throw new Error(`Failed to get user previews directory path: ${getErrorMessage(error)}`);
+  }
+};
+
+/**
+ * Returns the full file path for a given storage key
+ * @param userId The user ID
+ * @param storageKey The storage key/filename
+ * @returns The full path to the file
+ */
+export const getFilePathFromStorageKey = (userId: string, storageKey: string): string => {
+  return path.join(getUserFilesDirectoryPath(userId), storageKey);
+};
+
+/**
+ * Returns the full preview path for a given storage key
+ * @param userId The user ID
+ * @param storageKey The storage key/filename
+ * @returns The full path to the preview file
+ */
+export const getPreviewPathFromStorageKey = (userId: string, storageKey: string): string => {
+  // For previews, we might want to change extension to .jpg or keep original
+  return path.join(getUserPreviewsDirectoryPath(userId), storageKey);
+};
+
+/**
  * Checks if a directory exists and is accessible
  * @param dirPath Path to check
  * @returns Boolean indicating if directory exists and is accessible

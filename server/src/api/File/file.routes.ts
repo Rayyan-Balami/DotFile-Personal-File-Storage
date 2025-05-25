@@ -27,6 +27,7 @@ authRoutes.post("/:id/restore", FileController.restoreFile);                    
 authRoutes.get("/", FileController.getUserFiles);
 authRoutes.get("/:id/view", FileController.viewFile);
 authRoutes.get("/:id/download", FileController.downloadFile);  // Add download endpoint
+authRoutes.get("/:id/preview", FileController.viewPreview);    // Add preview endpoint
 
 //=============================================================================
 // ROUTE REGISTRATION

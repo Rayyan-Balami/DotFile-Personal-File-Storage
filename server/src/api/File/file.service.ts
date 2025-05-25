@@ -16,6 +16,7 @@ import fs from "fs";
 import * as fsPromises from "fs/promises";
 import { Types } from "mongoose";
 import path from "path";
+import { deletePreview } from "@middleware/previewGeneration.middleware.js";
 
 /**
  * Service class for file-related business logic
@@ -36,6 +37,7 @@ class FileService {
       type: string;
       size: number;
       storageKey: string;
+      hasPreview?: boolean;
     },
     userId: string,
     folderId?: string | null
@@ -320,6 +322,7 @@ class FileService {
    * @param userId User ID who owns the files
    * @param folderId Optional target folder ID
    * @param fileToFolderMap Map of filenames to their virtual folder paths (for zip extraction)
+   * @param previewResults Map of filenames to preview generation success status
    * @returns Array of processed file results
    */
   async processUploadedFiles(
@@ -327,6 +330,7 @@ class FileService {
     userId: string,
     folderId: string | null | undefined,
     fileToFolderMap: Record<string, string> = {},
+    previewResults: Record<string, boolean> = {},
   ): Promise<FileResponseDto[]> {
     logger.debug(`Processing ${files.length} files in service layer`);
     
@@ -346,6 +350,7 @@ class FileService {
               type: fileExtension,
               size: file.size,
               storageKey: file.filename,
+              hasPreview: previewResults[file.filename] || false,
             },
             userId,
             targetFolderId
@@ -364,6 +369,7 @@ class FileService {
               type: fileExtension,
               size: file.size,
               storageKey: file.filename,
+              hasPreview: previewResults[file.filename] || false,
             },
             userId,
             folderId
@@ -512,6 +518,14 @@ class FileService {
       logger.error(`Failed to delete file ${filePath}`);
     }
     
+    // Delete associated preview if it exists
+    if (file.hasPreview) {
+      const previewDeleted = await deletePreview(userId, file.storageKey);
+      if (!previewDeleted) {
+        logger.warn(`Failed to delete preview for file ${file.storageKey}`);
+      }
+    }
+    
     // Delete from database
     const result = await fileDao.permanentDeleteFile(fileId);
 
@@ -618,6 +632,14 @@ class FileService {
         // If file doesn't exist or there's a permission issue, log but continue
         logger.error(`Failed to delete physical file: ${error}`);
       }
+
+      // Delete associated preview if it exists
+      if (file.hasPreview) {
+        const previewDeleted = await deletePreview(userId, file.storageKey);
+        if (!previewDeleted) {
+          logger.warn(`Failed to delete preview for file ${file.storageKey}`);
+        }
+      }
     }
     // Permanently delete all files recorded in the database
     const result = await fileDao.permanentDeleteAllDeletedFiles(userId);
@@ -708,6 +730,90 @@ class FileService {
     } catch (error) {
       logger.error('Error serving file:', error);
       throw new ApiError(404, [{ file: "File not found or could not be decrypted" }]);
+    }
+  }
+
+  /**
+   * Get preview stream for viewing
+   * 
+   * @param fileId File ID to get preview for
+   * @param userId User ID who owns the file
+   * @returns Object containing preview stream, mime type, and filename
+   * @throws ApiError if file not found, user doesn't own it, or no preview exists
+   */
+  async getPreviewStream(
+    fileId: string,
+    userId: string
+  ): Promise<{ stream: fs.ReadStream; mimeType: string; filename: string }> {
+    try {
+      // Verify file ownership
+      const file = await this.verifyFileOwnership(fileId, userId);
+      
+      // Check if file has a preview
+      if (!file.hasPreview) {
+        throw new ApiError(404, [{ preview: "No preview available for this file" }]);
+      }
+
+      // Get preview file path
+      const previewPath = path.join(
+        getUserDirectoryPath(userId),
+        'previews',
+        file.storageKey
+      );
+
+      // Check if preview file exists
+      if (!fs.existsSync(previewPath)) {
+        logger.warn(`Preview file not found: ${previewPath}`);
+        throw new ApiError(404, [{ preview: "Preview file not found" }]);
+      }
+
+      // Read and decrypt the preview
+      const encryptedPreview = await fsPromises.readFile(previewPath);
+      const decryptedBuffer = decryptFileBuffer(encryptedPreview, userId);
+      
+      // Create a temporary file for streaming
+      const tempPath = path.join(
+        getUserDirectoryPath(userId),
+        'temp',
+        `preview_${file.storageKey}`
+      );
+      
+      // Ensure temp directory exists
+      const tempDir = path.dirname(tempPath);
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      // Write decrypted preview to temp file
+      await fsPromises.writeFile(tempPath, decryptedBuffer);
+      
+      // Create read stream
+      const stream = fs.createReadStream(tempPath);
+      
+      // Clean up temp file after streaming
+      stream.on('end', () => {
+        fs.unlink(tempPath, (err) => {
+          if (err) logger.error(`Failed to delete temp preview file: ${err}`);
+        });
+      });
+      
+      // Determine mime type - previews are typically images or text
+      const mimeType = file.extension.toLowerCase().includes('image') || 
+                       ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp'].includes(`.${file.extension}`) ?
+        'image/jpeg' : // Most previews are JPEG images
+        'text/plain';  // Text previews
+      
+      return {
+        stream,
+        mimeType,
+        filename: `preview_${file.name}.${file.extension === 'txt' ? 'txt' : 'jpg'}`
+      };
+    } catch (error) {
+      logger.error('Error serving preview:', error);
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new ApiError(404, [{ preview: "Preview not found or could not be accessed" }]);
     }
   }
 }

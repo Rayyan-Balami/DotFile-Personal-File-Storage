@@ -11,6 +11,7 @@ export interface IFile extends Document {
   storageKey: string;
   extension: string;
   isPinned: boolean;
+  hasPreview: boolean;
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
@@ -26,6 +27,7 @@ const FileSchema = new Schema<IFile>(
     storageKey: { type: String, required: true },
     extension: { type: String, required: true },
     isPinned: { type: Boolean, default: false },
+    hasPreview: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
   },
   { timestamps: true }

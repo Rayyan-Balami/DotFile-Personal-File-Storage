@@ -457,7 +457,7 @@ class FolderService {
     for (const descendantId of [...descendants, folderId]) {
       const files = await fileDao.getUserFilesByFolders(userId, descendantId);
       for (const file of files) {
-        await fileDao.permanentDeleteFile(file._id.toString());
+        await fileService.permanentDeleteFile(file._id.toString(), userId);
       }
     }
 

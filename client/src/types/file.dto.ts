@@ -8,6 +8,7 @@ export interface CreateFileDto {
   folder?: string | null;
   storageKey: string;
   extension: string;
+  hasPreview?: boolean;
 }
 
 export interface UpdateFileDto {
@@ -35,6 +36,7 @@ export interface FileResponseDto {
   storageKey: string;
   extension: string;
   isPinned: boolean;
+  hasPreview: boolean;
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;

@@ -8,7 +8,7 @@ import {
 } from "@config/constants.js";
 import { ApiError } from "@utils/apiError.utils.js";
 import logger from "@utils/logger.utils.js";
-import { getUserDirectoryPath } from "@utils/mkdir.utils.js";
+import { getUserDirectoryPath, getUserFilesDirectoryPath } from "@utils/mkdir.utils.js";
 import { encryptFileBuffer } from "@utils/cryptoUtil.utils.js"; // Add import for encryption
 import AdmZip from "adm-zip";
 import crypto from "crypto";
@@ -45,6 +45,7 @@ declare module "express-serve-static-core" {
     uploadedFiles?: UploadedFile[];
     fileToFolderMap?: Record<string, string>;
     virtualFolders?: Record<string, string>;
+    previewResults?: Record<string, boolean>;
   }
 }
 
@@ -170,7 +171,7 @@ const storage: StorageEngine = multer.diskStorage({
     try {
       const userId = req.user?.id;
       if (!userId) return cb(new Error("User not authenticated"), "");
-      const uploadPath = getUserDirectoryPath(userId);
+      const uploadPath = getUserFilesDirectoryPath(userId); // Use files subdirectory
       if (!fs.existsSync(uploadPath))
         fs.mkdirSync(uploadPath, { recursive: true });
 
@@ -347,7 +348,7 @@ export const processZipFiles = async (
 
         const dirPath = path.dirname(entry.entryName);
         const fileName = generateRandomFilename(path.basename(entry.entryName));
-        const filePath = path.join(getUserDirectoryPath(userId), fileName);
+        const filePath = path.join(getUserFilesDirectoryPath(userId), fileName); // Use files subdirectory
 
         // Extract file synchronously
         const fileData = entry.getData();
@@ -359,7 +360,7 @@ export const processZipFiles = async (
           originalname: baseName,
           encoding: '7bit',
           mimetype: 'application/octet-stream', // You might want to determine this based on file extension
-          destination: getUserDirectoryPath(userId),
+          destination: getUserFilesDirectoryPath(userId), // Use files subdirectory
           filename: fileName,
           path: filePath,
           size: entry.header.size,
