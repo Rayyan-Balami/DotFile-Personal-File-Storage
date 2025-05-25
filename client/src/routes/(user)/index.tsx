@@ -1,8 +1,7 @@
 import DirectoryView from '@/components/views/DirectoryView';
-import { createFileRoute } from '@tanstack/react-router';
 import dummyData from '@/data/dummyData.json';
-import { initializeFileSystem, useFileSystemStore } from '@/stores/useFileSystemStore';
-import { useEffect } from 'react';
+import { initializeFileSystem } from '@/stores/useFileSystemStore';
+import { createFileRoute } from '@tanstack/react-router';
 
 // When we open our website this is the root directory
 export const Route = createFileRoute('/(user)/')({
@@ -26,7 +25,9 @@ export const Route = createFileRoute('/(user)/')({
     });
     
     return {
-      items: rootItems,
+      items: rootItems.map(item => ({
+        ...item,
+      })),
       currentPath: '/',
       directoryName: 'My Drive',
     };
@@ -36,10 +37,10 @@ export const Route = createFileRoute('/(user)/')({
 function RouteComponent() {
   const { items, currentPath, directoryName } = Route.useLoaderData();
   
-  // Make sure file system is initialized
-  useEffect(() => {
-    initializeFileSystem(dummyData);
-  }, []);
-  
-  return <DirectoryView items={items} currentPath={currentPath} directoryName={directoryName} />;
+
+  return (
+    <>
+      <DirectoryView items={items} directoryName={directoryName} />
+    </>
+  );
 }

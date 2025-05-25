@@ -33,7 +33,7 @@ class FileService {
   async createFileWithVirtualFolder(
     fileData: {
       name: string;
-      type: string;
+      type: string;  // This is the MIME type
       size: number;
       storageKey: string;
     },
@@ -42,10 +42,13 @@ class FileService {
   ): Promise<FileResponseDto> {
     logger.debug(`Creating file record for ${fileData.name} by user ${userId}`);
 
+    // Get the extension from storage key
+    const fileExtension = path.extname(fileData.storageKey).substring(1).toLowerCase();
+
     // Ensure file name is unique within the folder
     const uniqueName = await this.ensureUniqueNameAtLevel(
       fileData.name,
-      fileData.type,
+      fileExtension,
       userId,
       folderId
     );
@@ -56,7 +59,7 @@ class FileService {
       name: uniqueName,
       owner: userId,
       folder: folderId || null,
-      extension: fileData.type || ''
+      extension: fileExtension  // Store just the file extension
     });
     
     // If file was added to a folder, increment the folder's item count
@@ -343,7 +346,7 @@ class FileService {
           const savedFile = await this.createFileWithVirtualFolder(
             {
               name: fileName,
-              type: fileExtension,
+              type: file.mimetype,
               size: file.size,
               storageKey: file.filename,
             },
@@ -361,7 +364,7 @@ class FileService {
           const savedFile = await this.createFileWithVirtualFolder(
             {
               name: fileName,
-              type: fileExtension,
+              type: file.mimetype,
               size: file.size,
               storageKey: file.filename,
             },

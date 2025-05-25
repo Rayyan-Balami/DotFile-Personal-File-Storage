@@ -175,3 +175,27 @@ export const useMoveFile = () => {
       });
     },
   });};
+
+/**
+ * Hook to view file content
+ */
+export const useViewFile = (fileId: string) =>
+  useQuery({
+    queryKey: [...FILE_KEYS.detail(fileId), 'view'],
+    queryFn: async () => {
+      const response = await fileApi.viewFile(fileId);
+      // Get the raw blob data from the response
+      return response.data;
+    },
+    enabled: !!fileId,
+  });
+
+/**
+ * Hook to download file
+ */
+export const useDownloadFile = () => {
+  return useMutation({
+    mutationFn: (fileId: string) => 
+      fileApi.downloadFile(fileId).then((res) => res.data),
+  });
+};

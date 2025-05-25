@@ -16,6 +16,7 @@ import { NextFunction, Request, Response } from "express";
 import fs from "fs";
 import multer, { FileFilterCallback, StorageEngine } from "multer";
 import path from "path";
+import mime from "mime-types";
 
 // Types
 interface UploadedFile {
@@ -354,11 +355,14 @@ export const processZipFiles = async (
         fs.writeFileSync(filePath, fileData);
 
         // Create a multer file object for the extracted file
+        // Detect MIME type from file extension, fallback to application/octet-stream
+        const mimeType = mime.lookup(baseName) || 'application/octet-stream';
+        
         const extractedFile: Express.Multer.File = {
           fieldname: 'file',
           originalname: baseName,
           encoding: '7bit',
-          mimetype: 'application/octet-stream', // You might want to determine this based on file extension
+          mimetype: mimeType,
           destination: getUserDirectoryPath(userId),
           filename: fileName,
           path: filePath,

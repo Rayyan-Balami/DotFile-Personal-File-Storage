@@ -12,11 +12,11 @@ import { useDialogStore } from "@/stores/useDialogStore";
 // Context menu items component
 export const ContextMenuItems = React.memo(
   ({
-    type,
+    cardType,
     title,
     id,
   }: {
-    type: "folder" | "document";
+    cardType: "folder" | "document";
     title: string;
     id: string;
   }) => {
@@ -28,7 +28,7 @@ export const ContextMenuItems = React.memo(
       
       if (action === "create-folder") {
         // If we're in a folder, use its ID as the parent
-        if (type === "folder") {
+        if (cardType === "folder") {
           openCreateFolderDialog(id);
         }
       }
@@ -70,7 +70,7 @@ export const ContextMenuItems = React.memo(
       </>
     );
 
-    if (type === "folder") {
+    if (cardType === "folder") {
       return (
         <>
           <ContextMenuItem
@@ -105,11 +105,11 @@ export const ContextMenuItems = React.memo(
 // Dropdown menu items component
 export const DropdownMenuItems = React.memo(
   ({
-    type,
+    cardType,
     title,
     id
   }: {
-    type: "folder" | "document";
+    cardType: "folder" | "document";
     title: string;
     id: string;
   }) => {
@@ -120,7 +120,7 @@ export const DropdownMenuItems = React.memo(
       
       if (action === "create-folder") {
         // If we're in a folder, use its ID as the parent
-        if (type === "folder") {
+        if (cardType === "folder") {
           openCreateFolderDialog(id);
         }
       }
@@ -159,7 +159,7 @@ export const DropdownMenuItems = React.memo(
       </>
     );
 
-    if (type === "folder") {
+    if (cardType === "folder") {
       return (
         <>
           <DropdownMenuItem onClick={() => handleAction("create-folder")}>

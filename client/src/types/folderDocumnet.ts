@@ -1,10 +1,14 @@
 import { FolderResponseDto, PathSegment } from "./folder.dto";
+import { ColorOption } from '@/config/colors';
 
 // Unified BaseItem interface
 interface BaseItem {
   id: string;
   name: string;
-  type: "folder" | "document";
+  // We use type for server-side MIME type or "folder"
+  type: string; 
+  // We use cardType for UI rendering decisions
+  cardType: 'folder' | 'document';
   owner: string;
   isPinned: boolean;
   createdAt: Date;
@@ -14,8 +18,9 @@ interface BaseItem {
 
 // Folder item based on FolderResponseDto
 export interface FolderItem extends BaseItem {
-  type: "folder";
-  color: string;
+  type: 'folder'; // Always "folder" for folders
+  cardType: 'folder';
+  color: ColorOption;
   parent: string | null;
   items: number;
   path: string;
@@ -24,7 +29,8 @@ export interface FolderItem extends BaseItem {
 
 // Document (file) item based on FileResponseDto
 export interface DocumentItem extends BaseItem {
-  type: "document";  // Explicitly set type for DocumentItem
+  type: string; // MIME type for files (e.g. "image/png")
+  cardType: 'document';
   size: number;
   folder: FolderResponseDto | null;
   storageKey: string;

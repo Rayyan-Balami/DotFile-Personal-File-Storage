@@ -4,12 +4,39 @@
     "message": "Folder contents retrieved successfully",
     "data": {
         "folderContents": {
-            "folders": [],
+            "folders": [
+                {
+                    "id": "683364e92a2d231763c565ce",
+                    "name": "test2 (2)",
+                    "type": "folder",
+                    "owner": "68330f41759370e221e46b22",
+                    "color": "default",
+                    "parent": null,
+                    "items": 1,
+                    "isPinned": false,
+                    "deletedAt": null,
+                    "createdAt": "2025-05-25T18:43:53.462Z",
+                    "updatedAt": "2025-05-25T18:43:54.362Z"
+                },
+                {
+                    "id": "6833425a0e6330f5e6d0eee3",
+                    "name": "test2",
+                    "type": "folder",
+                    "owner": "68330f41759370e221e46b22",
+                    "color": "rose",
+                    "parent": null,
+                    "items": 1,
+                    "isPinned": false,
+                    "deletedAt": null,
+                    "createdAt": "2025-05-25T16:16:26.512Z",
+                    "updatedAt": "2025-05-25T16:16:27.349Z"
+                }
+            ],
             "files": [
                 {
-                    "id": "68330f4b759370e221e46b2b",
+                    "id": "68336bac2a2d231763c5665f",
                     "name": "pp",
-                    "type": "jpeg",
+                    "type": "image/jpeg",
                     "size": 89190,
                     "owner": {
                         "id": "68330f41759370e221e46b22",
@@ -18,19 +45,118 @@
                         "email": "user@example.com",
                         "role": "user",
                         "maxStorageLimit": 15728640,
-                        "storageUsed": 89190,
+                        "storageUsed": 675774,
                         "deletedAt": null,
                         "createdAt": "2025-05-25T12:38:25.255Z",
-                        "updatedAt": "2025-05-25T12:38:35.021Z"
+                        "updatedAt": "2025-05-25T19:12:44.834Z"
                     },
                     "folder": null,
-                    "storageKey": "file-834e338399a4835703b77767e80c40d9.jpeg",
+                    "storageKey": "file-8fcc3fee24d4822acdbafa1d6be76705.jpeg",
                     "extension": "jpeg",
                     "isPinned": false,
-                    "hasPreview": true,
                     "deletedAt": null,
-                    "createdAt": "2025-05-25T12:38:35.113Z",
-                    "updatedAt": "2025-05-25T12:38:35.113Z"
+                    "createdAt": "2025-05-25T19:12:44.942Z",
+                    "updatedAt": "2025-05-25T19:12:44.942Z"
+                },
+                {
+                    "id": "683364ea2a2d231763c565dc",
+                    "name": "about_me_summary",
+                    "type": "text/plain",
+                    "size": 1013,
+                    "owner": {
+                        "id": "68330f41759370e221e46b22",
+                        "avatar": "/images/default-user-avatar.png",
+                        "name": "John Doe",
+                        "email": "user@example.com",
+                        "role": "user",
+                        "maxStorageLimit": 15728640,
+                        "storageUsed": 675774,
+                        "deletedAt": null,
+                        "createdAt": "2025-05-25T12:38:25.255Z",
+                        "updatedAt": "2025-05-25T19:12:44.834Z"
+                    },
+                    "folder": null,
+                    "storageKey": "file-0e426ff57cdf366a54beefa5989eeb41.txt",
+                    "extension": "txt",
+                    "isPinned": false,
+                    "deletedAt": null,
+                    "createdAt": "2025-05-25T18:43:54.142Z",
+                    "updatedAt": "2025-05-25T18:43:54.142Z"
+                },
+                {
+                    "id": "683364ea2a2d231763c565d9",
+                    "name": "Main Before",
+                    "type": "image/jpeg",
+                    "size": 46806,
+                    "owner": {
+                        "id": "68330f41759370e221e46b22",
+                        "avatar": "/images/default-user-avatar.png",
+                        "name": "John Doe",
+                        "email": "user@example.com",
+                        "role": "user",
+                        "maxStorageLimit": 15728640,
+                        "storageUsed": 675774,
+                        "deletedAt": null,
+                        "createdAt": "2025-05-25T12:38:25.255Z",
+                        "updatedAt": "2025-05-25T19:12:44.834Z"
+                    },
+                    "folder": null,
+                    "storageKey": "file-b93037f1398c10117841c260b3227d68.jpg",
+                    "extension": "jpg",
+                    "isPinned": false,
+                    "deletedAt": null,
+                    "createdAt": "2025-05-25T18:43:54.038Z",
+                    "updatedAt": "2025-05-25T18:43:54.038Z"
+                },
+                {
+                    "id": "6833425b0e6330f5e6d0eef1",
+                    "name": "about_me_summary",
+                    "type": "text/plain",
+                    "size": 1013,
+                    "owner": {
+                        "id": "68330f41759370e221e46b22",
+                        "avatar": "/images/default-user-avatar.png",
+                        "name": "John Doe",
+                        "email": "user@example.com",
+                        "role": "user",
+                        "maxStorageLimit": 15728640,
+                        "storageUsed": 675774,
+                        "deletedAt": null,
+                        "createdAt": "2025-05-25T12:38:25.255Z",
+                        "updatedAt": "2025-05-25T19:12:44.834Z"
+                    },
+                    "folder": null,
+                    "storageKey": "file-3dc08b6c24a2c68273838fd1c0c63a79.txt",
+                    "extension": "text/plain",
+                    "isPinned": false,
+                    "deletedAt": null,
+                    "createdAt": "2025-05-25T16:16:27.161Z",
+                    "updatedAt": "2025-05-25T16:16:27.161Z"
+                },
+                {
+                    "id": "6833425b0e6330f5e6d0eeee",
+                    "name": "Main Before",
+                    "type": "image/jpeg",
+                    "size": 46806,
+                    "owner": {
+                        "id": "68330f41759370e221e46b22",
+                        "avatar": "/images/default-user-avatar.png",
+                        "name": "John Doe",
+                        "email": "user@example.com",
+                        "role": "user",
+                        "maxStorageLimit": 15728640,
+                        "storageUsed": 675774,
+                        "deletedAt": null,
+                        "createdAt": "2025-05-25T12:38:25.255Z",
+                        "updatedAt": "2025-05-25T19:12:44.834Z"
+                    },
+                    "folder": null,
+                    "storageKey": "file-fa730b0f94c33907204e04e41d276622.jpg",
+                    "extension": "image/jpeg",
+                    "isPinned": false,
+                    "deletedAt": null,
+                    "createdAt": "2025-05-25T16:16:27.055Z",
+                    "updatedAt": "2025-05-25T16:16:27.055Z"
                 }
             ],
             "pathSegments": [
@@ -41,5 +167,5 @@
             ]
         }
     },
-    "timestamp": "2025-05-25T12:38:55.924Z"
+    "timestamp": "2025-05-25T19:12:56.590Z"
 }

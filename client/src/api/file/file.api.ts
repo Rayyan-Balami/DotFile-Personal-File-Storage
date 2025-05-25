@@ -35,8 +35,16 @@ const fileApi = {
     API.get(`/files/${fileId}`),
 
   // View file content
-  viewFile: (fileId: string) =>
-    API.get(`/files/${fileId}/view`),
+  viewFile: (fileId: string, responseType: 'arraybuffer' | 'blob' | 'stream' = 'arraybuffer') =>
+    API.get(`/files/${fileId}/view`, { 
+      responseType,
+      headers: {
+        'Accept': '*/*'  // Accept any content type
+      }
+    }),
+    
+  // Get direct URL for streaming content like videos or PDFs
+  getFileUrl: (fileId: string) => `${API.defaults.baseURL}/files/${fileId}/view`,
   
   // Download file
   downloadFile: (fileId: string) =>

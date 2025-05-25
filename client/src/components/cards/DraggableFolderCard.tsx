@@ -28,7 +28,7 @@ export const DraggableFolderCard = memo(
   }: DraggableFolderCardProps) => {
     const [isExternalFileDragOver, setIsExternalFileDragOver] = useState(false);
     const addItem = useFileSystemStore((state) => state.addItem);
-    const { id, type, name, owner } = item;
+    const { id, type, cardType, name, owner } = item;
 
     const {
       attributes,
@@ -40,6 +40,7 @@ export const DraggableFolderCard = memo(
       data: {
         id,
         type,
+        cardType,
         name,
         variant,
         item,
@@ -48,7 +49,7 @@ export const DraggableFolderCard = memo(
 
     const { setNodeRef: setDropNodeRef } = useDroppable({
       id,
-      disabled: type !== "folder",
+      disabled: cardType !== "folder",
     });
 
     const { isOver: globalIsOver } = useFileSystemDnd();
@@ -56,18 +57,18 @@ export const DraggableFolderCard = memo(
     const setNodeRef = useCallback(
       (node: HTMLElement | null) => {
         setDragNodeRef(node);
-        if (type === "folder") {
+        if (cardType === "folder") {
           setDropNodeRef(node);
         }
       },
-      [setDragNodeRef, setDropNodeRef, type]
+      [setDragNodeRef, setDropNodeRef, cardType]
     );
 
     const isDropTarget = globalIsOver === id || isExternalFileDragOver;
 
     const handleDragOver = useCallback(
       (e: React.DragEvent) => {
-        if (type !== "folder") return;
+        if (cardType !== "folder") return;
 
         if (e.dataTransfer.types.includes("Files")) {
           e.preventDefault();
@@ -85,7 +86,7 @@ export const DraggableFolderCard = memo(
 
     const handleDrop = useCallback(
       (e: React.DragEvent) => {
-        if (type !== "folder") return;
+        if (cardType !== "folder") return;
 
         e.preventDefault();
         e.stopPropagation();
@@ -105,7 +106,8 @@ export const DraggableFolderCard = memo(
             // Create new document with updated type structure
             const newFile: DocumentItem = {
               id: newFileId,
-              type: "document",
+              type: "application/octet-stream", // Default MIME type, should be determined based on extension
+              cardType: "document",
               name: file.name,
               size: file.size,
               owner: "user-1", // This should come from auth context
@@ -137,7 +139,7 @@ export const DraggableFolderCard = memo(
             console.log(`File details:
               - ID: ${newFileId}
               - Name: ${file.name}
-              - Type: document
+              - Type: ${fileExtension ? `application/${fileExtension}` : 'application/octet-stream'}
               - Extension: ${fileExtension}
               - Size: ${formatFileSize(file.size)}
               - Target folder: ${name} (ID: ${id})

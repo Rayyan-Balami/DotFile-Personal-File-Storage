@@ -27,7 +27,7 @@ export function DragOverlay() {
   
   // Use the item from drag data or create a fallback item based on type
   const item: FileSystemItem = data.item || (
-    primaryItem.type === "folder" 
+    primaryItem.cardType === "folder" 
       ? {
           id: primaryItem.id,
           type: "folder",

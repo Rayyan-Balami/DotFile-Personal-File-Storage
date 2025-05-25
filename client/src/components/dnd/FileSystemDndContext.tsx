@@ -121,7 +121,7 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
         
         // Check for circular references (can't drop a folder into itself or its children)
         const canDrop = !draggedItems.some(item => {
-          if (item.type !== 'folder') return false;
+          if (item.cardType !== 'folder') return false;
           const folderItem = item as FolderItem;
           
           // Check if the target folder is the item or one of its children
@@ -132,7 +132,7 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
           while (currentId) {
             if (currentId === folderItem.id) return true;
             const parent = items[currentId];
-            if (!parent || parent.type !== 'folder') break;
+            if (!parent || parent.cardType !== 'folder') break;
             currentId = (parent as FolderItem).parent;
           }
           

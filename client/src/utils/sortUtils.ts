@@ -12,30 +12,30 @@ function compareItems(
   // Default comparison for when values are missing
   const compareDefault = () => {
     return sortDirection === "asc" 
-      ? a.title.localeCompare(b.title)
-      : b.title.localeCompare(a.title);
+      ? a.name.localeCompare(b.name)
+      : b.name.localeCompare(a.name);
   };
 
   // Handle different sort types
   switch (sortBy) {
     case "name":
       return sortDirection === "asc" 
-        ? a.title.localeCompare(b.title) 
-        : b.title.localeCompare(a.title);
+        ? a.name.localeCompare(b.name) 
+        : b.name.localeCompare(a.name);
       
     case "kind":
       // First compare by file extension/type, then by name
-      const aKind = a.fileExtension || a.type;
-      const bKind = b.fileExtension || b.type;
+      const aKind = a.extension || a.type;
+      const bKind = b.extension || b.type;
       const kindCompare = sortDirection === "asc"
         ? aKind.localeCompare(bKind)
         : bKind.localeCompare(aKind);
       return kindCompare !== 0 ? kindCompare : compareDefault();
       
       case "size":
-        // For documents, compare byteCount; for folders, compare childCount
-        const aSize = a.type === 'document' ? (a.byteCount || 0) : (a.childCount || 0);
-        const bSize = b.type === 'document' ? (b.byteCount || 0) : (b.childCount || 0);
+        // For files, compare size; for folders, compare items count
+        const aSize = a.cardType === 'document' ? (a.size || 0) : (a.items || 0);
+        const bSize = b.cardType === 'document' ? (b.size || 0) : (b.items || 0);
         return sortDirection === "asc" ? aSize - bSize : bSize - aSize;
       
     // You would need to add date fields to your FileSystemItem interface
@@ -65,8 +65,8 @@ export function useSortedItems(items: FileSystemItem[]): FileSystemItem[] {
       // Handle folder arrangement
       if (folderArrangement === "separated") {
         // If folders should be separated (displayed first)
-        if (a.type === "folder" && b.type !== "folder") return -1;
-        if (a.type !== "folder" && b.type === "folder") return 1;
+        if (a.cardType === "folder" && b.cardType !== "folder") return -1;
+        if (a.cardType !== "folder" && b.cardType === "folder") return 1;
       }
       
       // If both are the same type or mixing is enabled, sort by chosen property

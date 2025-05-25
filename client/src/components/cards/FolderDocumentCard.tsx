@@ -3,6 +3,7 @@
  * Designed for infinite scroll with thousands of items
  */
 
+import { useFilePreview } from "@/hooks/useFilePreview";
 import { cn } from "@/lib/utils";
 import { useSelectionStore } from "@/stores/useSelectionStore";
 import {
@@ -11,7 +12,7 @@ import {
   FolderItem,
 } from "@/types/folderDocumnet";
 import { formatChildCount, formatFileSize } from "@/utils/formatUtils";
-import { EllipsisVertical, Loader2, Pin, EyeOff } from "lucide-react";
+import { EllipsisVertical, EyeOff, Loader2, Pin } from "lucide-react";
 import React, {
   lazy,
   Suspense,
@@ -37,6 +38,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { FolderIcon } from "../ui/folder-icon";
+import { ColorOption } from "@/config/colors";
 
 // Types remain the same
 export type CardVariant = "large" | "compact" | "list";
@@ -116,50 +118,6 @@ const HoverIndicator = React.memo(
 );
 HoverIndicator.displayName = "HoverIndicator";
 
-// Optimized lazy image loader
-const LazyImage = React.memo(
-  ({ src, alt }: { src: string; alt: string }) => {
-    const imgRef = useRef<HTMLImageElement>(null);
-    const [loaded, setLoaded] = useState(false);
-
-    // Use Intersection Observer to only load images when in viewport
-    useEffect(() => {
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              const img = imgRef.current;
-              if (img && !img.src) {
-                img.src = src;
-                observer.disconnect();
-              }
-            }
-          });
-        },
-        { rootMargin: "200px" }
-      );
-
-      if (imgRef.current) observer.observe(imgRef.current);
-      return () => observer.disconnect();
-    }, [src]);
-
-    return (
-      <img
-        ref={imgRef}
-        className={cn(
-          "object-center object-cover h-full w-full transition-opacity will-change-transform",
-          loaded ? "opacity-100" : "opacity-0"
-        )}
-        alt={alt}
-        loading="lazy"
-        onLoad={() => setLoaded(true)}
-      />
-    );
-  },
-  (prevProps, nextProps) => prevProps.src === nextProps.src
-);
-LazyImage.displayName = "LazyImage";
-
 // Optimized file icon caching
 const getIconStyles = (fileExtension: string) => {
   if (FILE_ICON_STYLES.has(fileExtension)) {
@@ -182,33 +140,38 @@ const getIconStyles = (fileExtension: string) => {
 
 const FileOrFolderIcon = React.memo(
   ({
-    type,
-    previewUrl,
+    cardType,
+    fileId,
+    fileType,
     fileExtension = "pdf",
     title,
     variant,
     color,
   }: {
-    type: CardType;
+    cardType: CardType;
     variant: CardVariant;
-    previewUrl?: string;
+    fileId?: string;
+    fileType?: string;
     fileExtension?: string;
     title: string;
     color?: string;
   }) => {
+    console.log(`cardType: ${cardType}, variant: ${variant}, fileId: ${fileId}, fileType: ${fileType}, fileExtension: ${fileExtension}, title: ${title}`);
     const styles = VARIANT_STYLES[variant];
-
-    // Use primitive type for memoization key
-    const memoKey = `${type}-${!!previewUrl}-${variant}`;
+    const memoKey = `${cardType}-${variant}`;
     const scaleClass = useMemo(() => {
-      if (type === "folder") return styles.iconScale;
-      if (type === "document" && !previewUrl) return styles.docIconScale;
+      if (cardType === "folder") return styles.iconScale;
+      if (cardType === "document" && fileType && !fileType.startsWith('image/')) return styles.docIconScale;
       return "";
     }, [memoKey]);
-
-    // Get icon styles only when needed (document without preview)
     const iconStyles =
-      type === "document" && !previewUrl ? getIconStyles(fileExtension) : null;
+      cardType === "document" ? getIconStyles(fileExtension) : null;
+
+    // Use file preview hook for images only
+    let preview: React.ReactNode = null;
+    if (cardType === 'document' && fileId && fileType && typeof fileType === 'string' && fileType.startsWith('image/')) {
+      preview = useFilePreview({ fileId, mimeType: fileType });
+    }
 
     return (
       <div
@@ -218,23 +181,19 @@ const FileOrFolderIcon = React.memo(
           scaleClass
         )}
       >
-        {type === "folder" && <FolderIcon className="size-full" />}
-
-        {type === "document" && !previewUrl && iconStyles && (
+        {cardType === "folder" && <FolderIcon className="size-full" color={color as ColorOption} />}
+        {cardType === "document" && preview}
+        {cardType === "document" && !preview && iconStyles && (
           <FileIcon extension={fileExtension} {...iconStyles} />
-        )}
-
-        {type === "document" && previewUrl && (
-          <LazyImage src={previewUrl} alt={`Preview of ${title}`} />
         )}
       </div>
     );
   },
   (prevProps, nextProps) => {
     return (
-      prevProps.type === nextProps.type &&
+      prevProps.cardType === nextProps.cardType &&
       prevProps.variant === nextProps.variant &&
-      prevProps.previewUrl === nextProps.previewUrl &&
+      prevProps.fileId === nextProps.fileId &&
       prevProps.fileExtension === nextProps.fileExtension
     );
   }
@@ -294,15 +253,15 @@ UserAvatars.displayName = "UserAvatars";
 
 const ItemCount = React.memo(
   ({
-    type,
+    cardType,
     childCount,
     byteCount,
   }: {
-    type: CardType;
+    cardType: CardType;
     childCount?: number;
     byteCount?: number;
   }) => {
-    if (type === "folder") {
+    if (cardType === "folder") {
       if (childCount === undefined) return null;
       return (
         <span className="flex-1 my-1.5 text-xs text-muted-foreground">
@@ -339,7 +298,7 @@ const CardContent = React.memo(
   ({
     id,
     title,
-    type,
+    cardType,
     childCount,
     byteCount,
     users = [],
@@ -349,7 +308,7 @@ const CardContent = React.memo(
   }: {
     id: string;
     title: string;
-    type: CardType;
+    cardType: CardType;
     childCount?: number;
     byteCount?: number;
     users: User[];
@@ -381,7 +340,7 @@ const CardContent = React.memo(
                 </DropdownMenuItem>
               }
             >
-              <LazyDropdownMenuItems type={type} title={title} id={id} />
+              <LazyDropdownMenuItems cardType={cardType} title={title} id={id} />
             </Suspense>
           </DropdownMenuContent>
         )}
@@ -397,7 +356,7 @@ const CardContent = React.memo(
             </h3>
             <div className="flex-1 flex items-center">
               <ItemCount
-                type={type}
+                cardType={cardType}
                 childCount={childCount}
                 byteCount={byteCount}
               />
@@ -431,7 +390,7 @@ const CardContent = React.memo(
         <div className="flex-1 flex flex-col">
           <h3 className="text-sm font-[425] line-clamp-1 break-all">{title}</h3>
           <ItemCount
-            type={type}
+            cardType={cardType}
             childCount={childCount}
             byteCount={byteCount}
           />
@@ -462,7 +421,7 @@ const CardContent = React.memo(
       prevProps.byteCount === nextProps.byteCount &&
       prevProps.isPinned === nextProps.isPinned &&
       prevProps.variant === nextProps.variant &&
-      prevProps.type === nextProps.type &&
+      prevProps.cardType === nextProps.cardType &&
       prevProps.dateModified === nextProps.dateModified &&
       prevProps.users.length === nextProps.users.length
     );
@@ -482,18 +441,16 @@ const FolderDocumentCard = React.memo(
     } = props;
 
     // Extract properties from item based on type
-    const { id, type, name, isPinned, updatedAt } = item;
+    const { id, type, cardType, name, isPinned, updatedAt } = item;
     
     // Extract type-specific properties
     let items: number | undefined;
     let color: string | undefined;
     let size: number | undefined;
     let extension: string | undefined;
-    
-    // Cast type to CardType since we know it matches
-    const cardType = type as CardType;
+    let fileId: string | undefined;
 
-    if (type === "folder") {
+    if (item.cardType === "folder") {
       const folderItem = item as FolderItem;
       items = folderItem.items;
       color = folderItem.color;
@@ -501,6 +458,7 @@ const FolderDocumentCard = React.memo(
       const documentItem = item as DocumentItem;
       size = documentItem.size;
       extension = documentItem.extension;
+      fileId = documentItem.id;
     }
 
     // We no longer have shared users in our types, initialize as empty
@@ -606,20 +564,19 @@ const FolderDocumentCard = React.memo(
             onKeyDown={handleKeyDown}
           >
             <HoverIndicator variant={variant} selected={isSelected} />
-
             <FileOrFolderIcon
-              type={cardType}
-              previewUrl={undefined}
+              cardType={cardType}
+              fileId={fileId}
+              fileType={type}
               fileExtension={extension || ""}
               title={name}
               variant={variant}
               color={color}
             />
-
             <CardContent
               id={id}
               title={name}
-              type={cardType}
+              cardType={cardType}
               childCount={items}
               byteCount={size}
               users={users}
@@ -637,7 +594,7 @@ const FolderDocumentCard = React.memo(
               </ContextMenuItem>
             }
           >
-            <LazyContextMenuItems type={cardType} title={name} id={id} />
+            <LazyContextMenuItems cardType={cardType} title={name} id={id} />
           </Suspense>
         </ContextMenuContent>
       </ContextMenu>
