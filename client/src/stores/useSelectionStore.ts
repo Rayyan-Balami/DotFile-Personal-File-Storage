@@ -1,12 +1,8 @@
 import { create } from 'zustand';
-import { shallow } from 'zustand/shallow';
 import { useEffect } from 'react';
+import type { FileSystemItem } from '@/types/folderDocumnet';
 
-export interface SelectableItem {
-  id: string;
-  type: 'folder' | 'document';
-  name: string; // Changed from title to name
-}
+export type SelectableItem = FileSystemItem;
 
 interface SelectionState {
   selectedIds: Set<string>;
@@ -25,14 +21,10 @@ interface SelectionActions {
   selectRange: (startId: string, endId: string) => void;
   isSelected: (id: string) => boolean;
   updateItemPositions: (items: SelectableItem[]) => void;
-  handleItemClick: (
-    id: string,
-    event: React.MouseEvent,
-    onOpen?: () => void
-  ) => void;
+  handleItemClick: (id: string, event: React.MouseEvent, onOpen?: () => void) => void;
   selectAll: () => void;
   setVisibleItems: (items: SelectableItem[]) => void;
-  deleteSelected: (onDelete?: (ids: Set<string>) => void) => void;
+  deleteSelected: (onDelete?: (id: string) => void) => void;
   handleKeyDown: (e: KeyboardEvent) => void;
   getSelectedItems: () => SelectableItem[];
   logSelection: () => void;
@@ -80,10 +72,6 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
       lastSelectedId: visibleItems[visibleItems.length - 1].id,
       selectionAnchor: visibleItems[0].id
     });
-    
-    // Log the selection
-    console.log(`Selected all ${newSelectedIds.size} items`);
-    get().logSelection();
   },
   
   getSelectedItems: () => {
@@ -106,24 +94,20 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
     
     if (folders.length > 0) {
       console.group(`Folders (${folders.length}):`);
-      folders.forEach(folder => {
-        console.log(`- ${folder.name} (ID: ${folder.id})`); // Changed title to name
-      });
+      folders.forEach(folder => console.log(`- ${folder.name}`));
       console.groupEnd();
     }
     
     if (documents.length > 0) {
       console.group(`Documents (${documents.length}):`);
-      documents.forEach(doc => {
-        console.log(`- ${doc.name} (ID: ${doc.id})`); // Changed title to name
-      });
+      documents.forEach(doc => console.log(`- ${doc.name}`));
       console.groupEnd();
     }
     
     console.groupEnd();
   },
   
-  deleteSelected: (onDelete?: (ids: Set<string>) => void) => {
+  deleteSelected: (onDelete?: (id: string) => void) => {
     const { selectedIds } = get();
     if (selectedIds.size === 0) return;
     
@@ -132,7 +116,8 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
     get().logSelection();
     
     if (onDelete) {
-      onDelete(selectedIds);
+      // Call onDelete for each selected ID
+      selectedIds.forEach(id => onDelete(id));
     } else {
       console.log('Delete action for items:', Array.from(selectedIds));
     }
@@ -159,22 +144,12 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
       get().selectAll();
     }
     
-    if (e.key === 'Delete' || e.key === 'Backspace') {
-      const { selectedIds } = get();
-      if (selectedIds.size > 0) {
-        e.preventDefault();
-        get().deleteSelected();
-      }
-    }
-    
     if (e.key === 'Escape') {
       get().clear();
     }
   },
   
   select: (id: string, event: React.MouseEvent) => {
-    const { selectedIds, visibleItems } = get();
-    
     if (event.metaKey || event.ctrlKey) {
       // Toggle selection with Ctrl/Cmd
       set(state => ({
@@ -187,19 +162,17 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
     } else if (event.shiftKey && get().selectionAnchor) {
       // Shift-select for range
       const anchorId = get().selectionAnchor;
-      get().selectRange(anchorId, id);
+      if (anchorId) {
+        get().selectRange(anchorId, id);
+      }
     } else {
       // Normal single selection
-      const newSelection = new Set<string>([id]);
       set({
-        selectedIds: newSelection,
+        selectedIds: new Set([id]),
         lastSelectedId: id,
         selectionAnchor: id
       });
     }
-    
-    // Log selection after a small delay to ensure state has updated
-    setTimeout(() => get().logSelection(), 0);
   },
   
   toggle: (id: string) => {
@@ -210,16 +183,16 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
       lastSelectedId: id,
       selectionAnchor: id
     }));
-    
-    setTimeout(() => get().logSelection(), 0);
   },
   
   clear: () => {
     const { selectedIds } = get();
     if (selectedIds.size === 0) return;
+    
     set({
       selectedIds: new Set<string>(),
-      lastSelectedId: null
+      lastSelectedId: null,
+      selectionAnchor: null
     });
     console.log("Selection cleared");
   },
@@ -235,23 +208,17 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
   selectRange: (startId: string, endId: string) => {
     const { itemPositions, visibleItems } = get();
     
-    let startIndex = itemPositions.get(startId) ?? -1;
-    let endIndex = itemPositions.get(endId) ?? -1;
+    const startIndex = itemPositions.get(startId);
+    const endIndex = itemPositions.get(endId);
     
-    if (startIndex === -1 || endIndex === -1) {
-      // Try to find positions in visibleItems
-      startIndex = visibleItems.findIndex(item => item.id === startId);
-      endIndex = visibleItems.findIndex(item => item.id === endId);
-    }
-    
-    if (startIndex === -1 || endIndex === -1) return;
+    if (startIndex === undefined || endIndex === undefined) return;
     
     const start = Math.min(startIndex, endIndex);
     const end = Math.max(startIndex, endIndex);
     
     const newSelectedIds = new Set<string>();
     for (let i = start; i <= end; i++) {
-      if (i < visibleItems.length) {
+      if (visibleItems[i]) {
         newSelectedIds.add(visibleItems[i].id);
       }
     }
@@ -260,8 +227,6 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
       selectedIds: newSelectedIds,
       lastSelectedId: endId
     });
-    
-    setTimeout(() => get().logSelection(), 0);
   },
   
   isSelected: (id: string) => {
@@ -274,36 +239,32 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
     
     if (lastClickId === id && now - lastClickTime < 350) {
       // Double click
-      if (onOpen) {
-        requestAnimationFrame(() => onOpen());
-      }
-      set({ lastClickTime: 0, lastClickId: null });
+      if (onOpen) onOpen();
     } else {
       // Single click
       get().select(id, event);
-      set({ lastClickTime: now, lastClickId: id });
     }
+    
+    set({ 
+      lastClickTime: now,
+      lastClickId: id
+    });
   }
 }));
 
-export function useKeyboardShortcuts(onDelete?: (ids: Set<string>) => void) {
+export function useKeyboardShortcuts(onDelete?: (id: string) => void) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      useSelectionStore.getState().handleKeyDown(e);
+      const store = useSelectionStore.getState();
+      store.handleKeyDown(e);
       
       if ((e.key === 'Delete' || e.key === 'Backspace') && onDelete) {
-        const selectedIds = useSelectionStore.getState().selectedIds;
-        if (selectedIds.size > 0) {
-          onDelete(selectedIds);
-        }
+        store.deleteSelected(onDelete);
       }
     };
     
-    document.addEventListener('keydown', handleKeyDown);
-    
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onDelete]);
 }
 

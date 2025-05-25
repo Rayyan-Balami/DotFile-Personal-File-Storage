@@ -4,7 +4,7 @@ import { FolderResponseDto, PathSegment } from "./folder.dto";
 interface BaseItem {
   id: string;
   name: string;
-  type: string;
+  type: "folder" | "document";
   owner: string;
   isPinned: boolean;
   createdAt: Date;
@@ -24,6 +24,7 @@ export interface FolderItem extends BaseItem {
 
 // Document (file) item based on FileResponseDto
 export interface DocumentItem extends BaseItem {
+  type: "document";  // Explicitly set type for DocumentItem
   size: number;
   folder: FolderResponseDto | null;
   storageKey: string;

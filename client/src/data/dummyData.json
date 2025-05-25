@@ -21,6 +21,31 @@
             ],
             "files": [
                 {
+                    "id": "6832cfa4941cb540f70ae77f",
+                    "name": "Main Before",
+                    "type": "jpg",
+                    "size": 46806,
+                    "owner": {
+                        "id": "68240b68e72b28292896f545",
+                        "avatar": "/images/default-user-avatar.png",
+                        "name": "John Doe",
+                        "email": "user@example.com",
+                        "role": "user",
+                        "maxStorageLimit": 15728640,
+                        "storageUsed": 335493,
+                        "deletedAt": null,
+                        "createdAt": "2025-05-14T03:18:00.505Z",
+                        "updatedAt": "2025-05-25T08:07:00.732Z"
+                    },
+                    "folder": null,
+                    "storageKey": "file-cc34582eec132fe73492d130def5b174.jpg",
+                    "extension": "jpg",
+                    "isPinned": false,
+                    "deletedAt": null,
+                    "createdAt": "2025-05-25T08:07:00.848Z",
+                    "updatedAt": "2025-05-25T08:07:00.848Z"
+                },
+                {
                     "id": "682431564cb0d59e1a14bdff",
                     "name": "about_me_summary (3)",
                     "type": "txt",
@@ -32,10 +57,10 @@
                         "email": "user@example.com",
                         "role": "user",
                         "maxStorageLimit": 15728640,
-                        "storageUsed": 288687,
+                        "storageUsed": 335493,
                         "deletedAt": null,
                         "createdAt": "2025-05-14T03:18:00.505Z",
-                        "updatedAt": "2025-05-25T06:42:28.777Z"
+                        "updatedAt": "2025-05-25T08:07:00.732Z"
                     },
                     "folder": null,
                     "storageKey": "file-636ef0ac8901b70404e936335ff54dd4.txt",
@@ -57,10 +82,10 @@
                         "email": "user@example.com",
                         "role": "user",
                         "maxStorageLimit": 15728640,
-                        "storageUsed": 288687,
+                        "storageUsed": 335493,
                         "deletedAt": null,
                         "createdAt": "2025-05-14T03:18:00.505Z",
-                        "updatedAt": "2025-05-25T06:42:28.777Z"
+                        "updatedAt": "2025-05-25T08:07:00.732Z"
                     },
                     "folder": null,
                     "storageKey": "file-da87dc2aafb89e8cf8e7efc0604285d1.txt",
@@ -82,10 +107,10 @@
                         "email": "user@example.com",
                         "role": "user",
                         "maxStorageLimit": 15728640,
-                        "storageUsed": 288687,
+                        "storageUsed": 335493,
                         "deletedAt": null,
                         "createdAt": "2025-05-14T03:18:00.505Z",
-                        "updatedAt": "2025-05-25T06:42:28.777Z"
+                        "updatedAt": "2025-05-25T08:07:00.732Z"
                     },
                     "folder": null,
                     "storageKey": "file-1b291a01f5afb73efa39376f1ef8ed45.txt",
@@ -107,10 +132,10 @@
                         "email": "user@example.com",
                         "role": "user",
                         "maxStorageLimit": 15728640,
-                        "storageUsed": 288687,
+                        "storageUsed": 335493,
                         "deletedAt": null,
                         "createdAt": "2025-05-14T03:18:00.505Z",
-                        "updatedAt": "2025-05-25T06:42:28.777Z"
+                        "updatedAt": "2025-05-25T08:07:00.732Z"
                     },
                     "folder": null,
                     "storageKey": "file-472754725c20654193fd630045424f31.jpg",
@@ -132,10 +157,10 @@
                         "email": "user@example.com",
                         "role": "user",
                         "maxStorageLimit": 15728640,
-                        "storageUsed": 288687,
+                        "storageUsed": 335493,
                         "deletedAt": null,
                         "createdAt": "2025-05-14T03:18:00.505Z",
-                        "updatedAt": "2025-05-25T06:42:28.777Z"
+                        "updatedAt": "2025-05-25T08:07:00.732Z"
                     },
                     "folder": {
                         "id": "68240bcae72b28292896f578",
@@ -166,5 +191,5 @@
             ]
         }
     },
-    "timestamp": "2025-05-25T06:42:31.173Z"
+    "timestamp": "2025-05-25T08:07:19.996Z"
 }

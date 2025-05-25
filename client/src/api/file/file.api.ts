@@ -6,7 +6,7 @@ import { MoveFileDto, RenameFileDto, UpdateFileDto } from "@/types/file.dto";
  */
 const fileApi = {
   // Upload files to the server
-  uploadFiles: (files: File[], folderData?: { folderId?: string, workspaceId?: string }) => {
+  uploadFiles: (files: File[], folderData?: { folderId?: string }) => {
     const formData = new FormData();
     
     // Append each file to the form data
@@ -14,41 +14,57 @@ const fileApi = {
       formData.append("files", file);
     });
     
-    // Add folder or workspace information if provided
+    // Add folder information if provided
     if (folderData?.folderId) {
-      formData.append("folder", folderData.folderId);
+      formData.append("folderId", folderData.folderId);
     }
     
-    if (folderData?.workspaceId) {
-      formData.append("workspace", folderData.workspaceId);
-    }
-    
-    return API.post("/file/upload", formData, {
+    return API.post("/files/upload", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
     });
   },
+
+  // Get all user files
+  getUserFiles: (params?: { folderId?: string, includeDeleted?: boolean }) =>
+    API.get("/files", { params }),
   
   // Get a file by ID
   getFileById: (fileId: string) => 
-    API.get(`/file/${fileId}`),
+    API.get(`/files/${fileId}`),
+
+  // View file content
+  viewFile: (fileId: string) =>
+    API.get(`/files/${fileId}/view`),
+  
+  // Download file
+  downloadFile: (fileId: string) =>
+    API.get(`/files/${fileId}/download`),
   
   // Update a file's properties
   updateFile: (fileId: string, data: UpdateFileDto) => 
-    API.patch(`/file/${fileId}`, data),
+    API.patch(`/files/${fileId}`, data),
   
-  // Delete a file by ID
-  deleteFile: (fileId: string) => 
-    API.delete(`/file/${fileId}`),
+  // Move to trash (soft delete)
+  moveToTrash: (fileId: string) => 
+    API.delete(`/files/${fileId}`),
+
+  // Permanently delete file
+  permanentDelete: (fileId: string) =>
+    API.delete(`/files/${fileId}/permanent`),
+
+  // Restore file from trash
+  restoreFile: (fileId: string) =>
+    API.post(`/files/${fileId}/restore`),
 
   // Rename a file
   renameFile: (fileId: string, data: RenameFileDto) => 
-    API.post(`/file/${fileId}/rename`, data),
+    API.post(`/files/${fileId}/rename`, data),
 
   // Move a file to a different folder
   moveFile: (fileId: string, data: MoveFileDto) => 
-    API.post(`/file/${fileId}/move`, data)
+    API.post(`/files/${fileId}/move`, data)
 };
 
 export default fileApi;

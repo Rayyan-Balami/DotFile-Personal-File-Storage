@@ -13,6 +13,7 @@ interface DraggableFolderCardProps {
   variant?: CardVariant;
   alternateBg?: boolean;
   className?: string;
+  onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
   onOpen?: () => void;
 }
 
@@ -22,6 +23,7 @@ export const DraggableFolderCard = memo(
     variant = "large",
     className,
     alternateBg = false,
+    onClick,
     onOpen,
   }: DraggableFolderCardProps) => {
     const [isExternalFileDragOver, setIsExternalFileDragOver] = useState(false);
@@ -151,6 +153,11 @@ export const DraggableFolderCard = memo(
       [id, name, type, addItem, item, owner]
     );
 
+    // Combine drag listeners with click handler
+    const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+      onClick?.(event);
+    };
+
     return (
       <div
         ref={setNodeRef}
@@ -160,6 +167,7 @@ export const DraggableFolderCard = memo(
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        onClick={handleClick}
         tabIndex={-1}
       >
         <FolderDocumentCard

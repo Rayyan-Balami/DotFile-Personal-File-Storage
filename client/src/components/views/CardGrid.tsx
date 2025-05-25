@@ -1,14 +1,22 @@
 import { FileSystemItem } from "@/types/folderDocumnet";
-import FolderDocumentCard, { CardVariant } from "@/components/cards/FolderDocumentCard";
+import { CardVariant } from "@/components/cards/FolderDocumentCard";
 import { DraggableFolderCard } from "@/components/cards/DraggableFolderCard";
 
-interface CardGridProps {
+export interface CardGridProps {
   items: FileSystemItem[];
   viewType: CardVariant;
-  onOpen: (id: string) => void;
+  onItemClick: (id: string, event: React.MouseEvent<HTMLDivElement>) => void;
 }
 
-export function CardGrid({ items, viewType, onOpen }: CardGridProps) {
+export function CardGrid({ items, viewType, onItemClick }: CardGridProps) {
+  // Helper function to handle item opening via double click
+  const handleOpen = (id: string) => {
+    const item = items.find((item) => item.id === id);
+    if (item) {
+      onItemClick(id, new MouseEvent("click") as any);
+    }
+  };
+
   return (
     <div
       className={`grid ${
@@ -25,7 +33,8 @@ export function CardGrid({ items, viewType, onOpen }: CardGridProps) {
           item={item}
           variant={viewType}
           alternateBg={viewType === "list" && i % 2 !== 0}
-          onOpen={() => onOpen(item.id)}
+          onClick={(e) => onItemClick(item.id, e)}
+          onOpen={() => handleOpen(item.id)}
         />
       ))}
     </div>

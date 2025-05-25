@@ -7,7 +7,18 @@ import { FOLDER_KEYS } from "../folder/folder.query";
 export const FILE_KEYS = {
   all: ["files"] as const,
   detail: (id: string) => [...FILE_KEYS.all, id] as const,
+  list: (params?: { folderId?: string, includeDeleted?: boolean }) => 
+    [...FILE_KEYS.all, params] as const,
 };
+
+/**
+ * Hook to list user files, optionally filtered by folder
+ */
+export const useFiles = (params?: { folderId?: string, includeDeleted?: boolean }) =>
+  useQuery({
+    queryKey: FILE_KEYS.list(params),
+    queryFn: () => fileApi.getUserFiles(params).then((res) => res.data),
+  });
 
 /**
  * Hook to get file by ID
@@ -28,7 +39,7 @@ export const useUploadFiles = () => {
   return useMutation({
     mutationFn: ({ files, folderData }: { 
       files: File[], 
-      folderData?: { folderId?: string; workspaceId?: string } 
+      folderData?: { folderId?: string } 
     }) => 
       fileApi.uploadFiles(files, folderData).then((res) => res.data),
     onSuccess: (_, variables) => {
@@ -41,13 +52,6 @@ export const useUploadFiles = () => {
         // Otherwise invalidate root contents
         queryClient.invalidateQueries({
           queryKey: FOLDER_KEYS.contents(),
-        });
-      }
-      
-      // If files were uploaded to a workspace, you might want to invalidate workspace queries too
-      if (variables.folderData?.workspaceId) {
-        queryClient.invalidateQueries({
-          queryKey: ["workspaces", variables.folderData.workspaceId],
         });
       }
     },
@@ -79,18 +83,57 @@ export const useUpdateFile = () => {
 };
 
 /**
- * Hook to delete a file
+ * Hook to move a file to trash
  */
-export const useDeleteFile = () => {
+export const useMoveFileToTrash = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: (fileId: string) => 
-      fileApi.deleteFile(fileId).then((res) => res.data),
+      fileApi.moveToTrash(fileId).then((res) => res.data),
     onSuccess: () => {
-      // Invalidate folder contents as files structure may have changed
+      // Invalidate folder contents as files structure has changed
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.all,
+      });
+      // Also invalidate trash contents
+      queryClient.invalidateQueries({
+        queryKey: FILE_KEYS.list({ includeDeleted: true }),
+      });
+    },
+  });
+};
+
+/**
+ * Hook to permanently delete a file
+ */
+export const usePermanentDeleteFile = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (fileId: string) => 
+      fileApi.permanentDelete(fileId).then((res) => res.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: FILE_KEYS.list({ includeDeleted: true }),
+      });
+    },
+  });
+};
+
+/**
+ * Hook to restore a file from trash
+ */
+export const useRestoreFile = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (fileId: string) => 
+      fileApi.restoreFile(fileId).then((res) => res.data),
+    onSuccess: () => {
+      // Invalidate both normal and trash queries
+      queryClient.invalidateQueries({
+        queryKey: FILE_KEYS.all,
       });
     },
   });
@@ -126,10 +169,9 @@ export const useMoveFile = () => {
     mutationFn: ({ fileId, data }: { fileId: string, data: MoveFileDto }) => 
       fileApi.moveFile(fileId, data).then((res) => res.data),
     onSuccess: () => {
-      // Invalidate all folder contents as the file location has changed
+      // Since folder structure changed, invalidate all folder queries
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.all,
       });
     },
-  });
-};
+  });};
