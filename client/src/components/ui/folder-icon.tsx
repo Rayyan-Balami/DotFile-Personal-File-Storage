@@ -1,29 +1,18 @@
 import { cn } from "@/lib/utils";
-import React from "react";
 import { colorMap, ColorOption } from "@/config/colors";
-import { Workspace } from "@/types/desk";
-import { WorkspaceIconType } from "@/config/icons";
-import * as WorkspaceIcons from "@/config/icons";
 
 interface FolderIconProps {
   className?: string;
-  workspace?: Workspace;
+  color?: ColorOption;
 }
 
 export function FolderIcon({
   className,
-  workspace,
+  color = "default"
 }: FolderIconProps) {
-  // If workspace is provided, use its color and icon instead
-  const effectiveColor = workspace?.color as ColorOption || "default";
-  const effectiveIconType = workspace?.icon as WorkspaceIconType || "folder";
-  
-  // Fallback to defaults if the values from workspace are invalid
-  const primary = colorMap[effectiveColor]?.primary || colorMap.default.primary;
-  const secondary = colorMap[effectiveColor]?.secondary || colorMap.default.secondary;
-  
-  // Fix: Import WorkspaceIcons properly and access the right icon
-  const IconComponent = WorkspaceIcons.default[effectiveIconType] || WorkspaceIcons.default.folder;
+  // Get colors from the color map with fallback to default
+  const primary = colorMap[color]?.primary || colorMap.default.primary;
+  const secondary = colorMap[color]?.secondary || colorMap.default.secondary;
 
   const cornerRadius = 4; 
 
@@ -74,24 +63,15 @@ export function FolderIcon({
               fill={primary}
             />
           </g>
-          <foreignObject x="34.39" y="31.195" width="18" height="18">
-            <div
-              style={{
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                backgroundColor: primary,
-                borderRadius: "3.5px",
-              }}
-            >
-              {React.createElement(IconComponent, {
-                size: 13,
-                color: "#FFFFFF",
-              })}
-            </div>
-          </foreignObject>
+          {/* Folder decoration */}
+          <rect
+            x="34.39"
+            y="31.195"
+            width="18"
+            height="18"
+            rx="3.5"
+            fill={primary}
+          />
         </g>
       </g>
     </svg>
