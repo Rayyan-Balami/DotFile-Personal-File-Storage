@@ -127,11 +127,10 @@ class FolderService {
     // Build path segments for the breadcrumb navigation
     const pathSegments = await this.buildPathSegments(folderId, userId);
     
-    // if folderId is null then return all the folders and files having null parent (root level)
+    // If folderId is null, return only folders with parent null and files with folder null
     if (!folderId) {
-      // Get root folders
-      const rootFolders = await folderDao.getUserFolders(userId);
-      const rootFiles = await fileService.getUserFilesByFolders(userId);
+      const rootFolders = await folderDao.getUserFolders(userId, null);
+      const rootFiles = await fileService.getUserFilesByFolders(userId, null);
       return {
         folders: rootFolders.map((folder) => this.sanitizeFolder(folder)),
         files: rootFiles,
@@ -142,7 +141,7 @@ class FolderService {
     // Verify folder exists and user owns it
     await this.verifyFolderOwnership(folderId, userId, false);
 
-    // Get folders and files for this folder
+    // Get only immediate children: folders with parent = folderId, files with folder = folderId
     const folders = await folderDao.getUserFolders(userId, folderId);
     const files = await fileService.getUserFilesByFolders(userId, folderId);
 
