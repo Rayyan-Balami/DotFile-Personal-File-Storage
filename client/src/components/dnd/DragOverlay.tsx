@@ -1,16 +1,15 @@
 import { DragOverlay as DndKitDragOverlay } from '@dnd-kit/core';
 import FolderDocumentCard from '../cards/FolderDocumentCard';
 import { useFileSystemDnd } from './FileSystemDndContext';
-import { FileSystemItem } from '@/types/folderDocumnet';
+import { FileSystemItem, FolderItem, DocumentItem } from '@/types/folderDocumnet';
 
-// Define a type for drag data to help TypeScript understand the structure
+// Define a type for drag data
 interface DragData {
   id: string;
   type: "folder" | "document";
-  name: string;  // Changed from title to name
+  name: string;
   variant?: "large" | "compact" | "list";
   item: FileSystemItem;
-  [key: string]: any; // Allow other props
 }
 
 export function DragOverlay() {
@@ -26,22 +25,41 @@ export function DragOverlay() {
   // Extract data from the active drag element with proper typing
   const data = active.data.current as DragData;
   
-  // Use the item from drag data or fallback to a simple structure
-  const item = data.item || {
-    id: primaryItem.id,
-    type: primaryItem.type || "folder",
-    name: primaryItem.name || "Untitled",  // Changed from title to name
-    updatedAt: new Date(),
-    owner: "",
-    parent: null,
-    createdAt: new Date(),
-    deletedAt: null,
-    isPinned: false,
-    workspace: null,
-    path: "/",
-    pathSegments: [],
-    isShared: false
-  };
+  // Use the item from drag data or create a fallback item based on type
+  const item: FileSystemItem = data.item || (
+    primaryItem.type === "folder" 
+      ? {
+          id: primaryItem.id,
+          type: "folder",
+          name: primaryItem.name || "Untitled",
+          owner: "",
+          color: "#4f46e5",
+          parent: null,
+          items: 0,
+          path: "/",
+          pathSegments: [],
+          isPinned: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          deletedAt: null
+        } as FolderItem
+      : {
+          id: primaryItem.id,
+          type: "document",
+          name: primaryItem.name || "Untitled",
+          owner: "",
+          folder: null,
+          path: "/",
+          pathSegments: [],
+          extension: "",
+          size: 0,
+          isPinned: false,
+          storageKey: "",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          deletedAt: null
+        } as DocumentItem
+  );
   
   const variant = data.variant || "large";
   

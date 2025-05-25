@@ -1,14 +1,15 @@
-import { FileSystemItem, useFileSystemStore } from '@/stores/useFileSystemStore';
+import { useFileSystemStore } from '@/stores/useFileSystemStore';
 import { useSelectionStore } from '@/stores/useSelectionStore';
 import { Active, DndContext, DragEndEvent, DragOverEvent, DragStartEvent, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { restrictToWindowEdges } from '@dnd-kit/modifiers';
 import React, { createContext, useContext, useState } from 'react';
 import { DragOverlay } from './DragOverlay';
+import { FileSystemItem, FolderItem } from '@/types/folderDocumnet';
 
 // Context to provide drag-related state throughout the app
 interface FileSystemDndContextType {
   activeId: string | null;
-  active: Active | null; // Add active data
+  active: Active | null;
   draggedItems: FileSystemItem[];
   isDragging: boolean;
   isOver: string | null;
@@ -16,7 +17,7 @@ interface FileSystemDndContextType {
 
 const FileSystemDndContextDefault: FileSystemDndContextType = {
   activeId: null,
-  active: null, // Add active data
+  active: null,
   draggedItems: [],
   isDragging: false,
   isOver: null,
@@ -32,7 +33,7 @@ interface FileSystemDndProviderProps {
 
 export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [active, setActive] = useState<Active | null>(null); // Store active element
+  const [active, setActive] = useState<Active | null>(null);
   const [draggedItems, setDraggedItems] = useState<FileSystemItem[]>([]);
   const [isOver, setIsOver] = useState<string | null>(null);
   
@@ -44,14 +45,12 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
   // Configure sensors with appropriate delay and tolerance
   const sensors = useSensors(
     useSensor(MouseSensor, {
-      // Delay to distinguish between click and drag
       activationConstraint: {
         delay: 150,
         tolerance: 5,
       },
     }),
     useSensor(TouchSensor, {
-      // Delay to allow for scrolling on touch devices
       activationConstraint: {
         delay: 250,
         tolerance: 8,
@@ -67,7 +66,7 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
     if (!draggedItem) return;
 
     setActiveId(active.id as string);
-    setActive(active); // Store active data
+    setActive(active);
 
     // If the dragged item is selected, drag all selected items
     if (selectedIds.has(active.id as string) && selectedIds.size > 1) {
@@ -118,23 +117,26 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
       
       // Check if we're dropping onto a folder
       if (overItem && overItem.type === 'folder') {
+        const targetFolder = overItem as FolderItem;
+        
         // Check for circular references (can't drop a folder into itself or its children)
         const canDrop = !draggedItems.some(item => {
           if (item.type !== 'folder') return false;
+          const folderItem = item as FolderItem;
           
           // Check if the target folder is the item or one of its children
-          if (item.id === overId) return true;
+          if (folderItem.id === overId) return true;
           
-          if (!item.children) return false;
+          // Check parent path to avoid circular references
+          let currentId = targetFolder.parent;
+          while (currentId) {
+            if (currentId === folderItem.id) return true;
+            const parent = items[currentId];
+            if (!parent || parent.type !== 'folder') break;
+            currentId = (parent as FolderItem).parent;
+          }
           
-          const isChild = (parentId: string, childId: string): boolean => {
-            const parent = items[parentId];
-            if (!parent || !parent.children) return false;
-            if (parent.children.includes(childId)) return true;
-            return parent.children.some(id => isChild(id, childId));
-          };
-          
-          return isChild(item.id, overId);
+          return false;
         });
         
         if (canDrop) {
@@ -146,12 +148,12 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
             action: 'move',
             movedItems: draggedItems.map(item => ({ 
               id: item.id, 
-              title: item.title, 
+              name: item.name, 
               type: item.type 
             })),
             targetFolder: {
               id: overItem.id,
-              title: overItem.title
+              name: overItem.name
             }
           });
         } else {
@@ -164,15 +166,17 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
       console.log(`❌ Drag operation cancelled: No valid drop target`);
     }
     
-    // Reset drag state
+    // Clear selection and reset drag state
+    clearSelection();
     setActiveId(null);
+    setActive(null);
     setDraggedItems([]);
     setIsOver(null);
   };
 
   const handleDragCancel = () => {
     setActiveId(null);
-    setActive(null); // Reset active data
+    setActive(null);
     setDraggedItems([]);
     setIsOver(null);
   };
@@ -189,15 +193,13 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
       <FileSystemDndStateContext.Provider 
         value={{ 
           activeId, 
-          active, // Pass active data
+          active,
           draggedItems, 
           isDragging: draggedItems.length > 0,
           isOver 
         }}
       >
         {children}
-        
-        {/* Render drag overlay */}
         <DragOverlay />
       </FileSystemDndStateContext.Provider>
     </DndContext>

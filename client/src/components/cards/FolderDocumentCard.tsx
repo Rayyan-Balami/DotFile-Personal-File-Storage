@@ -37,7 +37,6 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { FolderIcon } from "../ui/folder-icon";
-import { WorkspaceResponseDto } from "@/types/workspace.dto";
 
 // Types remain the same
 export type CardVariant = "large" | "compact" | "list";
@@ -188,14 +187,14 @@ const FileOrFolderIcon = React.memo(
     fileExtension = "pdf",
     title,
     variant,
-    workspace,
+    color,
   }: {
     type: CardType;
     variant: CardVariant;
     previewUrl?: string;
     fileExtension?: string;
     title: string;
-    workspace?: WorkspaceResponseDto;
+    color?: string;
   }) => {
     const styles = VARIANT_STYLES[variant];
 
@@ -219,9 +218,7 @@ const FileOrFolderIcon = React.memo(
           scaleClass
         )}
       >
-        {type === "folder" && (
-          <FolderIcon className="size-full" workspace={workspace} />
-        )}
+        {type === "folder" && <FolderIcon className="size-full" />}
 
         {type === "document" && !previewUrl && iconStyles && (
           <FileIcon extension={fileExtension} {...iconStyles} />
@@ -238,9 +235,7 @@ const FileOrFolderIcon = React.memo(
       prevProps.type === nextProps.type &&
       prevProps.variant === nextProps.variant &&
       prevProps.previewUrl === nextProps.previewUrl &&
-      prevProps.fileExtension === nextProps.fileExtension &&
-      prevProps.workspace?.color === nextProps.workspace?.color &&
-      prevProps.workspace?.icon === nextProps.workspace?.icon
+      prevProps.fileExtension === nextProps.fileExtension
     );
   }
 );
@@ -488,21 +483,28 @@ const FolderDocumentCard = React.memo(
 
     // Extract properties from item based on type
     const { id, type, name, isPinned, updatedAt } = item;
-    const items = type === "folder" ? (item as FolderItem).items : undefined;
-    const workspace =
-      type === "folder" ? (item as FolderItem).workspace : undefined;
-    const size = type === "document" ? (item as DocumentItem).size : undefined;
-    const extension =
-      type === "document" ? (item as DocumentItem).extension : undefined;
+    
+    // Extract type-specific properties
+    let items: number | undefined;
+    let color: string | undefined;
+    let size: number | undefined;
+    let extension: string | undefined;
+    
+    // Cast type to CardType since we know it matches
+    const cardType = type as CardType;
 
-    // For backward compatibility, handle if there's no sharedUsersPreview
-    const sharedUsersPreview = [];
+    if (type === "folder") {
+      const folderItem = item as FolderItem;
+      items = folderItem.items;
+      color = folderItem.color;
+    } else {
+      const documentItem = item as DocumentItem;
+      size = documentItem.size;
+      extension = documentItem.extension;
+    }
 
-    // Convert shared users to our internal user format
-    const users: User[] = (sharedUsersPreview || []).map((user) => ({
-      image: user.image,
-      fallback: user.name.charAt(0).toUpperCase(),
-    }));
+    // We no longer have shared users in our types, initialize as empty
+    const users: User[] = [];
 
     // Direct state access with optimized selector
     const isSelected = useSelectionStore(
@@ -606,26 +608,24 @@ const FolderDocumentCard = React.memo(
             <HoverIndicator variant={variant} selected={isSelected} />
 
             <FileOrFolderIcon
-              type={type}
-              previewUrl={null}
+              type={cardType}
+              previewUrl={undefined}
               fileExtension={extension || ""}
               title={name}
               variant={variant}
-              workspace={workspace}
+              color={color}
             />
 
             <CardContent
               id={id}
               title={name}
-              type={type}
+              type={cardType}
               childCount={items}
               byteCount={size}
               users={users}
               isPinned={isPinned}
               variant={variant}
-              dateModified={
-                updatedAt instanceof Date ? updatedAt.toISOString() : updatedAt
-              }
+              dateModified={updatedAt instanceof Date ? updatedAt.toISOString() : String(updatedAt)}
             />
           </div>
         </ContextMenuTrigger>
@@ -637,7 +637,7 @@ const FolderDocumentCard = React.memo(
               </ContextMenuItem>
             }
           >
-            <LazyContextMenuItems type={type} title={name} id={id} />
+            <LazyContextMenuItems type={cardType} title={name} id={id} />
           </Suspense>
         </ContextMenuContent>
       </ContextMenu>

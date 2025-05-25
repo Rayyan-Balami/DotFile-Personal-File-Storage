@@ -1,186 +1,170 @@
 {
-  "success": true,
-  "statusCode": 200,
-  "message": "Folder contents retrieved successfully",
-  "data": {
-    "folderContents": {
-      "folders": [
-        {
-          "id": "folder-simple",
-          "name": "Empty Folder",
-          "type": "folder",
-          "owner": "user-1",
-          "workspace": null,
-          "parent": null,
-          "path": "/empty-folder",
-          "pathSegments": [],
-          "items": 0,
-          "isPinned": false,
-          "isShared": false,
-          "deletedAt": null,
-          "createdAt": "2025-04-18T09:15:00.000Z",
-          "updatedAt": "2025-04-20T15:30:00.000Z"
-        },
-        {
-          "id": "folder-parent",
-          "name": "Project Files",
-          "type": "folder",
-          "owner": "user-1",
-          "workspace": {
-            "id": "desk-2",
-            "name": "Important Projects",
-            "color": "green",
-            "icon": "fileText"
-          },
-          "parent": null,
-          "path": "/project-files",
-          "pathSegments": [],
-          "items": 3,
-          "isPinned": true,
-          "isShared": true,
-          "deletedAt": null,
-          "createdAt": "2025-04-15T10:30:00.000Z",
-          "updatedAt": "2025-04-23T11:45:00.000Z"
-        },
-        {
-          "id": "folder-child",
-          "name": "Resources",
-          "type": "folder",
-          "owner": "user-1",
-          "workspace": {
-            "id": "desk-3",
-            "name": "Reference Materials",
-            "color": "purple",
-            "icon": "book"
-          },
-          "parent": "folder-parent",
-          "path": "/project-files/resources",
-          "pathSegments": [
-            {
-              "name": "Project Files",
-              "id": "folder-parent"
-            }
-          ],
-          "items": 1,
-          "isPinned": false,
-          "isShared": false,
-          "deletedAt": null,
-          "createdAt": "2025-04-16T13:15:00.000Z",
-          "updatedAt": "2025-04-22T14:20:00.000Z"
+    "success": true,
+    "statusCode": 200,
+    "message": "Folder contents retrieved successfully",
+    "data": {
+        "folderContents": {
+            "folders": [
+                {
+                    "id": "68240bcae72b28292896f578",
+                    "name": "test",
+                    "type": "folder",
+                    "owner": "68240b68e72b28292896f545",
+                    "color": "#4f46e5",
+                    "parent": null,
+                    "items": 1,
+                    "isPinned": false,
+                    "deletedAt": null,
+                    "createdAt": "2025-05-14T03:19:38.283Z",
+                    "updatedAt": "2025-05-14T03:24:59.048Z"
+                }
+            ],
+            "files": [
+                {
+                    "id": "682431564cb0d59e1a14bdff",
+                    "name": "about_me_summary (3)",
+                    "type": "txt",
+                    "size": 1013,
+                    "owner": {
+                        "id": "68240b68e72b28292896f545",
+                        "avatar": "/images/default-user-avatar.png",
+                        "name": "John Doe",
+                        "email": "user@example.com",
+                        "role": "user",
+                        "maxStorageLimit": 15728640,
+                        "storageUsed": 288687,
+                        "deletedAt": null,
+                        "createdAt": "2025-05-14T03:18:00.505Z",
+                        "updatedAt": "2025-05-25T06:42:28.777Z"
+                    },
+                    "folder": null,
+                    "storageKey": "file-636ef0ac8901b70404e936335ff54dd4.txt",
+                    "extension": "txt",
+                    "isPinned": false,
+                    "deletedAt": null,
+                    "createdAt": "2025-05-14T05:59:50.303Z",
+                    "updatedAt": "2025-05-14T05:59:50.303Z"
+                },
+                {
+                    "id": "68242c797cc210a9a1d03fe9",
+                    "name": "about_me_summary (2)",
+                    "type": "txt",
+                    "size": 1013,
+                    "owner": {
+                        "id": "68240b68e72b28292896f545",
+                        "avatar": "/images/default-user-avatar.png",
+                        "name": "John Doe",
+                        "email": "user@example.com",
+                        "role": "user",
+                        "maxStorageLimit": 15728640,
+                        "storageUsed": 288687,
+                        "deletedAt": null,
+                        "createdAt": "2025-05-14T03:18:00.505Z",
+                        "updatedAt": "2025-05-25T06:42:28.777Z"
+                    },
+                    "folder": null,
+                    "storageKey": "file-da87dc2aafb89e8cf8e7efc0604285d1.txt",
+                    "extension": "txt",
+                    "isPinned": false,
+                    "deletedAt": null,
+                    "createdAt": "2025-05-14T05:39:05.781Z",
+                    "updatedAt": "2025-05-14T05:39:05.781Z"
+                },
+                {
+                    "id": "68241b01f18d863b93877982",
+                    "name": "about_me_summary",
+                    "type": "txt",
+                    "size": 1013,
+                    "owner": {
+                        "id": "68240b68e72b28292896f545",
+                        "avatar": "/images/default-user-avatar.png",
+                        "name": "John Doe",
+                        "email": "user@example.com",
+                        "role": "user",
+                        "maxStorageLimit": 15728640,
+                        "storageUsed": 288687,
+                        "deletedAt": null,
+                        "createdAt": "2025-05-14T03:18:00.505Z",
+                        "updatedAt": "2025-05-25T06:42:28.777Z"
+                    },
+                    "folder": null,
+                    "storageKey": "file-1b291a01f5afb73efa39376f1ef8ed45.txt",
+                    "extension": "txt",
+                    "isPinned": false,
+                    "deletedAt": null,
+                    "createdAt": "2025-05-14T04:24:33.060Z",
+                    "updatedAt": "2025-05-14T04:24:33.060Z"
+                },
+                {
+                    "id": "682419a0f18d863b93877975",
+                    "name": " ",
+                    "type": "jpg",
+                    "size": 110410,
+                    "owner": {
+                        "id": "68240b68e72b28292896f545",
+                        "avatar": "/images/default-user-avatar.png",
+                        "name": "John Doe",
+                        "email": "user@example.com",
+                        "role": "user",
+                        "maxStorageLimit": 15728640,
+                        "storageUsed": 288687,
+                        "deletedAt": null,
+                        "createdAt": "2025-05-14T03:18:00.505Z",
+                        "updatedAt": "2025-05-25T06:42:28.777Z"
+                    },
+                    "folder": null,
+                    "storageKey": "file-472754725c20654193fd630045424f31.jpg",
+                    "extension": "jpg",
+                    "isPinned": false,
+                    "deletedAt": null,
+                    "createdAt": "2025-05-14T04:18:40.559Z",
+                    "updatedAt": "2025-05-14T04:18:40.559Z"
+                },
+                {
+                    "id": "68240bcbe72b28292896f586",
+                    "name": "cropped-Screenshot 2025-04-30 at 5.54.57 PM",
+                    "type": "png",
+                    "size": 55009,
+                    "owner": {
+                        "id": "68240b68e72b28292896f545",
+                        "avatar": "/images/default-user-avatar.png",
+                        "name": "John Doe",
+                        "email": "user@example.com",
+                        "role": "user",
+                        "maxStorageLimit": 15728640,
+                        "storageUsed": 288687,
+                        "deletedAt": null,
+                        "createdAt": "2025-05-14T03:18:00.505Z",
+                        "updatedAt": "2025-05-25T06:42:28.777Z"
+                    },
+                    "folder": {
+                        "id": "68240bcae72b28292896f578",
+                        "name": "test",
+                        "type": "folder",
+                        "owner": "68240b68e72b28292896f545",
+                        "color": "#4f46e5",
+                        "parent": "68240bcae72b28292896f575",
+                        "items": 1,
+                        "isPinned": false,
+                        "deletedAt": null,
+                        "createdAt": "2025-05-14T03:19:38.283Z",
+                        "updatedAt": "2025-05-14T03:24:59.048Z"
+                    },
+                    "storageKey": "file-b3b48079e8092516ccc9e71a98f916a9.png",
+                    "extension": "png",
+                    "isPinned": false,
+                    "deletedAt": null,
+                    "createdAt": "2025-05-14T03:19:39.046Z",
+                    "updatedAt": "2025-05-14T03:19:39.046Z"
+                }
+            ],
+            "pathSegments": [
+                {
+                    "id": null,
+                    "name": "Root"
+                }
+            ]
         }
-      ],
-      "files": [
-        {
-          "id": "doc-1",
-          "name": "Project Proposal",
-          "type": "pdf",
-          "size": 2516582,
-          "owner": "user-1",
-          "folder": "folder-parent",
-          "storageKey": "file-1234567890abcdef.pdf",
-          "workspace": null,
-          "path": "/project-files/project-proposal",
-          "extension": "pdf",
-          "isPinned": true,
-          "isShared": true,
-          "deletedAt": null,
-          "pathSegments": [
-            {
-              "name": "Project Files",
-              "id": "folder-parent"
-            }
-          ],
-          "createdAt": "2025-04-18T11:45:00.000Z",
-          "updatedAt": "2025-04-21T09:30:00.000Z"
-        },
-        {
-          "id": "doc-2",
-          "name": "Budget Spreadsheet",
-          "type": "xlsx",
-          "size": 1258291,
-          "owner": "user-1",
-          "folder": "folder-parent",
-          "storageKey": "file-abcdef1234567890.xlsx",
-          "workspace": null,
-          "path": "/project-files/budget-spreadsheet",
-          "extension": "xlsx",
-          "isPinned": false,
-          "isShared": false,
-          "deletedAt": null,
-          "pathSegments": [
-            {
-              "name": "Project Files",
-              "id": "folder-parent"
-            }
-          ],
-          "createdAt": "2025-04-19T14:10:00.000Z",
-          "updatedAt": "2025-04-22T16:20:00.000Z"
-        },
-        {
-          "id": "doc-3",
-          "name": "Research Paper",
-          "type": "docx",
-          "size": 3214567,
-          "owner": "user-1",
-          "folder": "folder-child",
-          "storageKey": "file-12345abcdef67890.docx",
-          "workspace": null,
-          "path": "/project-files/resources/research-paper",
-          "extension": "docx",
-          "isPinned": false,
-          "isShared": false,
-          "deletedAt": null,
-          "pathSegments": [
-            {
-              "name": "Project Files",
-              "id": "folder-parent"
-            },
-            {
-              "name": "Resources",
-              "id": "folder-child"
-            }
-          ],
-          "createdAt": "2025-04-17T15:30:00.000Z",
-          "updatedAt": "2025-04-20T13:45:00.000Z"
-        },
-        {
-          "id": "doc-4",
-          "name": "Meeting Notes",
-          "type": "txt",
-          "size": 12450,
-          "owner": "user-1",
-          "folder": null,
-          "storageKey": "file-98765abcdef43210.txt",
-          "workspace": null,
-          "path": "/meeting-notes",
-          "extension": "txt",
-          "isPinned": false,
-          "isShared": false,
-          "deletedAt": null,
-          "pathSegments": [],
-          "createdAt": "2025-04-24T10:15:00.000Z",
-          "updatedAt": "2025-04-24T10:15:00.000Z"
-        },
-        {
-          "id": "doc-5",
-          "name": "Product Image",
-          "type": "jpg",
-          "size": 3670016,
-          "owner": "user-1",
-          "folder": null,
-          "storageKey": "file-45678abcdef90123.jpg",
-          "workspace": null,
-          "path": "/product-image",
-          "extension": "jpg",
-          "isPinned": true,
-          "isShared": false,
-          "deletedAt": null,
-          "pathSegments": [],
-          "createdAt": "2025-04-23T09:20:00.000Z",
-          "updatedAt": "2025-04-23T09:20:00.000Z"
-        }
-      ]
-    }
-  },
-  "timestamp": "2025-04-25T12:00:00.000Z"
+    },
+    "timestamp": "2025-05-25T06:42:31.173Z"
 }

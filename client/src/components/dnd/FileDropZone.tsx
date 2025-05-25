@@ -3,6 +3,8 @@ import { useUploadStore } from '@/stores/useUploadStore';
 import { useParams } from '@tanstack/react-router';
 import { nanoid } from 'nanoid';
 import React, { useCallback, useState } from 'react';
+import { DocumentItem, FolderItem } from '@/types/folderDocumnet';
+import { formatFileSize } from '@/utils/formatUtils';
 
 interface FileDropZoneProps {
   children: React.ReactNode;
@@ -28,7 +30,7 @@ export function FileDropZone({ children }: FileDropZoneProps) {
     if (!folderId) return "Root";
     
     const items = useFileSystemStore.getState().items;
-    return items[folderId]?.title || "Unknown Folder";
+    return items[folderId]?.name || "Unknown Folder";
   };
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -72,25 +74,36 @@ export function FileDropZone({ children }: FileDropZoneProps) {
               setUploadStatus(uploadId, 'success');
               
               // Create file system item on successful upload with new structure
-              addItem({
+              const newFile: DocumentItem = {
                 id: newFileId,
-                type: file.type.split('/')[0] || 'document',
+                type: 'document',
                 name: file.name,
                 owner: 'user-1',
-                folder: parentId,
+                folder: parentId ? {
+                  id: parentId,
+                  name: getCurrentFolderName(),
+                  type: 'folder',
+                  owner: 'user-1',
+                  color: '#4f46e5',
+                  parent: null,
+                  items: 0,
+                  isPinned: false,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                  deletedAt: null
+                } : null,
                 path: `/${file.name.toLowerCase().replace(/\s+/g, '-')}`,
                 pathSegments: [],
                 extension,
                 size: file.size,
                 isPinned: false,
-                isShared: false,
-                workspace: null,
                 storageKey: `file-${nanoid()}.${extension}`,
                 createdAt: new Date(),
                 updatedAt: new Date(),
                 deletedAt: null
-              });
+              };
               
+              addItem(newFile);
               resolve();
             }
           }, 500);
@@ -112,7 +125,7 @@ export function FileDropZone({ children }: FileDropZoneProps) {
         setUploadStatus(uploadId, 'success');
         
         // Create folder item with new structure
-        addItem({
+        const newFolder: FolderItem = {
           id: newFolderId,
           type: 'folder',
           name: entry.name,
@@ -120,14 +133,15 @@ export function FileDropZone({ children }: FileDropZoneProps) {
           parent: parentId,
           path: `/${entry.name.toLowerCase().replace(/\s+/g, '-')}`,
           pathSegments: [],
+          color: '#4f46e5',
           items: 0,
           isPinned: false,
-          isShared: false,
-          workspace: null,
           createdAt: new Date(),
           updatedAt: new Date(),
           deletedAt: null
-        });
+        };
+        
+        addItem(newFolder);
       }, 1000);
       
       // Process directory contents
@@ -204,30 +218,39 @@ export function FileDropZone({ children }: FileDropZoneProps) {
         Array.from(files).forEach(file => {
           // Create a new file item with new structure
           const newFileId = `doc-${nanoid(6)}`;
-          
-          // Determine file extension
           const extension = file.name.split('.').pop()?.toLowerCase() || '';
           
           // Create file system item with new structure
-          addItem({
+          const newFile: DocumentItem = {
             id: newFileId,
-            type: file.type.split('/')[0] || 'document',
+            type: 'document',
             name: file.name,
             owner: 'user-1',
-            folder: targetFolderId,
+            folder: targetFolderId ? {
+              id: targetFolderId,
+              name: targetFolderName,
+              type: 'folder',
+              owner: 'user-1',
+              color: '#4f46e5',
+              parent: null,
+              items: 0,
+              isPinned: false,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              deletedAt: null
+            } : null,
             path: `/${file.name.toLowerCase().replace(/\s+/g, '-')}`,
             pathSegments: [],
             extension,
             size: file.size,
             isPinned: false,
-            isShared: false,
-            workspace: null,
             storageKey: `file-${nanoid()}.${extension}`,
             createdAt: new Date(),
             updatedAt: new Date(),
             deletedAt: null
-          });
+          };
           
+          addItem(newFile);
           console.log(`Added file: "${file.name}" (Size: ${formatFileSize(file.size)}, Type: ${file.type}) to folder: ${targetFolderName} (${targetFolderId || 'root'})`);
         });
       }
@@ -251,12 +274,4 @@ export function FileDropZone({ children }: FileDropZoneProps) {
       )}
     </div>
   );
-}
-
-// Helper function to format file size
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return bytes + ' B';
-  else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-  else if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
-  else return (bytes / 1073741824).toFixed(1) + ' GB';
 }

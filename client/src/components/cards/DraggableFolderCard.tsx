@@ -1,10 +1,9 @@
 import { useFileSystemDnd } from "@/components/dnd/FileSystemDndContext";
 import { cn } from "@/lib/utils";
 import { useFileSystemStore } from "@/stores/useFileSystemStore";
-import { FileSystemItem } from "@/types/folderDocumnet";
+import { FileSystemItem, DocumentItem, FolderItem } from "@/types/folderDocumnet";
 import { formatFileSize } from "@/utils/formatUtils";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
-import { useNavigate } from "@tanstack/react-router";
 import { nanoid } from "nanoid";
 import React, { memo, useCallback, useState } from "react";
 import FolderDocumentCard, { CardVariant } from "./FolderDocumentCard";
@@ -27,9 +26,7 @@ export const DraggableFolderCard = memo(
   }: DraggableFolderCardProps) => {
     const [isExternalFileDragOver, setIsExternalFileDragOver] = useState(false);
     const addItem = useFileSystemStore((state) => state.addItem);
-    const navigate = useNavigate();
-
-    const { id, type, name } = item;
+    const { id, type, name, owner } = item;
 
     const {
       attributes,
@@ -39,15 +36,15 @@ export const DraggableFolderCard = memo(
     } = useDraggable({
       id,
       data: {
-        type,
         id,
+        type,
         name,
         variant,
         item,
       },
     });
 
-    const { isOver, setNodeRef: setDropNodeRef } = useDroppable({
+    const { setNodeRef: setDropNodeRef } = useDroppable({
       id,
       disabled: type !== "folder",
     });
@@ -94,23 +91,56 @@ export const DraggableFolderCard = memo(
 
         const { files } = e.dataTransfer;
         if (files && files.length > 0) {
+          const folderItem = item as FolderItem;
+
           console.log(`Files dropped on folder "${name}" (ID: ${id})`);
           console.log(`Total files: ${files.length}`);
 
           Array.from(files).forEach((file) => {
             const newFileId = `doc-${nanoid(6)}`;
-            const fileExtension =
-              file.name.split(".").pop()?.toLowerCase() || "";
+            const fileExtension = file.name.split(".").pop()?.toLowerCase() || "";
+            
+            // Create new document with updated type structure
+            const newFile: DocumentItem = {
+              id: newFileId,
+              type: "document",
+              name: file.name,
+              size: file.size,
+              owner: "user-1", // This should come from auth context
+              folder: {
+                id,
+                name,
+                type: "folder",
+                owner,
+                color: folderItem.color,
+                parent: folderItem.parent,
+                items: folderItem.items,
+                isPinned: false,
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                deletedAt: null
+              },
+              path: `/${file.name.toLowerCase().replace(/\s+/g, "-")}`,
+              pathSegments: [],
+              extension: fileExtension,
+              storageKey: `file-${nanoid()}.${fileExtension}`,
+              isPinned: false,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              deletedAt: null
+            };
+
+            addItem(newFile);
 
             console.log(`File details:
-          - ID (would be): ${newFileId}
-          - Name: ${file.name}
-          - Type: ${file.type}
-          - Extension: ${fileExtension}
-          - Size: ${formatFileSize(file.size)}
-          - Target folder: ${name} (ID: ${id})
-          - Timestamp: ${new Date().toISOString()}
-        `);
+              - ID: ${newFileId}
+              - Name: ${file.name}
+              - Type: document
+              - Extension: ${fileExtension}
+              - Size: ${formatFileSize(file.size)}
+              - Target folder: ${name} (ID: ${id})
+              - Timestamp: ${new Date().toISOString()}
+            `);
           });
 
           console.log(
@@ -118,7 +148,7 @@ export const DraggableFolderCard = memo(
           );
         }
       },
-      [id, name, type]
+      [id, name, type, addItem, item, owner]
     );
 
     return (
@@ -146,7 +176,7 @@ export const DraggableFolderCard = memo(
         />
 
         {isDropTarget && (
-          <div className="absolute inset-0 bg-primary/10 pointer-events-none rounded-md z-10 border-2 border-primary border-dashed flex items-center justify-center"></div>
+          <div className="absolute inset-0 bg-primary/10 pointer-events-none rounded-md z-10 border-2 border-primary border-dashed flex items-center justify-center" />
         )}
       </div>
     );

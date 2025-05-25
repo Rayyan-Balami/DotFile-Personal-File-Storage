@@ -63,17 +63,9 @@ export function FolderIcon({
               fill={primary}
             />
           </g>
-          {/* Folder decoration */}
-          <rect
-            x="34.39"
-            y="31.195"
-            width="18"
-            height="18"
-            rx="3.5"
-            fill={primary}
-          />
         </g>
       </g>
     </svg>
   );
 }
+
