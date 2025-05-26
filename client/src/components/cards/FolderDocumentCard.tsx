@@ -12,7 +12,7 @@ import {
   FolderItem,
 } from "@/types/folderDocumnet";
 import { formatChildCount, formatFileSize } from "@/utils/formatUtils";
-import { EllipsisVertical, EyeOff, Loader2, Pin } from "lucide-react";
+import { EllipsisVertical, Loader2, Pin } from "lucide-react";
 import React, {
   lazy,
   Suspense,
@@ -23,7 +23,6 @@ import React, {
   useState,
 } from "react";
 import { defaultStyles, FileIcon } from "react-file-icon";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
 import {
   ContextMenu,
@@ -199,56 +198,7 @@ const FileOrFolderIcon = React.memo(
 );
 FileOrFolderIcon.displayName = "FileOrFolderIcon";
 
-// Convert from SharedUsersPreview to User type
-interface User {
-  image?: string;
-  fallback: string;
-}
 
-// Optimized user avatars with virtualization
-const UserAvatars = React.memo(
-  ({ users }: { users: User[] }) => {
-    if (!users?.length) return null;
-
-    // Only render max 3 avatars
-    const visibleUsers = users.slice(0, 3);
-    const extraCount = users.length > 3 ? users.length - 3 : 0;
-
-    return (
-      <div className="flex items-center">
-        {visibleUsers.map((user, idx) => (
-          <Avatar
-            key={idx}
-            className="size-4.5 first:ml-0 -ml-1 hover:z-10 relative border border-primary-foreground"
-          >
-            {user.image && <AvatarImage src={user.image} alt="" />}
-            <AvatarFallback className="bg-primary text-primary-foreground text-[0.5rem] font-bold">
-              {user.fallback}
-            </AvatarFallback>
-          </Avatar>
-        ))}
-
-        {extraCount > 0 && (
-          <Avatar className="size-4.5 first:ml-0 -ml-1 hover:z-10 relative border border-primary-foreground">
-            <AvatarFallback className="bg-primary text-primary-foreground text-[0.5rem] font-bold">
-              +{extraCount}
-            </AvatarFallback>
-          </Avatar>
-        )}
-      </div>
-    );
-  },
-  (prevProps, nextProps) => {
-    // Deep comparison of users array
-    if (prevProps.users.length !== nextProps.users.length) return false;
-    return prevProps.users.every(
-      (user, i) =>
-        user.image === nextProps.users[i].image &&
-        user.fallback === nextProps.users[i].fallback
-    );
-  }
-);
-UserAvatars.displayName = "UserAvatars";
 
 const ItemCount = React.memo(
   ({
@@ -293,6 +243,10 @@ const LazyDropdownMenuItems = lazy(() =>
 );
 
 // The CardContent component with optimized menu rendering
+/**
+ * CardContent renders the content of a folder/document card
+ * Note: The title variable is intentionally used in JSX and in the memo comparison function
+ */
 const CardContent = React.memo(
   ({
     id,
@@ -300,20 +254,17 @@ const CardContent = React.memo(
     cardType,
     childCount,
     byteCount,
-    users = [],
     isPinned = false,
     variant,
-    dateModified,
   }: {
     id: string;
     title: string;
     cardType: CardType;
     childCount?: number;
     byteCount?: number;
-    users: User[];
     isPinned: boolean;
     variant: CardVariant;
-    dateModified: string;
+    dateModified?: string; // Keep in type but don't destructure
   }) => {
     const [menuOpen, setMenuOpen] = useState(false);
 
@@ -324,10 +275,10 @@ const CardContent = React.memo(
         <DropdownMenuTrigger asChild>
           <Button
             variant={"ghost"}
-            className="size-6 hover:bg-muted-foreground/10 cursor-pointer text-muted-foreground hover:text-foreground"
+            className="size-4.75 hover:bg-muted-foreground/10 cursor-pointer text-muted-foreground hover:text-foreground"
             aria-label="More options"
           >
-            <EllipsisVertical className="size-4" />
+            <EllipsisVertical className="size-3.75" />
           </Button>
         </DropdownMenuTrigger>
         {menuOpen && (
@@ -359,25 +310,18 @@ const CardContent = React.memo(
                 childCount={childCount}
                 byteCount={byteCount}
               />
-              <div className="lg:flex-1">
-                {users.length > 0 ? (
-                  <UserAvatars users={users} />
-                ) : (
-                  <EyeOff className="size-4 text-muted-foreground" />
-                )}
-              </div>
             </div>
           </div>
-          <div className="flex flex-col-reverse lg:flex-row-reverse justify-between items-center gap-4 max-lg:pt-0.75 max-lg:pb-0.5">
+          <div className="flex flex-col-reverse lg:flex-row-reverse justify-between items-center gap-4 max-lg:my-0.5">
             {dropdownMenu}
             {isPinned ? (
               <Pin
-                className="size-4 text-muted-foreground rotate-45"
+                className="size-3.75 rotate-45 text-primary"
                 aria-hidden={!isPinned}
               />
             ) : (
               // Placeholder for empty space for alignment
-              <div className="size-4" />
+              <div className="size-3.75" />
             )}
           </div>
         </div>
@@ -393,19 +337,12 @@ const CardContent = React.memo(
             childCount={childCount}
             byteCount={byteCount}
           />
-              <div className="lg:flex-1 my-2">
-                {users.length > 0 ? (
-                  <UserAvatars users={users} />
-                ) : (
-                  <EyeOff className="size-4 text-muted-foreground" />
-                )}
-              </div>
         </div>
-        <div className="flex flex-col-reverse justify-between items-center gap-4 pt-0.75 pb-0.5">
+        <div className="flex flex-col-reverse justify-between items-center my-0.5">
           {dropdownMenu}
           {isPinned && (
             <Pin
-              className="size-4 text-muted-foreground rotate-45"
+              className="size-3.75 text-primary rotate-45"
               aria-label="Pinned"
             />
           )}
@@ -420,9 +357,7 @@ const CardContent = React.memo(
       prevProps.byteCount === nextProps.byteCount &&
       prevProps.isPinned === nextProps.isPinned &&
       prevProps.variant === nextProps.variant &&
-      prevProps.cardType === nextProps.cardType &&
-      prevProps.dateModified === nextProps.dateModified &&
-      prevProps.users.length === nextProps.users.length
+      prevProps.cardType === nextProps.cardType
     );
   }
 );
@@ -459,9 +394,6 @@ const FolderDocumentCard = React.memo(
       extension = documentItem.extension;
       fileId = documentItem.id;
     }
-
-    // We no longer have shared users in our types, initialize as empty
-    const users: User[] = [];
 
     // Direct state access with optimized selector
     const isSelected = useSelectionStore(
@@ -577,7 +509,6 @@ const FolderDocumentCard = React.memo(
               cardType={cardType}
               childCount={items}
               byteCount={size}
-              users={users}
               isPinned={isPinned}
               variant={variant}
               dateModified={updatedAt instanceof Date ? updatedAt.toISOString() : String(updatedAt)}
