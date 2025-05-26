@@ -4,7 +4,7 @@ import { Active, DndContext, DragEndEvent, DragOverEvent, DragStartEvent, MouseS
 import { restrictToWindowEdges } from '@dnd-kit/modifiers';
 import React, { createContext, useContext, useState } from 'react';
 import { DragOverlay } from './DragOverlay';
-import { FileSystemItem, FolderItem } from '@/types/folderDocumnet';
+import { FileSystemItem } from '@/types/folderDocumnet';
 
 // Context to provide drag-related state throughout the app
 interface FileSystemDndContextType {
@@ -32,11 +32,13 @@ interface FileSystemDndProviderProps {
 }
 
 export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) {
+  // Local state for drag and drop
   const [activeId, setActiveId] = useState<string | null>(null);
   const [active, setActive] = useState<Active | null>(null);
   const [draggedItems, setDraggedItems] = useState<FileSystemItem[]>([]);
   const [isOver, setIsOver] = useState<string | null>(null);
   
+  // Store hooks
   const moveItem = useFileSystemStore(state => state.moveItem);
   const items = useFileSystemStore(state => state.items);
   const selectedIds = useSelectionStore(state => state.selectedIds);
@@ -60,48 +62,57 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
+    const activeId = active.id as string;
     
     // Get the item being dragged
-    const draggedItem = items[active.id as string];
-    if (!draggedItem) return;
+    const draggedItem = items[activeId];
+    if (!draggedItem) {
+      console.log('❌ Drag start failed: Item not found', { activeId });
+      return;
+    }
 
-    setActiveId(active.id as string);
+    console.log('📦 Drag start:', { 
+      item: { id: draggedItem.id, name: draggedItem.name, type: draggedItem.cardType }
+    });
+
+    setActiveId(activeId);
     setActive(active);
 
     // If the dragged item is selected, drag all selected items
-    if (selectedIds.has(active.id as string) && selectedIds.size > 1) {
+    if (selectedIds.has(activeId) && selectedIds.size > 1) {
       const selectedItems = Array.from(selectedIds)
         .map(id => items[id])
         .filter(Boolean);
+      console.log('📦 Dragging multiple items:', selectedItems.map(item => ({ id: item.id, name: item.name })));
       setDraggedItems(selectedItems);
     } else {
-      // Otherwise just drag the current item
       setDraggedItems([draggedItem]);
     }
   };
 
   const handleDragOver = (event: DragOverEvent) => {
-    const { active: currentActive, over } = event;
-    
+    const { active, over } = event;
     if (!over) {
       setIsOver(null);
       return;
     }
     
     const overId = over.id as string;
+    const overItem = items[overId];
     
-    // Skip if hovering over itself or one of the dragged items
-    if (
-      currentActive.id === overId || 
-      draggedItems.some(item => item.id === overId)
-    ) {
+    // Skip if dragging over the same item
+    if (active.id === overId) {
+      console.log('🎯 Skipping self-drag:', { id: overId });
       setIsOver(null);
       return;
     }
     
-    // Check if over is a folder
-    const overItem = items[overId];
-    if (overItem && overItem.cardType === 'folder') {
+    console.log('🎯 Drag over:', { 
+      target: overItem ? { id: overItem.id, name: overItem.name, type: overItem.cardType } : 'not found'
+    });
+    
+    // Only allow dropping on folders
+    if (overItem?.cardType === 'folder') {
       setIsOver(overId);
     } else {
       setIsOver(null);
@@ -110,71 +121,41 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { over } = event;
-    
-    if (over) {
-      const overId = over.id as string;
-      const overItem = items[overId];
-      
-      // Check if we're dropping onto a folder
-      if (overItem && overItem.cardType === 'folder') {
-        const targetFolder = overItem as FolderItem;
-        
-        // Check for circular references (can't drop a folder into itself or its children)
-        const canDrop = !draggedItems.some(item => {
-          if (item.cardType !== 'folder') return false;
-          const folderItem = item as FolderItem;
-          
-          // Check if the target folder is the item or one of its children
-          if (folderItem.id === overId) return true;
-          
-          // Check parent path to avoid circular references
-          let currentId = targetFolder.parent;
-          while (currentId) {
-            if (currentId === folderItem.id) return true;
-            const parent = items[currentId];
-            if (!parent || parent.cardType !== 'folder') break;
-            currentId = (parent as FolderItem).parent;
-          }
-          
-          return false;
-        });
-        
-        if (canDrop) {
-          // Move all selected items
-          draggedItems.forEach(item => moveItem(item.id, overId));
-          
-          // Log the successful drag operation
-          console.log(`✅ Drag operation successful:`, {
-            action: 'move',
-            movedItems: draggedItems.map(item => ({ 
-              id: item.id, 
-              name: item.name, 
-              type: item.type 
-            })),
-            targetFolder: {
-              id: overItem.id,
-              name: overItem.name
-            }
-          });
-        } else {
-          console.log(`❌ Drag operation failed: Cannot move folders into themselves or their children`);
-        }
-      } else {
-        console.log(`❌ Drag operation failed: Target is not a folder`);
-      }
-    } else {
-      console.log(`❌ Drag operation cancelled: No valid drop target`);
+    if (!over) {
+      console.log('❌ Drag cancelled: No target');
+      resetDragState();
+      return;
     }
     
-    // Clear selection and reset drag state
-    clearSelection();
-    setActiveId(null);
-    setActive(null);
-    setDraggedItems([]);
-    setIsOver(null);
+    const overId = over.id as string;
+    const overItem = items[overId];
+    
+    console.log('🎯 Drag end:', {
+      draggedItems: draggedItems.map(item => ({ id: item.id, name: item.name })),
+      target: overItem ? { id: overItem.id, name: overItem.name, type: overItem.cardType } : 'not found'
+    });
+    
+    // Check if target is a folder
+    if (overItem?.cardType === 'folder') {
+      // Move all dragged items to the target folder
+      draggedItems.forEach(item => {
+        console.log(`📦 Moving ${item.name} to ${overItem.name}`);
+        moveItem(item.id, overId);
+      });
+      console.log('✅ Move operation complete');
+    } else {
+      console.log('❌ Cannot drop: Target is not a folder');
+    }
+    
+    resetDragState();
   };
 
   const handleDragCancel = () => {
+    resetDragState();
+  };
+  
+  const resetDragState = () => {
+    clearSelection();
     setActiveId(null);
     setActive(null);
     setDraggedItems([]);

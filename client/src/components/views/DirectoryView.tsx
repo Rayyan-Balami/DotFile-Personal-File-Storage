@@ -18,6 +18,7 @@ import { FileDropZone } from "../dnd/FileDropZone";
 import { CardGrid } from "./CardGrid";
 import { FileSystemItem } from "@/types/folderDocumnet";
 import { mapToFileSystemItem } from "@/utils/itemMapper";
+import { useFileSystemStore } from "@/stores/useFileSystemStore";
 
 // Lazy load context menu items
 const LazyGlobalMenuItems = lazy(() =>
@@ -39,11 +40,18 @@ export default function DirectoryView({
 }: DirectoryViewProps) {
   const navigate = useNavigate();
   const setVisibleItems = useSelectionStore((state) => state.setVisibleItems);
+  const addItem = useFileSystemStore((state) => state.addItem);
 
   // Map the items to ensure they have cardType
   const mappedItems = useMemo(() => items.map(mapToFileSystemItem), [items]);
 
-  console.log("Rendering DirectoryView with mapped items:", mappedItems);
+  // Sync items with the store
+  useEffect(() => {
+    console.log('Syncing items with store:', mappedItems);
+    mappedItems.forEach(item => {
+      addItem(item);
+    });
+  }, [mappedItems, addItem]);
 
   // Use the proper sorting hook with mapped items
   const sortedItems = useSortedItems(mappedItems);
