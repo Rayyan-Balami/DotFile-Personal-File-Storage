@@ -21,8 +21,8 @@ const folderParentSchema = z.string().nullable().optional();
  * New folder creation rules
  */
 export const createFolderSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  parent: z.string().nullable().optional(),
+  name: folderNameSchema,
+  parent: folderParentSchema,
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format").optional(),
 });
 
@@ -30,8 +30,6 @@ export const createFolderSchema = z.object({
  * Optional folder property updates
  */
 export const updateFolderSchema = z.object({
-  name: z.string().optional(),
-  parent: z.string().nullable().optional(),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format").optional(),
   isPinned: z.boolean().optional(),
 });
@@ -40,7 +38,7 @@ export const updateFolderSchema = z.object({
  * Folder name change validation
  */
 export const renameFolderSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: folderNameSchema,
 });
 
 /**

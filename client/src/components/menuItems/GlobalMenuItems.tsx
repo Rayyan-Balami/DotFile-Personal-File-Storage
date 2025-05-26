@@ -37,19 +37,26 @@ export const ContextMenuItems = React.memo(({ parentId }: { parentId?: string | 
 
   return (
     <>
-      <ContextMenuItem onClick={() => handleAction("uploadFile")}>
-        Upload File
-      </ContextMenuItem>
+      {/* File Operations */}
       <ContextMenuItem onClick={() => handleAction("createFolder")}>
         Create New Folder
       </ContextMenuItem>
+      <ContextMenuItem onClick={() => handleAction("uploadFile")}>
+        Upload File
+      </ContextMenuItem>
 
       <ContextMenuSeparator />
-      <ContextMenuItem onClick={() => handleAction("refresh")}>
-        Refresh
-      </ContextMenuItem>
+
+      {/* Selection Operations */}
       <ContextMenuItem onClick={() => handleAction("selectAll")}>
         Select All
+      </ContextMenuItem>
+
+      <ContextMenuSeparator />
+
+      {/* View Operations */}
+      <ContextMenuItem onClick={() => handleAction("refresh")}>
+        Refresh
       </ContextMenuItem>
     </>
   );

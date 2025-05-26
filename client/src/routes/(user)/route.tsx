@@ -1,5 +1,5 @@
 import { AppSidebar } from "@/components/app-sidebar";
-import { CreateFolderDialog } from "@/components/dialogs/CreateFolderDialog";
+import { DialogProvider } from "@/components/dialogs/DialogProvider";
 import { FileSystemDndProvider } from "@/components/dnd/FileSystemDndContext";
 import { SiteFooter } from "@/components/footer/site-footer";
 import { SiteHeader } from "@/components/header/site-header";
@@ -33,7 +33,7 @@ function RouteComponent() {
           </SidebarInset>
       </FileSystemDndProvider>
       {process.env.NODE_ENV === 'development' && <TanStackRouterDevtools position="top-right" />}
-      <CreateFolderDialog />
+      <DialogProvider />
     </SidebarProvider>
   );
 }

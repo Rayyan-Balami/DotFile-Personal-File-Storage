@@ -19,10 +19,7 @@ const fileNameSchema = z
  * @validates Non-empty file name with additional trimming check
  */
 export const renameFileSchema = z.object({
-  name: fileNameSchema.refine(
-    (name) => name.trim().length > 0,
-    { message: "File name cannot be empty" }
-  ),
+  name: fileNameSchema.transform((name) => name.trim()),
 });
 
 /**
@@ -38,7 +35,7 @@ export const moveFileSchema = z.object({
  * @validates Optional file properties including name, folder reference, and pin status
  */
 export const updateFileSchema = z.object({
-  name: fileNameSchema.optional(),
+  name: fileNameSchema.transform((name) => name.trim()).optional(),
   folder: z.string().nullable().optional(),
   isPinned: z.boolean().optional(),
 });

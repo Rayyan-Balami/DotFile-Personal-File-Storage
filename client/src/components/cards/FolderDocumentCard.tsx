@@ -290,7 +290,7 @@ const CardContent = React.memo(
                 </DropdownMenuItem>
               }
             >
-              <LazyDropdownMenuItems cardType={cardType} title={title} id={id} />
+              <LazyDropdownMenuItems cardType={cardType} title={title} id={id} isPinned={isPinned} />
             </Suspense>
           </DropdownMenuContent>
         )}
@@ -523,7 +523,7 @@ const FolderDocumentCard = React.memo(
               </ContextMenuItem>
             }
           >
-            <LazyContextMenuItems cardType={cardType} title={name} id={id} />
+            <LazyContextMenuItems cardType={cardType} title={name} id={id} isPinned={isPinned} />
           </Suspense>
         </ContextMenuContent>
       </ContextMenu>

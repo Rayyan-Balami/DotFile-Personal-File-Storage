@@ -15,12 +15,14 @@ export const ContextMenuItems = React.memo(
     cardType,
     title,
     id,
+    isPinned = false,
   }: {
     cardType: "folder" | "document";
     title: string;
     id: string;
+    isPinned?: boolean;
   }) => {
-    const { openCreateFolderDialog } = useDialogStore();
+    const { openCreateFolderDialog, openRenameDialog } = useDialogStore();
     
     // Remove setTimeout which can cause timing issues
     const handleAction = (action: string) => {
@@ -31,6 +33,8 @@ export const ContextMenuItems = React.memo(
         if (cardType === "folder") {
           openCreateFolderDialog(id);
         }
+      } else if (action === "rename") {
+        openRenameDialog(id, cardType, title);
       }
     };
 
@@ -51,7 +55,7 @@ export const ContextMenuItems = React.memo(
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem onClick={() => handleAction("pin")}>
-          Pin/Unpin
+          {isPinned ? "Unpin" : "Pin"}
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem
@@ -107,13 +111,15 @@ export const DropdownMenuItems = React.memo(
   ({
     cardType,
     title,
-    id
+    id,
+    isPinned = false,
   }: {
     cardType: "folder" | "document";
     title: string;
     id: string;
+    isPinned?: boolean;
   }) => {
-    const { openCreateFolderDialog } = useDialogStore();
+    const { openCreateFolderDialog, openRenameDialog } = useDialogStore();
     
     const handleAction = (action: string) => {
       console.log(`Action triggered: ${action} on ${title} (${id})`);
@@ -123,6 +129,8 @@ export const DropdownMenuItems = React.memo(
         if (cardType === "folder") {
           openCreateFolderDialog(id);
         }
+      } else if (action === "rename") {
+        openRenameDialog(id, cardType, title);
       }
     };
 
@@ -143,7 +151,7 @@ export const DropdownMenuItems = React.memo(
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => handleAction("pin")}>
-          Pin/Unpin
+          {isPinned ? "Unpin" : "Pin"}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => handleAction("info")} className="text-blue-600 focus:text-blue-600 focus:bg-blue-700/20">

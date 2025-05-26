@@ -92,6 +92,8 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
 
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event;
+    
+    // Early returns for invalid states
     if (!over) {
       setIsOver(null);
       return;
@@ -100,27 +102,30 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
     const overId = over.id as string;
     const overItem = items[overId];
     
-    // Skip if dragging over the same item
+    // Prevent self-drag
     if (active.id === overId) {
       console.log('🎯 Skipping self-drag:', { id: overId });
       setIsOver(null);
       return;
     }
     
+    // Log drag over state
     console.log('🎯 Drag over:', { 
-      target: overItem ? { id: overItem.id, name: overItem.name, type: overItem.cardType } : 'not found'
+      target: overItem ? { 
+        id: overItem.id, 
+        name: overItem.name, 
+        type: overItem.cardType 
+      } : 'not found'
     });
     
     // Only allow dropping on folders
-    if (overItem?.cardType === 'folder') {
-      setIsOver(overId);
-    } else {
-      setIsOver(null);
-    }
+    setIsOver(overItem?.cardType === 'folder' ? overId : null);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    
+    // Early returns for invalid states
     if (!over) {
       console.log('❌ Drag cancelled: No target');
       resetDragState();
@@ -130,19 +135,27 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
     const overId = over.id as string;
     const overItem = items[overId];
     
-    // Skip if dragging to self
+    // Prevent self-drop
     if (active.id === overId) {
       console.log('❌ Drag cancelled: Cannot drop on self');
       resetDragState();
       return;
     }
     
+    // Log drag end state
     console.log('🎯 Drag end:', {
-      draggedItems: draggedItems.map(item => ({ id: item.id, name: item.name })),
-      target: overItem ? { id: overItem.id, name: overItem.name, type: overItem.cardType } : 'not found'
+      draggedItems: draggedItems.map(item => ({ 
+        id: item.id, 
+        name: item.name 
+      })),
+      target: overItem ? { 
+        id: overItem.id, 
+        name: overItem.name, 
+        type: overItem.cardType 
+      } : 'not found'
     });
     
-    // Check if target is a folder
+    // Handle folder drops
     if (overItem?.cardType === 'folder') {
       // Move all dragged items to the target folder
       draggedItems.forEach(item => {

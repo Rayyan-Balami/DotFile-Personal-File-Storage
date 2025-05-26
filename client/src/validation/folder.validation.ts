@@ -1,6 +1,8 @@
 import { z } from "zod";
 
-// Reusable folder name schema
+/**
+ * Valid folder name pattern: 1-255 chars, alphanumeric with common symbols
+ */
 const folderNameSchema = z
   .string()
   .min(1, { message: "Folder name is required" })
@@ -10,20 +12,47 @@ const folderNameSchema = z
     "Folder name contains invalid characters"
   );
 
+/**
+ * Optional parent folder reference
+ */
 const folderParentSchema = z.string().nullable().optional();
 
-// Validation schema for creating a folder
+/**
+ * New folder creation rules
+ */
 export const createFolderSchema = z.object({
   name: folderNameSchema,
   parent: folderParentSchema,
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format").optional(),
 });
 
-// Validation schema for updating a folder
+/**
+ * Optional folder property updates
+ */
 export const updateFolderSchema = z.object({
-  name: folderNameSchema.optional(),
-  parent: folderParentSchema,
-  workspace: z.string().nullable().optional(),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format").optional(),
   isPinned: z.boolean().optional(),
-  isShared: z.boolean().optional(),
-  items: z.number().optional(),
+});
+
+/**
+ * Folder name change validation
+ */
+export const renameFolderSchema = z.object({
+  name: folderNameSchema,
+});
+
+/**
+ * Folder location change validation
+ */
+export const moveFolderSchema = z.object({
+  parent: z.string().nullable(),
+});
+
+/**
+ * Item rename validation (for both files and folders)
+ */
+export const renameItemSchema = z.object({
+  name: folderNameSchema,
+  id: z.string(),
+  cardType: z.enum(['folder', 'document'])
 });

@@ -7,7 +7,13 @@ interface DialogState {
   openCreateFolderDialog: (parentId?: string | null) => void;
   closeCreateFolderDialog: () => void;
   
-  // You can add more dialogs here in the future
+  // Rename Dialog
+  renameDialogOpen: boolean;
+  renameItemId: string | null;
+  renameItemCardType: "folder" | "document" | null;
+  renameItemName: string | null;
+  openRenameDialog: (id: string, type: "folder" | "document", name: string) => void;
+  closeRenameDialog: () => void;
 }
 
 export const useDialogStore = create<DialogState>((set) => ({
@@ -21,4 +27,22 @@ export const useDialogStore = create<DialogState>((set) => ({
   closeCreateFolderDialog: () => set({ 
     createFolderOpen: false 
   }),
+
+  // Rename Dialog
+  renameDialogOpen: false,
+  renameItemId: null,
+  renameItemCardType: null,
+  renameItemName: null,
+  openRenameDialog: (id: string, type: "folder" | "document", name: string) => set({
+    renameDialogOpen: true,
+    renameItemId: id,
+    renameItemCardType: type,
+    renameItemName: name
+  }),
+  closeRenameDialog: () => set({
+    renameDialogOpen: false,
+    renameItemId: null,
+    renameItemCardType: null,
+    renameItemName: null
+  })
 }));
