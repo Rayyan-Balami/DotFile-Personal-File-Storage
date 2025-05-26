@@ -31,13 +31,12 @@ export function DragOverlay() {
       ? {
           id: primaryItem.id,
           type: "folder",
+          cardType: "folder",
           name: primaryItem.name || "Untitled",
           owner: "",
-          color: "#4f46e5",
+          color: "blue", // Valid ColorOption
           parent: null,
           items: 0,
-          path: "/",
-          pathSegments: [],
           isPinned: false,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -45,12 +44,11 @@ export function DragOverlay() {
         } as FolderItem
       : {
           id: primaryItem.id,
-          type: "document",
+          type: "application/octet-stream", // Default MIME type
+          cardType: "document",
           name: primaryItem.name || "Untitled",
           owner: "",
           folder: null,
-          path: "/",
-          pathSegments: [],
           extension: "",
           size: 0,
           isPinned: false,

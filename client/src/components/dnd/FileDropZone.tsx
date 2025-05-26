@@ -76,7 +76,8 @@ export function FileDropZone({ children }: FileDropZoneProps) {
               // Create file system item on successful upload with new structure
               const newFile: DocumentItem = {
                 id: newFileId,
-                type: 'document',
+                type: file.type || 'application/octet-stream',
+                cardType: 'document',
                 name: file.name,
                 owner: 'user-1',
                 folder: parentId ? {
@@ -84,7 +85,7 @@ export function FileDropZone({ children }: FileDropZoneProps) {
                   name: getCurrentFolderName(),
                   type: 'folder',
                   owner: 'user-1',
-                  color: '#4f46e5',
+                  color: 'blue',
                   parent: null,
                   items: 0,
                   isPinned: false,
@@ -92,12 +93,12 @@ export function FileDropZone({ children }: FileDropZoneProps) {
                   updatedAt: new Date(),
                   deletedAt: null
                 } : null,
-                path: `/${file.name.toLowerCase().replace(/\s+/g, '-')}`,
-                pathSegments: [],
                 extension,
                 size: file.size,
                 isPinned: false,
                 storageKey: `file-${nanoid()}.${extension}`,
+                path: `/${file.name.toLowerCase().replace(/\s+/g, '-')}`,
+                pathSegments: [],
                 createdAt: new Date(),
                 updatedAt: new Date(),
                 deletedAt: null
@@ -128,12 +129,13 @@ export function FileDropZone({ children }: FileDropZoneProps) {
         const newFolder: FolderItem = {
           id: newFolderId,
           type: 'folder',
+          cardType: 'folder',
           name: entry.name,
           owner: 'user-1',
           parent: parentId,
           path: `/${entry.name.toLowerCase().replace(/\s+/g, '-')}`,
           pathSegments: [],
-          color: '#4f46e5',
+          color: 'blue',
           items: 0,
           isPinned: false,
           createdAt: new Date(),
@@ -223,7 +225,8 @@ export function FileDropZone({ children }: FileDropZoneProps) {
           // Create file system item with new structure
           const newFile: DocumentItem = {
             id: newFileId,
-            type: 'document',
+            type: file.type || 'application/octet-stream',
+            cardType: 'document',
             name: file.name,
             owner: 'user-1',
             folder: targetFolderId ? {
@@ -231,7 +234,7 @@ export function FileDropZone({ children }: FileDropZoneProps) {
               name: targetFolderName,
               type: 'folder',
               owner: 'user-1',
-              color: '#4f46e5',
+              color: 'blue',
               parent: null,
               items: 0,
               isPinned: false,

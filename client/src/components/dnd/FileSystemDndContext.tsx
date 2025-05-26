@@ -81,7 +81,7 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
   };
 
   const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
+    const { active: currentActive, over } = event;
     
     if (!over) {
       setIsOver(null);
@@ -92,7 +92,7 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
     
     // Skip if hovering over itself or one of the dragged items
     if (
-      active.id === overId || 
+      currentActive.id === overId || 
       draggedItems.some(item => item.id === overId)
     ) {
       setIsOver(null);
@@ -101,7 +101,7 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
     
     // Check if over is a folder
     const overItem = items[overId];
-    if (overItem && overItem.type === 'folder') {
+    if (overItem && overItem.cardType === 'folder') {
       setIsOver(overId);
     } else {
       setIsOver(null);
@@ -109,14 +109,14 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
+    const { over } = event;
     
     if (over) {
       const overId = over.id as string;
       const overItem = items[overId];
       
       // Check if we're dropping onto a folder
-      if (overItem && overItem.type === 'folder') {
+      if (overItem && overItem.cardType === 'folder') {
         const targetFolder = overItem as FolderItem;
         
         // Check for circular references (can't drop a folder into itself or its children)
