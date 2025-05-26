@@ -97,8 +97,6 @@ export function FileDropZone({ children }: FileDropZoneProps) {
                 size: file.size,
                 isPinned: false,
                 storageKey: `file-${nanoid()}.${extension}`,
-                path: `/${file.name.toLowerCase().replace(/\s+/g, '-')}`,
-                pathSegments: [],
                 createdAt: new Date(),
                 updatedAt: new Date(),
                 deletedAt: null
@@ -133,8 +131,6 @@ export function FileDropZone({ children }: FileDropZoneProps) {
           name: entry.name,
           owner: 'user-1',
           parent: parentId,
-          path: `/${entry.name.toLowerCase().replace(/\s+/g, '-')}`,
-          pathSegments: [],
           color: 'blue',
           items: 0,
           isPinned: false,
@@ -242,8 +238,6 @@ export function FileDropZone({ children }: FileDropZoneProps) {
               updatedAt: new Date(),
               deletedAt: null
             } : null,
-            path: `/${file.name.toLowerCase().replace(/\s+/g, '-')}`,
-            pathSegments: [],
             extension,
             size: file.size,
             isPinned: false,

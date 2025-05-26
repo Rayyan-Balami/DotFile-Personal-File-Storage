@@ -1,3 +1,4 @@
+import { FileResponseDto } from "@api/file/file.dto.js";
 
 /**
  * New folder creation payload
@@ -63,6 +64,6 @@ export interface FolderResponseDto {
  */
 export interface FolderResponseWithFilesDto {
   folders: FolderResponseDto[];
-  files: any[];
+  files: FileResponseDto[];
   pathSegments?: PathSegment[];
 }

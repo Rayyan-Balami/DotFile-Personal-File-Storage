@@ -124,8 +124,6 @@ export const DraggableFolderCard = memo(
                 updatedAt: new Date(),
                 deletedAt: null
               },
-              path: `/${file.name.toLowerCase().replace(/\s+/g, "-")}`,
-              pathSegments: [],
               extension: fileExtension,
               storageKey: `file-${nanoid()}.${fileExtension}`,
               isPinned: false,
