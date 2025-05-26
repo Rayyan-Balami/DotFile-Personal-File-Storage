@@ -1,6 +1,7 @@
 import DirectoryView from '@/components/views/DirectoryView';
 import { useFolderContents } from '@/api/folder/folder.query';
 import { createFileRoute } from '@tanstack/react-router';
+import { Loader2 } from 'lucide-react';
 
 // When we go inside a folder we use a dynamic route
 export const Route = createFileRoute('/(user)/folder/$id')({
@@ -9,7 +10,7 @@ export const Route = createFileRoute('/(user)/folder/$id')({
 
 function RouteComponent() {
   const { id } = Route.useParams();
-  const { data } = useFolderContents(id);
+  const { data, isLoading } = useFolderContents(id);
   const folderContents = data?.data?.folderContents;
   
   // Sort items by name
@@ -17,6 +18,14 @@ function RouteComponent() {
     if (!a.name || !b.name) return 0;
     return a.name.localeCompare(b.name);
   });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <DirectoryView 

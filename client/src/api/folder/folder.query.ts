@@ -11,6 +11,10 @@ export const FOLDER_KEYS = {
   detail: (id: string) => [...FOLDER_KEYS.all, id] as const,
 };
 
+// Raw query function for use in loaders
+export const getFolderContents = (folderId: string) => 
+  folderApi.getFolderContents(folderId).then((res) => res.data);
+
 /**
  * Hook to get contents of root folder
  */
@@ -26,7 +30,7 @@ export const useRootContents = () =>
 export const useFolderContents = (folderId: string) =>
   useQuery({
     queryKey: FOLDER_KEYS.contents(folderId),
-    queryFn: () => folderApi.getFolderContents(folderId).then((res) => res.data),
+    queryFn: () => getFolderContents(folderId),
     enabled: !!folderId,
   });
 
@@ -104,11 +108,24 @@ export const useRenameFolder = () => {
     mutationFn: ({ folderId, data }: { folderId: string, data: RenameFolderDto }) => 
       folderApi.renameFolder(folderId, data).then((res) => res.data),
     onSuccess: (_, variables) => {
+      // Invalidate the specific folder's details
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.detail(variables.folderId),
       });
+      
+      // Invalidate the folder's contents
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.contents(variables.folderId),
+      });
+
+      // Invalidate parent folder's contents if it exists
+      queryClient.invalidateQueries({
+        queryKey: FOLDER_KEYS.all,
+      });
+
+      // Invalidate any folder that might contain this folder
+      queryClient.invalidateQueries({
+        queryKey: FOLDER_KEYS.contents(),
       });
     },
   });

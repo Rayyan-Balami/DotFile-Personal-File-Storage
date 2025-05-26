@@ -192,12 +192,20 @@ class FolderDao {
     ownerId: string,
     parentId: string | null
   ): Promise<IFolder | null> {
-    return await Folder.findOne({
+    const query: any = {
       name,
       owner: ownerId,
-      parent: parentId,
       deletedAt: null,
-    })
+    };
+
+    // Only add parent to query if it's a valid ObjectId or null
+    if (parentId === null) {
+      query.parent = null;
+    } else if (mongoose.Types.ObjectId.isValid(parentId)) {
+      query.parent = parentId;
+    }
+
+    return await Folder.findOne(query)
       .populate("owner")
       .populate("parent");
   }

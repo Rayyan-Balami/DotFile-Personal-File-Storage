@@ -229,11 +229,14 @@ class FolderService {
     const folder = await this.getFolderById(folderId, userId);
     const sanitizedNewName = sanitizeFilename(renameData.name);
 
+    // Get the parent ID as a string or null
+    const parentId = folder.parent ? folder.parent.toString() : null;
+
     // Ensure name is unique within the parent folder
     const uniqueName = await this.ensureUniqueNameAtLevel(
       sanitizedNewName,
       userId,
-      folder.parent
+      parentId
     );
 
     const updatedFolder = await folderDao.renameFolder(folderId, {
