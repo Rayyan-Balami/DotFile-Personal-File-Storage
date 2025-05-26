@@ -156,7 +156,6 @@ const FileOrFolderIcon = React.memo(
     title: string;
     color?: string;
   }) => {
-    console.log(`cardType: ${cardType}, variant: ${variant}, fileId: ${fileId}, fileType: ${fileType}, fileExtension: ${fileExtension}, title: ${title}`);
     const styles = VARIANT_STYLES[variant];
     const memoKey = `${cardType}-${variant}`;
     const scaleClass = useMemo(() => {
@@ -479,7 +478,6 @@ const FolderDocumentCard = React.memo(
           onOpen();
           return;
         }
-        console.log(`Action: ${action} on ${type} "${name}" (ID: ${id})`);
       },
       [id, onOpen, name, type]
     );
@@ -549,7 +547,7 @@ const FolderDocumentCard = React.memo(
         <ContextMenuTrigger>
           <div
             data-folder-card
-            className={`${containerClass} ${cardStyle}`}
+            className={`${containerClass} ${cardStyle} active:scale-[0.98] active:bg-sidebar-foreground/8 transition-transform duration-100 ease-out`}
             onClick={handleClick}
             onDoubleClick={(e) => {
               e.preventDefault();
