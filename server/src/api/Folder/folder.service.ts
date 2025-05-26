@@ -378,8 +378,11 @@ class FolderService {
       return pathSegments;
     }
     
-    let currentFolder = await folderDao.getFolderById(folderId);
-    if (!currentFolder || currentFolder.owner.toString() !== userId) {
+    let currentFolder = await folderDao.getFolderById(folderId, true); // Include deleted folders
+    logger.info("Initial folder:", currentFolder);
+    
+    if (!currentFolder) {
+      logger.info("Initial folder not found");
       return pathSegments;
     }
     
@@ -387,26 +390,46 @@ class FolderService {
     
     // Build the path by traversing up the folder hierarchy
     while (currentFolder) {
+      logger.info("Current folder in path:", {
+        id: currentFolder._id.toString(),
+        name: currentFolder.name,
+        parent: currentFolder.parent
+      });
+      
+      // Add the current folder to segments
       folderSegments.unshift({
         id: currentFolder._id.toString(),
         name: currentFolder.name
       });
       
+      // If no parent, we've reached the root
       if (!currentFolder.parent) {
+        logger.info("Reached root folder");
         break;
       }
       
-      // Move up to the parent folder
-      currentFolder = await folderDao.getFolderById(currentFolder.parent.toString());
+      // If parent is populated (an object), use it directly
+      if (typeof currentFolder.parent === 'object' && currentFolder.parent !== null && 'name' in currentFolder.parent) {
+        // Cast to unknown first to avoid type errors
+        currentFolder = currentFolder.parent as unknown as IFolder;
+      } else {
+        // Otherwise, fetch the parent folder
+        const parentId = currentFolder.parent.toString();
+        logger.info("Getting parent folder:", parentId);
+        currentFolder = await folderDao.getFolderById(parentId, true);
+      }
       
-      // Break if the parent doesn't exist or doesn't belong to the user
-      if (!currentFolder || currentFolder.owner.toString() !== userId) {
+      // If parent doesn't exist, stop traversing
+      if (!currentFolder) {
+        logger.info("Parent folder not found");
         break;
       }
     }
     
     // Combine the root segment with folder segments
-    return [...pathSegments, ...folderSegments];
+    const finalPath = [...pathSegments, ...folderSegments];
+    logger.info("Final path segments:", finalPath);
+    return finalPath;
   }
 
   /**

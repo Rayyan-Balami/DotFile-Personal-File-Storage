@@ -1,4 +1,4 @@
-import { Folder, Home } from "lucide-react";
+import { Folder, FolderOpen, Home } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -31,7 +31,7 @@ export function BreadcrumbNav() {
     : rootData?.data?.folderContents?.pathSegments || [];
 
   return (
-    <Breadcrumb className="hidden sm:block flex-grow shrink-0 bg-secondary h-9 px-4 py-2 rounded-md">
+    <Breadcrumb className="flex flex-grow shrink-0 bg-secondary h-9 px-4 py-2 rounded-md">
       <BreadcrumbList>
         {/* Root is always shown */}
         <BreadcrumbItem>
@@ -57,7 +57,10 @@ export function BreadcrumbNav() {
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 {isLast ? (
-                  <BreadcrumbPage>{segment.name}</BreadcrumbPage>
+                  <BreadcrumbPage className="flex items-center gap-2">
+                    <FolderOpen className="size-4" />
+                    {segment.name}
+                  </BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink asChild>
                     <a href={path} className="flex items-center gap-2">
