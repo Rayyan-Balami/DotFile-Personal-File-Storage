@@ -4,8 +4,11 @@ import { ApiResponse } from "@utils/apiResponse.utils.js";
 import asyncHandler from "@utils/asyncHandler.utils.js";
 import logger from "@utils/logger.utils.js";
 
+/**
+ * FolderController: Handles folder CRUD, trash, and hierarchy endpoints
+ */
 class FolderController {
-  // Create a new folder
+  /** Create a new folder */
   createFolder = asyncHandler(async (req, res) => {
     logger.info("Creating folder");
     const folderData = req.body;
@@ -22,6 +25,7 @@ class FolderController {
       .json(new ApiResponse(201, { folder: newFolder }, "Folder created successfully"));
   });
 
+  /** Get folder by ID */
   getFolderById = asyncHandler(async (req, res) => {
     logger.info("Getting folder by ID");
     const folderId = req.params.id;
@@ -38,6 +42,7 @@ class FolderController {
   });
 
 
+  /** Get contents of a folder */
   getFolderContents = asyncHandler(async (req, res) => {
     logger.info("Getting folder contents");
     const folderId = req.params.id || null;
@@ -54,7 +59,7 @@ class FolderController {
       .json(new ApiResponse(200, { folderContents }, "Folder contents retrieved successfully"));
   });
   
-  // Rename a folder
+  /** Rename a folder */
   renameFolder = asyncHandler(async (req, res) => {
     logger.info("Renaming folder");
     const folderId = req.params.id;
@@ -73,7 +78,7 @@ class FolderController {
       .json(new ApiResponse(200, { folder: updatedFolder }, "Folder renamed successfully"));
   });
   
-  // Move a folder to a new parent
+  /** Move folder to new parent */
   moveFolder = asyncHandler(async (req, res) => {
     logger.info("Moving folder");
     const folderId = req.params.id;
@@ -93,7 +98,7 @@ class FolderController {
       .json(new ApiResponse(200, { folder: updatedFolder }, "Folder moved successfully"));
   });
 
-  // Soft delete a folder (move to trash)
+  /** Soft-delete (trash) a folder */
   softDeleteFolder = asyncHandler(async (req, res) => {
     logger.info("Soft deleting folder");
     const folderId = req.params.id;
@@ -109,7 +114,7 @@ class FolderController {
       .json(new ApiResponse(200, { folder: deletedFolder }, "Folder moved to trash"));
   });
   
-  // Permanently delete a folder
+  /** Permanently delete a folder */
   permanentDeleteFolder = asyncHandler(async (req, res) => {
     logger.info("Permanently deleting folder");
     const folderId = req.params.id;
@@ -125,7 +130,7 @@ class FolderController {
       .json(new ApiResponse(200, { result }, "Folder permanently deleted"));
   });
   
-  // Restore a folder from trash
+  /** Restore folder from trash */
   restoreFolder = asyncHandler(async (req, res) => {
     logger.info("Restoring folder from trash");
     const folderId = req.params.id;
@@ -143,7 +148,7 @@ class FolderController {
   
 
   /**
-   * Get all folders in trash
+   * Get all trashed folders
    */
   getTrashFolderContents = asyncHandler(async (req, res) => {
     logger.info("Getting trash folder contents");
@@ -161,7 +166,7 @@ class FolderController {
   });
 
   /**
-   * Empty trash - permanently delete all trashed folders
+   * Empty trash (delete all trashed folders)
    */
   emptyTrash = asyncHandler(async (req, res) => {
     logger.info("Emptying folder trash");
@@ -179,7 +184,7 @@ class FolderController {
       .json(new ApiResponse(200, { result }, "Folder trash emptied successfully"));
   });
 
-  // Update a folder
+  /** Update folder (color, pin, etc) */
   updateFolder = asyncHandler(async (req, res) => {
     logger.info("Updating folder");
     const folderId = req.params.id;

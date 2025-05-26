@@ -1,5 +1,8 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
 
+/**
+ * Folder document with hierarchy and metadata
+ */
 export interface IFolder extends Document {
   _id: Types.ObjectId;
   name: string;
@@ -14,6 +17,9 @@ export interface IFolder extends Document {
   deletedAt: Date | null;
 }
 
+/**
+ * MongoDB schema for folder data
+ */
 const FolderSchema = new Schema<IFolder>(
   {
     name: { type: String, required: true },
@@ -28,4 +34,7 @@ const FolderSchema = new Schema<IFolder>(
   { timestamps: true }
 );
 
+/**
+ * Folder model for database operations
+ */
 export const Folder = mongoose.model<IFolder>("Folder", FolderSchema);

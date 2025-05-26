@@ -6,12 +6,25 @@ import {
 import { Folder, IFolder } from "@api/folder/folder.model.js";
 import mongoose from "mongoose";
 
+// FolderDao: Data access for folder CRUD, soft-delete, and hierarchy ops
 class FolderDao {
+  /**
+   * Create and save a new folder
+   * @param folderData - Partial folder fields (name, parent, owner, etc.)
+   * @returns The created folder doc
+   */
   async createFolder(folderData: Partial<IFolder>): Promise<IFolder> {
     const newFolder = new Folder(folderData);
     return newFolder.save();
   }
 
+  /**
+   * Get user's folders, filter by parent and deleted status
+   * @param userId - Folder owner
+   * @param parentId - Parent folder (null=root)
+   * @param isDeleted - Only deleted if true
+   * @returns Folder docs array
+   */
   async getUserFolders(
     userId: string,
     parentId?: string | null,
@@ -34,10 +47,9 @@ class FolderDao {
   }
 
   /**
-   * Get all deleted folders for a user
-   *
-   * @param userId ID of the user whose deleted folders to retrieve
-   * @returns Array of deleted folders
+   * Get all soft-deleted folders for user
+   * @param userId - Folder owner
+   * @returns Deleted folder docs
    */
   async getUserDeletedFolders(userId: string): Promise<IFolder[]> {
     return await Folder.find({
@@ -49,6 +61,12 @@ class FolderDao {
       .sort({ updatedAt: -1 });
   }
 
+  /**
+   * Get folder by ID, optionally include deleted
+   * @param folderId - Folder ID
+   * @param includeDeleted - Include deleted if true
+   * @returns Folder doc or null
+   */
   async getFolderById(folderId: string, includeDeleted: boolean = false): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) {
       return null;
@@ -64,6 +82,12 @@ class FolderDao {
       .populate("parent");
   }
 
+  /**
+   * Update folder (not name/parent)
+   * @param folderId - Folder ID
+   * @param updateData - Fields to update
+   * @returns Updated doc or null
+   */
   async updateFolder(
     folderId: string,
     updateData: UpdateFolderDto
@@ -74,6 +98,12 @@ class FolderDao {
       .populate("parent");
   }
 
+  /**
+   * Rename folder
+   * @param folderId - Folder ID
+   * @param renameData - New name
+   * @returns Updated doc or null
+   */
   async renameFolder(
     folderId: string,
     renameData: RenameFolderDto
@@ -88,6 +118,12 @@ class FolderDao {
       .populate("parent");
   }
 
+  /**
+   * Move folder to new parent
+   * @param folderId - Folder ID
+   * @param moveData - New parent ID
+   * @returns Updated doc or null
+   */
   async moveFolder(
     folderId: string,
     moveData: MoveFolderDto
@@ -102,6 +138,11 @@ class FolderDao {
       .populate("parent");
   }
 
+  /**
+   * Soft-delete folder (mark as deleted)
+   * @param folderId - Folder ID
+   * @returns Updated doc or null
+   */
   async softDeleteFolder(folderId: string): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
     return await Folder.findByIdAndUpdate(
@@ -113,6 +154,11 @@ class FolderDao {
       .populate("parent");
   }
 
+  /**
+   * Restore soft-deleted folder
+   * @param folderId - Folder ID
+   * @returns Updated doc or null
+   */
   async restoreDeletedFolder(folderId: string): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
     return await Folder.findByIdAndUpdate(
@@ -124,18 +170,22 @@ class FolderDao {
       .populate("parent");
   }
 
+  /**
+   * Permanently delete folder
+   * @param folderId - Folder ID
+   * @returns True if deleted
+   */
   async permanentDeleteFolder(folderId: string): Promise<boolean> {
     const result = await Folder.deleteOne({ _id: folderId });
     return result.deletedCount === 1;
   }
 
   /**
-   * Check if a folder with the given name exists in a specific parent folder
-   *
-   * @param name Folder name to check
-   * @param ownerId User who owns the folder
-   * @param parentId Parent folder ID (null for root level)
-   * @returns Folder document if found, null otherwise
+   * Check if folder exists by name/parent/owner
+   * @param name - Folder name
+   * @param ownerId - Owner ID
+   * @param parentId - Parent ID (null=root)
+   * @returns Folder doc or null
    */
   async checkFolderExists(
     name: string,
@@ -153,11 +203,10 @@ class FolderDao {
   }
 
   /**
-   * Get all subfolders of a folder
-   *
-   * @param folderId ID of the folder
-   * @param includeDeleted Whether to include deleted folders
-   * @returns Array of subfolder IDs
+   * Get direct subfolders
+   * @param folderId - Parent folder ID
+   * @param includeDeleted - Include deleted if true
+   * @returns Array of child folder IDs
    */
   async getSubfolders(
     folderId: string,
@@ -176,11 +225,10 @@ class FolderDao {
   }
 
   /**
-   * Recursively get all descendant folders of a folder
-   *
-   * @param folderId ID of the folder
-   * @param includeDeleted Whether to include deleted folders
-   * @returns Array of all descendant folder IDs
+   * Recursively get all descendant folders
+   * @param folderId - Root folder ID
+   * @param includeDeleted - Include deleted if true
+   * @returns All descendant folder IDs
    */
   async getAllDescendantFolders(
     folderId: string,
@@ -203,8 +251,11 @@ class FolderDao {
   }
 
   /**
-   * Update folder paths in bulk
-   * This is used when moving or renaming folders to update all child paths
+   * Bulk update folder paths/segments
+   * @param oldPathPrefix - Path prefix to replace
+   * @param newPathPrefix - New prefix
+   * @param pathSegmentsToUpdate - Segments to update
+   * @returns Update result
    */
   async bulkUpdateFolderPaths(
     oldPathPrefix: string,
@@ -249,6 +300,11 @@ class FolderDao {
     };
   }
 
+  /**
+   * Permanently delete all user's soft-deleted folders
+   * @param userId - Owner ID
+   * @returns Delete result
+   */
   async permanentDeleteAllDeletedFolders(
     userId: string
   ): Promise<{ acknowledged: boolean; deletedCount: number }> {

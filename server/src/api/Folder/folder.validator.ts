@@ -1,6 +1,8 @@
 import { z } from "zod";
 
-// Reusable folder name schema
+/**
+ * Valid folder name pattern: 1-255 chars, alphanumeric with common symbols
+ */
 const folderNameSchema = z
   .string()
   .min(1, { message: "Folder name is required" })
@@ -10,16 +12,23 @@ const folderNameSchema = z
     "Folder name contains invalid characters"
   );
 
+/**
+ * Optional parent folder reference
+ */
 const folderParentSchema = z.string().nullable().optional();
 
-// Validation schema for creating a folder
+/**
+ * New folder creation rules
+ */
 export const createFolderSchema = z.object({
   name: z.string().min(1, "Name is required"),
   parent: z.string().nullable().optional(),
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format").optional(),
 });
 
-// Validation schema for updating a folder
+/**
+ * Optional folder property updates
+ */
 export const updateFolderSchema = z.object({
   name: z.string().optional(),
   parent: z.string().nullable().optional(),
@@ -27,12 +36,16 @@ export const updateFolderSchema = z.object({
   isPinned: z.boolean().optional(),
 });
 
-// Validation schema for renaming a folder
+/**
+ * Folder name change validation
+ */
 export const renameFolderSchema = z.object({
   name: z.string().min(1, "Name is required"),
 });
 
-// Validation schema for moving a folder
+/**
+ * Folder location change validation
+ */
 export const moveFolderSchema = z.object({
   parent: z.string().nullable(),
 });

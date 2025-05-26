@@ -17,8 +17,13 @@ import { sanitizeFilename } from "@utils/sanitize.utils.js";
 import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
 import mongoose, { Types } from "mongoose";
 
+/**
+ * Business logic for folder operations
+ */
 class FolderService {
-  // Create a new folder
+  /**
+   * Create folder with unique name
+   */
   async createFolder(
     folderData: CreateFolderDto,
     userId: string
@@ -43,12 +48,11 @@ class FolderService {
   }
 
   /**
-   * Ensure a folder name is unique within a parent folder by appending a counter if needed
-   *
-   * @param name Original folder name
-   * @param userId User ID who owns the folder
-   * @param parentId Optional parent folder ID
-   * @returns Unique folder name
+   * Make folder name unique in parent by adding counter
+   * @param name - Base folder name
+   * @param userId - Owner ID
+   * @param parentId - Parent folder
+   * @returns Deduplicated name
    */
   private async ensureUniqueNameAtLevel(
     name: string,
@@ -80,13 +84,11 @@ class FolderService {
   }
 
   /**
-   * Verifies that a folder belongs to the specified user
-   *
-   * @param folderId The ID of the folder to check
-   * @param userId The ID of the user who should own the folder
-   * @param includeDeleted Whether to include deleted folders in the check
-   * @returns The folder if ownership is verified
-   * @throws ApiError if folder not found or user is not the owner
+   * Check folder ownership permission
+   * @param folderId - Target folder
+   * @param userId - Expected owner
+   * @param includeDeleted - Include trashed folders
+   * @throws Owner mismatch or not found
    */
   async verifyFolderOwnership(
     folderId: string,
@@ -114,11 +116,10 @@ class FolderService {
   }
 
   /**
-   * Get the immediate children of a folder (other folders and files)
-   *
-   * @param folderId ID of the folder to get contents of (null for root level)
-   * @param userId ID of the user who should own the folder
-   * @returns Folder contents including subfolders and files
+   * List folder's direct children
+   * @param folderId - Target folder or null for root
+   * @param userId - Folder owner
+   * @returns Files and subfolders
    */
   async getFolderContents(
     folderId: string | null,
@@ -162,12 +163,11 @@ class FolderService {
   }
 
   /**
-   * Get folder by ID
-   *
-   * @param folderId Folder ID to retrieve
-   * @param userId User ID requesting access
-   * @param includeDeleted Whether to include deleted folders
-   * @returns Folder document or error if unauthorized
+   * Get single folder by ID
+   * @param folderId - Target folder
+   * @param userId - Requesting user
+   * @param includeDeleted - Include trashed
+   * @throws Not found or unauthorized
    */
   async getFolderById(
     folderId: string,
@@ -192,10 +192,8 @@ class FolderService {
   }
 
   /**
-   * Increment a folder's item count when a new item is added to it
-   * Public method for use by other services
-   *
-   * @param folderId ID of the folder to update
+   * Increment folder's item counter
+   * @param folderId - Target folder
    */
   async incrementFolderItemCount(folderId: string | null): Promise<void> {
     if (folderId) {
@@ -217,13 +215,11 @@ class FolderService {
   }
 
   /**
-   * Rename a folder
-   * Updates the folder's name and recursively updates paths for all children
-   *
-   * @param folderId ID of the folder to rename
-   * @param renameData Object containing the new name
-   * @param userId ID of the user who owns the folder
-   * @returns Updated folder with new name
+   * Change folder name
+   * @param folderId - Target folder
+   * @param renameData - New name
+   * @param userId - Folder owner
+   * @returns Updated folder
    */
   async renameFolder(
     folderId: string,
@@ -252,13 +248,11 @@ class FolderService {
   }
 
   /**
-   * Move a folder to a new parent folder
-   * Updates the folder's parent and recursively updates paths for all children
-   *
-   * @param folderId ID of the folder to move
-   * @param moveData Object containing the new parent ID
-   * @param userId ID of the user who owns the folder
-   * @returns Updated folder with new parent and path
+   * Move folder to new location
+   * @param folderId - Target folder
+   * @param moveData - New parent folder
+   * @param userId - Folder owner
+   * @throws Circular nesting or unauthorized
    */
   async moveFolder(
     folderId: string,
@@ -335,12 +329,10 @@ class FolderService {
   }
 
   /**
-   * Check if a folder is a descendant of another folder
-   * Used to prevent circular references when moving folders
-   *
-   * @param folderId Potential parent folder ID
-   * @param potentialDescendantId Potential child folder ID
-   * @returns True if potentialDescendantId is a descendant of folderId
+   * Check for nested folder relationship
+   * @param folderId - Parent to check
+   * @param potentialDescendantId - Possible child
+   * @returns Is descendant
    */
   private async isFolderDescendant(
     folderId: string,
@@ -357,7 +349,7 @@ class FolderService {
   }
 
   /**
-   * Sanitize folder document for client response
+   * Clean folder data for client response
    */
   private sanitizeFolder(folder: IFolder): FolderResponseDto {
     return sanitizeDocument(folder, {
@@ -367,11 +359,10 @@ class FolderService {
   }
 
   /**
-   * Build path segments (breadcrumbs) for a folder
-   * 
-   * @param folderId ID of the folder to build path for (null for root folder)
-   * @param userId ID of the user who owns the folder
-   * @returns Array of path segments from root to the current folder
+   * Generate folder breadcrumb trail
+   * @param folderId - Current folder
+   * @param userId - Folder owner
+   * @returns Path segments to root
    */
   private async buildPathSegments(
     folderId: string | null, 
@@ -419,11 +410,10 @@ class FolderService {
   }
 
   /**
-   * Soft delete a folder (move to trash)
-   *
-   * @param folderId ID of the folder to soft delete
-   * @param userId ID of the user who owns the folder
-   * @returns The soft-deleted folder
+   * Move folder to trash
+   * @param folderId - Target folder
+   * @param userId - Folder owner
+   * @returns Trashed folder
    */
   async softDeleteFolder(
     folderId: string,
@@ -440,11 +430,10 @@ class FolderService {
   }
 
   /**
-   * Permanently delete a folder and its contents
-   *
-   * @param folderId ID of the folder to permanently delete
-   * @param userId ID of the user who owns the folder
-   * @returns Result of the delete operation
+   * Delete folder and contents permanently
+   * @param folderId - Target folder
+   * @param userId - Folder owner
+   * @throws Delete operation failed
    */
   async permanentDeleteFolder(folderId: string, userId: string): Promise<void> {
     const folder = await this.getFolderById(folderId, userId);
@@ -473,11 +462,10 @@ class FolderService {
   }
 
   /**
-   * Restore a folder from trash
-   *
-   * @param folderId ID of the folder to restore
-   * @param userId ID of the user who owns the folder
-   * @returns The restored folder
+   * Restore folder from trash
+   * @param folderId - Target folder
+   * @param userId - Folder owner
+   * @throws Not in trash or unauthorized
    */
   async restoreFolder(
     folderId: string,
@@ -530,10 +518,9 @@ class FolderService {
   }
 
   /**
-   * Empty the trash by permanently deleting all soft-deleted files and folders
-   *
-   * @param userId ID of the user whose trash to empty
-   * @returns Result of the operation with counts of deleted items
+   * Permanently clear user's trash
+   * @param userId - Target user
+   * @returns Deletion stats
    */
   async emptyTrash(userId: string): Promise<{
     acknowledged: boolean;
@@ -554,11 +541,9 @@ class FolderService {
   }
 
   /**
-   * Get all items in user's trash with support for navigating into deleted folders
-   *
-   * @param userId ID of the user whose trash to retrieve
-   * @param folderId ID of the trash folder to view contents of (null for root trash view)
-   * @returns Folder and file contents of the trash or specific deleted folder
+   * List user's trashed items
+   * @param userId - Target user
+   * @returns Deleted files and folders
    */
   async getTrashContents(userId: string): Promise<FolderResponseWithFilesDto> {
     // Root trash view - show all top-level deleted items
@@ -630,7 +615,11 @@ class FolderService {
     };
   }
 
-  // Helper to increment parent folder's item count when a new folder is created
+  /**
+   * Increment parent's item counter
+   * @param parentId - Parent folder
+   * @throws Parent not found
+   */
   private async incrementParentItemCount(parentId: string): Promise<void> {
     const parentFolder = await folderDao.getFolderById(parentId);
     if (!parentFolder) {
@@ -643,7 +632,11 @@ class FolderService {
     });
   }
 
-  // Helper to decrement parent folder's item count when a folder is deleted or moved
+  /**
+   * Decrement parent's item counter
+   * @param parentId - Parent folder
+   * @throws Parent not found
+   */
   private async decrementParentItemCount(parentId: string): Promise<void> {
     logger.info("Decrementing parent item count for:", parentId.toString());
     const parentFolder = await folderDao.getFolderById(parentId);
@@ -658,6 +651,12 @@ class FolderService {
     });
   }
 
+  /**
+   * List user's folders in parent
+   * @param userId - Target user
+   * @param parentId - Parent folder
+   * @param isDeleted - Include trashed
+   */
   async getUserFolders(
     userId: string,
     parentId?: string | null,
@@ -667,11 +666,20 @@ class FolderService {
     return folders.map((folder) => this.sanitizeFolder(folder));
   }
 
+  /**
+   * List user's trashed folders
+   * @param userId - Target user
+   */
   async getUserDeletedFolders(userId: string): Promise<FolderResponseDto[]> {
     const folders = await folderDao.getUserDeletedFolders(userId);
     return folders.map((folder) => this.sanitizeFolder(folder));
   }
 
+  /**
+   * Delete all trashed folders permanently
+   * @param userId - Target user
+   * @throws Delete operation failed
+   */
   async permanentDeleteAllDeletedFolders(userId: string): Promise<void> {
     const result = await folderDao.permanentDeleteAllDeletedFolders(userId);
     if (!result.acknowledged) {
