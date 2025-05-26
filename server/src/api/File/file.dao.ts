@@ -3,14 +3,12 @@ import File, { IFile } from "@api/file/file.model.js";
 import { Types } from "mongoose";
 
 /**
- * Data Access Object for File operations
- * Handles all database interactions related to files
+ * FileDao: Data access layer for file operations
  */
 class FileDao {
   /**
-   * Create a new file document in the database
-   *
-   * @param data - File data conforming to CreateFileDto
+   * Create and save a new file
+   * @param data - File creation data with owner and optional folder
    * @returns Newly created file document
    */
   async createFile(data: CreateFileDto): Promise<IFile> {
@@ -23,11 +21,10 @@ class FileDao {
   }
 
   /**
-   * Get a file by its ID
-   *
-   * @param id - MongoDB ObjectId string of the file
-   * @param includeDeleted - When true, includes soft-deleted files in search
-   * @returns File document if found, null otherwise
+   * Get file by ID with optional deleted files inclusion
+   * @param id - MongoDB ObjectId string
+   * @param includeDeleted - When true, includes soft-deleted files
+   * @returns File document or null if not found
    */
   async getFileById(
     id: string,
@@ -46,12 +43,11 @@ class FileDao {
   }
 
   /**
-   * Update a file document
-   *
-   * @param id - MongoDB ObjectId string of the file
+   * Update file data by ID
+   * @param id - MongoDB ObjectId string
    * @param data - Update data conforming to UpdateFileDto
    * @param includeDeleted - When true, allows updating soft-deleted files
-   * @returns Updated file document if found and updated, null otherwise
+   * @returns Updated file document or null if not found
    */
   async updateFile(
     id: string,
@@ -65,6 +61,12 @@ class FileDao {
       .populate("folder");
   }
 
+  /**
+   * Rename file by ID
+   * @param id - MongoDB ObjectId string
+   * @param data - Rename data with new file name
+   * @returns Updated file document or null if not found
+   */
   async renameFile(
     id: string,
     data: RenameFileDto
@@ -75,6 +77,12 @@ class FileDao {
       .populate("folder");
   }
 
+  /**
+   * Move file to different folder
+   * @param id - MongoDB ObjectId string
+   * @param data - Move data with target folder ID
+   * @returns Updated file document or null if not found
+   */
   async moveFile(
     id: string,
     data: MoveFileDto
@@ -86,10 +94,9 @@ class FileDao {
   }
 
   /**
-   * Soft delete a file by setting deletedAt timestamp
-   *
-   * @param id - MongoDB ObjectId string of the file
-   * @returns Updated file document with deletedAt timestamp if successful, null otherwise
+   * Soft delete file by setting deletedAt timestamp
+   * @param id - MongoDB ObjectId string
+   * @returns File document with deletedAt timestamp or null if not found
    */
   async softDeleteFile(id: string): Promise<IFile | null> {
     if (!Types.ObjectId.isValid(id)) return null;
@@ -104,10 +111,9 @@ class FileDao {
   }
 
   /**
-   * Restore a soft-deleted file by clearing the deletedAt timestamp
-   *
-   * @param id - MongoDB ObjectId string of the file
-   * @returns Updated file document with cleared deletedAt timestamp if successful, null otherwise
+   * Restore soft-deleted file by clearing deletedAt timestamp
+   * @param id - MongoDB ObjectId string
+   * @returns Restored file document or null if not found
    */
   async restoreDeletedFile(id: string): Promise<IFile | null> {
     if (!Types.ObjectId.isValid(id)) return null;
@@ -121,10 +127,9 @@ class FileDao {
   }
 
   /**
-   * Permanently delete a file from the database
-   *
-   * @param id - MongoDB ObjectId string of the file
-   * @returns Deletion result object with acknowledged and deletedCount properties
+   * Permanently delete file from database
+   * @param id - MongoDB ObjectId string
+   * @returns Deletion result with acknowledged and deletedCount properties
    */
   async permanentDeleteFile(
     id: string
@@ -141,12 +146,11 @@ class FileDao {
   }
 
   /**
-   * Get all files in a folder
-   *
+   * Get user files by folder with optional deletion filter
    * @param userId - MongoDB ObjectId string of the user
-   * @param folderId - MongoDB ObjectId string of the folder (optional)
+   * @param folderId - MongoDB ObjectId string of the folder (optional, null for root)
    * @param isDeleted - When true, returns only deleted files
-   * @returns Array of file documents matching the criteria
+   * @returns Array of file documents sorted by pinned status and updated date
    */
   async getUserFilesByFolders(
     userId: string,
@@ -171,13 +175,12 @@ class FileDao {
   }
 
   /**
-   * Check if a file with the given name and extension exists in a specific folder
-   *
-   * @param name File name without extension
-   * @param extension File extension
-   * @param ownerId User who owns the file
-   * @param folderId Folder where to check (null for root level)
-   * @returns File document if found, null otherwise
+   * Check if file exists with given name and extension in folder
+   * @param name - File name without extension
+   * @param extension - File extension
+   * @param ownerId - User who owns the file
+   * @param folderId - Folder to check (null for root level)
+   * @returns File document if exists, null otherwise
    */
   async checkFileExists(
     name: string,
@@ -197,11 +200,10 @@ class FileDao {
   }
 
   /**
-   * Get all files in a folder and its subfolders (for permanent deletion)
-   * 
-   * @param folderId ID of the folder
-   * @param includeDeleted Whether to include deleted files
-   * @returns Array of files in the folder and subfolders
+   * Get deleted files in specific folder
+   * @param userId - MongoDB ObjectId string of the user
+   * @param folderId - MongoDB ObjectId string of the folder
+   * @returns Array of deleted files in the folder
    */
   async getDeletedUserFilesByFolders(
     userId: string,
@@ -223,6 +225,11 @@ class FileDao {
       .sort({ updatedAt: -1 });
   }
 
+  /**
+   * Get all deleted files for user
+   * @param userId - MongoDB ObjectId string of the user
+   * @returns Array of all deleted files sorted by updated date
+   */
   async getAllDeletedFiles(
     userId: string
   ): Promise<IFile[]> {
@@ -235,6 +242,11 @@ class FileDao {
       .sort({ updatedAt: -1 });
   }
 
+  /**
+   * Permanently delete all user's deleted files
+   * @param userId - MongoDB ObjectId string of the user
+   * @returns Deletion result with acknowledged and deletedCount properties
+   */
   async permanentDeleteAllDeletedFiles(
     userId: string
   ): Promise<{ acknowledged: boolean; deletedCount: number }> {

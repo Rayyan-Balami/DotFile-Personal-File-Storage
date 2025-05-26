@@ -1,5 +1,8 @@
 import { FolderResponseDto } from "@api/folder/folder.dto.js";
 
+/**
+ * Data transfer object for creating a new file
+ */
 export interface CreateFileDto {
   name: string;
   type: string;
@@ -10,21 +13,33 @@ export interface CreateFileDto {
   extension: string;
 }
 
+/**
+ * Data transfer object for updating file properties
+ */
 export interface UpdateFileDto {
   name?: string;
   folder?: string | null;
   isPinned?: boolean;
 }
 
+/**
+ * Data transfer object for renaming a file
+ */
 export interface RenameFileDto {
   name: string;
 }
 
+/**
+ * Data transfer object for moving a file to different folder
+ */
 export interface MoveFileDto {
   folder: string | null;
   name: string;
 }
 
+/**
+ * Data transfer object for file response with complete file information
+ */
 export interface FileResponseDto {
   id: string;
   name: string;

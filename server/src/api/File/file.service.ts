@@ -18,16 +18,14 @@ import { Types } from "mongoose";
 import path from "path";
 
 /**
- * Service class for file-related business logic
- * Handles operations between controllers and data access layer
+ * FileService: Business logic layer for file operations
  */
 class FileService {
   /**
-   * Create a file record with virtual folder mapping
-   * 
-   * @param fileData File data including name, type, size, and storage key
-   * @param userId User ID who owns the file
-   * @param folderId Optional virtual folder ID
+   * Create file record with virtual folder mapping
+   * @param fileData - File data including name, type, size, and storage key
+   * @param userId - User ID who owns the file
+   * @param folderId - Optional virtual folder ID
    * @returns Created file document
    */
   async createFileWithVirtualFolder(
@@ -71,10 +69,9 @@ class FileService {
   }
 
   /**
-   * Verifies that a file belongs to the specified user
-   * 
-   * @param fileId The ID of the file to check
-   * @param userId The ID of the user who should own the file
+   * Verify file ownership by user
+   * @param fileId - The ID of the file to check
+   * @param userId - The ID of the user who should own the file
    * @returns The file if ownership is verified
    * @throws ApiError if file not found or user is not the owner
    */
@@ -99,9 +96,8 @@ class FileService {
   }
 
   /**
-   * Create a file record from uploaded file
-   * 
-   * @param fileData File data from upload
+   * Create file record from uploaded file
+   * @param fileData - File data from upload
    * @returns Created file document
    */
   async createFile(fileData: CreateFileDto): Promise<FileResponseDto> {
@@ -118,11 +114,10 @@ class FileService {
   }
 
   /**
-   * Get user files by folder
-   *
-   * @param userId User ID who owns the files
-   * @param folderId Optional folder ID to filter by
-   * @param isDeleted Whether to return deleted files
+   * Get user files by folder with optional deletion filter
+   * @param userId - User ID who owns the files
+   * @param folderId - Optional folder ID to filter by
+   * @param isDeleted - Whether to return deleted files
    * @returns Array of file documents matching criteria
    */
   async getUserFilesByFolders(
@@ -138,10 +133,9 @@ class FileService {
   }
 
   /**
-   * Get a file by ID
-   * 
-   * @param fileId File ID
-   * @param userId User ID for ownership verification
+   * Get file by ID with ownership verification
+   * @param fileId - File ID
+   * @param userId - User ID for ownership verification
    * @returns File document if found
    * @throws ApiError if file not found or user doesn't own it
    */
@@ -170,11 +164,10 @@ class FileService {
   }
 
   /**
-   * Update file information
-   * 
-   * @param fileId File ID to update
-   * @param updateData Data to update
-   * @param userId User ID for ownership verification
+   * Update file information with ownership verification
+   * @param fileId - File ID to update
+   * @param updateData - Data to update
+   * @param userId - User ID for ownership verification
    * @returns Updated file document
    * @throws ApiError if file not found, user doesn't own it, or update fails
    */
@@ -193,10 +186,9 @@ class FileService {
   }
 
   /**
-   * Soft delete a file
-   * 
-   * @param fileId File ID to delete
-   * @param userId User ID for ownership verification
+   * Soft delete file with ownership verification
+   * @param fileId - File ID to delete
+   * @param userId - User ID for ownership verification
    * @returns Deleted file document
    * @throws ApiError if file not found, user doesn't own it, or deletion fails
    */
@@ -222,11 +214,10 @@ class FileService {
   }
 
   /**
-   * Rename a file
-   * 
-   * @param fileId File ID to rename
-   * @param newName New file name
-   * @param userId User ID for ownership verification
+   * Rename file with uniqueness check
+   * @param fileId - File ID to rename
+   * @param newName - New file name
+   * @param userId - User ID for ownership verification
    * @returns Updated file document
    */
   async renameFile(fileId: string, newName: string, userId: string): Promise<FileResponseDto> {
@@ -254,11 +245,10 @@ class FileService {
   }
   
   /**
-   * Move a file to a new parent folder
-   * 
-   * @param fileId File ID to move
-   * @param newFolderId New parent folder ID or null for root
-   * @param userId User ID for ownership verification
+   * Move file to new parent folder
+   * @param fileId - File ID to move
+   * @param newFolderId - New parent folder ID or null for root
+   * @param userId - User ID for ownership verification
    * @returns Updated file document
    */
   async moveFile(fileId: string, newFolderId: string | null, userId: string): Promise<FileResponseDto> {
@@ -317,12 +307,11 @@ class FileService {
   }
 
   /**
-   * Process uploaded files 
-   * 
-   * @param files Array of uploaded files from multer middleware
-   * @param userId User ID who owns the files
-   * @param folderId Optional target folder ID
-   * @param fileToFolderMap Map of filenames to their virtual folder paths (for zip extraction)
+   * Process uploaded files with virtual folder mapping
+   * @param files - Array of uploaded files from multer middleware
+   * @param userId - User ID who owns the files
+   * @param folderId - Optional target folder ID
+   * @param fileToFolderMap - Map of filenames to their virtual folder paths (for zip extraction)
    * @returns Array of processed file results
    */
   async processUploadedFiles(
@@ -383,12 +372,11 @@ class FileService {
   }
   
   /**
-   * Helper method to create folder structure based on path segments
-   * 
-   * @param virtualPath Path string with segments separated by /
-   * @param parentFolderId Initial parent folder ID
-   * @param userId User who owns the folders
-   * @param folderCache Cache map to store created folders
+   * Create folder structure based on path segments
+   * @param virtualPath - Path string with segments separated by /
+   * @param parentFolderId - Initial parent folder ID
+   * @param userId - User who owns the folders
+   * @param folderCache - Cache map to store created folders
    * @returns ID of the last folder created or found
    */
   private async createFolderStructure(
@@ -435,13 +423,11 @@ class FileService {
   }
 
   /**
-   * Ensure a file name is unique within a folder by appending a counter if needed
-   * Similar to how folder names are made unique
-   * 
-   * @param name Original file name without extension
-   * @param extension File extension
-   * @param ownerId User ID who owns the file
-   * @param folderId Optional folder ID where the file will be placed
+   * Ensure file name is unique within folder
+   * @param name - Original file name without extension
+   * @param extension - File extension
+   * @param ownerId - User ID who owns the file
+   * @param folderId - Optional folder ID where the file will be placed
    * @returns Unique file name (without extension)
    */
   private async ensureUniqueNameAtLevel(
@@ -477,6 +463,8 @@ class FileService {
 
   /**
    * Sanitize file document for client response
+   * @param file - File document to sanitize
+   * @returns Sanitized file response DTO
    */
   private sanitizeFile(file: IFile): FileResponseDto {
     return sanitizeDocument<FileResponseDto>(file, {
@@ -486,7 +474,9 @@ class FileService {
   }
   
   /**
-   * Sanitize a path segment (file or folder name)
+   * Sanitize path segment by removing invalid characters
+   * @param name - Original path segment name
+   * @returns Sanitized path segment
    */
   private sanitizePathSegment(name: string): string {
     return name
@@ -497,7 +487,10 @@ class FileService {
   }
 
   /**
-   * Permanently delete a file from database and storage
+   * Permanently delete file from database and storage
+   * @param fileId - File ID to delete
+   * @param userId - User ID for ownership verification
+   * @throws ApiError if file not found or deletion fails
    */
   async permanentDeleteFile(fileId: string, userId: string): Promise<void> {
     // First verify the file exists and belongs to the user
@@ -526,11 +519,11 @@ class FileService {
   }
 
   /**
-   * Restore a soft-deleted file
-   * 
-   * @param fileId ID of the file to restore
-   * @param userId ID of the user who owns the file
+   * Restore soft-deleted file
+   * @param fileId - ID of the file to restore
+   * @param userId - ID of the user who owns the file
    * @returns The restored file
+   * @throws ApiError if file not found or restoration fails
    */
   async restoreFile(fileId: string, userId: string): Promise<FileResponseDto> {
     // Verify file exists and belongs to user (include deleted files in search)
@@ -574,10 +567,10 @@ class FileService {
   }
 
   /**
-   * Get all files in user's trash
-   * 
-   * @param userId ID of the user
-   * @returns List of deleted files
+   * Get deleted files in specific folder
+   * @param userId - ID of the user
+   * @param folderId - ID of the folder to check
+   * @returns Object containing array of deleted files
    */
   async getDeletedUserFilesByFolders(userId: string, folderId: string): Promise<{ files: FileResponseDto[] }> {
     // Get deleted files for this user
@@ -592,10 +585,9 @@ class FileService {
   }
 
   /**
-   * Get all deleted files for a user
-   * 
-   * @param userId ID of the user
-   * @returns List of all deleted files, regardless of folder
+   * Get all deleted files for user across all folders
+   * @param userId - ID of the user
+   * @returns Array of all deleted files, regardless of folder
    */
   async getAllDeletedFiles(userId: string): Promise<FileResponseDto[]> {
     // Get all deleted files for this user
@@ -605,6 +597,11 @@ class FileService {
     return deletedFiles.map(file => this.sanitizeFile(file));
   }
 
+  /**
+   * Permanently delete all user's deleted files from storage and database
+   * @param userId - ID of the user
+   * @throws ApiError if deletion fails
+   */
   async permanentDeleteAllDeletedFiles(userId: string): Promise<void> {
     // Get all deleted files for this user
     const deletedFiles = await fileDao.getAllDeletedFiles(userId);
@@ -630,10 +627,9 @@ class FileService {
   }
 
   /**
-   * Get file stream for viewing
-   * 
-   * @param fileId File ID to view
-   * @param userId User ID who owns the file
+   * Get decrypted file stream for viewing
+   * @param fileId - File ID to view
+   * @param userId - User ID who owns the file
    * @returns Object containing file stream, mime type, and filename
    * @throws ApiError if file not found or user doesn't own it
    */
