@@ -6,14 +6,14 @@ export interface CardGridProps {
   items: FileSystemItem[];
   viewType: CardVariant;
   onItemClick: (id: string, event: React.MouseEvent<HTMLDivElement>) => void;
+  onItemOpen?: (id: string) => void;
 }
 
-export function CardGrid({ items, viewType, onItemClick }: CardGridProps) {
+export function CardGrid({ items, viewType, onItemClick, onItemOpen }: CardGridProps) {
   // Helper function to handle item opening via double click
   const handleOpen = (id: string) => {
-    const item = items.find((item) => item.id === id);
-    if (item) {
-      onItemClick(id, new MouseEvent("click") as any);
+    if (onItemOpen) {
+      onItemOpen(id);
     }
   };
 

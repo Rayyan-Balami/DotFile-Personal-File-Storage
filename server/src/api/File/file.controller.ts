@@ -270,7 +270,10 @@ class FileController {
 
     // Set headers for streaming
     res.setHeader('Content-Type', mimeType);
-    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    
+    // Sanitize filename for Content-Disposition header
+    const sanitizedFilename = encodeURIComponent(filename).replace(/['()]/g, escape);
+    res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${sanitizedFilename}`);
 
     // Pipe file stream to response
     stream.pipe(res);
@@ -293,7 +296,10 @@ class FileController {
 
     // Set headers for download instead of viewing
     res.setHeader('Content-Type', mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    
+    // Sanitize filename for Content-Disposition header
+    const sanitizedFilename = encodeURIComponent(filename).replace(/['()]/g, escape);
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${sanitizedFilename}`);
 
     // Pipe file stream to response
     stream.pipe(res);

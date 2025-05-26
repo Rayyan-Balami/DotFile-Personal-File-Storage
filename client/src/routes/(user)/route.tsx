@@ -4,8 +4,6 @@ import { FileSystemDndProvider } from "@/components/dnd/FileSystemDndContext";
 import { SiteFooter } from "@/components/footer/site-footer";
 import { SiteHeader } from "@/components/header/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import dummyData from "@/data/dummyData.json";
-import { initializeFileSystem } from "@/stores/useFileSystemStore";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { useEffect } from "react";
@@ -22,11 +20,6 @@ function RouteComponent() {
     };
     document.addEventListener("contextmenu", disableRightClick);
     return () => document.removeEventListener("contextmenu", disableRightClick);
-  }, []);
-
-  useEffect(() => {
-    // Initialize file system with our JSON data
-    initializeFileSystem(dummyData);
   }, []);
 
   return (

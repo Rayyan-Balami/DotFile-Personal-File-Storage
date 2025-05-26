@@ -1,18 +1,6 @@
 import { produce } from 'immer';
 import { create } from 'zustand';
-import { FileSystemItem } from '@/types/folderDocumnet';
-
-// Temporary adapter to help with the transition from title to name
-const itemAdapter = (item: FileSystemItem): FileSystemItem => {
-  // Make sure both title and name are available during transition
-  if (!('title' in item) && 'name' in item) {
-    (item as any).title = item.name;
-  }
-  if (!('name' in item) && 'title' in item) {
-    (item as any).name = (item as any).title;
-  }
-  return item;
-};
+import { DocumentItem, FileSystemItem, FolderItem } from '@/types/folderDocumnet';
 
 interface FileSystemState {
   items: Record<string, FileSystemItem>;
@@ -27,8 +15,7 @@ interface FileSystemState {
   // Helpers
   getChildren: (folderId: string | null) => FileSystemItem[];
   getPath: (itemId: string) => FileSystemItem[];
-  getFolderById: (folderId: string) => FileSystemItem | undefined;
-  getRootFolder: () => FileSystemItem | undefined;
+  getFolderById: (folderId: string) => FolderItem | undefined;
   getItemById: (itemId: string) => FileSystemItem | undefined;
 }
 
@@ -40,32 +27,38 @@ export const useFileSystemStore = create<FileSystemState>((set, get) => ({
     const item = state.items[itemId];
     if (!item) return;
     
-    // Remove from current parent
-    if (item.type === 'folder') {
-      if (item.parent === null) {
-        state.rootItems = state.rootItems.filter(id => id !== itemId);
-      }
-    } else {
-      if (item.folder === null) {
-        state.rootItems = state.rootItems.filter(id => id !== itemId);
-      }
+    // Remove from current parent's root items if it was there
+    if ('parent' in item && item.parent === null || 'folder' in item && item.folder === null) {
+      state.rootItems = state.rootItems.filter((id: string) => id !== itemId);
     }
     
-    // Add to new parent
+    // Add to new location
     if (targetId === null) {
       state.rootItems.push(itemId);
       if (item.type === 'folder') {
-        item.parent = null;
+        (item as FolderItem).parent = null;
       } else {
-        item.folder = null;
+        (item as DocumentItem).folder = null;
       }
     } else {
       const targetItem = state.items[targetId];
-      if (targetItem && targetItem.type === 'folder') {
+      if (targetItem?.type === 'folder') {
         if (item.type === 'folder') {
-          item.parent = targetId;
+          (item as FolderItem).parent = targetId;
         } else {
-          item.folder = targetId;
+          (item as DocumentItem).folder = {
+            id: targetId,
+            name: targetItem.name,
+            type: 'folder',
+            owner: targetItem.owner,
+            color: (targetItem as FolderItem).color,
+            parent: (targetItem as FolderItem).parent,
+            items: (targetItem as FolderItem).items,
+            isPinned: targetItem.isPinned,
+            createdAt: targetItem.createdAt,
+            updatedAt: targetItem.updatedAt,
+            deletedAt: targetItem.deletedAt,
+          };
         }
       }
     }
@@ -75,8 +68,8 @@ export const useFileSystemStore = create<FileSystemState>((set, get) => ({
     state.items[item.id] = item;
     
     const isRootItem = item.type === 'folder' ? 
-      item.parent === null : 
-      item.folder === null;
+      (item as FolderItem).parent === null : 
+      (item as DocumentItem).folder === null;
       
     if (isRootItem && !state.rootItems.includes(item.id)) {
       state.rootItems.push(item.id);
@@ -89,7 +82,7 @@ export const useFileSystemStore = create<FileSystemState>((set, get) => ({
     
     // Remove from root items if applicable
     if (state.rootItems.includes(itemId)) {
-      state.rootItems = state.rootItems.filter(id => id !== itemId);
+      state.rootItems = state.rootItems.filter((id: string) => id !== itemId);
     }
     
     delete state.items[itemId];
@@ -107,15 +100,11 @@ export const useFileSystemStore = create<FileSystemState>((set, get) => ({
       return state.rootItems.map(id => state.items[id]);
     }
     
-    const folderChildren = Object.values(state.items).filter(item => {
-      if (item.type === 'folder') {
-        return item.parent === folderId;
-      } else {
-        return item.folder === folderId;
-      }
-    });
-    
-    return folderChildren;
+    return Object.values(state.items).filter(item => 
+      item.type === 'folder' ? 
+        (item as FolderItem).parent === folderId : 
+        (item as DocumentItem).folder?.id === folderId
+    );
   },
   
   getPath: (itemId) => {
@@ -126,14 +115,16 @@ export const useFileSystemStore = create<FileSystemState>((set, get) => ({
     if (!current) return path;
     path.unshift(current);
     
-    let parentId = current.type === 'folder' ? current.parent : current.folder;
+    let parentId = current.type === 'folder' ? 
+      (current as FolderItem).parent : 
+      (current as DocumentItem).folder?.id;
     
     while (parentId) {
       const parent = state.items[parentId];
       if (!parent) break;
       
       path.unshift(parent);
-      parentId = parent.type === 'folder' ? parent.parent : null;
+      parentId = parent.type === 'folder' ? (parent as FolderItem).parent : null;
     }
     
     return path;
@@ -142,27 +133,7 @@ export const useFileSystemStore = create<FileSystemState>((set, get) => ({
   getFolderById: (folderId) => {
     const state = get();
     const folder = state.items[folderId];
-    return folder && folder.type === 'folder' ? folder : undefined;
-  },
-  
-  getRootFolder: () => {
-    const state = get();
-    return {
-      id: 'root',
-      name: 'Files',
-      type: 'folder',
-      owner: '',
-      workspace: null,
-      parent: null,
-      path: '/',
-      pathSegments: [],
-      items: state.rootItems.length,
-      isPinned: false,
-      isShared: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      deletedAt: null
-    };
+    return folder && folder.type === 'folder' ? folder as FolderItem : undefined;
   },
   
   getItemById: (itemId) => {
@@ -170,53 +141,3 @@ export const useFileSystemStore = create<FileSystemState>((set, get) => ({
     return state.items[itemId];
   }
 }));
-
-// Initialize with updated data structure
-export const initializeFileSystem = (data: any) => {
-  // Clear existing state
-  const store = useFileSystemStore.getState();
-  
-  // If data has the new structure with folderContents
-  if (data?.data?.folderContents) {
-    const { folders = [], files = [] } = data.data.folderContents;
-    const allItems: Record<string, FileSystemItem> = {};
-    const rootItemIds: string[] = [];
-    
-    // Process folders
-    folders.forEach(folder => {
-      // Apply adapter to ensure backward compatibility
-      const adaptedFolder = itemAdapter(folder);
-      allItems[adaptedFolder.id] = adaptedFolder;
-      if (adaptedFolder.parent === null) {
-        rootItemIds.push(adaptedFolder.id);
-      }
-    });
-    
-    // Process files
-    files.forEach(file => {
-      // Apply adapter to ensure backward compatibility
-      const adaptedFile = itemAdapter(file);
-      allItems[adaptedFile.id] = adaptedFile;
-      if (adaptedFile.folder === null) {
-        rootItemIds.push(adaptedFile.id);
-      }
-    });
-    
-    // Update store
-    useFileSystemStore.setState({
-      items: allItems,
-      rootItems: rootItemIds
-    });
-  } else if (data.items && data.rootItems) {
-    // Old format - apply adapter to all items for backward compatibility
-    const adaptedItems: Record<string, FileSystemItem> = {};
-    Object.entries(data.items).forEach(([id, item]) => {
-      adaptedItems[id] = itemAdapter(item as FileSystemItem);
-    });
-    
-    useFileSystemStore.setState({
-      items: adaptedItems,
-      rootItems: data.rootItems
-    });
-  }
-};

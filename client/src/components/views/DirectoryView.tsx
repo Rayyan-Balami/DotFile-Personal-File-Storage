@@ -52,17 +52,27 @@ export default function DirectoryView({
   const folders = sortedItems.filter((item) => item.cardType === "folder");
   const documents = sortedItems.filter((item) => item.cardType === "document");
 
-  // Callback for opening items
+  // Callback for opening items (double click)
   const handleOpenItem = (id: string) => {
     const item = sortedItems.find((item) => item.id === id);
+    if (!item) return;
+    
+    if (item.cardType === "folder") {
+      navigate({ to: `/folder/${item.id}` });
+    } else {
+      // Handle document opening - for now just log it
+      // TODO: Implement document opening logic (preview/download)
+      console.log(`Opening document: ${item.name}`);
+    }
+  };
+
+  // Callback for selecting items (single click)
+  const handleSelectItem = (id: string, event: React.MouseEvent) => {
+    // All items (both folders and documents) should just be selected on single click
+    const item = sortedItems.find((item) => item.id === id);
     if (item) {
-      if (item.cardType === "folder") {
-        navigate({ to: `/folder/${item.id}` });
-      } else {
-        // Handle document opening logic
-        console.log(`Opening document: ${item.name}`);
-        // Implement document opening logic
-      }
+      // Let the selection store handle the selection
+      useSelectionStore.getState().handleItemClick(id, event);
     }
   };
 
@@ -101,7 +111,8 @@ export default function DirectoryView({
                     <CardGrid
                       items={folders}
                       viewType={viewType}
-                      onItemClick={(id) => handleOpenItem(id)}
+                      onItemClick={handleSelectItem}
+                      onItemOpen={handleOpenItem}
                     />
                   </section>
                 )}
@@ -112,7 +123,8 @@ export default function DirectoryView({
                     <CardGrid
                       items={documents}
                       viewType={viewType}
-                      onItemClick={(id) => handleOpenItem(id)}
+                      onItemClick={handleSelectItem}
+                      onItemOpen={handleOpenItem}
                     />
                   </section>
                 )}
@@ -123,7 +135,8 @@ export default function DirectoryView({
                 <CardGrid
                   items={sortedItems}
                   viewType={viewType}
-                  onItemClick={(id) => handleOpenItem(id)}
+                  onItemClick={handleSelectItem}
+                  onItemOpen={handleOpenItem}
                 />
               </section>
             )}
