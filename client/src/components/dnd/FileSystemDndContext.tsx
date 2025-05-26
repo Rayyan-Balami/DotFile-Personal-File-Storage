@@ -67,7 +67,7 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
     // Get the item being dragged
     const draggedItem = items[activeId];
     if (!draggedItem) {
-      console.log('❌ Drag start failed: Item not found', { activeId });
+      console.log('Drag start failed: Item not found', { activeId });
       return;
     }
 
@@ -127,7 +127,7 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
     
     // Early returns for invalid states
     if (!over) {
-      console.log('❌ Drag cancelled: No target');
+      console.log('Drag cancelled: No target');
       resetDragState();
       return;
     }
@@ -137,7 +137,7 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
     
     // Prevent self-drop
     if (active.id === overId) {
-      console.log('❌ Drag cancelled: Cannot drop on self');
+      console.log('Drag cancelled: Cannot drop on self');
       resetDragState();
       return;
     }
@@ -162,9 +162,9 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
         console.log(`📦 Moving ${item.name} to ${overItem.name}`);
         moveItem(item.id, overId);
       });
-      console.log('✅ Move operation complete');
+      console.log('Move operation complete');
     } else {
-      console.log('❌ Cannot drop: Target is not a folder');
+      console.log('Cannot drop: Target is not a folder');
     }
     
     resetDragState();
