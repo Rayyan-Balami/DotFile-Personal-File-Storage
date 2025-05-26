@@ -88,9 +88,9 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
     
     console.group(`${selectedItems.length} item(s) selected:`);
     
-    // Group by type for better organization
-    const folders = selectedItems.filter(item => item.type === 'folder');
-    const documents = selectedItems.filter(item => item.type === 'document');
+    // Group by cardType for better organization
+    const folders = selectedItems.filter(item => item.cardType === 'folder');
+    const documents = selectedItems.filter(item => item.cardType === 'document');
     
     if (folders.length > 0) {
       console.group(`Folders (${folders.length}):`);

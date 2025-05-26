@@ -27,11 +27,11 @@ export function formatChildCount(count: number): string {
 
 /**
  * Format the appropriate count based on item type
- * @param item The file system item with type and counts
+ * @param item The file system item with cardType and counts
  * @returns Formatted string representation of the count
  */
-export function formatItemCount(item: { type: string, childCount?: number, byteCount?: number }): string {
-  if (item.type === 'folder') {
+export function formatItemCount(item: { cardType: 'folder' | 'document', childCount?: number, byteCount?: number }): string {
+  if (item.cardType === 'folder') {
     return formatChildCount(item.childCount || 0);
   } else {
     return formatFileSize(item.byteCount || 0);

@@ -35,15 +35,15 @@ export const useFileSystemStore = create<FileSystemState>((set, get) => ({
     // Add to new location
     if (targetId === null) {
       state.rootItems.push(itemId);
-      if (item.type === 'folder') {
+      if (item.cardType === 'folder') {
         (item as FolderItem).parent = null;
       } else {
         (item as DocumentItem).folder = null;
       }
     } else {
       const targetItem = state.items[targetId];
-      if (targetItem?.type === 'folder') {
-        if (item.type === 'folder') {
+      if (targetItem?.cardType === 'folder') {
+        if (item.cardType === 'folder') {
           (item as FolderItem).parent = targetId;
         } else {
           (item as DocumentItem).folder = {
@@ -67,7 +67,7 @@ export const useFileSystemStore = create<FileSystemState>((set, get) => ({
   addItem: (item) => set(produce((state) => {
     state.items[item.id] = item;
     
-    const isRootItem = item.type === 'folder' ? 
+    const isRootItem = item.cardType === 'folder' ? 
       (item as FolderItem).parent === null : 
       (item as DocumentItem).folder === null;
       
@@ -101,7 +101,7 @@ export const useFileSystemStore = create<FileSystemState>((set, get) => ({
     }
     
     return Object.values(state.items).filter(item => 
-      item.type === 'folder' ? 
+      item.cardType === 'folder' ? 
         (item as FolderItem).parent === folderId : 
         (item as DocumentItem).folder?.id === folderId
     );
@@ -115,7 +115,7 @@ export const useFileSystemStore = create<FileSystemState>((set, get) => ({
     if (!current) return path;
     path.unshift(current);
     
-    let parentId = current.type === 'folder' ? 
+    let parentId = current.cardType === 'folder' ? 
       (current as FolderItem).parent : 
       (current as DocumentItem).folder?.id;
     
@@ -124,7 +124,7 @@ export const useFileSystemStore = create<FileSystemState>((set, get) => ({
       if (!parent) break;
       
       path.unshift(parent);
-      parentId = parent.type === 'folder' ? (parent as FolderItem).parent : null;
+      parentId = parent.cardType === 'folder' ? (parent as FolderItem).parent : null;
     }
     
     return path;
@@ -133,7 +133,7 @@ export const useFileSystemStore = create<FileSystemState>((set, get) => ({
   getFolderById: (folderId) => {
     const state = get();
     const folder = state.items[folderId];
-    return folder && folder.type === 'folder' ? folder as FolderItem : undefined;
+    return folder && folder.cardType === 'folder' ? folder as FolderItem : undefined;
   },
   
   getItemById: (itemId) => {
