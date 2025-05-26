@@ -20,8 +20,6 @@ export function mapToFileSystemItem(item: any): FileSystemItem {
       color: item.color || '#4f46e5',
       parent: item.parent,
       items: item.items || 0,
-      path: item.path || '/',
-      pathSegments: item.pathSegments || [],
     } as FolderItem;
   } else {
     return {
@@ -32,8 +30,6 @@ export function mapToFileSystemItem(item: any): FileSystemItem {
       folder: item.folder as FolderResponseDto | null,
       storageKey: item.storageKey || '',
       extension: item.extension || '',
-      path: item.path || '/',
-      pathSegments: item.pathSegments || [],
     } as DocumentItem;
   }
 }
