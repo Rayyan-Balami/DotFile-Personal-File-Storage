@@ -120,7 +120,7 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    const { over } = event;
+    const { active, over } = event;
     if (!over) {
       console.log('❌ Drag cancelled: No target');
       resetDragState();
@@ -129,6 +129,13 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
     
     const overId = over.id as string;
     const overItem = items[overId];
+    
+    // Skip if dragging to self
+    if (active.id === overId) {
+      console.log('❌ Drag cancelled: Cannot drop on self');
+      resetDragState();
+      return;
+    }
     
     console.log('🎯 Drag end:', {
       draggedItems: draggedItems.map(item => ({ id: item.id, name: item.name })),

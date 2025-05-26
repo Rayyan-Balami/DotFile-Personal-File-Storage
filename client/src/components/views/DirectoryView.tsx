@@ -47,7 +47,6 @@ export default function DirectoryView({
 
   // Sync items with the store
   useEffect(() => {
-    console.log('Syncing items with store:', mappedItems);
     mappedItems.forEach(item => {
       addItem(item);
     });
