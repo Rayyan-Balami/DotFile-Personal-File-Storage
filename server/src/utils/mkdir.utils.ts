@@ -4,14 +4,18 @@ import fs from 'fs';
 import path from 'path';
 
 /**
- * Type guard to check if an error is an Error object
+ * Type guard to confirm if unknown is an Error
+ * @param error Unknown value
+ * @returns true if error is an Error object
  */
 function isError(error: unknown): error is Error {
   return error instanceof Error;
 }
 
 /**
- * Get error message safely regardless of error type
+ * Extract error message safely from any error type
+ * @param error Unknown error object/value
+ * @returns Error message string
  */
 function getErrorMessage(error: unknown): string {
   if (isError(error)) {
@@ -21,139 +25,136 @@ function getErrorMessage(error: unknown): string {
 }
 
 /**
- * Creates a folder with the given name inside the upload directory
- * @param folderName The name of the folder to create
- * @returns The full path of the created folder
+ * Create folder inside UPLOADS_DIR if not exists
+ * @param folderName Name of folder to create
+ * @returns Full path of created/existing folder
+ * @throws Error on failure
  */
 export const mkdir = (folderName: string): string => {
   try {
     const folderPath = path.join(UPLOADS_DIR, folderName);
-    logger.debug(`Attempting to create directory: ${folderPath}`);
+    logger.debug(`[mkdir] Attempt creating directory: ${folderPath}`);
 
-    // Check if the folder already exists
     if (!fs.existsSync(folderPath)) {
-      // Create the folder (including any missing parent directories)
       fs.mkdirSync(folderPath, { recursive: true });
-      logger.info(`Created new directory: ${folderPath}`);
+      logger.info(`[mkdir] Directory created: ${folderPath}`);
     } else {
-      logger.debug(`Directory already exists: ${folderPath}`);
+      logger.debug(`[mkdir] Directory exists: ${folderPath}`);
     }
 
     return folderPath;
   } catch (error: unknown) {
-    logger.error(`Failed to create directory ${folderName}:`, error);
-    throw new Error(`Failed to create directory ${folderName}: ${getErrorMessage(error)}`);
+    logger.error(`[mkdir] Failed creating directory ${folderName}:`, error);
+    throw new Error(`[mkdir] Creation failed for ${folderName}: ${getErrorMessage(error)}`);
   }
 };
 
 /**
- * Creates a user directory with the format `user-{userId}`
- * @param userId The user ID to create a directory for
- * @returns The full path to the created user directory
+ * Create user folder with prefix 'user-' inside UPLOADS_DIR
+ * @param userId User ID string
+ * @returns Full path of created user directory
+ * @throws Error on failure
  */
 export const createUserDirectory = (userId: string): string => {
   try {
-    logger.info(`Creating directory for user: ${userId}`);
+    logger.info(`[createUserDirectory] Creating dir for user: ${userId}`);
     const userDirName = `user-${userId}`;
-    logger.debug(`User directory name: ${userDirName}`);
-    
+    logger.debug(`[createUserDirectory] Dir name: ${userDirName}`);
+
     const dirPath = mkdir(userDirName);
-    logger.info(`Created user directory at ${dirPath}`);
-    
-    // List files in uploads dir to verify
+    logger.info(`[createUserDirectory] Created user directory: ${dirPath}`);
+
+    // Verify contents of uploads dir
     try {
       const files = fs.readdirSync(UPLOADS_DIR);
-      logger.debug(`Contents of uploads directory after creation:`, files);
+      logger.debug(`[createUserDirectory] Uploads dir contents after creation:`, files);
     } catch (readError: unknown) {
-      logger.warn(`Could not read uploads directory after user dir creation:`, readError);
-      // Non-critical error, continue execution
+      logger.warn(`[createUserDirectory] Could not read uploads dir:`, readError);
     }
-    
+
     return dirPath;
   } catch (error: unknown) {
-    logger.error(`Failed to create user directory for ${userId}:`, error);
-    // Consider whether to throw or handle the error based on your application's needs
-    throw new Error(`Failed to create user directory: ${getErrorMessage(error)}`);
+    logger.error(`[createUserDirectory] Failed for user ${userId}:`, error);
+    throw new Error(`[createUserDirectory] Creation failed: ${getErrorMessage(error)}`);
   }
 };
 
 /**
- * Returns the path to a user's storage directory
- * @param userId The user ID
- * @returns The path to the user's storage directory
+ * Get full path for a user's directory (user-{userId})
+ * @param userId User ID
+ * @returns Path string for user directory
+ * @throws Error if path resolution fails
  */
 export const getUserDirectoryPath = (userId: string): string => {
   try {
     const userPath = path.join(UPLOADS_DIR, `user-${userId}`);
-    logger.debug(`Resolved user directory path: ${userPath}`);
-    
-    // Optional: Verify the path exists
+    logger.debug(`[getUserDirectoryPath] Resolved path: ${userPath}`);
+
     if (!fs.existsSync(userPath)) {
-      logger.warn(`User directory does not exist: ${userPath}`);
+      logger.warn(`[getUserDirectoryPath] Directory does not exist: ${userPath}`);
     }
-    
+
     return userPath;
   } catch (error: unknown) {
-    logger.error(`Failed to get user directory path for ${userId}:`, error);
-    throw new Error(`Failed to get user directory path: ${getErrorMessage(error)}`);
+    logger.error(`[getUserDirectoryPath] Failed for user ${userId}:`, error);
+    throw new Error(`[getUserDirectoryPath] Retrieval failed: ${getErrorMessage(error)}`);
   }
 };
 
 /**
- * Checks if a directory exists and is accessible
- * @param dirPath Path to check
- * @returns Boolean indicating if directory exists and is accessible
+ * Check if directory exists and is accessible
+ * @param dirPath Directory path to check
+ * @returns true if directory exists and is valid folder
  */
 export const directoryExists = (dirPath: string): boolean => {
   try {
-    return fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory();
+    const exists = fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory();
+    logger.debug(`[directoryExists] Exists check for ${dirPath}: ${exists}`);
+    return exists;
   } catch (error: unknown) {
-    logger.error(`Error checking if directory exists: ${dirPath}`, error);
+    logger.error(`[directoryExists] Error checking directory: ${dirPath}`, error);
     return false;
   }
 };
 
 /**
- * Safely removes a file if it exists
+ * Remove a file safely if it exists
  * @param filePath Path to the file to remove
- * @returns Boolean indicating success
+ * @returns true if file removed or not existing; false on failure
  */
 export const removeFile = (filePath: string): boolean => {
   try {
     if (fs.existsSync(filePath)) {
-      logger.debug(`Removing file: ${filePath}`);
+      logger.debug(`[removeFile] Removing file: ${filePath}`);
       fs.unlinkSync(filePath);
-      logger.info(`Successfully removed file: ${filePath}`);
+      logger.info(`[removeFile] File removed: ${filePath}`);
       return true;
     }
-    logger.debug(`File doesn't exist, nothing to remove: ${filePath}`);
+    logger.debug(`[removeFile] File not found, nothing to remove: ${filePath}`);
     return true;
   } catch (error: unknown) {
-    logger.error(`Failed to remove file ${filePath}:`, error);
+    logger.error(`[removeFile] Failed removing file ${filePath}:`, error);
     return false;
   }
 };
 
 /**
- * Safely removes a directory and its contents
- * @param dirPath Directory to remove
- * @returns Boolean indicating success
+ * Remove a directory and all contents recursively
+ * @param dirPath Directory path to remove
+ * @returns true if directory removed or not existing; false on failure
  */
 export const removeDirectory = (dirPath: string): boolean => {
   try {
     if (fs.existsSync(dirPath)) {
-      logger.debug(`Removing directory: ${dirPath}`);
+      logger.debug(`[removeDirectory] Removing directory: ${dirPath}`);
       fs.rmSync(dirPath, { recursive: true, force: true });
-      logger.info(`Successfully removed directory: ${dirPath}`);
+      logger.info(`[removeDirectory] Directory removed: ${dirPath}`);
       return true;
     }
-    logger.debug(`Directory doesn't exist, nothing to remove: ${dirPath}`);
+    logger.debug(`[removeDirectory] Directory not found, nothing to remove: ${dirPath}`);
     return true;
   } catch (error: unknown) {
-    logger.error(`Failed to remove directory ${dirPath}:`, error);
+    logger.error(`[removeDirectory] Failed removing directory ${dirPath}:`, error);
     return false;
   }
 };
-
-
-

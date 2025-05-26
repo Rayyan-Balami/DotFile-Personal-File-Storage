@@ -11,12 +11,14 @@ import { jwtTimeToMs } from "@utils/jwtTimeToMs.utils.js";
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
+// Cookie config for secure storage of refresh token
 const cookieOptions = {
   httpOnly: true,
   secure: IS_PRODUCTION,
   maxAge: jwtTimeToMs(REFRESH_TOKEN_EXPIRY),
 };
 
+// Extend Express request to include authenticated user
 declare global {
   namespace Express {
     interface Request {
@@ -25,6 +27,7 @@ declare global {
   }
 }
 
+// Middleware: Verifies access token and user session
 export const verifyAuth = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const token =
@@ -38,7 +41,8 @@ export const verifyAuth = asyncHandler(
     try {
       const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET) as JwtUserPayload;
 
-      const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken || "";
+      const refreshToken =
+        req.cookies?.refreshToken || req.body?.refreshToken || "";
 
       const user = await userService.getUserById(decoded.id, {
         includeRefreshToken: true,
@@ -68,6 +72,7 @@ export const verifyAuth = asyncHandler(
   }
 );
 
+// Clears access and refresh tokens from cookies
 function clearAuthCookies(res: Response): void {
   res
     .clearCookie("accessToken", cookieOptions)

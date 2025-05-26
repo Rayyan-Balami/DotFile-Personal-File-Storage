@@ -3,11 +3,11 @@ import logger from "@utils/logger.utils.js";
 import { NextFunction, Request, Response } from "express";
 
 /**
- * Wrapper for async route handlers to handle promise rejections
- * This eliminates the need for try/catch blocks in every controller
+ * Wraps async route handlers to catch errors and pass them to Express error middleware.
+ * Avoids repetitive try/catch in each controller function.
  *
- * @param fn The async route handler function
- * @returns A function that handles the request and catches any errors
+ * @param fn Async route handler function (req, res, next) => Promise<any>
+ * @returns Wrapped function with error handling
  */
 export const asyncHandler = (
   fn: (req: Request, res: Response, next: NextFunction) => Promise<any>
@@ -20,19 +20,20 @@ export const asyncHandler = (
     try {
       await fn(req, res, next);
     } catch (error) {
+      // Log error details for debugging
       logger.error(error as Error);
 
-      // Don't try to handle errors if headers have already been sent
+      // Skip handling if response already started
       if (res.headersSent) {
         return next(error);
       }
 
-      // If error is already an ApiError, pass it to the error handler
+      // Pass through if error is already formatted ApiError
       if (error instanceof ApiError) {
         return next(error);
       }
 
-      // Wrap unknown errors in ApiError with status 500
+      // Wrap unknown errors as ApiError with status 500 (Internal Server Error)
       const apiError = new ApiError(
         500,
         [{ error: error instanceof Error ? error.message : "Unknown error" }]

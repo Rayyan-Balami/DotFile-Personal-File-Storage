@@ -7,6 +7,15 @@ type SanitizeOptions = {
   recursive?: boolean; // default: true
 };
 
+/**
+ * Utility to clean and format Mongoose documents for safe JSON output by removing unwanted fields,
+ * converting MongoDB-specific types, and optionally recursively processing nested data.
+ * 
+ * @template T - Expected return type after sanitization
+ * @param doc - Mongoose document or plain object to sanitize
+ * @param options - Sanitization options (excludeFields, includeFields, idField, recursive)
+ * @returns Sanitized plain object of type T
+ */
 export function sanitizeDocument<T>(
   doc: any,
   options: SanitizeOptions = {}

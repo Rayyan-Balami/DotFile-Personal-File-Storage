@@ -13,10 +13,15 @@ import asyncHandler from "@utils/asyncHandler.utils.js";
 import logger from "@utils/logger.utils.js";
 import { Request, Response } from "express";
 
+/**
+ * FileController - Manages file operations including uploads, downloads, and file management
+ * Handles both regular file uploads and folder/zip processing with encryption support
+ */
 class FileController {
   /**
-   * Universal file upload handler that processes both regular files and folders (as zip)
-   * This single handler replaces multiple separate upload endpoints
+   * Universal file upload handler for both regular files and folders (as zip)
+   * @process Validates authorization → Processes uploads → Encrypts files → Updates storage usage
+   * @returns Created files and folders with count information
    */
   uploadFiles = [
     upload.array("files"),
@@ -101,7 +106,9 @@ class FileController {
   ];
 
   /**
-   * Get a file by ID
+   * Gets single file details by ID
+   * @param id - File identifier from route params
+   * @returns File object with metadata
    */
   getFileById = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
@@ -116,7 +123,10 @@ class FileController {
   });
 
   /**
-   * Update a file
+   * Updates file attributes
+   * @param id - File identifier from route params
+   * @param body - Object containing file properties to update
+   * @returns Updated file object
    */
   updateFile = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
@@ -139,7 +149,9 @@ class FileController {
   });
 
   /**
-   * Delete a file
+   * Soft deletes a file (moves to trash)
+   * @param id - File identifier from route params
+   * @returns The soft-deleted file with updated status
    */
   softDeleteFile = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
@@ -156,7 +168,10 @@ class FileController {
   });
 
   /**
-   * Rename a file
+   * Renames a file
+   * @param id - File identifier from route params
+   * @param name - New file name from request body
+   * @returns Updated file with new name
    */
   renameFile = asyncHandler(async (req: Request, res: Response) => {
     logger.info("Renaming file");
@@ -176,7 +191,10 @@ class FileController {
   });
 
   /**
-   * Move a file to a different folder
+   * Moves file to a different folder
+   * @param id - File identifier from route params
+   * @param destinationFolderId - Target folder ID from request body
+   * @returns Updated file with new folder reference
    */
   moveFile = asyncHandler(async (req: Request, res: Response) => {
     logger.info("Moving file");
@@ -196,7 +214,9 @@ class FileController {
   });
 
   /**
-   * Permanently delete a file from database and storage
+   * Permanently removes file from database and storage
+   * @param id - File identifier from route params
+   * @returns Operation result status
    */
   permanentDeleteFile = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
@@ -215,7 +235,9 @@ class FileController {
   });
 
   /**
-   * Restore a soft-deleted file
+   * Restores a previously soft-deleted file from trash
+   * @param id - File identifier from route params
+   * @returns Restored file object
    */
   restoreFile = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;
@@ -232,7 +254,9 @@ class FileController {
   });
 
   /**
-   * Stream file for viewing
+   * Streams file for in-browser viewing
+   * @param id - File identifier from route params
+   * @returns File stream with inline content-disposition
    */
   viewFile = asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
@@ -253,7 +277,9 @@ class FileController {
   });
 
   /**
-   * Download file (forces download instead of inline viewing)
+   * Forces file download rather than in-browser viewing
+   * @param id - File identifier from route params
+   * @returns File stream with attachment content-disposition
    */
   downloadFile = asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
@@ -274,7 +300,10 @@ class FileController {
   });
 
   /**
-   * Get user's files, optionally filtered by folder
+   * Lists user files with optional folder filtering
+   * @param folderId - Optional query parameter to filter by folder
+   * @param includeDeleted - Optional query parameter to include trashed files
+   * @returns Array of file objects matching criteria
    */
   getUserFiles = asyncHandler(async (req: Request, res: Response) => {
     const userId = req.user?.id;

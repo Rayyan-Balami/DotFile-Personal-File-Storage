@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-// Reusable file name schema
+/**
+ * Base schema for validating file names
+ * Enforces length constraints and character restrictions for security
+ * @regex Prevents directory traversal and ensures valid filesystem characters
+ */
 const fileNameSchema = z
   .string()
   .min(1, { message: "File name is required" })
@@ -10,7 +14,10 @@ const fileNameSchema = z
     "File name contains invalid characters"
   );
 
-// Validation schema for renaming a file
+/**
+ * Schema for file rename operations
+ * @validates Non-empty file name with additional trimming check
+ */
 export const renameFileSchema = z.object({
   name: fileNameSchema.refine(
     (name) => name.trim().length > 0,
@@ -18,12 +25,18 @@ export const renameFileSchema = z.object({
   ),
 });
 
-// Validation schema for moving a file
+/**
+ * Schema for file move operations
+ * @validates Target folder ID (null allowed for root folder)
+ */
 export const moveFileSchema = z.object({
   destinationFolderId: z.string().nullable(),
 });
 
-// Validation schema for updating a file
+/**
+ * Schema for general file updates
+ * @validates Optional file properties including name, folder reference, and pin status
+ */
 export const updateFileSchema = z.object({
   name: fileNameSchema.optional(),
   folder: z.string().nullable().optional(),

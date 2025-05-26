@@ -1,27 +1,33 @@
+// Import UUID generator from Node.js crypto module
 import { randomUUID } from "crypto";
+
+// Import Express types for strong typing
 import { NextFunction, Request, Response } from "express";
 
-// Extend Express Request type to include requestId
+// Extend Express Request interface to include custom property: requestId
 declare global {
   namespace Express {
     interface Request {
-      requestId: string;
+      requestId: string; // Custom property to store unique request ID
     }
   }
 }
+
 /**
- * Middleware that adds a unique request ID to each request
- * The ID is stored in req.requestId and also added as a response header
+ * Middleware to add a unique request ID to each incoming request.
+ * - Stores the ID in req.requestId
+ * - Adds the ID to the response header as 'X-Request-ID'
  */
 export const addRequestId = (req: Request, res: Response, next: NextFunction): void => {
-  // Generate a unique ID using UUID v4
+  // Generate a new UUID (version 4)
   const requestId = randomUUID();
-  
-  // Add to request object for use in other middlewares and routes
+
+  // Attach the generated ID to the request object
   req.requestId = requestId;
-  
-  // Set as response header so client can reference it
+
+  // Add the ID to the response headers for traceability
   res.setHeader("X-Request-ID", requestId);
-  
+
+  // Pass control to the next middleware
   next();
 };

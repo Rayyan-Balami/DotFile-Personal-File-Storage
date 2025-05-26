@@ -4,35 +4,40 @@ import { compressBuffer, decompressBuffer } from './huffmanCompression.utils.js'
 import logger from './logger.utils.js';
 
 /**
- * Create a user-specific encryption key from userId + MASTER_KEY
+ * Derives a user-specific encryption key from userId and MASTER_KEY.
+ * Uses AES encryption on userId bytes, then trims result to 32 hex chars.
+ * Falls back to a simple concatenation on error.
+ * 
+ * @param userId - Unique identifier of user
+ * @returns 32-character hex string as user key
  */
 export function deriveUserKey(userId: string): string {
   try {
     const userIdBytes = Buffer.from(userId);
     const encrypted = encrypt(userIdBytes, MASTER_KEY);
-    return encrypted.toString('hex').substring(0, 32); // trim to 32-char hex
+    return encrypted.toString('hex').substring(0, 32);
   } catch (error) {
     logger.error('Failed to derive user key:', error);
     return `${MASTER_KEY}-${userId}`.substring(0, 32);
   }
 }
 
-/**
- * Flag to control whether to use compression
- * This can be made configurable in the future
- */
+/** Flag to enable or disable compression in file encryption/decryption */
 const USE_COMPRESSION = true;
 
 /**
- * Encrypt file buffer using user-specific key
- * Applies Huffman compression before encryption if enabled
+ * Encrypts a file buffer using the user-specific key.
+ * Compresses the file first using Huffman coding if compression enabled and file size > 100 bytes.
+ * 
+ * @param file - Raw file data as Buffer
+ * @param userId - User ID to derive encryption key
+ * @returns Encrypted Buffer (compressed if applicable)
  */
 export function encryptFileBuffer(file: Buffer, userId: string): Buffer {
   try {
-    // First, apply Huffman compression if enabled
     let processedBuffer = file;
+
     if (USE_COMPRESSION) {
-      // Only compress if file is large enough to benefit
       if (file.length > 100) {
         logger.debug(`Compressing file buffer: ${file.length} bytes`);
         processedBuffer = compressBuffer(file);
@@ -41,49 +46,50 @@ export function encryptFileBuffer(file: Buffer, userId: string): Buffer {
         logger.debug('File too small for compression, skipping');
       }
     }
-    
-    // Then encrypt with the user's key
+
     const userKey = deriveUserKey(userId);
     return encrypt(processedBuffer, userKey);
   } catch (error) {
     logger.error('Error in encryptFileBuffer:', error);
-    // Fall back to just encrypting the original data if compression fails
+
+    // Fallback: encrypt original file without compression
     const userKey = deriveUserKey(userId);
     return encrypt(file, userKey);
   }
 }
 
 /**
- * Decrypt file buffer using user-specific key
- * Applies Huffman decompression after decryption if the file was compressed
+ * Decrypts an encrypted file buffer using user-specific key.
+ * If compression is enabled, tries to decompress the decrypted buffer.
+ * Uses simple header check to guess if buffer is compressed.
+ * 
+ * @param file - Encrypted file data as Buffer
+ * @param userId - User ID to derive decryption key
+ * @returns Decrypted (and decompressed if applicable) Buffer
+ * @throws Throws error if decryption fails
  */
 export function decryptFileBuffer(file: Buffer, userId: string): Buffer {
   try {
-    // First decrypt the file
     const userKey = deriveUserKey(userId);
     const decryptedBuffer = decrypt(file, userKey);
-    
-    // Then attempt to decompress if compression is enabled
+
     if (USE_COMPRESSION) {
       try {
-        // Check if this looks like a compressed buffer by checking for header
-        // This is a simple heuristic and might be improved
+        // Simple heuristic: check if buffer likely contains compressed data
         if (decryptedBuffer.length > 6) {
           const originalLength = decryptedBuffer.readUInt32BE(0);
-          // Basic sanity check - if original length is reasonable, assume it's compressed
-          if (originalLength > 0 && originalLength < 100 * 1024 * 1024) { // 100MB max
+
+          // Validate length (must be positive and reasonably small)
+          if (originalLength > 0 && originalLength < 100 * 1024 * 1024) {
             logger.debug(`Decompressing buffer of size ${decryptedBuffer.length} bytes`);
-            const decompressedBuffer = decompressBuffer(decryptedBuffer);
-            return decompressedBuffer;
+            return decompressBuffer(decryptedBuffer);
           }
         }
-      } catch (decompressError) {
-        // If decompression fails, assume the file wasn't compressed
+      } catch {
         logger.debug('Decompression failed, assuming file was not compressed');
       }
     }
-    
-    // Return the decrypted buffer as-is if it wasn't compressed or decompression failed
+
     return decryptedBuffer;
   } catch (error) {
     logger.error('Error in decryptFileBuffer:', error);

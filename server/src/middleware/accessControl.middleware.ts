@@ -3,20 +3,16 @@ import { ApiError } from "@utils/apiError.utils.js";
 import { asyncHandler } from "@utils/asyncHandler.utils.js";
 import { NextFunction, Request, Response } from "express";
 
-/**
- * Middleware to restrict access based on user roles
- * @param allowedRoles Array of roles that are allowed to access the route
- */
-export const restrictTo = (allowedRoles: UserRole[]) => {
-  return asyncHandler(async (req: Request, _: Response, next: NextFunction) => {
-    // For all other routes, verify authentication
+// Restrict route access to specific user roles
+export const restrictTo = (allowedRoles: UserRole[]) =>
+  asyncHandler(async (req: Request, _: Response, next: NextFunction) => {
     if (!req.user) {
       throw new ApiError(401, [{ authentication: "Authentication required" }]);
     }
 
-    // Check if user role is in allowed roles
     const userRole = req.user.role as UserRole;
 
+    // Deny if user's role is not in allowed list and not admin
     if (
       !allowedRoles.includes(userRole) &&
       !allowedRoles.includes(UserRole.ADMIN)
@@ -29,4 +25,3 @@ export const restrictTo = (allowedRoles: UserRole[]) => {
 
     next();
   });
-};

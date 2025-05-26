@@ -6,37 +6,43 @@ import { asyncHandler } from "@utils/asyncHandler.utils.js";
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
+/**
+ * Middleware: Allows only unauthenticated (guest) users
+ * Blocks users with valid sessions (prevents double login, etc.)
+ */
 export const verifyGuest = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const token =
       req.cookies?.accessToken ||
       req.headers["authorization"]?.replace("Bearer ", "");
 
-    if (!token) {
-      return next(); // No token, treat as guest
-    }
+    // No token = allow guest access
+    if (!token) return next();
 
     try {
+      // Decode token
       const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET) as JwtUserPayload;
 
       const refreshToken =
         req.cookies?.refreshToken || req.body?.refreshToken || "";
 
+      // Fetch user session
       const user = await userService.getUserById(decoded.id, {
         includeRefreshToken: true,
         deletedAt: false,
       });
 
-      // If a valid session exists, block guest access
+      // If valid session exists, reject guest route access
       if (user?.refreshToken === refreshToken) {
         throw new ApiError(403, [
           { auth: "Already authenticated. Please logout first." },
         ]);
       }
 
-      return next(); // Treat as guest if token or session doesn't match
+      // Token exists but session mismatch — allow as guest
+      return next();
     } catch (err) {
-      // Treat all JWT errors as guest
+      // Allow guest access on all JWT errors
       if (
         err instanceof jwt.TokenExpiredError ||
         err instanceof jwt.JsonWebTokenError ||
@@ -45,9 +51,10 @@ export const verifyGuest = asyncHandler(
         return next();
       }
 
+      // Known application error — rethrow
       if (err instanceof ApiError) throw err;
 
-      // Unknown errors still allow guest access
+      // Unknown error — fail open (allow guest access)
       return next();
     }
   }

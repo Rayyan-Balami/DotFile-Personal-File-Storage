@@ -1,6 +1,6 @@
 import { IS_PRODUCTION } from '@config/constants.js';
 
-// ANSI color codes
+// ANSI color codes for terminal styling
 const colors = {
   reset: '\x1b[0m',
   bright: '\x1b[1m',
@@ -13,77 +13,91 @@ const colors = {
 };
 
 /**
- * Customized logger with colored output and timestamp
+ * Customized logger for colored, timestamped console output.
+ * Skips debug logs in production for cleaner output.
  */
 const logger = {
   /**
-   * Log informational message
+   * Log info-level message in blue.
+   * @param message Message text
+   * @param args Additional args for console.log
    */
   info: (message: string, ...args: any[]): void => {
     console.log(`${colors.blue}[INFO] ${message}${colors.reset}`, ...args);
   },
-  
+
   /**
-   * Log success message
+   * Log success message in green.
+   * @param message Success text
+   * @param args Extra values to log
    */
   success: (message: string, ...args: any[]): void => {
     console.log(`${colors.green}[SUCCESS] ${message}${colors.reset}`, ...args);
   },
-  
+
   /**
-   * Log warning message
+   * Log warning message in yellow.
+   * @param message Warning text
+   * @param args Additional details
    */
   warn: (message: string, ...args: any[]): void => {
     console.log(`${colors.yellow}[WARNING] ${message}${colors.reset}`, ...args);
   },
-  
+
   /**
-   * Log error message
+   * Log error message in red.
+   * Shows stack trace only if not in production.
+   * @param message Error message or Error object
+   * @param args Extra args to log
    */
   error: (message: string | Error, ...args: any[]): void => {
     const errorMessage = message instanceof Error ? message.message : message;
     const stack = message instanceof Error ? message.stack : null;
-    
+
     console.error(`${colors.red}[ERROR] ${errorMessage}${colors.reset}`, ...args);
     if (stack && !IS_PRODUCTION) {
       console.error(`${colors.red}[STACK] ${stack}${colors.reset}`);
     }
   },
-  
+
   /**
-   * Log debug message (only in non-production)
+   * Debug log in magenta; outputs only when not in production.
+   * @param message Debug message
+   * @param args Additional values
    */
   debug: (message: string, ...args: any[]): void => {
     if (!IS_PRODUCTION) {
       console.log(`${colors.magenta}[DEBUG] ${message}${colors.reset}`, ...args);
     }
   },
-  
+
   /**
-   * Developer debug helper for inspecting values during development
-   * Displays variable name, file location, and formatted value inspection
+   * Developer helper to inspect variables with context and formatting.
+   * Logs variable name, call location, and value with colors.
+   * Skipped in production.
+   * @param value Variable or object to inspect
+   * @param label Optional label for variable name
    */
   dev: (value: any, label?: string): void => {
     if (IS_PRODUCTION) return;
-    
-    // Get calling location
+
+    // Capture caller info from stack trace for context
     const stack = new Error().stack;
     const caller = stack ? stack.split('\n')[2].trim() : 'unknown location';
-    
-    // Format the label
+
     const varName = label || 'Value';
-    
-    // Log with cyan color for high visibility
+
+    // Highlight label and location in cyan + bright
     console.log(`\n${colors.cyan}[DEV] ${varName} ${colors.bright}(${caller})${colors.reset}`);
-    
-    // Use special formatting for objects and arrays
+
+    // Pretty-print objects/arrays, plain log for primitives
     if (typeof value === 'object' && value !== null) {
       console.dir(value, { depth: null, colors: true });
     } else {
       console.log(`${colors.cyan}→ ${colors.reset}`, value);
     }
-    
-    // Add a separator for better readability
+
+    // Visual separator for clarity
     console.log(`${colors.cyan}${'─'.repeat(50)}${colors.reset}\n`);
   }
 };
