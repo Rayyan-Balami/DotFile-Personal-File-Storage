@@ -10,14 +10,18 @@ import bcryptjs from "bcryptjs";
 import jwt, { Secret, SignOptions } from "jsonwebtoken";
 import mongoose, { Document, Schema, Types } from "mongoose";
 
-// Define interface for User methods
+/**
+ * User document methods for auth and token generation
+ */
 interface IUserMethods {
   checkPassword(password: string): Promise<boolean>;
   generateAccessToken(): string;
   generateRefreshToken(): string;
 }
 
-// Define the user interface
+/**
+ * User document with profile, storage, and auth data
+ */
 export interface IUser extends Document, IUserMethods {
   _id: Types.ObjectId;
   avatar: string;
@@ -33,7 +37,9 @@ export interface IUser extends Document, IUserMethods {
   deletedAt: Date | null;
 }
 
-// Create the schema
+/**
+ * MongoDB schema for user data
+ */
 const UserSchema: Schema = new Schema(
   {
     avatar: {
@@ -84,7 +90,9 @@ const UserSchema: Schema = new Schema(
   }
 );
 
-// Add a pre-save hook to set password hash
+/**
+ * Hash password before saving
+ */
 UserSchema.pre<IUser>("save", async function (next) {
   if (this.isModified("password")) {
     this.password = await bcryptjs.hash(this.password, 10);
@@ -92,12 +100,16 @@ UserSchema.pre<IUser>("save", async function (next) {
   next();
 });
 
-// Add a method to check password
+/**
+ * Verify password against stored hash
+ */
 UserSchema.methods.checkPassword = async function (password: string) {
   return await bcryptjs.compare(password, this.password);
 };
 
-// Add a method to generate access token
+/**
+ * Generate short-lived JWT for auth
+ */
 UserSchema.methods.generateAccessToken = function () {
   const payload: JwtUserPayload = {
     id: this._id,
@@ -118,7 +130,9 @@ UserSchema.methods.generateAccessToken = function () {
   return jwt.sign(payload, secret, options);
 };
 
-// Add a method to generate refresh token
+/**
+ * Generate long-lived JWT for session refresh
+ */
 UserSchema.methods.generateRefreshToken = function () {
   const payload: JwtUserPayload = {
     id: this._id,
@@ -137,7 +151,9 @@ UserSchema.methods.generateRefreshToken = function () {
   return jwt.sign(payload, secret, options);
 };
 
-// Create and export the model
+/**
+ * Mongoose model for user operations
+ */
 const User = mongoose.model<IUser>("User", UserSchema);
 
 export default User;

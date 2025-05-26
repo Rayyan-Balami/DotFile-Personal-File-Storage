@@ -1,37 +1,44 @@
+import { Router } from "express";
 import FileController from "@api/file/file.controller.js";
-import { moveFileSchema, renameFileSchema, updateFileSchema } from "@api/file/file.validator.js";
+import {
+  moveFileSchema,
+  renameFileSchema,
+  updateFileSchema
+} from "@api/file/file.validator.js";
 import { verifyAuth } from "@middleware/auth.middleware.js";
 import { validateData } from "@middleware/validate.middleware.js";
-import express from "express";
 
-//=============================================================================
-// ROUTE INITIALIZATION
-//=============================================================================
-const authRoutes = express.Router();
+//=========================//
+// Init router and auth
+//=========================//
+const authRoutes = Router();
+authRoutes.use(verifyAuth); // Require authentication
 
-//=============================================================================
-// AUTHENTICATED USER ROUTES - Requires valid auth token
-//=============================================================================
-// Apply middleware once at the router level
-authRoutes.use(verifyAuth);
+//=========================//
+// File routes (chained)
+//=========================//
+authRoutes
+  // CRUD operations
+  .post("/upload", FileController.uploadFiles)                            // Upload file
+  .get("/", FileController.getUserFiles)                                  // List user files
+  .get("/:id", FileController.getFileById)                                // Get file by ID
+  .patch("/:id", validateData(updateFileSchema), FileController.updateFile) // Update file metadata
+  .delete("/:id", FileController.softDeleteFile)                          // Soft delete file
+  .delete("/:id/permanent", FileController.permanentDeleteFile)          // Permanently delete
+  .post("/:id/restore", FileController.restoreFile)                       // Restore from trash
 
-// File routes
-authRoutes.post("/upload", FileController.uploadFiles); // Single unified upload endpoint
-authRoutes.get("/:id", FileController.getFileById);
-authRoutes.patch("/:id", validateData(updateFileSchema), FileController.updateFile);
-authRoutes.delete("/:id", FileController.softDeleteFile);
-authRoutes.post("/:id/rename", validateData(renameFileSchema), FileController.renameFile); // Rename a file
-authRoutes.post("/:id/move", validateData(moveFileSchema), FileController.moveFile);     // Move a file to a different folder
-authRoutes.delete("/:id/permanent", FileController.permanentDeleteFile);                // Permanently delete file
-authRoutes.post("/:id/restore", FileController.restoreFile);                           // Restore a file from trash
-authRoutes.get("/", FileController.getUserFiles);
-authRoutes.get("/:id/view", FileController.viewFile);
-authRoutes.get("/:id/download", FileController.downloadFile);  // Add download endpoint
+  // File actions
+  .post("/:id/rename", validateData(renameFileSchema), FileController.renameFile) // Rename file
+  .post("/:id/move", validateData(moveFileSchema), FileController.moveFile)       // Move file
 
-//=============================================================================
-// ROUTE REGISTRATION
-//=============================================================================
-const fileRoutes = express.Router();
+  // File access
+  .get("/:id/view", FileController.viewFile)                             // Stream/view file
+  .get("/:id/download", FileController.downloadFile);                    // Download file
+
+//=========================//
+// Mount under /files
+//=========================//
+const fileRoutes = Router();
 fileRoutes.use("/files", authRoutes);
 
 export default fileRoutes;

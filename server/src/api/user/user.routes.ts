@@ -1,3 +1,4 @@
+import { Router } from "express";
 import userController from "@api/user/user.controller.js";
 import { UserRole } from "@api/user/user.dto.js";
 import {
@@ -10,85 +11,57 @@ import {
   updateUserRoleSchema,
   updateUserSchema,
 } from "@api/user/user.validator.js";
-import { restrictTo } from "@middleware/accessControl.middleware.js";
-import { verifyAuth } from "@middleware/auth.middleware.js";
 import { verifyGuest } from "@middleware/guest.middleware.js";
+import { verifyAuth } from "@middleware/auth.middleware.js";
+import { restrictTo } from "@middleware/accessControl.middleware.js";
 import { validateData } from "@middleware/validate.middleware.js";
-import { Router } from "express";
 
-//=============================================================================
-// ROUTE INITIALIZATION
-//=============================================================================
+//=========================//
+// Guest routes (/auth)
+//=========================//
 const guestRoutes = Router();
-const authRoutes = Router();
-const adminRoutes = Router();
-
-//=============================================================================
-// GUEST ROUTES - No authentication required
-//=============================================================================
-// Apply middleware once at the router level
 guestRoutes.use(verifyGuest);
 
 guestRoutes
-  .post("/register", validateData(registerUserSchema), userController.register)
-  .post("/login", validateData(loginUserSchema), userController.login)
-  .post(
-    "/refresh-token",
-    validateData(refreshTokenSchema),
-    userController.refreshToken
-  );
+  .post("/register", validateData(registerUserSchema), userController.register)     // Register new user
+  .post("/login", validateData(loginUserSchema), userController.login)              // Login user
+  .post("/refresh-token", validateData(refreshTokenSchema), userController.refreshToken); // Refresh token
 
-//=============================================================================
-// AUTHENTICATED USER ROUTES - Requires valid auth token
-//=============================================================================
-// Apply middleware once at the router level
+//=========================//
+// Auth routes (/users)
+//=========================//
+const authRoutes = Router();
 authRoutes.use(verifyAuth);
 
 authRoutes
-  .get("/me", userController.getCurrentUser)
-  .put("/me", validateData(updateUserSchema), userController.updateCurrentUser)
-  .patch(
-    "/me/password",
-    validateData(updateUserPasswordSchema),
-    userController.updateCurrentUserPassword
-  )
-  .post("/logout", userController.logout);
+  .get("/me", userController.getCurrentUser)                                        // Get current user profile
+  .put("/me", validateData(updateUserSchema), userController.updateCurrentUser)     // Update profile
+  .patch("/me/password", validateData(updateUserPasswordSchema), userController.updateCurrentUserPassword) // Update password
+  .post("/logout", userController.logout);                                          // Logout
 
-//=============================================================================
-// ADMIN ROUTES - Requires admin privileges
-//=============================================================================
-// Apply middleware once at the router level
+//=========================//
+// Admin routes (/admin/users)
+//=========================//
+const adminRoutes = Router();
 adminRoutes.use(verifyAuth);
 adminRoutes.use(restrictTo([UserRole.ADMIN]));
 
 adminRoutes
-  .get("/", userController.getAllUsers)
-  .get("/:id", userController.getUserById)
-  .put("/:id", validateData(updateUserSchema), userController.updateUser)
-  .patch(
-    "/:id/password",
-    validateData(adminSetPasswordSchema),
-    userController.adminSetUserPassword
-  )
-  .patch(
-    "/:id/role",
-    validateData(updateUserRoleSchema),
-    userController.updateUserRole
-  )
-  .patch(
-    "/:id/storage",
-    validateData(updateStorageLimitSchema),
-    userController.updateUserStorageLimit
-  )
-  .delete("/:id", userController.softDeleteUser)
-  .post("/:id/restore", userController.restoreUser);
+  .get("/", userController.getAllUsers)                                             // List all users
+  .get("/:id", userController.getUserById)                                          // Get user by ID
+  .put("/:id", validateData(updateUserSchema), userController.updateUser)           // Update user profile
+  .patch("/:id/password", validateData(adminSetPasswordSchema), userController.adminSetUserPassword) // Set password
+  .patch("/:id/role", validateData(updateUserRoleSchema), userController.updateUserRole)             // Change role
+  .patch("/:id/storage", validateData(updateStorageLimitSchema), userController.updateUserStorageLimit) // Update storage
+  .delete("/:id", userController.softDeleteUser)                                    // Soft delete user
+  .post("/:id/restore", userController.restoreUser);                                // Restore deleted user
 
-//=============================================================================
-// ROUTE REGISTRATION
-//=============================================================================
+//=========================//
+// Main router
+//=========================//
 const userRoutes = Router();
-userRoutes.use("/auth", guestRoutes);
-userRoutes.use("/users", authRoutes);
-userRoutes.use("/admin/users", adminRoutes);
+userRoutes.use("/auth", guestRoutes);            // Public (guest-only)
+userRoutes.use("/users", authRoutes);            // Authenticated users
+userRoutes.use("/admin/users", adminRoutes);     // Admin only
 
 export default userRoutes;

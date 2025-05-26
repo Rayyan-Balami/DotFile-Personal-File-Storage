@@ -9,15 +9,13 @@ import User, { IUser } from "@api/user/user.model.js";
 import mongoose from "mongoose";
 
 /**
- * Data Access Object for User operations
- * Handles all database interactions related to users
+ * UserDAO: DB access layer for user data (create, read, update, delete)
  */
 export class UserDAO {
   /**
-   * Create a new user in the database
-   *
-   * @param user - User data conforming to CreateUserDTO
-   * @returns Newly created user document with all fields
+   * Create and save new user
+   * @param user - New user input
+   * @returns Saved user document
    */
   async createUser(user: CreateUserDTO): Promise<IUser> {
     const newUser = new User(user);
@@ -25,11 +23,10 @@ export class UserDAO {
   }
 
   /**
-   * Find a user by their ID
-   *
-   * @param userId - MongoDB ObjectId string of the user
-   * @param options - Options for including refresh token and/or deleted users
-   * @returns User document if found, null otherwise
+   * Get user by ID with optional refresh token and deleted status
+   * @param userId - User's MongoDB ID
+   * @param options - Include refreshToken and/or deleted users flags
+   * @returns User document or null
    */
   async getUserById(
     userId: string,
@@ -52,11 +49,10 @@ export class UserDAO {
   }
 
   /**
-   * Find a user by their email address
-   *
-   * @param email - User's email address (case sensitive)
-   * @param deletedAt - When true, includes soft-deleted users in search
-   * @returns User document if found, null otherwise
+   * Get user by email with optional password and deleted status
+   * @param email - User's email (case sensitive)
+   * @param options - Include password and/or deleted users flags
+   * @returns User document or null
    */
   async getUserByEmail(
     email: string,
@@ -78,12 +74,11 @@ export class UserDAO {
   }
 
   /**
-   * Update a user's information
-   *
-   * @param userId - MongoDB ObjectId string of the user
-   * @param user - Update data conforming to UpdateUserDTO
-   * @param deletedAt - When true, allows updating soft-deleted users
-   * @returns Updated user document if found and updated, null otherwise
+   * Update user profile data
+   * @param userId - User's MongoDB ID
+   * @param user - Updated user data
+   * @param deletedAt - Allow updating deleted users
+   * @returns Updated user or null
    */
   async updateUser(
     userId: string,
@@ -99,11 +94,10 @@ export class UserDAO {
   }
 
   /**
-   * Update a user's password after verifying the old password
-   *
-   * @param userId - MongoDB ObjectId string of the user
-   * @param password - Object containing oldPassword and newPassword
-   * @returns Updated user document if password change successful, null otherwise
+   * Change user password with old password verification
+   * @param userId - User's MongoDB ID
+   * @param password - Old and new password pair
+   * @returns Updated user or null if verification fails
    */
   async updateUserPassword(
     userId: string,
@@ -125,11 +119,10 @@ export class UserDAO {
   }
 
   /**
-   * Set a user's password directly (admin only, no old password required)
-   *
-   * @param userId - MongoDB ObjectId string of the user
+   * Admin: Set user password directly without verification
+   * @param userId - User's MongoDB ID
    * @param newPassword - New password to set
-   * @returns Updated user document if password set successfully, null otherwise
+   * @returns Updated user or null
    */
   async adminSetUserPassword(
     userId: string,
@@ -147,11 +140,10 @@ export class UserDAO {
   }
 
   /**
-   * Update a user's refresh token
-   *
-   * @param userId - MongoDB ObjectId string of the user
-   * @param refreshToken - New refresh token to set
-   * @returns Updated user document if found and updated, null otherwise
+   * Update user's refresh token
+   * @param userId - User's MongoDB ID
+   * @param tokenData - New refresh token data
+   * @returns Updated user or null
    */
   async updateUserRefreshToken(
     userId: string,
@@ -166,11 +158,10 @@ export class UserDAO {
   }
 
   /**
-   * Set a refresh token for a user
-   *
-   * @param userId - MongoDB ObjectId string of the user
+   * Set new refresh token and return with token field
+   * @param userId - User's MongoDB ID
    * @param refreshToken - New refresh token
-   * @returns Updated user document if found and updated, null otherwise
+   * @returns Updated user with token or null
    */
   async setUserRefreshToken(
     userId: string,
@@ -185,10 +176,9 @@ export class UserDAO {
   }
 
   /**
-   * Clear the refresh token for a user
-   *
-   * @param userId - MongoDB ObjectId string of the user
-   * @returns Updated user document if found and token removed, null otherwise
+   * Remove user's refresh token
+   * @param userId - User's MongoDB ID
+   * @returns Updated user or null
    */
   async clearUserRefreshToken(
     userId: string
@@ -202,11 +192,10 @@ export class UserDAO {
   }
 
   /**
-   * Update a user's role (admin only)
-   *
-   * @param userId - MongoDB ObjectId string of the user
-   * @param role - New role from UserRole enum
-   * @returns Updated user document if found and updated, null otherwise
+   * Admin: Update user's role
+   * @param userId - User's MongoDB ID
+   * @param role - New role to assign
+   * @returns Updated user or null
    */
   async updateUserRole(
     userId: string,
@@ -221,10 +210,9 @@ export class UserDAO {
   }
 
   /**
-   * Soft delete a user by setting deletedAt timestamp
-   *
-   * @param userId - MongoDB ObjectId string of the user
-   * @returns Updated user document with deletedAt timestamp if successful, null otherwise
+   * Soft delete user by setting deletedAt
+   * @param userId - User's MongoDB ID
+   * @returns Updated user or null
    */
   async softDeleteUser(userId: string): Promise<IUser | null> {
     if (!mongoose.Types.ObjectId.isValid(userId)) return null;
@@ -237,10 +225,9 @@ export class UserDAO {
 
 
   /**
-   * Restore a soft-deleted user by removing the deletedAt timestamp
-   *
-   * @param userId - MongoDB ObjectId string of the user
-   * @returns Updated user document with deletedAt set to null if successful, null otherwise
+   * Restore soft-deleted user
+   * @param userId - User's MongoDB ID
+   * @returns Restored user or null
    */
   async restoreUser(userId: string): Promise<IUser | null> {
     if (!mongoose.Types.ObjectId.isValid(userId)) return null;
@@ -252,10 +239,9 @@ export class UserDAO {
   }
 
   /**
-   * Get all users, optionally filtering for active or deleted users
-   *
-   * @param deletedAt - When true, returns only soft-deleted users; when false, returns only active users
-   * @returns Array of user documents matching the criteria
+   * List all users with optional deleted filter
+   * @param deletedAt - Filter for deleted users
+   * @returns Array of matching users
    */
   async getAllUsers(deletedAt: boolean = false): Promise<IUser[]> {
     return await User.find({
@@ -264,11 +250,10 @@ export class UserDAO {
   }
 
   /**
-   * Update a user's storage limit (admin only)
-   * 
-   * @param userId - MongoDB ObjectId string of the user
-   * @param maxStorageLimit - New storage limit in bytes
-   * @returns Updated user document if found and updated, null otherwise
+   * Admin: Set user's storage limit in bytes
+   * @param userId - User's MongoDB ID
+   * @param maxStorageLimit - New storage limit
+   * @returns Updated user or null
    */
   async updateUserStorageLimit(
     userId: string,
