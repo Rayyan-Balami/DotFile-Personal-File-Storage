@@ -50,6 +50,7 @@ export function CreateFolderDialog() {
   
   async function onSubmit(values: z.infer<typeof createFolderSchema>) {
     try {
+      console.log("Creating folder:", values);
       await createFolder.mutateAsync(values);
       toast.success("Folder created successfully!");
       closeCreateFolderDialog();

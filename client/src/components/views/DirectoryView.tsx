@@ -37,6 +37,7 @@ interface DirectoryViewProps {
 export default function DirectoryView({
   items = [],
   directoryName = "Directory",
+  parentId = null,
 }: DirectoryViewProps) {
   const navigate = useNavigate();
   const setVisibleItems = useSelectionStore((state) => state.setVisibleItems);
@@ -163,7 +164,7 @@ export default function DirectoryView({
               </ContextMenuItem>
             }
           >
-            <LazyGlobalMenuItems />
+            <LazyGlobalMenuItems parentId={parentId} />
           </Suspense>
         </ContextMenuContent>
       </ContextMenu>

@@ -8,7 +8,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { useRootContents, useFolderContents } from '@/api/folder/folder.query';
-import { useMatches } from '@tanstack/react-router';
+import { useMatches, Link } from '@tanstack/react-router';
 import React from "react";
 
 export function BreadcrumbNav() {
@@ -36,10 +36,14 @@ export function BreadcrumbNav() {
         {/* Root is always shown */}
         <BreadcrumbItem>
           <BreadcrumbLink asChild>
-            <a href="/">
+            <Link to="/" className="flex items-center gap-2">
               <Home className="size-4" />
-              <span className="sr-only">Home</span>
-            </a>
+              <span className={
+                folderMatch ? "sr-only" : ""
+              }>
+                My Drive
+              </span>
+            </Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
 
@@ -63,10 +67,10 @@ export function BreadcrumbNav() {
                   </BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink asChild>
-                    <a href={path} className="flex items-center gap-2">
+                    <Link to={path} className="flex items-center gap-2">
                       <Folder className="size-4" />
                       <span>{segment.name}</span>
-                    </a>
+                    </Link>
                   </BreadcrumbLink>
                 )}
               </BreadcrumbItem>

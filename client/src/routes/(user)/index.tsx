@@ -19,7 +19,11 @@ function RouteComponent() {
 
   return (
     <>
-      <DirectoryView items={sortedItems} directoryName="My Drive" />
+      <DirectoryView 
+        items={sortedItems} 
+        directoryName="My Drive" 
+        parentId={null}
+      />
     </>
   );
 }

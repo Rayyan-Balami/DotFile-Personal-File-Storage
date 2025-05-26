@@ -12,7 +12,7 @@ export const ContextMenuItems = React.memo(({ parentId }: { parentId?: string | 
     console.log(`Action triggered: ${action}`);
     if (action === "createFolder") {
       // Pass the parent ID (null for root)
-      openCreateFolderDialog(parentId ?? null);
+      openCreateFolderDialog(parentId);
     } else if (action === "uploadFile") {
       // Trigger file input click
       if (fileInputRef.current) {
