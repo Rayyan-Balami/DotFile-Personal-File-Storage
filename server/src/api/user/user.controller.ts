@@ -6,6 +6,9 @@ import asyncHandler from "@utils/asyncHandler.utils.js";
 import { jwtTimeToMs } from "@utils/jwtTimeToMs.utils.js";
 import { Request, Response } from "express";
 
+/**
+ * Handle user-related HTTP requests
+ */
 class UserController {
   cookieOptions = {
     httpOnly: true,
@@ -13,7 +16,7 @@ class UserController {
     maxAge: jwtTimeToMs(REFRESH_TOKEN_EXPIRY),
   };
   /**
-   * Register a new user without automatically logging them in
+   * Register user (no auto-login)
    */
   register = asyncHandler(async (req: Request, res: Response) => {
     // Service handles user creation only, no token generation
@@ -32,7 +35,7 @@ class UserController {
   });
 
   /**
-   * Login existing user
+   * Authenticate user and set session cookies
    */
   login = asyncHandler(async (req: Request, res: Response) => {
     const { user, accessToken, refreshToken } = await userService.loginUser(
@@ -48,7 +51,7 @@ class UserController {
   });
 
   /**
-   * Get all users (admin function)
+   * Admin: List all users with deleted filter
    */
   getAllUsers = asyncHandler(async (req: Request, res: Response) => {
     // Extract query parameter for including deleted users
@@ -59,7 +62,7 @@ class UserController {
   });
 
   /**
-   * Get a user by ID
+   * Fetch single user profile
    */
   getUserById = asyncHandler(async (req: Request, res: Response) => {
     const user = await userService.getUserById(req.params.id);
@@ -67,7 +70,7 @@ class UserController {
   });
 
   /**
-   * Update user information
+   * Update user profile data
    */
   updateUser = asyncHandler(async (req: Request, res: Response) => {
     const updatedUser = await userService.updateUser(req.params.id, req.body);
@@ -77,7 +80,7 @@ class UserController {
   });
 
   /**
-   * Update user password
+   * Change user password with verification
    */
   updateUserPassword = asyncHandler(async (req: Request, res: Response) => {
     const updatedUser = await userService.updateUserPassword(
@@ -94,7 +97,7 @@ class UserController {
   });
 
   /**
-   * Set user password (admin only)
+   * Admin: Set user password directly
    */
   adminSetUserPassword = asyncHandler(async (req: Request, res: Response) => {
     const updatedUser = await userService.adminSetUserPassword(
@@ -111,7 +114,7 @@ class UserController {
   });
 
   /**
-   * Update a user's role (admin only)
+   * Admin: Change user role
    */
   updateUserRole = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
@@ -131,7 +134,7 @@ class UserController {
   });
 
   /**
-   * Delete a user (soft delete)
+   * Move user to trash
    */
   softDeleteUser = asyncHandler(async (req: Request, res: Response) => {
     const deletedUser = await userService.softDeleteUser(req.params.id);
@@ -141,7 +144,7 @@ class UserController {
   });
 
   /**
-   * Logout user by clearing refresh token
+   * End session and clear cookies
    */
   logout = asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
@@ -167,7 +170,7 @@ class UserController {
   });
 
   /**
-   * Refresh access token using refresh token
+   * Generate new token pair from refresh token
    */
   refreshToken = asyncHandler(async (req: Request, res: Response) => {
     // Try to get token from cookies first, then body
@@ -196,7 +199,7 @@ class UserController {
   });
 
   /**
-   * Get the current authenticated user's profile
+   * Get authenticated user profile
    */
   getCurrentUser = asyncHandler(async (req: Request, res: Response) => {
     // req.user is already available from the auth middleware
@@ -206,7 +209,7 @@ class UserController {
   });
 
   /**
-   * Update the current authenticated user's profile
+   * Update own profile data
    */
   updateCurrentUser = asyncHandler(async (req: Request, res: Response) => {
     if (!req.user) {
@@ -220,7 +223,7 @@ class UserController {
   });
 
   /**
-   * Update the current authenticated user's password
+   * Change own password
    */
   updateCurrentUserPassword = asyncHandler(
     async (req: Request, res: Response) => {
@@ -243,7 +246,7 @@ class UserController {
   );
 
   /**
-   * Update a user's storage limit (admin only)
+   * Admin: Set user storage quota
    */
   updateUserStorageLimit = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
@@ -258,7 +261,7 @@ class UserController {
   });
 
   /**
-   * Restore a soft-deleted user (admin only)
+   * Admin: Restore user from trash
    */
   restoreUser = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;

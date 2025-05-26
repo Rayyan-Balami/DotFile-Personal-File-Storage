@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { UserRole } from "./user.dto.js";
 
-// Extract common validations
+/**
+ * Strong password rules: 8-24 chars, upper, number, special
+ */
 const passwordSchema = z
   .string()
   .min(8, { message: "Password must be at least 8 characters long" })
@@ -14,6 +16,9 @@ const passwordSchema = z
     message: "Password must contain at least one special character",
   });
 
+/**
+ * User name validation: 3-50 chars, letters and spaces
+ */
 const nameSchema = z
   .string()
   .min(3, { message: "Name must be at least 3 characters long" })
@@ -22,14 +27,25 @@ const nameSchema = z
     message: "Name can only contain letters and spaces",
   });
 
+/**
+ * Valid email format check
+ */
 const emailSchema = z.string().email({ message: "Invalid email address" });
 
-// Define schemas
+/**
+ * Request validation schemas
+ */
+/**
+ * Login: Validate email and password presence
+ */
 const loginUserSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, { message: "Password is required" }),
 });
 
+/**
+ * Registration: Full user details with password confirm
+ */
 const registerUserSchema = z
   .object({
     name: nameSchema,
@@ -44,6 +60,9 @@ const registerUserSchema = z
     path: ["confirmPassword"],
   });
 
+/**
+ * Profile update: Optional user fields
+ */
 const updateUserSchema = z.object({
   name: nameSchema.optional(),
   email: emailSchema.optional(),
@@ -53,6 +72,9 @@ const updateUserSchema = z.object({
   deletedAt: z.date().nullable().optional(),
 });
 
+/**
+ * Password change: Current + new password with confirm
+ */
 const updateUserPasswordSchema = z
   .object({
     oldPassword: z.string().min(1, { message: "Current password is required" }),
@@ -66,16 +88,25 @@ const updateUserPasswordSchema = z
     path: ["confirmNewPassword"],
   });
 
+/**
+ * Token refresh: Optional refresh token
+ */
 const refreshTokenSchema = z.object({
   refreshToken: z.string().optional(),
 });
 
+/**
+ * Admin: Role update between user/admin
+ */
 const updateUserRoleSchema = z.object({
   role: z.nativeEnum(UserRole, {
     errorMap: () => ({ message: "Role must be either 'user' or 'admin'" }),
   }),
 });
 
+/**
+ * Admin: Set user password with confirm
+ */
 const adminSetPasswordSchema = z
   .object({
     newPassword: passwordSchema,
@@ -88,6 +119,9 @@ const adminSetPasswordSchema = z
     path: ["confirmNewPassword"],
   });
 
+/**
+ * Admin: Set user storage quota (bytes)
+ */
 const updateStorageLimitSchema = z.object({
   maxStorageLimit: z.number().min(0, { message: "Storage limit cannot be negative" }),
 });

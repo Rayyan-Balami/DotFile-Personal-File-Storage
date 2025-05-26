@@ -18,17 +18,13 @@ import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
 import jwt from "jsonwebtoken";
 
 /**
- * Service class for user-related business logic
- * Handles operations between controllers and data access layer
+ * Business logic layer for user operations
  */
-
-// new ApiError(statusCode: number, message?: string, errors?: string[]): ApiError
 class UserService {
   /**
-   * Generate access and refresh tokens for a user
-   *
-   * @param user User object
-   * @returns Object containing access and refresh tokens
+   * Generate auth token pair for user session
+   * @param user - Target user
+   * @returns Access and refresh tokens
    */
   async generateAccessAndRefreshTokens(user: IUser) {
     // Generate access token
@@ -56,11 +52,10 @@ class UserService {
   }
 
   /**
-   * Register a new user and generate authentication tokens
-   *
-   * @param data User registration data
-   * @returns Newly created user data and authentication tokens
-   * @throws ApiError if email already exists
+   * Register user with auto-login
+   * @param data - Registration data
+   * @returns User data with auth tokens
+   * @throws Email already registered
    */
   async registerUserWithTokens(data: CreateUserDTO): Promise<{
     user: UserResponseDTO;
@@ -90,11 +85,10 @@ class UserService {
   }
 
   /**
-   * Register a new user without automatically logging them in
-   *
-   * @param data User registration data
-   * @returns Newly created user data
-   * @throws ApiError if email already exists
+   * Register user without auto-login
+   * @param data - Registration data
+   * @returns User data only
+   * @throws Email already registered
    */
   async registerUser(data: CreateUserDTO): Promise<UserResponseDTO> {
     // Check if email is already in use
@@ -116,12 +110,10 @@ class UserService {
   }
 
   /**
-   * Authenticate user and generate tokens
-   *
-   * @param credentials User login credentials
-   * @param deviceInfo Information about the device being used
-   * @returns User data and authentication tokens
-   * @throws ApiError if credentials are invalid
+   * Authenticate user login
+   * @param credentials - Email and password
+   * @returns User data with auth tokens
+   * @throws Invalid credentials
    */
   async loginUser(credentials: LoginUserDTO): Promise<{
     user: UserResponseDTO;
@@ -158,10 +150,9 @@ class UserService {
   }
 
   /**
-   * Logout user by clearing refresh token
-   *
-   * @param userId User ID
-   * @returns Boolean indicating success
+   * End user session
+   * @param userId - User to logout
+   * @returns Success status
    */
   async logoutUser(userId: string): Promise<boolean> {
     // Find user by ID
@@ -180,11 +171,10 @@ class UserService {
   }
 
   /**
-   * Retrieve user by ID
-   *
-   * @param id User ID
-   * @returns User data if found
-   * @throws ApiError if user not found
+   * Get user by ID with options
+   * @param id - Target user ID
+   * @param options - Include refresh token/deleted
+   * @throws User not found
    */
   async getUserById(
     id: string,
@@ -199,12 +189,10 @@ class UserService {
   }
 
   /**
-   * Update user information
-   *
-   * @param id User ID
-   * @param data Updated user data
-   * @returns Updated user data
-   * @throws ApiError if user not found or email already in use
+   * Update user profile data
+   * @param id - Target user ID
+   * @param data - New user data
+   * @throws User not found or email taken
    */
   async updateUser(id: string, data: UpdateUserDTO): Promise<UserResponseDTO> {
     // Check if email is being changed and if it's already in use by another user
@@ -226,12 +214,10 @@ class UserService {
   }
 
   /**
-   * Update user password
-   *
-   * @param id User ID
-   * @param passwordData Password change data with old and new password
-   * @returns Updated user data
-   * @throws ApiError if user not found or old password is incorrect
+   * Change user password with verification
+   * @param id - Target user ID
+   * @param passwordData - Old and new passwords
+   * @throws Invalid current password
    */
   async updateUserPassword(
     id: string,
@@ -249,12 +235,10 @@ class UserService {
   }
 
   /**
-   * Set user password (admin only)
-   *
-   * @param id User ID
-   * @param passwordData Password data with new password
-   * @returns Updated user data
-   * @throws ApiError if user not found
+   * Admin: Set user password directly
+   * @param id - Target user ID
+   * @param passwordData - New password
+   * @throws User not found
    */
   async adminSetUserPassword(
     id: string,
@@ -274,12 +258,10 @@ class UserService {
   }
 
   /**
-   * Update a user's role (admin only)
-   *
-   * @param userId User ID
-   * @param roleData Object containing the new role
-   * @returns Updated user data
-   * @throws ApiError if user not found
+   * Admin: Change user role
+   * @param userId - Target user ID
+   * @param roleData - New role
+   * @throws User not found
    */
   async updateUserRole(
     userId: string,
@@ -302,11 +284,9 @@ class UserService {
   }
 
   /**
-   * Soft delete a user account
-   *
-   * @param id User ID
-   * @returns Deleted user data
-   * @throws ApiError if user not found
+   * Move user to trash
+   * @param id - Target user ID
+   * @throws User not found
    */
   async softDeleteUser(id: string): Promise<UserResponseDTO> {
     const deletedUser = await userDAO.softDeleteUser(id);
@@ -319,10 +299,9 @@ class UserService {
   }
 
   /**
-   * Get all users (typically an admin function)
-   *
-   * @param includeDeleted Whether to include soft-deleted users
-   * @returns Array of user data
+   * Admin: List all users
+   * @param includeDeleted - Include trashed users
+   * @returns Array of users
    */
   async getAllUsers(
     includeDeleted: boolean = false
@@ -332,12 +311,10 @@ class UserService {
   }
 
   /**
-   * Update user storage usage
-   *
-   * @param userId User ID
-   * @param bytesToAdd Bytes to add (positive) or subtract (negative)
-   * @returns Updated user data with new storage usage
-   * @throws ApiError if user not found
+   * Update user's storage usage
+   * @param userId - Target user ID
+   * @param bytesToAdd - Bytes to add/subtract
+   * @throws User not found
    */
   async updateUserStorageUsage(
     userId: string,
@@ -362,12 +339,10 @@ class UserService {
   }
 
   /**
-   * Refresh access token using refresh token
-   *
-   * @param refreshToken The refresh token provided by the client
-   * @param deviceInfo The device information
-   * @returns User data and new tokens (access + refresh)
-   * @throws ApiError if refresh token is invalid or expired
+   * Get new token pair using refresh token
+   * @param refreshToken - Valid refresh token
+   * @returns User data with new tokens
+   * @throws Invalid/expired token
    */
   async refreshAccessToken(refreshToken: string): Promise<{
     user: UserResponseDTO;
@@ -407,12 +382,10 @@ class UserService {
   }
 
   /**
-   * Update user's storage limit (admin only)
-   *
-   * @param userId User ID to update
-   * @param storageData New storage limit data
-   * @returns Updated user data
-   * @throws ApiError if user not found or invalid storage limit
+   * Admin: Set user's storage quota
+   * @param userId - Target user ID
+   * @param storageData - New storage limit
+   * @throws Invalid limit or user not found
    */
   async updateUserStorageLimit(
     userId: string,
@@ -448,11 +421,10 @@ class UserService {
   }
 
   /**
-   * Restore a soft-deleted user (admin only)
-   * 
-   * @param userId User ID to restore
-   * @returns Restored user data
-   * @throws ApiError if user not found or not deleted
+   * Admin: Restore user from trash
+   * @param userId - Target user ID
+   * @returns Restored user
+   * @throws User not found or not deleted
    */
   async restoreUser(userId: string): Promise<UserResponseDTO> {
     // First check if user exists and is deleted
@@ -475,10 +447,9 @@ class UserService {
   }
 
   /**
-   * Remove sensitive data from user object
-   *
-   * @param user User document
-   * @returns Sanitized user object safe for client
+   * Strip sensitive data from user object
+   * @param user - Raw user document
+   * @returns Client-safe user data
    */
   private sanitizeUser(user: IUser): UserResponseDTO {
     // First use the general sanitizer

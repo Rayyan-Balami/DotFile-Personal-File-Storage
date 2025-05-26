@@ -1,15 +1,16 @@
+import { Router } from "express";
 import { NODE_ENV } from "@config/constants.js";
 import { ApiResponse } from "@utils/apiResponse.utils.js";
-import { Router } from "express";
 import fileRoutes from "@api/file/file.routes.js";
 import folderRoutes from "./folder/folder.routes.js";
 import userRoutes from "./user/user.routes.js";
 
 const apiRoutes = Router();
 
-// Root API route
-apiRoutes
-.get("/", (_, res) => {
+/**
+ * GET / - Root route for API metadata
+ */
+apiRoutes.get("/", (_, res) => {
   res.status(200).json(
     new ApiResponse(
       200,
@@ -22,8 +23,12 @@ apiRoutes
       "API is running"
     )
   );
-})
-.get("/health", (_, res) => {
+});
+
+/**
+ * GET /health - System health check
+ */
+apiRoutes.get("/health", (_, res) => {
   res.status(200).json(
     new ApiResponse(
       200,
@@ -37,9 +42,10 @@ apiRoutes
   );
 });
 
-// Mount routes
-apiRoutes.use("/", userRoutes);
-apiRoutes.use("/", fileRoutes);
-apiRoutes.use("/", folderRoutes);
+/**
+ * Mount sub-routes: /auth, /users, /admin/users, /files, /folders
+ */
+apiRoutes.use("/", userRoutes, fileRoutes, folderRoutes);
+
 
 export default apiRoutes;
