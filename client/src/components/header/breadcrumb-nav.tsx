@@ -7,37 +7,69 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { useRootContents, useFolderContents } from '@/api/folder/folder.query';
+import { useMatches } from '@tanstack/react-router';
+import React from "react";
 
 export function BreadcrumbNav() {
+  const matches = useMatches();
+  
+  // Find if we're in a folder route by checking the matches
+  const folderMatch = matches.find(match => 
+    match.routeId.includes('/(user)/folder/$id')
+  );
+  
+  const folderId = folderMatch?.params ? (folderMatch.params as { id: string }).id : undefined;
+  
+  // Get data based on current route
+  const { data: rootData } = useRootContents();
+  const { data: folderData } = useFolderContents(folderId || '');
+  
+  // Get path segments based on current location
+  const pathSegments: Array<{id: string | null; name: string}> = folderId 
+    ? folderData?.data?.folderContents?.pathSegments || []
+    : rootData?.data?.folderContents?.pathSegments || [];
+
   return (
     <Breadcrumb className="hidden sm:block flex-grow shrink-0 bg-secondary h-9 px-4 py-2 rounded-md">
       <BreadcrumbList>
-      {/* default always shown recent route '/' */}
+        {/* Root is always shown */}
         <BreadcrumbItem>
-          <BreadcrumbLink href="/">
-            <Home className="size-4" />
-            <span className="sr-only">Recent</span>
+          <BreadcrumbLink asChild>
+            <a href="/">
+              <Home className="size-4" />
+              <span className="sr-only">Home</span>
+            </a>
           </BreadcrumbLink>
         </BreadcrumbItem>
-        <BreadcrumbSeparator />
-        <BreadcrumbItem>
-          <BreadcrumbLink href="/" className="flex items-center gap-2">
-            <Folder className="size-4" />
-            <span>my-drive</span>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator />
-        <BreadcrumbItem>
-          <BreadcrumbLink href="/" className="flex items-center gap-2">
-            <Folder className="size-4" />
-            <span>Recent</span>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator />
-        {/* mapping starts from here */}
-        <BreadcrumbItem>
-          <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-        </BreadcrumbItem>
+
+        {/* Map through path segments */}
+        {pathSegments.map((segment, index: number) => {
+          // Skip the first "Root" item since we already show home icon
+          if (index === 0 && segment.name === "Root") return null;
+          
+          // Create path for this segment
+          const path = segment.id ? `/folder/${segment.id}` : '/';
+          const isLast = index === pathSegments.length - 1;
+          
+          return (
+            <React.Fragment key={`segment-${index}`}>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                {isLast ? (
+                  <BreadcrumbPage>{segment.name}</BreadcrumbPage>
+                ) : (
+                  <BreadcrumbLink asChild>
+                    <a href={path} className="flex items-center gap-2">
+                      <Folder className="size-4" />
+                      <span>{segment.name}</span>
+                    </a>
+                  </BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
+            </React.Fragment>
+          );
+        })}
       </BreadcrumbList>
     </Breadcrumb>
   );
