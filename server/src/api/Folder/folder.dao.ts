@@ -370,7 +370,7 @@ class FolderDao {
           localField: '_id',
           foreignField: 'parent',
           pipeline: [
-            { $match: { deletedAt: null } }
+            // Remove the deletedAt filter to include all subfolders
           ],
           as: 'subfolders'
         }
@@ -381,7 +381,7 @@ class FolderDao {
           localField: '_id',
           foreignField: 'folder',
           pipeline: [
-            { $match: { deletedAt: null } }
+            // Remove the deletedAt filter to include all files
           ],
           as: 'files'
         }
@@ -427,7 +427,7 @@ class FolderDao {
           localField: '_id',
           foreignField: 'parent',
           pipeline: [
-            { $match: { deletedAt: null } }
+            // Remove the deletedAt filter to include all subfolders
           ],
           as: 'subfolders'
         }
@@ -438,7 +438,7 @@ class FolderDao {
           localField: '_id',
           foreignField: 'folder',
           pipeline: [
-            { $match: { deletedAt: null } }
+            // Remove the deletedAt filter to include all files
           ],
           as: 'files'
         }

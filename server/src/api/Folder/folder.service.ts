@@ -684,8 +684,8 @@ class FolderService {
    * @returns Deleted files and folders
    */
   async getTrashContents(userId: string): Promise<FolderResponseWithFilesDto> {
-    // Get all deleted folders
-    const deletedFolders = await folderDao.getUserDeletedFolders(userId);
+    // Get all deleted folders with their item counts
+    const deletedFolders = await folderDao.getUserFoldersWithCounts(userId, null, true);
     
     // Get all deleted files
     const deletedFiles = await fileService.getAllDeletedFiles(userId);
