@@ -36,16 +36,16 @@ const MenuItems = () => (
   <>
     <ContextMenuItem>
       <Folder className="text-muted-foreground mr-2 h-4 w-4" />
-      <span>View Project</span>
+      <span>View</span>
     </ContextMenuItem>
     <ContextMenuItem>
       <Share className="text-muted-foreground mr-2 h-4 w-4" />
-      <span>Share Project</span>
+      <span>Unpin</span>
     </ContextMenuItem>
     <ContextMenuSeparator />
     <ContextMenuItem>
       <Trash2 className="text-muted-foreground mr-2 h-4 w-4" />
-      <span>Delete Project</span>
+      <span>Delete</span>
     </ContextMenuItem>
   </>
 )
@@ -54,21 +54,21 @@ const DropdownMenuOptions = () => (
   <>
     <DropdownMenuItem>
       <Folder className="text-muted-foreground mr-2 h-4 w-4" />
-      <span>View Project</span>
+      <span>View</span>
     </DropdownMenuItem>
     <DropdownMenuItem>
       <Share className="text-muted-foreground mr-2 h-4 w-4" />
-      <span>Share Project</span>
+      <span>Unpin</span>
     </DropdownMenuItem>
     <DropdownMenuSeparator />
     <DropdownMenuItem>
       <Trash2 className="text-muted-foreground mr-2 h-4 w-4" />
-      <span>Delete Project</span>
+      <span>Delete</span>
     </DropdownMenuItem>
   </>
 )
 
-export function NavProjects({
+export function NavPins({
   projects,
 }: {
   projects: {

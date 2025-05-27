@@ -1,11 +1,10 @@
 import {
-  BadgeCheck,
-  Bell,
   ChevronsUpDown,
   LogOut,
-  Sparkles
+  Settings2
 } from "lucide-react"
 
+import { useLogout } from "@/api/user/user.query"
 import {
   Avatar,
   AvatarFallback,
@@ -25,16 +24,14 @@ import {
   SidebarMenuItem,
   useSidebar
 } from "@/components/ui/sidebar"
-import { ModeToggle } from "./mode-toggle"
+import { VITE_API_URL } from "@/config/constants"
+import { formatBytes, getInitials } from "@/lib/utils"
 import { useAuthStore } from "@/stores/authStore"
 import { useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
-import { useLogout } from "@/api/user/user.query"
-import { getInitials } from "@/lib/utils"
+import { ModeToggle } from "./mode-toggle"
 import { Badge } from "./ui/badge"
 import { Progress } from "./ui/progress"
-import { VITE_API_URL } from "@/config/constants"
-import { formatBytes } from "@/lib/utils"
 
 export function NavUser() {
   const { user, clearAuth } = useAuthStore();
@@ -127,7 +124,7 @@ export function NavUser() {
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem>
-              <BadgeCheck className="mr-1 h-4 w-4" />
+              <Settings2 className="mr-1 h-4 w-4" />
               Settings
             </DropdownMenuItem>
           </DropdownMenuGroup>
