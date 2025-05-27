@@ -176,7 +176,7 @@ class FileService {
   }
 
   /**
-   * Soft delete file with ownership verification
+   * Soft delete file with ownership verification (macOS behavior)
    * @param fileId - File ID to delete
    * @param userId - User ID for ownership verification
    * @returns Deleted file document
@@ -186,7 +186,8 @@ class FileService {
     // Verify file ownership
     const existingFile = await this.getFileById(fileId, userId);
     
-    // Soft delete the file
+    // macOS behavior: Simply move the file to trash
+    // The file retains its original location metadata for restoration
     const deletedFile = await fileDao.softDeleteFile(fileId);
     
     if (!deletedFile) {
@@ -506,7 +507,7 @@ class FileService {
   }
 
   /**
-   * Restore soft-deleted file
+   * Restore soft-deleted file (macOS behavior)
    * @param fileId - ID of the file to restore
    * @param userId - ID of the user who owns the file
    * @returns The restored file
@@ -528,22 +529,33 @@ class FileService {
       throw new ApiError(400, [{ file: "File is not in trash" }]);
     }
     
-    // Check if folder still exists (if file was in a folder)
+    // macOS behavior: Check if original parent folder still exists and is not deleted
     if (file.folder) {
       try {
         const folder = await folderService.getFolderById(file.folder.toString(), userId);
         
-        // If folder exists and is not deleted, keep the file in its original location
-        if (folder) {
-          // Keep the original folder
+        // If folder exists and is not deleted, restoration can proceed to original location
+        if (folder && !folder.deletedAt) {
+          // Original folder is available, restore to original location
+        } else {
+          // macOS behavior: If original folder is missing or deleted, prevent restoration
+          throw new ApiError(400, [{ 
+            file: `Cannot restore '${file.name}.${file.extension}' because the original folder no longer exists or has been moved to Trash.` 
+          }]);
         }
       } catch (error) {
-        // If folder is deleted or doesn't exist, move file to root
-        file.folder = null;
+        if (error instanceof ApiError) {
+          throw error; // Re-throw our custom error
+        }
+        // If folder lookup fails, prevent restoration
+        logger.error(`Error checking folder for file ${fileId}:`, error);
+        throw new ApiError(400, [{ 
+          file: `Cannot restore '${file.name}.${file.extension}' because the original location cannot be verified.` 
+        }]);
       }
     }
     
-    // Restore the file
+    // Restore the file to its original location
     const restoredFile = await fileDao.restoreDeletedFile(fileId);
     
     if (!restoredFile) {

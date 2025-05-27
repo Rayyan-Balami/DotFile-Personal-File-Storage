@@ -142,7 +142,7 @@ class FolderService {
   async getFolderContents(
     folderId: string | null,
     userId: string,
-    includeDeleted: boolean = true
+    includeDeleted: boolean = false
   ): Promise<FolderResponseWithFilesDto> {
     // Build path segments for the breadcrumb navigation
     const pathSegments = await this.buildPathSegments(folderId, userId);
@@ -171,7 +171,8 @@ class FolderService {
       ]);
     }
 
-    // If viewing a deleted folder, always include deleted children
+    // macOS behavior: If viewing a deleted folder, show its contents as they were
+    // before deletion. The contents are still nested inside the folder structure.
     const shouldIncludeDeleted = includeDeleted || folder.deletedAt !== null;
 
     // Get only immediate children: folders with parent = folderId, files with folder = folderId
@@ -479,7 +480,8 @@ class FolderService {
   }
 
   /**
-   * Move folder to trash
+   * Move folder to trash (macOS behavior)
+   * Only the folder itself is moved to trash, contents remain nested inside
    * @param folderId - Target folder
    * @param userId - Folder owner
    * @returns Trashed folder
@@ -501,27 +503,9 @@ class FolderService {
       ]);
     }
     
-    // Get all descendant folders
-    const descendants = await folderDao.getAllDescendantFolders(folderId);
-    
-    // First, soft delete all files in this folder and descendant folders
-    for (const descendantId of [...descendants, folderId]) {
-      const files = await fileService.getUserFilesByFolders(userId, descendantId);
-      for (const file of files) {
-        try {
-          await fileService.softDeleteFile(file.id, userId);
-        } catch (error) {
-          logger.error(`Error deleting file ${file.id}:`, error);
-        }
-      }
-    }
-
-    // Then soft delete all descendant folders
-    for (const descendantId of descendants) {
-      await folderDao.softDeleteFolder(descendantId);
-    }
-
-    // Finally, soft delete the folder itself
+    // macOS behavior: Only move the folder itself to trash, not its contents
+    // The contents remain nested inside the folder and will only appear in trash
+    // if they were deleted separately before the parent folder was deleted
     const deletedFolder = await folderDao.softDeleteFolder(folderId);
 
     if (!deletedFolder) {
@@ -532,16 +516,26 @@ class FolderService {
   }
 
   /**
-   * Delete folder and contents permanently
+   * Delete folder and contents permanently (macOS behavior)
    * @param folderId - Target folder
    * @param userId - Folder owner
    * @throws Delete operation failed
    */
   async permanentDeleteFolder(folderId: string, userId: string): Promise<void> {
-    const folder = await this.getFolderById(folderId, userId);
+    // Verify ownership - check both active and deleted folders
+    const folder = await folderDao.getFolderById(folderId, true);
+    if (!folder) {
+      throw new ApiError(404, [{ folder: "Folder not found" }]);
+    }
+
+    if (folder.owner.toString() !== userId) {
+      throw new ApiError(403, [
+        { authorization: "You do not have permission to access this folder" },
+      ]);
+    }
 
     // Get all descendant folders
-    const descendants = await folderDao.getAllDescendantFolders(folderId);
+    const descendants = await folderDao.getAllDescendantFolders(folderId, true);
 
     // Delete all files in this folder and descendant folders
     for (const descendantId of [...descendants, folderId]) {
@@ -556,7 +550,7 @@ class FolderService {
       }
     }
 
-    // Delete all descendant folders
+    // Delete all descendant folders (reverse order to delete children first)
     for (const descendantId of descendants.reverse()) {
       await folderDao.permanentDeleteFolder(descendantId);
     }
@@ -569,7 +563,7 @@ class FolderService {
   }
 
   /**
-   * Restore folder from trash
+   * Restore folder from trash (macOS behavior)
    * @param folderId - Target folder
    * @param userId - Folder owner
    * @throws Not in trash or unauthorized
@@ -595,24 +589,8 @@ class FolderService {
       throw new ApiError(400, [{ folder: "Folder is not in trash" }]);
     }
 
-    // Get all descendant folders
-    const descendants = await folderDao.getAllDescendantFolders(folderId);
-    
-    // Restore all descendant folders
-    for (const descendantId of descendants) {
-      await folderDao.restoreDeletedFolder(descendantId);
-    }
-    
-    // Restore all files in this folder and descendant folders
-    for (const descendantId of [...descendants, folderId]) {
-      const files = await fileService.getUserFilesByFolders(userId, descendantId, true);
-      for (const file of files) {
-        await fileService.restoreFile(file.id, userId);
-      }
-    }
-
-    // Check if parent exists and is not deleted
-    let shouldMoveToRoot = false; // Default to keeping the parent unless we find it should move
+    // macOS behavior: Check if original parent exists and is not deleted
+    let shouldMoveToRoot = false;
     if (folder.parent) {
       try {
         // Get the parent ID correctly, handling both string and object cases
@@ -629,23 +607,27 @@ class FolderService {
           parentDeletedAt: parentFolder?.deletedAt
         });
         
-        if (!parentFolder) {
-          shouldMoveToRoot = true;
-          logger.info(`Moving folder ${folderId} to root as parent ${parentId} does not exist`);
-        } else if (parentFolder.deletedAt !== null) {
-          shouldMoveToRoot = true;
-          logger.info(`Moving folder ${folderId} to root as parent ${parentId} is deleted`);
-        } else {
-          logger.info(`Keeping folder ${folderId} under parent ${parentId} (parent is active)`);
+        if (!parentFolder || parentFolder.deletedAt !== null) {
+          // macOS behavior: If original parent doesn't exist or is deleted, 
+          // prevent restoration with error message
+          throw new ApiError(400, [{ 
+            folder: `Cannot restore '${folder.name}' because the original location no longer exists or has been moved to Trash.` 
+          }]);
         }
       } catch (error) {
-        // If there's an error getting the parent, move to root to be safe
+        if (error instanceof ApiError) {
+          throw error; // Re-throw our custom error
+        }
+        // If there's an unexpected error checking the parent, prevent restoration
         logger.error(`Error checking parent folder ${folder.parent} for folder ${folderId}:`, error);
-        shouldMoveToRoot = true;
+        throw new ApiError(400, [{ 
+          folder: `Cannot restore '${folder.name}' because the original location cannot be verified.` 
+        }]);
       }
     }
 
-    // Restore the folder, potentially moving it to root if needed
+    // Restore the folder to its original location
+    // Note: We don't automatically restore child folders/files - they must be restored separately
     const restoredFolder = await folderDao.restoreDeletedFolder(folderId, shouldMoveToRoot);
 
     if (!restoredFolder) {
@@ -679,44 +661,46 @@ class FolderService {
   }
 
   /**
-   * List user's trashed items
+   * List user's trashed items (macOS style flat list)
    * @param userId - Target user
-   * @returns Deleted files and folders
+   * @returns Deleted files and folders in flat list
    */
   async getTrashContents(userId: string): Promise<FolderResponseWithFilesDto> {
-    // Get all deleted folders with their item counts
-    const deletedFolders = await folderDao.getUserFoldersWithCounts(userId, null, true);
+    // Get all deleted folders for this user
+    const allDeletedFolders = await folderDao.getUserDeletedFolders(userId);
     
-    // Get all deleted files
-    const deletedFiles = await fileService.getAllDeletedFiles(userId);
+    // Get all deleted files for this user
+    const allDeletedFiles = await fileService.getAllDeletedFiles(userId);
 
-    // Create a set of all folder IDs that are descendants of other deleted folders
-    const descendantFolderIds = new Set<string>();
+    // macOS behavior: Show flat list of deleted items
+    // Only show items that were directly deleted, not items that became inaccessible
+    // due to parent folder deletion
     
-    // For each folder, get all its descendants and add them to the set
-    for (const folder of deletedFolders) {
-      const descendants = await folderDao.getAllDescendantFolders(folder._id.toString());
-      descendants.forEach(id => descendantFolderIds.add(id));
-    }
-
-    // Filter out folders that are descendants of other deleted folders
-    const topLevelDeletedFolders = deletedFolders.filter(
-      folder => !descendantFolderIds.has(folder._id.toString())
-    );
-
-    // Filter out files that belong to any deleted folder (including descendants)
-    const topLevelDeletedFiles = deletedFiles.filter(file => {
-      if (!file.folder) return true; // Root level files are always shown
-      const folderId = typeof file.folder === 'string' ? file.folder : file.folder.id;
-      // Only show files that don't belong to any deleted folder
-      return !deletedFolders.some(folder => folder._id.toString() === folderId) && 
-             !descendantFolderIds.has(folderId);
+    // For folders: only show folders that were explicitly deleted
+    // (not folders that became unreachable due to parent deletion)
+    const directlyDeletedFolders = allDeletedFolders.filter(folder => {
+      // A folder is "directly deleted" if it has a deletedAt timestamp
+      return folder.deletedAt !== null;
     });
 
-    // Return only top-level deleted items
+    // For files: only show files that were explicitly deleted
+    // (not files that became unreachable due to folder deletion)
+    const directlyDeletedFiles = allDeletedFiles.filter(file => {
+      // A file is "directly deleted" if it has a deletedAt timestamp
+      return file.deletedAt !== null;
+    });
+
+    // Get item counts for all deleted folders
+    const itemsMap = await folderDao.getFolderCounts(directlyDeletedFolders.map(f => f._id.toString()));
+
+    // Return flat list - no hierarchy in trash
     return {
-      folders: topLevelDeletedFolders.map((folder) => this.sanitizeFolder(folder)),
-      files: topLevelDeletedFiles,
+      folders: directlyDeletedFolders.map((folder) => ({
+        ...this.sanitizeFolder(folder),
+        items: itemsMap.get(folder._id.toString()) || 0
+      })),
+      files: directlyDeletedFiles,
+      pathSegments: [{ id: null, name: "Trash" }]
     };
   }
 
@@ -754,6 +738,72 @@ class FolderService {
     if (!result.acknowledged) {
       throw new ApiError(500, [{ folder: "Failed to delete folders" }]);
     }
+  }
+
+  /**
+   * Manually move folder from trash to any location (macOS drag behavior)
+   * @param folderId - Target folder to move
+   * @param newParentId - New parent folder ID (null for root)
+   * @param userId - Folder owner
+   * @returns Moved folder
+   */
+  async moveFromTrash(
+    folderId: string,
+    newParentId: string | null,
+    userId: string
+  ): Promise<FolderResponseDto> {
+    // Find the folder (must be in trash)
+    const folder = await folderDao.getFolderById(folderId, true);
+
+    if (!folder) {
+      throw new ApiError(404, [{ folder: "Folder not found" }]);
+    }
+
+    if (folder.owner.toString() !== userId) {
+      throw new ApiError(403, [
+        { authorization: "You do not have permission to move this folder" },
+      ]);
+    }
+
+    if (folder.deletedAt === null) {
+      throw new ApiError(400, [{ folder: "Folder is not in trash" }]);
+    }
+
+    // If moving to a specific parent, verify it exists and is not deleted
+    if (newParentId) {
+      const targetFolder = await folderDao.getFolderById(newParentId, false);
+      if (!targetFolder) {
+        throw new ApiError(404, [{ folder: "Target folder not found" }]);
+      }
+
+      if (targetFolder.owner.toString() !== userId) {
+        throw new ApiError(403, [
+          { authorization: "You do not have permission to access the target folder" },
+        ]);
+      }
+
+      // Prevent moving folder into itself or its descendants
+      const descendants = await folderDao.getAllDescendantFolders(folderId, true);
+      if (newParentId === folderId || descendants.includes(newParentId)) {
+        throw new ApiError(400, [
+          { folder: "Cannot move a folder into itself or its descendants" },
+        ]);
+      }
+    }
+
+    // Restore the folder and move it to the new location in one operation
+    const restoredFolder = await folderDao.restoreDeletedFolder(folderId, false);
+    if (!restoredFolder) {
+      throw new ApiError(500, [{ folder: "Failed to restore folder" }]);
+    }
+
+    // Update the parent
+    const movedFolder = await folderDao.moveFolder(folderId, { parent: newParentId, name: folder.name });
+    if (!movedFolder) {
+      throw new ApiError(500, [{ folder: "Failed to move folder" }]);
+    }
+
+    return this.sanitizeFolder(movedFolder);
   }
 }
 
