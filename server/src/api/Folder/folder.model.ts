@@ -10,7 +10,6 @@ export interface IFolder extends Document {
   owner: Types.ObjectId;
   color: string;
   parent: Types.ObjectId | null;
-  items: number;
   isPinned: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -27,7 +26,6 @@ const FolderSchema = new Schema<IFolder>(
     owner: { type: Schema.Types.ObjectId, ref: "User", required: true },
     color: { type: String, default: "#4f46e5" },
     parent: { type: Schema.Types.ObjectId, ref: "Folder", default: null },
-    items: { type: Number, default: 0 },
     isPinned: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
   },

@@ -141,16 +141,14 @@ class FolderDao {
   /**
    * Soft-delete folder (mark as deleted)
    * @param folderId - Folder ID
-   * @param items - Number of items in the folder
    * @returns Updated doc or null
    */
-  async softDeleteFolder(folderId: string, items: number = 0): Promise<IFolder | null> {
+  async softDeleteFolder(folderId: string): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
     return await Folder.findByIdAndUpdate(
       folderId,
       { 
-        deletedAt: new Date(),
-        items: items // Preserve the item count
+        deletedAt: new Date()
       },
       { new: true }
     )
@@ -353,6 +351,156 @@ class FolderDao {
       owner: new Types.ObjectId(userId),
       parent: parentId ? new Types.ObjectId(parentId) : null,
       deletedAt: null
+    });
+  }
+
+  /**
+   * Get folder with real-time count of subfolders and files
+   * @param folderId - Folder ID
+   * @returns Folder with count or null
+   */
+  async getFolderWithCount(folderId: string): Promise<(IFolder & { items: number }) | null> {
+    if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
+
+    const result = await Folder.aggregate([
+      { $match: { _id: new Types.ObjectId(folderId) } },
+      {
+        $lookup: {
+          from: 'folders',
+          localField: '_id',
+          foreignField: 'parent',
+          pipeline: [
+            { $match: { deletedAt: null } }
+          ],
+          as: 'subfolders'
+        }
+      },
+      {
+        $lookup: {
+          from: 'files',
+          localField: '_id',
+          foreignField: 'folder',
+          pipeline: [
+            { $match: { deletedAt: null } }
+          ],
+          as: 'files'
+        }
+      },
+      {
+        $addFields: {
+          items: {
+            $add: [
+              { $size: '$subfolders' },
+              { $size: '$files' }
+            ]
+          }
+        }
+      },
+      {
+        $project: {
+          subfolders: 0,
+          files: 0
+        }
+      }
+    ]);
+
+    return result[0] || null;
+  }
+
+  /**
+   * Get counts for multiple folders at once
+   * @param folderIds - Array of folder IDs to get counts for
+   * @returns Map of folder ID to items
+   */
+  async getFolderCounts(folderIds: string[]): Promise<Map<string, number>> {
+    if (!folderIds.length) return new Map();
+
+    const result = await Folder.aggregate([
+      {
+        $match: {
+          _id: { $in: folderIds.map(id => new Types.ObjectId(id)) }
+        }
+      },
+      {
+        $lookup: {
+          from: 'folders',
+          localField: '_id',
+          foreignField: 'parent',
+          pipeline: [
+            { $match: { deletedAt: null } }
+          ],
+          as: 'subfolders'
+        }
+      },
+      {
+        $lookup: {
+          from: 'files',
+          localField: '_id',
+          foreignField: 'folder',
+          pipeline: [
+            { $match: { deletedAt: null } }
+          ],
+          as: 'files'
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          items: {
+            $add: [
+              { $size: '$subfolders' },
+              { $size: '$files' }
+            ]
+          }
+        }
+      }
+    ]);
+
+    // Convert array to Map for easy lookup
+    return new Map(
+      result.map(item => [item._id.toString(), item.items])
+    );
+  }
+
+  /**
+   * Get user's folders with items
+   * @param userId - Folder owner
+   * @param parentId - Parent folder (null=root)
+   * @param isDeleted - Only deleted if true
+   * @returns Folder docs array with items
+   */
+  async getUserFoldersWithCounts(
+    userId: string,
+    parentId?: string | null,
+    isDeleted?: boolean
+  ): Promise<any[]> {
+    const query: any = {
+      owner: userId,
+      deletedAt: isDeleted ? { $ne: null } : null,
+    };
+
+    if (parentId === null) {
+      query.parent = null;
+    } else if (parentId) {
+      query.parent = parentId;
+    }
+
+    const folders = await Folder.find(query)
+      .populate("parent")
+      .sort({ isPinned: -1, updatedAt: -1 });
+
+    if (!folders.length) return [];
+
+    // Get items for all folders
+    const itemsMap = await this.getFolderCounts(folders.map(f => f._id.toString()));
+
+    // Add items to folders
+    return folders.map(folder => {
+      const folderObj = folder.toObject();
+      return {
+        ...folderObj,
+        items: itemsMap.get(folder._id.toString()) || 0
+      };
     });
   }
 }

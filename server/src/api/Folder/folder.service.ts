@@ -61,11 +61,6 @@ class FolderService {
       parent: folderData.parent ? new Types.ObjectId(folderData.parent) : null,
     });
 
-    // If folder was added to a parent folder, increment the parent's item count
-    if (folderData.parent) {
-      await this.incrementParentItemCount(folderData.parent);
-    }
-
     return this.sanitizeFolder(folder);
   }
 
@@ -154,7 +149,7 @@ class FolderService {
     
     // If folderId is null, return only folders with parent null and files with folder null
     if (!folderId) {
-      const rootFolders = await folderDao.getUserFolders(userId, null, includeDeleted);
+      const rootFolders = await folderDao.getUserFoldersWithCounts(userId, null, includeDeleted);
       const rootFiles = await fileService.getUserFilesByFolders(userId, null, includeDeleted);
       return {
         folders: rootFolders.map((folder) => this.sanitizeFolder(folder)),
@@ -180,7 +175,7 @@ class FolderService {
     const shouldIncludeDeleted = includeDeleted || folder.deletedAt !== null;
 
     // Get only immediate children: folders with parent = folderId, files with folder = folderId
-    const folders = await folderDao.getUserFolders(userId, folderId, shouldIncludeDeleted);
+    const folders = await folderDao.getUserFoldersWithCounts(userId, folderId, shouldIncludeDeleted);
     const files = await fileService.getUserFilesByFolders(userId, folderId, shouldIncludeDeleted);
 
     return {
@@ -206,49 +201,21 @@ class FolderService {
    * @param includeDeleted - Include trashed
    * @throws Not found or unauthorized
    */
-  async getFolderById(
-    folderId: string,
-    userId: string,
-    includeDeleted: boolean = true
-  ): Promise<FolderResponseDto> {
-    if (!mongoose.Types.ObjectId.isValid(folderId)) {
-      throw new ApiError(400, [{ folder: "Invalid folder ID" }]);
-    }
-
-    const folder = await this.verifyFolderOwnership(
-      folderId,
-      userId,
-      includeDeleted
-    );
-
+  async getFolderById(folderId: string, userId: string): Promise<FolderResponseDto> {
+    // Verify folder exists and belongs to user
+    const folder = await folderDao.getFolderWithCount(folderId);
+    
     if (!folder) {
       throw new ApiError(404, [{ folder: "Folder not found" }]);
     }
-
+    
+    if (folder.owner.toString() !== userId) {
+      throw new ApiError(403, [
+        { authentication: "You do not have permission to access this folder" },
+      ]);
+    }
+    
     return this.sanitizeFolder(folder);
-  }
-
-  /**
-   * Increment folder's item counter
-   * @param folderId - Target folder
-   */
-  async incrementFolderItemCount(folderId: string | null): Promise<void> {
-    if (folderId) {
-      await this.incrementParentItemCount(folderId);
-    }
-  }
-
-  /**
-   * Decrement a folder's item count when an item is removed from it
-   * Public method for use by other services
-   *
-   * @param folderId ID of the folder to update
-   */
-  async decrementFolderItemCount(folderId: string | null): Promise<void> {
-    logger.info("Decrementing folder item count for:", folderId);
-    if (folderId) {
-      await this.decrementParentItemCount(folderId);
-    }
   }
 
   /**
@@ -362,18 +329,6 @@ class FolderService {
         throw new ApiError(400, [
           { folder: "Cannot move a folder into itself or its descendants" },
         ]);
-      }
-    }
-
-    // If moving to a different parent, update item counts
-    if (folder.parent?.toString() !== moveData.parent) {
-      // Decrement old parent's count if it exists
-      if (folder.parent) {
-        await this.decrementParentItemCount(folder.parent.toString());
-      }
-      // Increment new parent's count if it exists
-      if (moveData.parent) {
-        await this.incrementParentItemCount(moveData.parent);
       }
     }
 
@@ -563,25 +518,11 @@ class FolderService {
 
     // Then soft delete all descendant folders
     for (const descendantId of descendants) {
-      const descendantFolder = await folderDao.getFolderById(descendantId);
-      if (descendantFolder) {
-        // Preserve the folder's item count when soft deleting
-        await folderDao.softDeleteFolder(descendantId, descendantFolder.items || 0);
-      }
+      await folderDao.softDeleteFolder(descendantId);
     }
 
-    // If folder has a parent, try to decrement its item count
-    if (folder.parent) {
-      try {
-        const parentId = folder.parent.toString();
-        await this.decrementParentItemCount(parentId);
-      } catch (error) {
-        logger.error("Error updating parent folder count:", error);
-      }
-    }
-
-    // Finally, soft delete the folder itself while preserving its item count
-    const deletedFolder = await folderDao.softDeleteFolder(folderId, folder.items || 0);
+    // Finally, soft delete the folder itself
+    const deletedFolder = await folderDao.softDeleteFolder(folderId);
 
     if (!deletedFolder) {
       throw new ApiError(404, [{ folder: "Folder not found" }]);
@@ -676,9 +617,9 @@ class FolderService {
       try {
         const parentFolder = await folderDao.getFolderById(folder.parent.toString(), true);
         
-        // If parent exists and is not deleted, increment its item count
+        // If parent exists and is not deleted, keep the folder in its original location
         if (parentFolder && parentFolder.deletedAt === null) {
-          await this.incrementParentItemCount(folder.parent.toString());
+          shouldMoveToRoot = false;
         } else {
           // If parent is deleted or doesn't exist, move folder to root
           shouldMoveToRoot = true;
@@ -762,42 +703,6 @@ class FolderService {
       folders: topLevelDeletedFolders.map((folder) => this.sanitizeFolder(folder)),
       files: topLevelDeletedFiles,
     };
-  }
-
-  /**
-   * Increment parent's item counter
-   * @param parentId - Parent folder
-   * @throws Parent not found
-   */
-  private async incrementParentItemCount(parentId: string): Promise<void> {
-    const parentFolder = await folderDao.getFolderById(parentId);
-    if (!parentFolder) {
-      throw new ApiError(404, [{ parent: "Parent folder not found" }]);
-    }
-
-    // Increment the items count
-    await folderDao.updateFolder(parentId, {
-      items: (parentFolder.items || 0) + 1,
-    });
-  }
-
-  /**
-   * Decrement parent's item counter
-   * @param parentId - Parent folder
-   * @throws Parent not found
-   */
-  private async decrementParentItemCount(parentId: string): Promise<void> {
-    logger.info("Decrementing parent item count for:", parentId.toString());
-    const parentFolder = await folderDao.getFolderById(parentId);
-    logger.info("Parent folder:", parentFolder);
-    if (!parentFolder) {
-      throw new ApiError(404, [{ parent: "Parent folder not found" }]);
-    }
-
-    // Ensure count doesn't go below 0
-    await folderDao.updateFolder(parentId, {
-      items: Math.max(0, (parentFolder.items || 1) - 1),
-    });
   }
 
   /**

@@ -60,11 +60,6 @@ class FileService {
       extension: fileExtension  // Store just the file extension
     });
     
-    // If file was added to a folder, increment the folder's item count
-    if (folderId) {
-      await folderService.incrementFolderItemCount(folderId);
-    }
-    
     return this.sanitizeFile(file);
   }
 
@@ -104,11 +99,6 @@ class FileService {
     logger.debug(`Creating file: ${fileData.name} for user ${fileData.owner}`);
     
     const file = await fileDao.createFile(fileData);
-    
-    // If file was added to a folder, increment the folder's item count
-    if (fileData.folder) {
-      await folderService.incrementFolderItemCount(fileData.folder.toString());
-    }
     
     return this.sanitizeFile(file);
   }
@@ -203,13 +193,6 @@ class FileService {
       throw new ApiError(500, [{ delete: "Failed to delete file" }]);
     }
     
-    // If file was in a folder, decrement the folder's item count
-    if (existingFile.folder) {
-      // Safely handle both string IDs and folder objects
-      const folderId = typeof existingFile.folder === 'string' ? existingFile.folder : existingFile.folder.toString();
-      await folderService.decrementFolderItemCount(folderId);
-    }
-    
     return this.sanitizeFile(deletedFile);
   }
 
@@ -297,14 +280,6 @@ class FileService {
       newFolderId
     );
     
-    // If file was in a folder, decrement that folder's item count
-    if (existingFile.folder) {
-      logger.info("existingFile.folder", existingFile.folder);
-      // Safely handle both string IDs and folder objects
-      const folderId = typeof existingFile.folder === 'string' ? existingFile.folder : existingFile.folder.toString();
-      await folderService.decrementFolderItemCount(folderId);
-    }
-    
     // Update the file
     const updatedFile = await fileDao.moveFile(fileId, {
       name: uniqueName,
@@ -313,12 +288,6 @@ class FileService {
     
     if (!updatedFile) {
       throw new ApiError(500, [{ move: "Failed to move file" }]);
-    }
-    
-    // If file is moved to a folder, increment that folder's item count
-    if (newFolderId) {
-      logger.info("newFolderId:", newFolderId);
-      await folderService.incrementFolderItemCount(newFolderId);
     }
     
     return this.sanitizeFile(updatedFile);
@@ -564,9 +533,9 @@ class FileService {
       try {
         const folder = await folderService.getFolderById(file.folder.toString(), userId);
         
-        // If folder exists and is not deleted, increment its item count
+        // If folder exists and is not deleted, keep the file in its original location
         if (folder) {
-          await folderService.incrementFolderItemCount(file.folder.toString());
+          // Keep the original folder
         }
       } catch (error) {
         // If folder is deleted or doesn't exist, move file to root
