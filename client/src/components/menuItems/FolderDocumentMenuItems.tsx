@@ -8,6 +8,9 @@ import {
   DropdownMenuSeparator,
 } from "../ui/dropdown-menu";
 import { useDialogStore } from "@/stores/useDialogStore";
+import { useRestoreFolder } from '@/api/folder/folder.query';
+import { useRestoreFile } from '@/api/file/file.query';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Context menu items component
 export const ContextMenuItems = React.memo(
@@ -24,7 +27,11 @@ export const ContextMenuItems = React.memo(
     isPinned?: boolean;
     deletedAt?: string | null;
   }) => {
+    // console.log('[ContextMenuItems] id:', id, 'deletedAt:', deletedAt);
     const { openCreateFolderDialog, openRenameDialog, openDeleteDialog } = useDialogStore();
+    const queryClient = useQueryClient();
+    const restoreFolder = useRestoreFolder();
+    const restoreFile = useRestoreFile();
     
     // Remove setTimeout which can cause timing issues
     const handleAction = (action: string) => {
@@ -39,6 +46,22 @@ export const ContextMenuItems = React.memo(
         openRenameDialog(id, cardType, title);
       } else if (action === "delete") {
         openDeleteDialog(id, cardType, title, deletedAt);
+      } else if (action === "restore") {
+        if (cardType === "folder") {
+          restoreFolder.mutate(id, {
+            onSuccess: () => {
+              queryClient.invalidateQueries({ queryKey: ['folders', 'trash'] });
+              queryClient.invalidateQueries({ queryKey: ['folders'] });
+            }
+          });
+        } else {
+          restoreFile.mutate(id, {
+            onSuccess: () => {
+              queryClient.invalidateQueries({ queryKey: ['folders', 'trash'] });
+              queryClient.invalidateQueries({ queryKey: ['files'] });
+            }
+          });
+        }
       }
     };
 
@@ -69,6 +92,17 @@ export const ContextMenuItems = React.memo(
           More Info
         </ContextMenuItem>
         <ContextMenuSeparator />
+        {deletedAt ? (
+          <>
+            <ContextMenuItem
+              onClick={() => handleAction("restore")}
+              className="text-green-600 focus:text-green-600 focus:bg-green-700/20"
+            >
+              Put back
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+          </>
+        ) : null}
         <ContextMenuItem
           onClick={() => handleAction("delete")}
           className="text-red-600 focus:text-red-600 focus:bg-red-700/20"
@@ -125,7 +159,11 @@ export const DropdownMenuItems = React.memo(
     isPinned?: boolean;
     deletedAt?: string | null;
   }) => {
+    // console.log('[DropdownMenuItems] id:', id, 'deletedAt:', deletedAt);
     const { openCreateFolderDialog, openRenameDialog, openDeleteDialog } = useDialogStore();
+    const queryClient = useQueryClient();
+    const restoreFolder = useRestoreFolder();
+    const restoreFile = useRestoreFile();
     
     const handleAction = (action: string) => {
       console.log(`Action triggered: ${action} on ${title} (${id})`);
@@ -139,6 +177,22 @@ export const DropdownMenuItems = React.memo(
         openRenameDialog(id, cardType, title);
       } else if (action === "delete") {
         openDeleteDialog(id, cardType, title, deletedAt);
+      } else if (action === "restore") {
+        if (cardType === "folder") {
+          restoreFolder.mutate(id, {
+            onSuccess: () => {
+              queryClient.invalidateQueries({ queryKey: ['folders', 'trash'] });
+              queryClient.invalidateQueries({ queryKey: ['folders'] });
+            }
+          });
+        } else {
+          restoreFile.mutate(id, {
+            onSuccess: () => {
+              queryClient.invalidateQueries({ queryKey: ['folders', 'trash'] });
+              queryClient.invalidateQueries({ queryKey: ['files'] });
+            }
+          });
+        }
       }
     };
 
@@ -166,6 +220,17 @@ export const DropdownMenuItems = React.memo(
           More Info
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        {deletedAt ? (
+          <>
+            <DropdownMenuItem
+              onClick={() => handleAction("restore")}
+              className="text-green-600 focus:text-green-600 focus:bg-green-700/20"
+            >
+              Put back
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
         <DropdownMenuItem
           onClick={() => handleAction("delete")}
           className="text-red-600 focus:text-red-600 focus:bg-red-700/20"

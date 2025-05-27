@@ -257,6 +257,7 @@ const CardContent = React.memo(
     isPinned = false,
     variant,
     extension,
+    deletedAt,
   }: {
     id: string;
     title: string;
@@ -267,6 +268,7 @@ const CardContent = React.memo(
     variant: CardVariant;
     extension?: string;
     dateModified?: string;
+    deletedAt?: Date | null;
   }) => {
     const [menuOpen, setMenuOpen] = useState(false);
 
@@ -291,7 +293,13 @@ const CardContent = React.memo(
                 </DropdownMenuItem>
               }
             >
-              <LazyDropdownMenuItems cardType={cardType} title={title} id={id} isPinned={isPinned} />
+              <LazyDropdownMenuItems 
+                cardType={cardType} 
+                title={title} 
+                id={id}
+                isPinned={isPinned} 
+                deletedAt={deletedAt instanceof Date ? deletedAt.toISOString() : deletedAt}
+              />
             </Suspense>
           </DropdownMenuContent>
         )}
@@ -361,7 +369,8 @@ const CardContent = React.memo(
       prevProps.isPinned === nextProps.isPinned &&
       prevProps.variant === nextProps.variant &&
       prevProps.cardType === nextProps.cardType &&
-      prevProps.extension === nextProps.extension
+      prevProps.extension === nextProps.extension &&
+      prevProps.deletedAt === nextProps.deletedAt
     );
   }
 );
@@ -379,7 +388,7 @@ const FolderDocumentCard = React.memo(
     } = props;
 
     // Extract properties from item based on type
-    const { id, type, cardType, name, isPinned, updatedAt } = item;
+    const { id, type, cardType, name, isPinned, updatedAt, deletedAt } = item;
     
     // Extract type-specific properties
     let items: number | undefined;
@@ -536,6 +545,7 @@ const FolderDocumentCard = React.memo(
               variant={variant}
               extension={extension}
               dateModified={updatedAt instanceof Date ? updatedAt.toISOString() : String(updatedAt)}
+              deletedAt={deletedAt}
             />
           </div>
         </ContextMenuTrigger>
@@ -547,7 +557,13 @@ const FolderDocumentCard = React.memo(
               </ContextMenuItem>
             }
           >
-            <LazyContextMenuItems cardType={cardType} title={name} id={id} isPinned={isPinned} />
+            <LazyContextMenuItems 
+              cardType={cardType} 
+              title={name} 
+              id={id} 
+              isPinned={isPinned} 
+              deletedAt={deletedAt instanceof Date ? deletedAt.toISOString() : deletedAt}
+            />
           </Suspense>
         </ContextMenuContent>
       </ContextMenu>
@@ -562,6 +578,7 @@ const FolderDocumentCard = React.memo(
       prevProps.item.name === nextProps.item.name &&
       prevProps.item.isPinned === nextProps.item.isPinned &&
       prevProps.item.updatedAt === nextProps.item.updatedAt &&
+      prevProps.item.deletedAt === nextProps.item.deletedAt &&
       prevProps.className === nextProps.className &&
       prevProps.alternateBg === nextProps.alternateBg &&
       prevProps.onOpen === nextProps.onOpen
