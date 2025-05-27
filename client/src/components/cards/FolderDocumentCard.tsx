@@ -11,7 +11,7 @@ import {
   FileSystemItem,
   FolderItem,
 } from "@/types/folderDocumnet";
-import { formatChildCount, formatFileSize } from "@/utils/formatUtils";
+import { formatChildCount, formatFileSize, formatDate } from "@/utils/formatUtils";
 import { EllipsisVertical, Loader2, Pin } from "lucide-react";
 import React, {
   lazy,
@@ -258,6 +258,7 @@ const CardContent = React.memo(
     variant,
     extension,
     deletedAt,
+    createdAt,
   }: {
     id: string;
     title: string;
@@ -269,6 +270,7 @@ const CardContent = React.memo(
     extension?: string;
     dateModified?: string;
     deletedAt?: Date | null;
+    createdAt?: string | Date;
   }) => {
     const [menuOpen, setMenuOpen] = useState(false);
 
@@ -319,6 +321,9 @@ const CardContent = React.memo(
                 childCount={childCount}
                 byteCount={byteCount}
               />
+              <span className="text-xs text-gray-500">
+                {formatDate(createdAt)}
+              </span>
             </div>
           </div>
           <div className="flex flex-col-reverse lg:flex-row-reverse justify-between items-center gap-4 max-lg:my-0.5">
@@ -370,7 +375,8 @@ const CardContent = React.memo(
       prevProps.variant === nextProps.variant &&
       prevProps.cardType === nextProps.cardType &&
       prevProps.extension === nextProps.extension &&
-      prevProps.deletedAt === nextProps.deletedAt
+      prevProps.deletedAt === nextProps.deletedAt &&
+      prevProps.createdAt === nextProps.createdAt
     );
   }
 );
@@ -388,7 +394,7 @@ const FolderDocumentCard = React.memo(
     } = props;
 
     // Extract properties from item based on type
-    const { id, type, cardType, name, isPinned, updatedAt, deletedAt } = item;
+    const { id, type, cardType, name, isPinned, updatedAt, deletedAt, createdAt } = item;
     
     // Extract type-specific properties
     let items: number | undefined;
@@ -546,6 +552,7 @@ const FolderDocumentCard = React.memo(
               extension={extension}
               dateModified={updatedAt instanceof Date ? updatedAt.toISOString() : String(updatedAt)}
               deletedAt={deletedAt}
+              createdAt={createdAt instanceof Date ? createdAt.toISOString() : String(createdAt)}
             />
           </div>
         </ContextMenuTrigger>

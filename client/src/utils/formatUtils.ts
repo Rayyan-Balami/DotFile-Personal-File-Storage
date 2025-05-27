@@ -37,3 +37,17 @@ export function formatItemCount(item: { cardType: 'folder' | 'document', childCo
     return formatFileSize(item.byteCount || 0);
   }
 }
+
+/**
+ * Format a date to a consistent string format
+ * @param date Date object or string to format
+ * @returns Formatted date string like "May 28, 2024"
+ */
+export function formatDate(date: string | Date | null | undefined): string {
+  if (!date) return '';
+  return new Date(date).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
