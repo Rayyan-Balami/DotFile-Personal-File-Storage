@@ -22,6 +22,25 @@ import path from "path";
  */
 class FileService {
   /**
+   * Extract folder ID from a folder field that can be string, ObjectId, or populated IFolder object
+   * @param folder - The folder field from a file document
+   * @returns Folder ID as string or null
+   */
+  private extractFolderId(folder: any): string | null {
+    if (!folder) return null;
+    
+    if (typeof folder === 'string') {
+      return folder;
+    } else if (typeof folder === 'object' && '_id' in folder) {
+      // It's a populated IFolder object
+      return (folder as any)._id.toString();
+    } else {
+      // It's an ObjectId
+      return folder.toString();
+    }
+  }
+
+  /**
    * Create file record with virtual folder mapping
    * @param fileData - File data including name, type, size, and storage key
    * @param userId - User ID who owns the file
@@ -217,7 +236,7 @@ class FileService {
     }
 
     // Check if a file with the new name and same extension already exists in the same folder
-    const folderId = existingFile.folder ? (typeof existingFile.folder === 'string' ? existingFile.folder : existingFile.folder.toString()) : null;
+    const folderId = this.extractFolderId(existingFile.folder);
     const existingFileWithName = await fileDao.checkFileExists(newName, existingFile.extension, userId, folderId);
 
     if (existingFileWithName) {
@@ -267,7 +286,7 @@ class FileService {
 
     // if moving to same folder, return the file
     if (existingFile.folder) {
-      const currentFolderId = typeof existingFile.folder === 'string' ? existingFile.folder : existingFile.folder.toString();
+      const currentFolderId = this.extractFolderId(existingFile.folder);
       if (currentFolderId === newFolderId) {
         throw new ApiError(400, [{ move: "File is already in the target folder" }]);
       }
@@ -532,7 +551,13 @@ class FileService {
     // macOS behavior: Check if original parent folder still exists and is not deleted
     if (file.folder) {
       try {
-        const folder = await folderService.getFolderById(file.folder.toString(), userId);
+        // Handle populated folder object vs ObjectId string
+        const folderId = this.extractFolderId(file.folder);
+        if (!folderId) {
+          throw new ApiError(400, [{ restore: "File has no folder reference" }]);
+        }
+        
+        const folder = await folderService.getFolderById(folderId, userId);
         
         // If folder exists and is not deleted, restoration can proceed to original location
         if (folder && !folder.deletedAt) {
