@@ -22,53 +22,83 @@ interface DialogState {
   duplicateItemAction: ((action: "replace" | "keepBoth") => void) | null;
   openDuplicateDialog: (name: string, type: "folder" | "file", action: (action: "replace" | "keepBoth") => void) => void;
   closeDuplicateDialog: () => void;
+
+  // Helper to close all dialogs
+  closeAllDialogs: () => void;
 }
 
 export const useDialogStore = create<DialogState>((set) => ({
   // Create Folder Dialog
   createFolderOpen: false,
   createFolderParentId: null,
-  openCreateFolderDialog: (parentId = null) => set({ 
+  openCreateFolderDialog: (parentId = null) => set((state) => ({ 
+    ...state,
     createFolderOpen: true, 
-    createFolderParentId: parentId 
-  }),
-  closeCreateFolderDialog: () => set({ 
+    createFolderParentId: parentId,
+    renameDialogOpen: false,
+    duplicateDialogOpen: false
+  })),
+  closeCreateFolderDialog: () => set((state) => ({ 
+    ...state,
     createFolderOpen: false 
-  }),
+  })),
 
   // Rename Dialog
   renameDialogOpen: false,
   renameItemId: null,
   renameItemCardType: null,
   renameItemName: null,
-  openRenameDialog: (id: string, type: "folder" | "document", name: string) => set({
+  openRenameDialog: (id: string, type: "folder" | "document", name: string) => set((state) => ({
+    ...state,
     renameDialogOpen: true,
     renameItemId: id,
     renameItemCardType: type,
-    renameItemName: name
-  }),
-  closeRenameDialog: () => set({
+    renameItemName: name,
+    createFolderOpen: false,
+    duplicateDialogOpen: false
+  })),
+  closeRenameDialog: () => set((state) => ({
+    ...state,
     renameDialogOpen: false,
     renameItemId: null,
     renameItemCardType: null,
     renameItemName: null
-  }),
+  })),
 
   // Duplicate Item Dialog
   duplicateDialogOpen: false,
   duplicateItemName: null,
   duplicateItemType: null,
   duplicateItemAction: null,
-  openDuplicateDialog: (name: string, type: "folder" | "file", action: (action: "replace" | "keepBoth") => void) => set({
+  openDuplicateDialog: (name: string, type: "folder" | "file", action: (action: "replace" | "keepBoth") => void) => set((state) => ({
+    ...state,
     duplicateDialogOpen: true,
     duplicateItemName: name,
     duplicateItemType: type,
-    duplicateItemAction: action
-  }),
-  closeDuplicateDialog: () => set({
+    duplicateItemAction: action,
+    createFolderOpen: false,
+    renameDialogOpen: false
+  })),
+  closeDuplicateDialog: () => set((state) => ({
+    ...state,
     duplicateDialogOpen: false,
     duplicateItemName: null,
     duplicateItemType: null,
     duplicateItemAction: null
-  })
+  })),
+
+  // Helper to close all dialogs
+  closeAllDialogs: () => set((state) => ({
+    ...state,
+    createFolderOpen: false,
+    renameDialogOpen: false,
+    duplicateDialogOpen: false,
+    createFolderParentId: null,
+    renameItemId: null,
+    renameItemCardType: null,
+    renameItemName: null,
+    duplicateItemName: null,
+    duplicateItemType: null,
+    duplicateItemAction: null
+  }))
 }));
