@@ -38,12 +38,12 @@ const data = {
     },
     {
       title: "My Drive",
-      url: "#",
+      url: "/",
       icon: FolderClosed,
     },
     {
       title: "Trash",
-      url: "#",
+      url: "/trash",
       icon: Trash2,
     },
   ],

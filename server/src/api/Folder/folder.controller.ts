@@ -172,11 +172,22 @@ class FolderController {
     }
     const userId = req.user.id;
     
-    const trashFolders = await folderService.getTrashContents(userId);
+    const trashContents = await folderService.getTrashContents(userId);
     
     res
       .status(200)
-      .json(new ApiResponse(200, { folders: trashFolders }, "Trash folder contents retrieved successfully"));
+      .json(new ApiResponse(200, { 
+        folderContents: {
+          folders: trashContents.folders,
+          files: trashContents.files,
+          pathSegments: [
+            {
+              id: null,
+              name: "Trash"
+            }
+          ]
+        }
+      }, "Trash folder contents retrieved successfully"));
   });
 
   /**

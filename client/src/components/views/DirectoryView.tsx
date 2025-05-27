@@ -32,12 +32,14 @@ interface DirectoryViewProps {
   currentPath?: string;
   directoryName?: string;
   parentId?: string | null;
+  showTrashActions?: boolean;
 }
 
 export default function DirectoryView({
   items = [],
   directoryName = "Directory",
   parentId = null,
+  showTrashActions = false,
 }: DirectoryViewProps) {
   const navigate = useNavigate();
   const setVisibleItems = useSelectionStore((state) => state.setVisibleItems);
