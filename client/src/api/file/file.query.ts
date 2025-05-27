@@ -133,7 +133,10 @@ export const useRestoreFile = () => {
     onSuccess: () => {
       // Invalidate both normal and trash queries
       queryClient.invalidateQueries({
-        queryKey: FILE_KEYS.all,
+        queryKey: FILE_KEYS.list({ includeDeleted: true }),
+      });
+      queryClient.invalidateQueries({
+        queryKey: FOLDER_KEYS.all,
       });
     },
   });

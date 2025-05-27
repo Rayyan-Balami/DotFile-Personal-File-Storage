@@ -80,7 +80,7 @@ class FileService {
       throw new ApiError(400, [{ file: "Invalid file ID" }]);
     }
     
-    const file = await fileDao.getFileById(fileId);
+    const file = await fileDao.getFileById(fileId, true);
     if (!file) {
       throw new ApiError(404, [{ file: "File not found" }]);
     }

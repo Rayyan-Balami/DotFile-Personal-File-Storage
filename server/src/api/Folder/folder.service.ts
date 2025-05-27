@@ -533,7 +533,18 @@ class FolderService {
     folderId: string,
     userId: string
   ): Promise<FolderResponseDto> {
-    const folder = await this.getFolderById(folderId, userId);
+    // Get the folder with includeDeleted=false to ensure we only delete non-deleted folders
+    const folder = await folderDao.getFolderById(folderId, false);
+    if (!folder) {
+      throw new ApiError(404, [{ folder: "Folder not found" }]);
+    }
+
+    // Verify ownership
+    if (folder.owner.toString() !== userId) {
+      throw new ApiError(403, [
+        { authorization: "You do not have permission to access this folder" },
+      ]);
+    }
     
     // Get all descendant folders
     const descendants = await folderDao.getAllDescendantFolders(folderId);
@@ -553,11 +564,12 @@ class FolderService {
 
     // If folder has a parent, decrement its item count
     if (folder.parent) {
-      await this.decrementParentItemCount(folder.parent.toString());
+      const parentId = folder.parent._id.toString();
+      await this.decrementParentItemCount(parentId);
     }
 
-    // Finally, soft delete the folder itself
-    const deletedFolder = await folderDao.softDeleteFolder(folderId);
+    // Finally, soft delete the folder itself while preserving its item count
+    const deletedFolder = await folderDao.softDeleteFolder(folderId, folder.items || 0);
 
     if (!deletedFolder) {
       throw new ApiError(404, [{ folder: "Folder not found" }]);
@@ -580,9 +592,14 @@ class FolderService {
 
     // Delete all files in this folder and descendant folders
     for (const descendantId of [...descendants, folderId]) {
-      const files = await fileService.getUserFilesByFolders(userId, descendantId);
+      const files = await fileService.getUserFilesByFolders(userId, descendantId, true); // Include deleted files
       for (const file of files) {
-        await fileService.permanentDeleteFile(file.id, userId);
+        try {
+          await fileService.permanentDeleteFile(file.id, userId);
+        } catch (error) {
+          logger.error(`Failed to delete file ${file.id}:`, error);
+          // Continue with other files even if one fails
+        }
       }
     }
 
@@ -719,10 +736,13 @@ class FolderService {
       folder => !descendantFolderIds.has(folder._id.toString())
     );
 
-    // Filter out files that belong to deleted folders
+    // Filter out files that belong to any deleted folder (including descendants)
     const topLevelDeletedFiles = deletedFiles.filter(file => {
       if (!file.folder) return true; // Root level files are always shown
-      return !descendantFolderIds.has(file.folder.toString());
+      const folderId = typeof file.folder === 'string' ? file.folder : file.folder.id;
+      // Only show files that don't belong to any deleted folder
+      return !deletedFolders.some(folder => folder._id.toString() === folderId) && 
+             !descendantFolderIds.has(folderId);
     });
 
     // Return only top-level deleted items

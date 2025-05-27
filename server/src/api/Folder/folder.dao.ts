@@ -141,13 +141,17 @@ class FolderDao {
   /**
    * Soft-delete folder (mark as deleted)
    * @param folderId - Folder ID
+   * @param items - Number of items in the folder
    * @returns Updated doc or null
    */
-  async softDeleteFolder(folderId: string): Promise<IFolder | null> {
+  async softDeleteFolder(folderId: string, items: number = 0): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
     return await Folder.findByIdAndUpdate(
       folderId,
-      { deletedAt: new Date() },
+      { 
+        deletedAt: new Date(),
+        items: items // Preserve the item count
+      },
       { new: true }
     )
       .populate("owner")
