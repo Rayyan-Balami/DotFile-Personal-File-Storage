@@ -149,18 +149,22 @@ class FileDao {
    * Get user files by folder with optional deletion filter
    * @param userId - MongoDB ObjectId string of the user
    * @param folderId - MongoDB ObjectId string of the folder (optional, null for root)
-   * @param isDeleted - When true, returns only deleted files
+   * @param includeDeleted - When true, includes deleted files
    * @returns Array of file documents sorted by pinned status and updated date
    */
   async getUserFilesByFolders(
     userId: string,
     folderId?: string | null,
-    isDeleted?: boolean
+    includeDeleted?: boolean
   ): Promise<IFile[]> {
     const query: any = {
       owner: userId,
-      deletedAt: isDeleted ? { $ne: null } : null,
     };
+
+    // Only filter out deleted items if includeDeleted is false
+    if (!includeDeleted) {
+      query.deletedAt = null;
+    }
 
     if (folderId === null) {
       query.folder = null;

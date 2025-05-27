@@ -708,14 +708,14 @@ class FolderService {
    * List user's folders in parent
    * @param userId - Target user
    * @param parentId - Parent folder
-   * @param isDeleted - Include trashed
+   * @param includeDeleted - Include trashed
    */
   async getUserFolders(
     userId: string,
     parentId?: string | null,
-    isDeleted: boolean = false
+    includeDeleted: boolean = false
   ): Promise<FolderResponseDto[]> {
-    const folders = await folderDao.getUserFolders(userId, parentId, isDeleted);
+    const folders = await folderDao.getUserFolders(userId, parentId, includeDeleted);
     return folders.map((folder) => this.sanitizeFolder(folder));
   }
 

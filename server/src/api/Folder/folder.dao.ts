@@ -22,18 +22,22 @@ class FolderDao {
    * Get user's folders, filter by parent and deleted status
    * @param userId - Folder owner
    * @param parentId - Parent folder (null=root)
-   * @param isDeleted - Only deleted if true
+   * @param includeDeleted - Include deleted folders if true
    * @returns Folder docs array
    */
   async getUserFolders(
     userId: string,
     parentId?: string | null,
-    isDeleted?: boolean
+    includeDeleted?: boolean
   ): Promise<IFolder[]> {
     const query: any = {
       owner: userId,
-      deletedAt: isDeleted ? { $ne: null } : null,
     };
+
+    // Only filter out deleted items if includeDeleted is false
+    if (!includeDeleted) {
+      query.deletedAt = null;
+    }
 
     if (parentId === null) {
       query.parent = null;
@@ -466,18 +470,22 @@ class FolderDao {
    * Get user's folders with items
    * @param userId - Folder owner
    * @param parentId - Parent folder (null=root)
-   * @param isDeleted - Only deleted if true
+   * @param includeDeleted - Include deleted folders if true
    * @returns Folder docs array with items
    */
   async getUserFoldersWithCounts(
     userId: string,
     parentId?: string | null,
-    isDeleted?: boolean
+    includeDeleted?: boolean
   ): Promise<any[]> {
     const query: any = {
       owner: userId,
-      deletedAt: isDeleted ? { $ne: null } : null,
     };
+
+    // Only filter out deleted items if includeDeleted is false
+    if (!includeDeleted) {
+      query.deletedAt = null;
+    }
 
     if (parentId === null) {
       query.parent = null;
