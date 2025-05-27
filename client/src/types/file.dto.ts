@@ -8,6 +8,7 @@ export interface CreateFileDto {
   folder?: string | null;
   storageKey: string;
   extension: string;
+  duplicateAction?: "replace" | "keepBoth";
 }
 
 export interface UpdateFileDto {
@@ -18,11 +19,12 @@ export interface UpdateFileDto {
 
 export interface RenameFileDto {
   name: string;
+  duplicateAction?: "replace" | "keepBoth";
 }
 
 export interface MoveFileDto {
-  folder: string | null;
-  name: string;
+  destinationFolderId: string;
+  duplicateAction?: "replace" | "keepBoth";
 }
 
 export interface FileResponseDto {

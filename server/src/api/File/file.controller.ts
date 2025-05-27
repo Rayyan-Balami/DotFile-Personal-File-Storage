@@ -181,9 +181,9 @@ class FileController {
     }
 
     const fileId = req.params.id;
-    const { name } = req.body;
+    const { name, duplicateAction } = req.body;
 
-    const updatedFile = await fileService.renameFile(fileId, name, userId);
+    const updatedFile = await fileService.renameFile(fileId, name, userId, duplicateAction);
 
     res.json(
       new ApiResponse(200, { file: updatedFile }, "File renamed successfully")

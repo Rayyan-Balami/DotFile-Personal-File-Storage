@@ -3,6 +3,7 @@ import { FileResponseDto } from "./file.dto";
 export interface CreateFolderDto {
   name: string;
   parent?: string | null;
+  duplicateAction?: "replace" | "keepBoth";
 }
 
 export interface UpdateFolderDto {
@@ -12,12 +13,14 @@ export interface UpdateFolderDto {
 }
 
 export interface MoveFolderDto {
-  parent: string | null;
+  parent: string;
   name: string;
+  duplicateAction?: "replace" | "keepBoth";
 }
 
 export interface RenameFolderDto {
   name: string;
+  duplicateAction?: "replace" | "keepBoth";
 }
 
 export interface PathSegment {
@@ -39,8 +42,11 @@ export interface FolderResponseDto {
   deletedAt: Date | null;
 }
 
-export interface FolderResponseWithFilesDto {
-  folders: FolderResponseDto[];
+export interface FolderResponseWithFilesDto extends FolderResponseDto {
   files: FileResponseDto[];
-  pathSegments?: PathSegment[];
+  folders: FolderResponseDto[];
+  pathSegments: Array<{
+    id: string;
+    name: string;
+  }>;
 }

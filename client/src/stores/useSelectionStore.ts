@@ -12,6 +12,7 @@ interface SelectionState {
   lastClickId: string | null;
   itemPositions: Map<string, number>;
   visibleItems: SelectableItem[];
+  isDeleting: boolean;
 }
 
 interface SelectionActions {
@@ -52,6 +53,7 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
   lastClickId: null,
   itemPositions: new Map<string, number>(),
   visibleItems: [],
+  isDeleting: false,
   
   setVisibleItems: (items: SelectableItem[]) => {
     set({ visibleItems: items });
@@ -111,6 +113,8 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
     const { selectedIds } = get();
     if (selectedIds.size === 0) return;
     
+    set({ isDeleting: true });
+    
     // Log items being deleted
     console.log(`Deleting ${selectedIds.size} items:`);
     get().logSelection();
@@ -125,7 +129,8 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
     set({
       selectedIds: new Set<string>(),
       lastSelectedId: null,
-      selectionAnchor: null
+      selectionAnchor: null,
+      isDeleting: false
     });
   },
   
@@ -146,6 +151,29 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
     
     if (e.key === 'Escape') {
       get().clear();
+    }
+
+    // Cmd/Ctrl + Delete for soft delete (move to trash)
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Delete' && !e.shiftKey && !e.altKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      const selectedItems = get().getSelectedItems();
+      if (selectedItems.length > 0) {
+        console.log('Soft deleting items:', selectedItems.map(item => item.name));
+        get().deleteSelected();
+      }
+    }
+
+    // Cmd/Ctrl + Shift + Delete for permanent delete
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Delete' && e.shiftKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      const selectedItems = get().getSelectedItems();
+      if (selectedItems.length > 0) {
+        console.log('Permanently deleting items:', selectedItems.map(item => item.name));
+        // TODO: Add confirmation dialog for permanent delete
+        get().deleteSelected();
+      }
     }
   },
   
@@ -234,6 +262,13 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
   },
   
   handleItemClick: (id: string, event: React.MouseEvent, onOpen?: () => void) => {
+    const { isDeleting } = get();
+    if (isDeleting) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
     const now = Date.now();
     const { lastClickTime, lastClickId } = get();
     
@@ -255,16 +290,61 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
 export function useKeyboardShortcuts(onDelete?: (id: string) => void) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't handle keyboard events in input fields
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
       const store = useSelectionStore.getState();
-      store.handleKeyDown(e);
-      
-      if ((e.key === 'Delete' || e.key === 'Backspace') && onDelete) {
-        store.deleteSelected(onDelete);
+      const selectedItems = store.getSelectedItems();
+
+      // Handle delete operations
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        // Always prevent default for delete keys
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Cmd/Ctrl + Delete for soft delete
+        if ((e.metaKey || e.ctrlKey) && !e.shiftKey) {
+          if (selectedItems.length > 0) {
+            console.log('Soft deleting items:', selectedItems.map(item => item.name));
+            store.deleteSelected(onDelete);
+          }
+          return;
+        }
+
+        // Cmd/Ctrl + Shift + Delete for permanent delete
+        if ((e.metaKey || e.ctrlKey) && e.shiftKey) {
+          if (selectedItems.length > 0) {
+            console.log('Permanently deleting items:', selectedItems.map(item => item.name));
+            // TODO: Add confirmation dialog for permanent delete
+            store.deleteSelected(onDelete);
+          }
+          return;
+        }
+
+        // Single delete key - do nothing
+        return;
+      }
+
+      // Handle other shortcuts
+      if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
+        e.preventDefault();
+        store.selectAll();
+      }
+
+      if (e.key === 'Escape') {
+        store.clear();
       }
     };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [onDelete]);
 }
 

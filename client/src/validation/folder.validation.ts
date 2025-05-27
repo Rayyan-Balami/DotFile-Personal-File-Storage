@@ -8,7 +8,7 @@ const folderNameSchema = z
   .min(1, { message: "Folder name is required" })
   .max(255, { message: "Folder name must be at most 255 characters" })
   .regex(
-    /^(?!\.{1,2}$)(?!\s*$)(?!.*\/)[a-zA-Z0-9 _\-.]+$/,
+    /^(?!\.{1,2}$)(?!\s*$)(?!.*\/)[a-zA-Z0-9 _\-.,()]+$/,
     "Folder name contains invalid characters"
   );
 
@@ -24,6 +24,7 @@ export const createFolderSchema = z.object({
   name: folderNameSchema,
   parent: folderParentSchema,
   color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format").optional(),
+  duplicateAction: z.enum(["replace", "keepBoth"]).optional(),
 });
 
 /**

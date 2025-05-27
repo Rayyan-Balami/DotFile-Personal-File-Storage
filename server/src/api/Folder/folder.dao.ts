@@ -4,7 +4,7 @@ import {
   UpdateFolderDto,
 } from "@api/folder/folder.dto.js";
 import { Folder, IFolder } from "@api/folder/folder.model.js";
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 
 // FolderDao: Data access for folder CRUD, soft-delete, and hierarchy ops
 class FolderDao {
@@ -324,6 +324,22 @@ class FolderDao {
       acknowledged: result.acknowledged,
       deletedCount: result.deletedCount || 0,
     };
+  }
+
+  /**
+   * Find folder by name in parent
+   */
+  async findFolderByName(
+    name: string,
+    userId: string,
+    parentId: string | null
+  ): Promise<IFolder | null> {
+    return await Folder.findOne({
+      name,
+      owner: new Types.ObjectId(userId),
+      parent: parentId ? new Types.ObjectId(parentId) : null,
+      deletedAt: null
+    });
   }
 }
 

@@ -11,18 +11,25 @@ class FolderController {
   /** Create a new folder */
   createFolder = asyncHandler(async (req, res) => {
     logger.info("Creating folder");
-    const folderData = req.body;
+    const folderData = {
+      name: req.body.name,
+      parent: req.body.parent || null
+    };
     
-    // Add the owner (current logged in user) from auth middleware
     if (!req.user) {
       throw new ApiError(401, [{ authentication: "Unauthorized" }]);
     }
     const userId = req.user.id;
     
-    const newFolder = await folderService.createFolder(folderData, userId);
+    const folder = await folderService.createFolder(
+      folderData, 
+      userId,
+      req.body.duplicateAction
+    );
+    
     res
       .status(201)
-      .json(new ApiResponse(201, { folder: newFolder }, "Folder created successfully"));
+      .json(new ApiResponse(201, { folder }, "Folder created successfully"));
   });
 
   /** Get folder by ID */
@@ -72,7 +79,13 @@ class FolderController {
     }
     const userId = req.user.id;
     
-    const updatedFolder = await folderService.renameFolder(folderId, renameData, userId);
+    const updatedFolder = await folderService.renameFolder(
+      folderId, 
+      renameData, 
+      userId,
+      req.body.duplicateAction
+    );
+    
     res
       .status(200)
       .json(new ApiResponse(200, { folder: updatedFolder }, "Folder renamed successfully"));
@@ -84,7 +97,8 @@ class FolderController {
     const folderId = req.params.id;
     const moveData = {
       parent: req.body.parent,
-      name: req.body.name || '' // Provide a default name to satisfy the DTO
+      name: req.body.name || '', // Provide a default name to satisfy the DTO
+      duplicateAction: req.body.duplicateAction
     };
     
     if (!req.user) {

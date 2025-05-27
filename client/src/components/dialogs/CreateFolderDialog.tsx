@@ -50,7 +50,6 @@ export function CreateFolderDialog() {
   
   async function onSubmit(values: z.infer<typeof createFolderSchema>) {
     try {
-      console.log("Creating folder:", values);
       await createFolder.mutateAsync(values);
       toast.success("Folder created successfully!");
       closeCreateFolderDialog();
@@ -60,7 +59,28 @@ export function CreateFolderDialog() {
       
       const fieldError = extractFieldError(error);
       
-      if (fieldError && fieldError.field === "name") {
+      if (fieldError && fieldError.field === "name" && error.response?.status === 409) {
+        // Handle duplicate folder
+        const { openDuplicateDialog } = useDialogStore.getState();
+        openDuplicateDialog(
+          values.name,
+          "folder",
+          async (action) => {
+            try {
+              await createFolder.mutateAsync({
+                ...values,
+                duplicateAction: action
+              });
+              toast.success("Folder created successfully!");
+              closeCreateFolderDialog();
+              form.reset({ name: "", parent: null });
+            } catch (error: any) {
+              logger.error("Create folder error:", error);
+              toast.error(getErrorMessage(error));
+            }
+          }
+        );
+      } else if (fieldError && fieldError.field === "name") {
         form.setError("name", {
           type: "manual",
           message: fieldError.message

@@ -26,23 +26,45 @@ class FolderService {
    */
   async createFolder(
     folderData: CreateFolderDto,
-    userId: string
+    userId: string,
+    duplicateAction?: "replace" | "keepBoth"
   ): Promise<FolderResponseDto> {
     const sanitizedName = sanitizeFilename(folderData.name);
 
-    // Ensure folder name is unique within the parent
-    const uniqueName = await this.ensureUniqueNameAtLevel(
-      sanitizedName,
-      userId,
-      folderData.parent || null
-    );
+    // Check if folder exists
+    const existingFolder = await folderDao.findFolderByName(sanitizedName, userId, folderData.parent || null);
+
+    if (existingFolder) {
+      if (!duplicateAction) {
+        throw new ApiError(409, [{ 
+          name: `A folder with the name "${sanitizedName}" already exists in this location` 
+        }]);
+      }
+
+      if (duplicateAction === "replace") {
+        // Delete the existing folder and all its contents
+        await this.permanentDeleteFolder(existingFolder._id.toString(), userId);
+      } else if (duplicateAction === "keepBoth") {
+        // Find a unique name by appending a number
+        let counter = 1;
+        while (await this.checkFolderNameExists(`${sanitizedName} (${counter})`, userId, folderData.parent || null)) {
+          counter++;
+        }
+        folderData.name = `${sanitizedName} (${counter})`;
+      }
+    }
 
     const folder = await folderDao.createFolder({
       ...folderData,
-      name: uniqueName,
+      name: folderData.name,
       owner: new Types.ObjectId(userId),
       parent: folderData.parent ? new Types.ObjectId(folderData.parent) : null,
     });
+
+    // If folder was added to a parent folder, increment the parent's item count
+    if (folderData.parent) {
+      await this.incrementParentItemCount(folderData.parent);
+    }
 
     return this.sanitizeFolder(folder);
   }
@@ -215,38 +237,77 @@ class FolderService {
   }
 
   /**
+   * Check if a folder name exists in the given parent
+   */
+  private async checkFolderNameExists(
+    name: string,
+    userId: string,
+    parentId: string | null,
+    currentFolderId?: string
+  ): Promise<boolean> {
+    // If we're renaming a folder to its current name, return false (no conflict)
+    if (currentFolderId) {
+      const currentFolder = await this.getFolderById(currentFolderId, userId);
+      if (currentFolder && currentFolder.name === name) {
+        return false;
+      }
+    }
+
+    const existingFolder = await folderDao.findFolderByName(name, userId, parentId);
+    return !!existingFolder;
+  }
+
+  /**
    * Change folder name
    * @param folderId - Target folder
    * @param renameData - New name
    * @param userId - Folder owner
+   * @param duplicateAction - How to handle duplicate names
    * @returns Updated folder
    */
   async renameFolder(
     folderId: string,
     renameData: RenameFolderDto,
-    userId: string
+    userId: string,
+    duplicateAction?: "replace" | "keepBoth"
   ): Promise<FolderResponseDto> {
+    // Get the folder to rename
     const folder = await this.getFolderById(folderId, userId);
-    const sanitizedNewName = sanitizeFilename(renameData.name);
-
-    // Get the parent ID as a string or null
-    const parentId = folder.parent ? folder.parent.toString() : null;
-
-    // Ensure name is unique within the parent folder
-    const uniqueName = await this.ensureUniqueNameAtLevel(
-      sanitizedNewName,
-      userId,
-      parentId
-    );
-
-    const updatedFolder = await folderDao.renameFolder(folderId, {
-      name: uniqueName,
-    });
-
-    if (!updatedFolder) {
+    if (!folder) {
       throw new ApiError(404, [{ folder: "Folder not found" }]);
     }
 
+    // If the new name is the same as the current name, return the folder unchanged
+    if (folder.name === renameData.name) {
+      return this.sanitizeFolder(folder);
+    }
+
+    // Check if a folder with the new name already exists
+    const existingFolder = await folderDao.findFolderByName(renameData.name, userId, folder.parent);
+
+    if (existingFolder) {
+      if (!duplicateAction) {
+        throw new ApiError(409, [{ name: "A folder with this name already exists" }]);
+      }
+
+      if (duplicateAction === "replace") {
+        // Delete the existing folder and all its contents
+        await this.permanentDeleteFolder(existingFolder._id.toString(), userId);
+      } else if (duplicateAction === "keepBoth") {
+        // If keepBoth is selected, don't change anything
+        const originalFolder = await folderDao.getFolderById(folderId);
+        if (!originalFolder) {
+          throw new ApiError(404, [{ folder: "Folder not found" }]);
+        }
+        return this.sanitizeFolder(originalFolder);
+      }
+    }
+
+    // Update the folder
+    const updatedFolder = await folderDao.renameFolder(folderId, renameData);
+    if (!updatedFolder) {
+      throw new ApiError(404, [{ folder: "Folder not found" }]);
+    }
     return this.sanitizeFolder(updatedFolder);
   }
 
@@ -286,6 +347,18 @@ class FolderService {
         throw new ApiError(400, [
           { folder: "Cannot move a folder into itself or its descendants" },
         ]);
+      }
+    }
+
+    // If moving to a different parent, update item counts
+    if (folder.parent?.toString() !== moveData.parent) {
+      // Decrement old parent's count if it exists
+      if (folder.parent) {
+        await this.decrementParentItemCount(folder.parent.toString());
+      }
+      // Increment new parent's count if it exists
+      if (moveData.parent) {
+        await this.incrementParentItemCount(moveData.parent);
       }
     }
 
@@ -471,7 +544,7 @@ class FolderService {
     for (const descendantId of [...descendants, folderId]) {
       const files = await fileDao.getUserFilesByFolders(userId, descendantId);
       for (const file of files) {
-        await fileDao.permanentDeleteFile(file._id.toString());
+        await fileService.permanentDeleteFile(file._id.toString(), userId);
       }
     }
 

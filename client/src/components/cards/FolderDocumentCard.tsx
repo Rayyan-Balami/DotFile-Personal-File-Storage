@@ -256,6 +256,7 @@ const CardContent = React.memo(
     byteCount,
     isPinned = false,
     variant,
+    extension,
   }: {
     id: string;
     title: string;
@@ -264,10 +265,10 @@ const CardContent = React.memo(
     byteCount?: number;
     isPinned: boolean;
     variant: CardVariant;
-    dateModified?: string; // Keep in type but don't destructure
+    extension?: string;
+    dateModified?: string;
   }) => {
     const [menuOpen, setMenuOpen] = useState(false);
-
 
     // Only render dropdown content when menu is open
     const dropdownMenu = (
@@ -302,7 +303,7 @@ const CardContent = React.memo(
         <div className="px-1 flex-1 flex gap-6">
           <div className="flex-1 flex max-lg:flex-col lg:items-center">
             <h3 className="flex-1 text-sm font-[425] line-clamp-1 break-all max-w-sm w-full">
-              {title}
+              {cardType === "document" && extension ? `${title}.${extension}` : title}
             </h3>
             <div className="flex-1 flex items-center">
               <ItemCount
@@ -331,7 +332,9 @@ const CardContent = React.memo(
     return (
       <div className="px-1 flex-1 flex gap-6">
         <div className="flex-1 flex flex-col">
-          <h3 className="text-sm font-[425] line-clamp-1 break-all">{title}</h3>
+          <h3 className="text-sm font-[425] line-clamp-1 break-all">
+            {cardType === "document" && extension ? `${title}.${extension}` : title}
+          </h3>
           <ItemCount
             cardType={cardType}
             childCount={childCount}
@@ -357,7 +360,8 @@ const CardContent = React.memo(
       prevProps.byteCount === nextProps.byteCount &&
       prevProps.isPinned === nextProps.isPinned &&
       prevProps.variant === nextProps.variant &&
-      prevProps.cardType === nextProps.cardType
+      prevProps.cardType === nextProps.cardType &&
+      prevProps.extension === nextProps.extension
     );
   }
 );
@@ -446,7 +450,18 @@ const FolderDocumentCard = React.memo(
     // Optimize event handlers
     const handleKeyDown = useCallback(
       (e: React.KeyboardEvent) => {
-        if (e.key === "Enter" && onOpen) onOpen();
+        const isDeleting = useSelectionStore.getState().isDeleting;
+        if (isDeleting) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+
+        // Only handle navigation keys
+        if (e.key === "Enter" && onOpen) {
+          e.preventDefault();
+          onOpen();
+        }
         if (e.key === " ") {
           e.preventDefault();
           handleItemClick(id, e as any, onOpen);
@@ -456,7 +471,15 @@ const FolderDocumentCard = React.memo(
     );
 
     const handleClick = useCallback(
-      (e: React.MouseEvent) => handleItemClick(id, e, onOpen),
+      (e: React.MouseEvent) => {
+        const isDeleting = useSelectionStore.getState().isDeleting;
+        if (isDeleting) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        handleItemClick(id, e, onOpen);
+      },
       [id, onOpen, handleItemClick]
     );
 
@@ -511,6 +534,7 @@ const FolderDocumentCard = React.memo(
               byteCount={size}
               isPinned={isPinned}
               variant={variant}
+              extension={extension}
               dateModified={updatedAt instanceof Date ? updatedAt.toISOString() : String(updatedAt)}
             />
           </div>

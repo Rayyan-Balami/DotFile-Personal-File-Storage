@@ -63,15 +63,19 @@ export const useCreateFolder = () => {
     mutationFn: (data: CreateFolderDto) => 
       folderApi.createFolder(data).then((res) => res.data),
     onSuccess: (_, variables) => {
-      // If folder has a parent, invalidate that parent's contents
+      // Invalidate all folder queries to ensure complete UI update
+      queryClient.invalidateQueries({
+        queryKey: FOLDER_KEYS.all,
+      });
+
+      // Also invalidate specific folder contents
+      queryClient.invalidateQueries({
+        queryKey: FOLDER_KEYS.contents(),
+      });
+
       if (variables.parent) {
         queryClient.invalidateQueries({
           queryKey: FOLDER_KEYS.contents(variables.parent),
-        });
-      } else {
-        // Otherwise invalidate root contents
-        queryClient.invalidateQueries({
-          queryKey: FOLDER_KEYS.contents(),
         });
       }
     },

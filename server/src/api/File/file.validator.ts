@@ -10,7 +10,7 @@ const fileNameSchema = z
   .min(1, { message: "File name is required" })
   .max(255, { message: "File name must be at most 255 characters" })
   .regex(
-    /^(?!\.{1,2}$)(?!\s*$)(?!.*\/)[a-zA-Z0-9 _\-.]+$/,
+    /^(?!\.{1,2}$)(?!\s*$)(?!.*\/)[a-zA-Z0-9 _\-.,()]+$/,
     "File name contains invalid characters"
   );
 
@@ -20,6 +20,7 @@ const fileNameSchema = z
  */
 export const renameFileSchema = z.object({
   name: fileNameSchema.transform((name) => name.trim()),
+  duplicateAction: z.enum(["replace", "keepBoth"]).optional(),
 });
 
 /**

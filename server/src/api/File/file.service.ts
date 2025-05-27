@@ -220,21 +220,39 @@ class FileService {
    * @param userId - User ID for ownership verification
    * @returns Updated file document
    */
-  async renameFile(fileId: string, newName: string, userId: string): Promise<FileResponseDto> {
+  async renameFile(fileId: string, newName: string, userId: string, duplicateAction?: "replace" | "keepBoth"): Promise<FileResponseDto> {
     // Verify file ownership
     const existingFile = await this.getFileById(fileId, userId);
-    
-    // Ensure name is unique within the folder
-    const uniqueName = await this.ensureUniqueNameAtLevel(
-      newName,
-      existingFile.extension,
-      userId,
-      existingFile.folder ? (typeof existingFile.folder === 'string' ? existingFile.folder : existingFile.folder.id) : null
-    );
-    
+    if (!existingFile) {
+      throw new ApiError(404, [{ file: "File not found" }]);
+    }
+
+    // If the new name is the same as the current name, return the file unchanged
+    if (existingFile.name === newName) {
+      return this.sanitizeFile(existingFile);
+    }
+
+    // Check if a file with the new name and same extension already exists in the same folder
+    const folderId = existingFile.folder ? (typeof existingFile.folder === 'string' ? existingFile.folder : existingFile.folder.id) : null;
+    const existingFileWithName = await fileDao.checkFileExists(newName, existingFile.extension, userId, folderId);
+
+    if (existingFileWithName) {
+      if (!duplicateAction) {
+        throw new ApiError(409, [{ name: `A file with the name "${newName}.${existingFile.extension}" already exists` }]);
+      }
+
+      if (duplicateAction === "replace") {
+        // Delete the existing file
+        await this.permanentDeleteFile(existingFileWithName._id.toString(), userId);
+      } else if (duplicateAction === "keepBoth") {
+        // If keepBoth is selected, don't change anything
+        return this.sanitizeFile(existingFile);
+      }
+    }
+
     // Update the file
     const updatedFile = await fileDao.renameFile(fileId, {
-      name: uniqueName
+      name: newName
     });
     
     if (!updatedFile) {
@@ -423,7 +441,7 @@ class FileService {
   }
 
   /**
-   * Ensure file name is unique within folder
+   * Ensure file name is unique within folder for the same extension
    * @param name - Original file name without extension
    * @param extension - File extension
    * @param ownerId - User ID who owns the file
@@ -441,7 +459,7 @@ class FileService {
     let isUnique = false;
 
     while (!isUnique) {
-      // Check if a file with this name already exists in the same folder
+      // Check if a file with this name and extension already exists in the same folder
       const existingFile = await fileDao.checkFileExists(
         finalName,
         extension,

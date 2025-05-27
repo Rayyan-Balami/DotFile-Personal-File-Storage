@@ -27,6 +27,7 @@ export interface UpdateFileDto {
  */
 export interface RenameFileDto {
   name: string;
+  duplicateAction?: "replace" | "keepBoth";
 }
 
 /**

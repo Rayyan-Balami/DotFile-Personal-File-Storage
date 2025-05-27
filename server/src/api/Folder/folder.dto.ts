@@ -8,6 +8,7 @@ export interface CreateFolderDto {
   parent?: string | null;
   color?: string;
   items?: number;
+  duplicateAction?: "replace" | "keepBoth";
 }
 
 /**
@@ -25,6 +26,7 @@ export interface UpdateFolderDto {
 export interface MoveFolderDto {
   parent: string | null;
   name: string;
+  duplicateAction?: "replace" | "keepBoth";
 }
 
 /**
@@ -32,6 +34,7 @@ export interface MoveFolderDto {
  */
 export interface RenameFolderDto {
   name: string;
+  duplicateAction?: "replace" | "keepBoth";
 }
 
 /**

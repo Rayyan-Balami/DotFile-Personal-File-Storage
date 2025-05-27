@@ -14,6 +14,14 @@ interface DialogState {
   renameItemName: string | null;
   openRenameDialog: (id: string, type: "folder" | "document", name: string) => void;
   closeRenameDialog: () => void;
+
+  // Duplicate Item Dialog
+  duplicateDialogOpen: boolean;
+  duplicateItemName: string | null;
+  duplicateItemType: "folder" | "file" | null;
+  duplicateItemAction: ((action: "replace" | "keepBoth") => void) | null;
+  openDuplicateDialog: (name: string, type: "folder" | "file", action: (action: "replace" | "keepBoth") => void) => void;
+  closeDuplicateDialog: () => void;
 }
 
 export const useDialogStore = create<DialogState>((set) => ({
@@ -44,5 +52,23 @@ export const useDialogStore = create<DialogState>((set) => ({
     renameItemId: null,
     renameItemCardType: null,
     renameItemName: null
+  }),
+
+  // Duplicate Item Dialog
+  duplicateDialogOpen: false,
+  duplicateItemName: null,
+  duplicateItemType: null,
+  duplicateItemAction: null,
+  openDuplicateDialog: (name: string, type: "folder" | "file", action: (action: "replace" | "keepBoth") => void) => set({
+    duplicateDialogOpen: true,
+    duplicateItemName: name,
+    duplicateItemType: type,
+    duplicateItemAction: action
+  }),
+  closeDuplicateDialog: () => set({
+    duplicateDialogOpen: false,
+    duplicateItemName: null,
+    duplicateItemType: null,
+    duplicateItemAction: null
   })
 }));

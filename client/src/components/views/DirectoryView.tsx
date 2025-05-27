@@ -62,6 +62,11 @@ export default function DirectoryView({
 
   // Callback for opening items (double click)
   const handleOpenItem = (id: string) => {
+    const isDeleting = useSelectionStore.getState().isDeleting;
+    if (isDeleting) {
+      return;
+    }
+
     const item = sortedItems.find((item) => item.id === id);
     if (!item) return;
     
@@ -76,6 +81,13 @@ export default function DirectoryView({
 
   // Callback for selecting items (single click)
   const handleSelectItem = (id: string, event: React.MouseEvent) => {
+    const isDeleting = useSelectionStore.getState().isDeleting;
+    if (isDeleting) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
     // All items (both folders and documents) should just be selected on single click
     const item = sortedItems.find((item) => item.id === id);
     if (item) {
