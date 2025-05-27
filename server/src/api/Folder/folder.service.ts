@@ -549,21 +549,24 @@ class FolderService {
     // Get all descendant folders
     const descendants = await folderDao.getAllDescendantFolders(folderId);
     
-    // Soft delete all descendant folders
-    for (const descendantId of descendants) {
-      await folderDao.softDeleteFolder(descendantId);
-    }
-    
-    // Soft delete all files in this folder and descendant folders
+    // First, soft delete all files in this folder and descendant folders
     for (const descendantId of [...descendants, folderId]) {
       const files = await fileService.getUserFilesByFolders(userId, descendantId);
       for (const file of files) {
         try {
           await fileService.softDeleteFile(file.id, userId);
         } catch (error) {
-          // Log error but continue with deletion
           logger.error(`Error deleting file ${file.id}:`, error);
         }
+      }
+    }
+
+    // Then soft delete all descendant folders
+    for (const descendantId of descendants) {
+      const descendantFolder = await folderDao.getFolderById(descendantId);
+      if (descendantFolder) {
+        // Preserve the folder's item count when soft deleting
+        await folderDao.softDeleteFolder(descendantId, descendantFolder.items || 0);
       }
     }
 
@@ -573,7 +576,6 @@ class FolderService {
         const parentId = folder.parent.toString();
         await this.decrementParentItemCount(parentId);
       } catch (error) {
-        // Log the error but continue with folder deletion
         logger.error("Error updating parent folder count:", error);
       }
     }
