@@ -141,19 +141,21 @@ class FolderService {
    * List folder's direct children
    * @param folderId - Target folder or null for root
    * @param userId - Folder owner
+   * @param includeDeleted - Include trashed items
    * @returns Files and subfolders
    */
   async getFolderContents(
     folderId: string | null,
-    userId: string
+    userId: string,
+    includeDeleted: boolean = false
   ): Promise<FolderResponseWithFilesDto> {
     // Build path segments for the breadcrumb navigation
     const pathSegments = await this.buildPathSegments(folderId, userId);
     
     // If folderId is null, return only folders with parent null and files with folder null
     if (!folderId) {
-      const rootFolders = await folderDao.getUserFolders(userId, null);
-      const rootFiles = await fileService.getUserFilesByFolders(userId, null);
+      const rootFolders = await folderDao.getUserFolders(userId, null, includeDeleted);
+      const rootFiles = await fileService.getUserFilesByFolders(userId, null, includeDeleted);
       return {
         folders: rootFolders.map((folder) => this.sanitizeFolder(folder)),
         files: rootFiles,
@@ -162,11 +164,14 @@ class FolderService {
     }
 
     // Verify folder exists and user owns it
-    await this.verifyFolderOwnership(folderId, userId, false);
+    const folder = await this.verifyFolderOwnership(folderId, userId, includeDeleted);
+
+    // If viewing a deleted folder, always include deleted children
+    const shouldIncludeDeleted = includeDeleted || folder.deletedAt !== null;
 
     // Get only immediate children: folders with parent = folderId, files with folder = folderId
-    const folders = await folderDao.getUserFolders(userId, folderId);
-    const files = await fileService.getUserFilesByFolders(userId, folderId);
+    const folders = await folderDao.getUserFolders(userId, folderId, shouldIncludeDeleted);
+    const files = await fileService.getUserFilesByFolders(userId, folderId, shouldIncludeDeleted);
 
     return {
       folders: folders.map((folder) => this.sanitizeFolder(folder)),
@@ -599,6 +604,9 @@ class FolderService {
         // If parent exists and is not deleted, increment its item count
         if (parentFolder) {
           await this.incrementParentItemCount(folder.parent.toString());
+        } else {
+          // If parent is deleted or doesn't exist, move folder to root
+          folder.parent = null;
         }
       } catch (error) {
         // If parent is deleted or doesn't exist, move folder to root
@@ -645,72 +653,36 @@ class FolderService {
    * @returns Deleted files and folders
    */
   async getTrashContents(userId: string): Promise<FolderResponseWithFilesDto> {
-    // Root trash view - show all top-level deleted items
-    // Get all deleted folders with null parent (top level) or
-    // deleted folders whose parent is not deleted (orphaned)
+    // Get all deleted folders
     const deletedFolders = await folderDao.getUserDeletedFolders(userId);
-
-    // Filter to only include root deleted folders or folders whose parent isn't deleted
-    const rootTrashFolders = await Promise.all(
-      deletedFolders.map(async (folder) => {
-        // If no parent, it's a root folder
-        if (!folder.parent) {
-          return folder;
-        }
-
-        // If parent exists but is not deleted, show this folder at root trash level
-        const parentFolder = await folderDao.getFolderById(
-          folder.parent.toString()
-        );
-        if (parentFolder && parentFolder.deletedAt === null) {
-          return folder;
-        }
-
-        // If parent is also deleted, don't show at root level
-        return null;
-      })
-    );
-
-    // Filter out nulls from the results
-    const filteredFolders = rootTrashFolders.filter(
-      (folder) => folder !== null
-    ) as IFolder[];
-
-    // Get all deleted files with null folder (top level) or
-    // files whose parent folder is not deleted (orphaned)
+    
+    // Get all deleted files
     const deletedFiles = await fileService.getAllDeletedFiles(userId);
 
-    // Filter to only include root deleted files or files whose parent folder isn't deleted
-    const rootTrashFiles = await Promise.all(
-      deletedFiles.map(async (file) => {
-        // If no folder, it's a root file (show at trash root level)
-        if (!file.folder) {
-          return file;
-        }
+    // Create a set of all folder IDs that are descendants of other deleted folders
+    const descendantFolderIds = new Set<string>();
+    
+    // For each folder, get all its descendants and add them to the set
+    for (const folder of deletedFolders) {
+      const descendants = await folderDao.getAllDescendantFolders(folder._id.toString());
+      descendants.forEach(id => descendantFolderIds.add(id));
+    }
 
-        // If parent folder exists but is not deleted, show this file at root trash level
-        // This handles the case where individual files are deleted but their parent folders are not
-        const parentFolder = await folderDao.getFolderById(
-          file.folder.toString()
-        );
-        if (parentFolder && parentFolder.deletedAt === null) {
-          return file;
-        }
-
-        // If parent is also deleted, don't show at root level (it will appear when navigating into the deleted folder)
-        return null;
-      })
+    // Filter out folders that are descendants of other deleted folders
+    const topLevelDeletedFolders = deletedFolders.filter(
+      folder => !descendantFolderIds.has(folder._id.toString())
     );
 
-    // Filter out nulls from the results
-    const filteredFiles = rootTrashFiles.filter(
-      (file) => file !== null
-    ) as any[];
+    // Filter out files that belong to deleted folders
+    const topLevelDeletedFiles = deletedFiles.filter(file => {
+      if (!file.folder) return true; // Root level files are always shown
+      return !descendantFolderIds.has(file.folder.toString());
+    });
 
-    // Return the sanitized response
+    // Return only top-level deleted items
     return {
-      folders: filteredFolders.map((folder) => this.sanitizeFolder(folder)),
-      files: filteredFiles,
+      folders: topLevelDeletedFolders.map((folder) => this.sanitizeFolder(folder)),
+      files: topLevelDeletedFiles,
     };
   }
 

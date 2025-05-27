@@ -25,23 +25,24 @@ export const useRootContents = () =>
   });
 
 /**
- * Hook to get contents of a specific folder
+ * Hook to get folder contents
  */
-export const useFolderContents = (folderId: string) =>
+export const useFolderContents = (folderId?: string, options?: { includeDeleted?: boolean }) =>
   useQuery({
-    queryKey: FOLDER_KEYS.contents(folderId),
-    queryFn: () => getFolderContents(folderId),
-    enabled: !!folderId,
+    queryKey: folderId ? FOLDER_KEYS.contents(folderId) : FOLDER_KEYS.contents(),
+    queryFn: () => 
+      folderId 
+        ? folderApi.getFolderContents(folderId, options).then((res) => res.data)
+        : folderApi.getRootContents().then((res) => res.data),
   });
 
 /**
  * Hook to get folder by ID
  */
-export const useFolder = (folderId: string) =>
+export const useFolderById = (folderId: string) =>
   useQuery({
     queryKey: FOLDER_KEYS.detail(folderId),
     queryFn: () => folderApi.getFolderById(folderId).then((res) => res.data),
-    enabled: !!folderId,
   });
 
 /**
