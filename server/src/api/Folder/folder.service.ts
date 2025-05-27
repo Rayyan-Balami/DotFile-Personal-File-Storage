@@ -115,7 +115,7 @@ class FolderService {
   async verifyFolderOwnership(
     folderId: string,
     userId: string,
-    includeDeleted: boolean = false
+    includeDeleted: boolean = true
   ): Promise<IFolder> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) {
       throw new ApiError(400, [{ folder: "Invalid folder ID" }]);
@@ -147,7 +147,7 @@ class FolderService {
   async getFolderContents(
     folderId: string | null,
     userId: string,
-    includeDeleted: boolean = false
+    includeDeleted: boolean = true
   ): Promise<FolderResponseWithFilesDto> {
     // Build path segments for the breadcrumb navigation
     const pathSegments = await this.buildPathSegments(folderId, userId);
@@ -163,8 +163,18 @@ class FolderService {
       };
     }
 
-    // Verify folder exists and user owns it
-    const folder = await this.verifyFolderOwnership(folderId, userId, includeDeleted);
+    // Get the folder first to check if it's deleted
+    const folder = await folderDao.getFolderById(folderId, true);
+    if (!folder) {
+      throw new ApiError(404, [{ folder: "Folder not found" }]);
+    }
+
+    // Check ownership
+    if (folder.owner.toString() !== userId) {
+      throw new ApiError(403, [
+        { authorization: "You do not have permission to access this folder" },
+      ]);
+    }
 
     // If viewing a deleted folder, always include deleted children
     const shouldIncludeDeleted = includeDeleted || folder.deletedAt !== null;
@@ -199,7 +209,7 @@ class FolderService {
   async getFolderById(
     folderId: string,
     userId: string,
-    includeDeleted: boolean = false
+    includeDeleted: boolean = true
   ): Promise<FolderResponseDto> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) {
       throw new ApiError(400, [{ folder: "Invalid folder ID" }]);
@@ -524,6 +534,29 @@ class FolderService {
     userId: string
   ): Promise<FolderResponseDto> {
     const folder = await this.getFolderById(folderId, userId);
+    
+    // Get all descendant folders
+    const descendants = await folderDao.getAllDescendantFolders(folderId);
+    
+    // Soft delete all descendant folders
+    for (const descendantId of descendants) {
+      await folderDao.softDeleteFolder(descendantId);
+    }
+    
+    // Soft delete all files in this folder and descendant folders
+    for (const descendantId of [...descendants, folderId]) {
+      const files = await fileService.getUserFilesByFolders(userId, descendantId);
+      for (const file of files) {
+        await fileService.softDeleteFile(file.id, userId);
+      }
+    }
+
+    // If folder has a parent, decrement its item count
+    if (folder.parent) {
+      await this.decrementParentItemCount(folder.parent.toString());
+    }
+
+    // Finally, soft delete the folder itself
     const deletedFolder = await folderDao.softDeleteFolder(folderId);
 
     if (!deletedFolder) {
@@ -547,9 +580,9 @@ class FolderService {
 
     // Delete all files in this folder and descendant folders
     for (const descendantId of [...descendants, folderId]) {
-      const files = await fileDao.getUserFilesByFolders(userId, descendantId);
+      const files = await fileService.getUserFilesByFolders(userId, descendantId);
       for (const file of files) {
-        await fileService.permanentDeleteFile(file._id.toString(), userId);
+        await fileService.permanentDeleteFile(file.id, userId);
       }
     }
 
@@ -592,30 +625,43 @@ class FolderService {
       throw new ApiError(400, [{ folder: "Folder is not in trash" }]);
     }
 
-    // If folder has a parent, check if parent exists and is not deleted
-    if (folder.parent) {
-      try {
-        const parentFolder = await this.getFolderById(
-          folder.parent.toString(),
-          userId,
-          false // Don't include deleted folders when checking parent
-        );
-
-        // If parent exists and is not deleted, increment its item count
-        if (parentFolder) {
-          await this.incrementParentItemCount(folder.parent.toString());
-        } else {
-          // If parent is deleted or doesn't exist, move folder to root
-          folder.parent = null;
-        }
-      } catch (error) {
-        // If parent is deleted or doesn't exist, move folder to root
-        folder.parent = null;
+    // Get all descendant folders
+    const descendants = await folderDao.getAllDescendantFolders(folderId);
+    
+    // Restore all descendant folders
+    for (const descendantId of descendants) {
+      await folderDao.restoreDeletedFolder(descendantId);
+    }
+    
+    // Restore all files in this folder and descendant folders
+    for (const descendantId of [...descendants, folderId]) {
+      const files = await fileService.getUserFilesByFolders(userId, descendantId, true);
+      for (const file of files) {
+        await fileService.restoreFile(file.id, userId);
       }
     }
 
-    // Restore the folder
-    const restoredFolder = await folderDao.restoreDeletedFolder(folderId);
+    // Check if parent exists and is not deleted
+    let shouldMoveToRoot = false;
+    if (folder.parent) {
+      try {
+        const parentFolder = await folderDao.getFolderById(folder.parent.toString(), true);
+        
+        // If parent exists and is not deleted, increment its item count
+        if (parentFolder && parentFolder.deletedAt === null) {
+          await this.incrementParentItemCount(folder.parent.toString());
+        } else {
+          // If parent is deleted or doesn't exist, move folder to root
+          shouldMoveToRoot = true;
+        }
+      } catch (error) {
+        // If parent is deleted or doesn't exist, move folder to root
+        shouldMoveToRoot = true;
+      }
+    }
+
+    // Restore the folder, optionally moving it to root
+    const restoredFolder = await folderDao.restoreDeletedFolder(folderId, shouldMoveToRoot);
 
     if (!restoredFolder) {
       throw new ApiError(500, [{ folder: "Failed to restore folder" }]);

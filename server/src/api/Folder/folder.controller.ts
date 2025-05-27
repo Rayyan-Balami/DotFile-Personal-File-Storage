@@ -53,14 +53,15 @@ class FolderController {
   getFolderContents = asyncHandler(async (req, res) => {
     logger.info("Getting folder contents");
     const folderId = req.params.id || null;
+    const includeDeleted = req.query.includeDeleted === 'true';
     
-    // Add the owner (current logged in user) from auth middleware
     if (!req.user) {
       throw new ApiError(401, [{ authentication: "Unauthorized" }]);
     }
     const userId = req.user.id;
     
-    const folderContents = await folderService.getFolderContents(folderId, userId);
+    const folderContents = await folderService.getFolderContents(folderId, userId, includeDeleted);
+    
     res
       .status(200)
       .json(new ApiResponse(200, { folderContents }, "Folder contents retrieved successfully"));

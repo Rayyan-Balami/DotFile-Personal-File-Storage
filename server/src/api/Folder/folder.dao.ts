@@ -157,13 +157,23 @@ class FolderDao {
   /**
    * Restore soft-deleted folder
    * @param folderId - Folder ID
+   * @param shouldMoveToRoot - Whether to move the folder to root level
    * @returns Updated doc or null
    */
-  async restoreDeletedFolder(folderId: string): Promise<IFolder | null> {
+  async restoreDeletedFolder(
+    folderId: string,
+    shouldMoveToRoot: boolean = false
+  ): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
+    
+    const updateData: any = { deletedAt: null };
+    if (shouldMoveToRoot) {
+      updateData.parent = null;
+    }
+    
     return await Folder.findByIdAndUpdate(
       folderId,
-      { deletedAt: null },
+      updateData,
       { new: true }
     )
       .populate("owner")

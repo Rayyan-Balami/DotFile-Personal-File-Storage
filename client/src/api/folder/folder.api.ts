@@ -21,8 +21,8 @@ const folderApi = {
     API.get("/folders/contents"),
 
   // Get contents of a specific folder by ID
-  getFolderContents: (folderId: string) => 
-    API.get(`/folders/contents/${folderId}`),
+  getFolderContents: (folderId: string, options?: { includeDeleted?: boolean }) => 
+    API.get(`/folders/contents/${folderId}`, { params: options }),
 
   // Get folder by ID
   getFolderById: (folderId: string) => 
