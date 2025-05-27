@@ -612,25 +612,40 @@ class FolderService {
     }
 
     // Check if parent exists and is not deleted
-    let shouldMoveToRoot = false;
+    let shouldMoveToRoot = false; // Default to keeping the parent unless we find it should move
     if (folder.parent) {
       try {
-        const parentFolder = await folderDao.getFolderById(folder.parent.toString(), true);
+        // Get the parent ID correctly, handling both string and object cases
+        const parentId = typeof folder.parent === 'string' ? 
+          folder.parent : 
+          (folder.parent._id ? folder.parent._id.toString() : folder.parent.toString());
+
+        // Include deleted folders in the search to properly check the parent's state
+        const parentFolder = await folderDao.getFolderById(parentId, true);
+        logger.info("Parent folder check:", {
+          folderId,
+          parentId,
+          parentExists: !!parentFolder,
+          parentDeletedAt: parentFolder?.deletedAt
+        });
         
-        // If parent exists and is not deleted, keep the folder in its original location
-        if (parentFolder && parentFolder.deletedAt === null) {
-          shouldMoveToRoot = false;
-        } else {
-          // If parent is deleted or doesn't exist, move folder to root
+        if (!parentFolder) {
           shouldMoveToRoot = true;
+          logger.info(`Moving folder ${folderId} to root as parent ${parentId} does not exist`);
+        } else if (parentFolder.deletedAt !== null) {
+          shouldMoveToRoot = true;
+          logger.info(`Moving folder ${folderId} to root as parent ${parentId} is deleted`);
+        } else {
+          logger.info(`Keeping folder ${folderId} under parent ${parentId} (parent is active)`);
         }
       } catch (error) {
-        // If parent is deleted or doesn't exist, move folder to root
+        // If there's an error getting the parent, move to root to be safe
+        logger.error(`Error checking parent folder ${folder.parent} for folder ${folderId}:`, error);
         shouldMoveToRoot = true;
       }
     }
 
-    // Restore the folder, optionally moving it to root
+    // Restore the folder, potentially moving it to root if needed
     const restoredFolder = await folderDao.restoreDeletedFolder(folderId, shouldMoveToRoot);
 
     if (!restoredFolder) {
