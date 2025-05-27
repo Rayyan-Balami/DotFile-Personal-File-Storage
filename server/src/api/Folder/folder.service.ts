@@ -279,7 +279,7 @@ class FolderService {
 
     // If the new name is the same as the current name, return the folder unchanged
     if (folder.name === renameData.name) {
-      return this.sanitizeFolder(folder);
+      return folder;
     }
 
     // Check if a folder with the new name already exists
