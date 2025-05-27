@@ -206,7 +206,7 @@ class FileService {
     // If file was in a folder, decrement the folder's item count
     if (existingFile.folder) {
       // Safely handle both string IDs and folder objects
-      const folderId = typeof existingFile.folder === 'string' ? existingFile.folder : existingFile.folder.id;
+      const folderId = typeof existingFile.folder === 'string' ? existingFile.folder : existingFile.folder.toString();
       await folderService.decrementFolderItemCount(folderId);
     }
     
@@ -222,7 +222,7 @@ class FileService {
    */
   async renameFile(fileId: string, newName: string, userId: string, duplicateAction?: "replace" | "keepBoth"): Promise<FileResponseDto> {
     // Verify file ownership
-    const existingFile = await this.getFileById(fileId, userId);
+    const existingFile = await this.verifyFileOwnership(fileId, userId);
     if (!existingFile) {
       throw new ApiError(404, [{ file: "File not found" }]);
     }
@@ -233,7 +233,7 @@ class FileService {
     }
 
     // Check if a file with the new name and same extension already exists in the same folder
-    const folderId = existingFile.folder ? (typeof existingFile.folder === 'string' ? existingFile.folder : existingFile.folder.id) : null;
+    const folderId = existingFile.folder ? (typeof existingFile.folder === 'string' ? existingFile.folder : existingFile.folder.toString()) : null;
     const existingFileWithName = await fileDao.checkFileExists(newName, existingFile.extension, userId, folderId);
 
     if (existingFileWithName) {
@@ -283,7 +283,7 @@ class FileService {
 
     // if moving to same folder, return the file
     if (existingFile.folder) {
-      const currentFolderId = typeof existingFile.folder === 'string' ? existingFile.folder : existingFile.folder.id;
+      const currentFolderId = typeof existingFile.folder === 'string' ? existingFile.folder : existingFile.folder.toString();
       if (currentFolderId === newFolderId) {
         throw new ApiError(400, [{ move: "File is already in the target folder" }]);
       }
@@ -301,7 +301,7 @@ class FileService {
     if (existingFile.folder) {
       logger.info("existingFile.folder", existingFile.folder);
       // Safely handle both string IDs and folder objects
-      const folderId = typeof existingFile.folder === 'string' ? existingFile.folder : existingFile.folder.id;
+      const folderId = typeof existingFile.folder === 'string' ? existingFile.folder : existingFile.folder.toString();
       await folderService.decrementFolderItemCount(folderId);
     }
     
