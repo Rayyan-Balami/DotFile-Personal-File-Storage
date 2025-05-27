@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import folderApi from "./folder.api";
 import { CreateFolderDto, MoveFolderDto, RenameFolderDto, UpdateFolderDto } from "@/types/folder.dto";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import folderApi from "./folder.api";
 
 // Query keys
 export const FOLDER_KEYS = {
@@ -226,3 +226,17 @@ export const useEmptyTrash = () => {
     },
   });
 };
+
+export function useDeleteFolder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (folderId: string) => {
+      const { data } = await folderApi.permanentDelete(folderId);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["folders"] });
+    },
+  });
+}

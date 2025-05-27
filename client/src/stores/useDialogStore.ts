@@ -23,6 +23,15 @@ interface DialogState {
   openDuplicateDialog: (name: string, type: "folder" | "file", action: (action: "replace" | "keepBoth") => void) => void;
   closeDuplicateDialog: () => void;
 
+  // Delete Dialog
+  deleteDialogOpen: boolean;
+  deleteItemId: string | null;
+  deleteItemType: "folder" | "document" | null;
+  deleteItemName: string | null;
+  deleteItemDeletedAt: string | null;
+  openDeleteDialog: (id: string, type: "folder" | "document", name: string, deletedAt?: string | null) => void;
+  closeDeleteDialog: () => void;
+
   // Helper to close all dialogs
   closeAllDialogs: () => void;
 }
@@ -36,7 +45,8 @@ export const useDialogStore = create<DialogState>((set) => ({
     createFolderOpen: true, 
     createFolderParentId: parentId,
     renameDialogOpen: false,
-    duplicateDialogOpen: false
+    duplicateDialogOpen: false,
+    deleteDialogOpen: false
   })),
   closeCreateFolderDialog: () => set((state) => ({ 
     ...state,
@@ -55,7 +65,8 @@ export const useDialogStore = create<DialogState>((set) => ({
     renameItemCardType: type,
     renameItemName: name,
     createFolderOpen: false,
-    duplicateDialogOpen: false
+    duplicateDialogOpen: false,
+    deleteDialogOpen: false
   })),
   closeRenameDialog: () => set((state) => ({
     ...state,
@@ -77,7 +88,8 @@ export const useDialogStore = create<DialogState>((set) => ({
     duplicateItemType: type,
     duplicateItemAction: action,
     createFolderOpen: false,
-    renameDialogOpen: false
+    renameDialogOpen: false,
+    deleteDialogOpen: false
   })),
   closeDuplicateDialog: () => set((state) => ({
     ...state,
@@ -87,18 +99,49 @@ export const useDialogStore = create<DialogState>((set) => ({
     duplicateItemAction: null
   })),
 
+  // Delete Dialog
+  deleteDialogOpen: false,
+  deleteItemId: null,
+  deleteItemType: null,
+  deleteItemName: null,
+  deleteItemDeletedAt: null,
+  openDeleteDialog: (id: string, type: "folder" | "document", name: string, deletedAt = null) => set((state) => ({
+    ...state,
+    deleteDialogOpen: true,
+    deleteItemId: id,
+    deleteItemType: type,
+    deleteItemName: name,
+    deleteItemDeletedAt: deletedAt,
+    createFolderOpen: false,
+    renameDialogOpen: false,
+    duplicateDialogOpen: false
+  })),
+  closeDeleteDialog: () => set((state) => ({
+    ...state,
+    deleteDialogOpen: false,
+    deleteItemId: null,
+    deleteItemType: null,
+    deleteItemName: null,
+    deleteItemDeletedAt: null
+  })),
+
   // Helper to close all dialogs
   closeAllDialogs: () => set((state) => ({
     ...state,
     createFolderOpen: false,
     renameDialogOpen: false,
     duplicateDialogOpen: false,
+    deleteDialogOpen: false,
     createFolderParentId: null,
     renameItemId: null,
     renameItemCardType: null,
     renameItemName: null,
     duplicateItemName: null,
     duplicateItemType: null,
-    duplicateItemAction: null
+    duplicateItemAction: null,
+    deleteItemId: null,
+    deleteItemType: null,
+    deleteItemName: null,
+    deleteItemDeletedAt: null
   }))
 }));

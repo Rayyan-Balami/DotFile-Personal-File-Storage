@@ -4,6 +4,7 @@ import { useDialogStore } from "@/stores/useDialogStore";
 import { CreateFolderDialog } from "./CreateFolderDialog";
 import { RenameDialog } from "./RenameDialog";
 import { DuplicateItemDialog } from "./DuplicateItemDialog";
+import { DeleteDialog } from "./DeleteDialog";
 
 export function DialogProvider() {
   const { 
@@ -13,7 +14,8 @@ export function DialogProvider() {
     duplicateItemName,
     duplicateItemType,
     duplicateItemAction,
-    closeDuplicateDialog
+    closeDuplicateDialog,
+    deleteDialogOpen
   } = useDialogStore();
 
   return (
@@ -31,6 +33,7 @@ export function DialogProvider() {
           onCancel={closeDuplicateDialog}
         />
       )}
+      {deleteDialogOpen && <DeleteDialog />}
     </>
   );
 }

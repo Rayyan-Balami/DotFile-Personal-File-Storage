@@ -1,7 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import fileApi from "./file.api";
 import { MoveFileDto, RenameFileDto, UpdateFileDto } from "@/types/file.dto";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FOLDER_KEYS } from "../folder/folder.query";
+import fileApi from "./file.api";
 
 // Query keys
 export const FILE_KEYS = {
@@ -174,7 +174,8 @@ export const useMoveFile = () => {
         queryKey: FOLDER_KEYS.all,
       });
     },
-  });};
+  });
+};
 
 /**
  * Hook to view file content
@@ -199,3 +200,17 @@ export const useDownloadFile = () => {
       fileApi.downloadFile(fileId).then((res) => res.data),
   });
 };
+
+export function useDeleteFile() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (fileId: string) => {
+      const { data } = await fileApi.permanentDelete(fileId);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["files"] });
+    },
+  });
+}

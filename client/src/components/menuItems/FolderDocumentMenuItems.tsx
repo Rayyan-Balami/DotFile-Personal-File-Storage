@@ -16,13 +16,15 @@ export const ContextMenuItems = React.memo(
     title,
     id,
     isPinned = false,
+    deletedAt = null,
   }: {
     cardType: "folder" | "document";
     title: string;
     id: string;
     isPinned?: boolean;
+    deletedAt?: string | null;
   }) => {
-    const { openCreateFolderDialog, openRenameDialog } = useDialogStore();
+    const { openCreateFolderDialog, openRenameDialog, openDeleteDialog } = useDialogStore();
     
     // Remove setTimeout which can cause timing issues
     const handleAction = (action: string) => {
@@ -35,6 +37,8 @@ export const ContextMenuItems = React.memo(
         }
       } else if (action === "rename") {
         openRenameDialog(id, cardType, title);
+      } else if (action === "delete") {
+        openDeleteDialog(id, cardType, title, deletedAt);
       }
     };
 
@@ -67,9 +71,9 @@ export const ContextMenuItems = React.memo(
         <ContextMenuSeparator />
         <ContextMenuItem
           onClick={() => handleAction("delete")}
-          className="text-destructive focus:text-destructive focus:bg-destructive/20"
+          className="text-red-600 focus:text-red-600 focus:bg-red-700/20"
         >
-          Delete
+          {deletedAt ? "Delete Permanently" : "Move to Trash"}
         </ContextMenuItem>
       </>
     );
@@ -113,13 +117,15 @@ export const DropdownMenuItems = React.memo(
     title,
     id,
     isPinned = false,
+    deletedAt = null,
   }: {
     cardType: "folder" | "document";
     title: string;
     id: string;
     isPinned?: boolean;
+    deletedAt?: string | null;
   }) => {
-    const { openCreateFolderDialog, openRenameDialog } = useDialogStore();
+    const { openCreateFolderDialog, openRenameDialog, openDeleteDialog } = useDialogStore();
     
     const handleAction = (action: string) => {
       console.log(`Action triggered: ${action} on ${title} (${id})`);
@@ -131,6 +137,8 @@ export const DropdownMenuItems = React.memo(
         }
       } else if (action === "rename") {
         openRenameDialog(id, cardType, title);
+      } else if (action === "delete") {
+        openDeleteDialog(id, cardType, title, deletedAt);
       }
     };
 
@@ -160,9 +168,9 @@ export const DropdownMenuItems = React.memo(
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => handleAction("delete")}
-          variant="destructive"
+          className="text-red-600 focus:text-red-600 focus:bg-red-700/20"
         >
-          Delete
+          {deletedAt ? "Delete Permanently" : "Move to Trash"}
         </DropdownMenuItem>
       </>
     );
