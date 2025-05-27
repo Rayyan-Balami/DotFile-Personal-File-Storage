@@ -558,14 +558,24 @@ class FolderService {
     for (const descendantId of [...descendants, folderId]) {
       const files = await fileService.getUserFilesByFolders(userId, descendantId);
       for (const file of files) {
-        await fileService.softDeleteFile(file.id, userId);
+        try {
+          await fileService.softDeleteFile(file.id, userId);
+        } catch (error) {
+          // Log error but continue with deletion
+          logger.error(`Error deleting file ${file.id}:`, error);
+        }
       }
     }
 
-    // If folder has a parent, decrement its item count
+    // If folder has a parent, try to decrement its item count
     if (folder.parent) {
-      const parentId = folder.parent._id.toString();
-      await this.decrementParentItemCount(parentId);
+      try {
+        const parentId = folder.parent.toString();
+        await this.decrementParentItemCount(parentId);
+      } catch (error) {
+        // Log the error but continue with folder deletion
+        logger.error("Error updating parent folder count:", error);
+      }
     }
 
     // Finally, soft delete the folder itself while preserving its item count

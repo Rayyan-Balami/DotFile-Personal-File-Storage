@@ -18,6 +18,7 @@ import fs from "fs";
 import mime from "mime-types";
 import multer, { FileFilterCallback, StorageEngine } from "multer";
 import path from "path";
+import { Types } from "mongoose";
 
 // --------------------- Types & Declarations ---------------------
 
@@ -220,7 +221,17 @@ export const processZipFiles = async (req: Request, _res: Response, next: NextFu
       // Create virtual folders in DB
       for (const folderPath of Array.from(folders.keys())) {
         const folder = folders.get(folderPath)!;
-        const parentId = folder.parentPath ? virtualFolders[folder.parentPath] : null;
+        let parentId = null;
+        
+        if (folder.parentPath) {
+          parentId = virtualFolders[folder.parentPath];
+        } else if (req.body.folderId) {
+          // Validate folderId is a valid MongoDB ObjectId
+          if (!Types.ObjectId.isValid(req.body.folderId)) {
+            throw new ApiError(400, [{ folder: "Invalid folder ID format" }]);
+          }
+          parentId = req.body.folderId;
+        }
 
         try {
           const newFolder = await folderService.createFolder({ name: folder.name, parent: parentId }, userId);
