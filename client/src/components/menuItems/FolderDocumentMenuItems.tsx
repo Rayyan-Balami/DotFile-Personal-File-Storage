@@ -122,6 +122,9 @@ export const ContextMenuItems = React.memo(
         <ContextMenuItem onClick={() => handleAction("open")}>
           Open
         </ContextMenuItem>
+        <ContextMenuItem onClick={() => handleAction("open-new-tab")}>
+          Open in new tab
+        </ContextMenuItem>
         <ContextMenuItem onClick={() => handleAction("rename")}>
           Rename
         </ContextMenuItem>
@@ -297,6 +300,9 @@ export const DropdownMenuItems = React.memo(
       <>
         <DropdownMenuItem onClick={() => handleAction("open")}>
           Open
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleAction("open-new-tab")}>
+          Open in new tab
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleAction("rename")}>
           Rename
