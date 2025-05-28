@@ -23,6 +23,7 @@ export function mapToFileSystemItem(item: FolderResponseDto | FileResponseDto): 
     createdAt: new Date(item.createdAt),
     updatedAt: new Date(item.updatedAt),
     deletedAt: item.deletedAt ? new Date(item.deletedAt) : null,
+    hasDeletedAncestor: item.hasDeletedAncestor ?? false,
   };
 
   if (isFolder(item)) {

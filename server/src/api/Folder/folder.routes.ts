@@ -37,7 +37,8 @@ authRoutes
   .delete("/:id", FolderController.softDeleteFolder)                         // Soft delete (move to trash)
   .delete("/:id/permanent", FolderController.permanentDeleteFolder)          // Permanently delete
   .post("/:id/restore", FolderController.restoreFolder)                      // Restore from trash
-  .post("/trash/empty", FolderController.emptyTrash);                        // Empty entire trash
+  .post("/trash/empty", FolderController.emptyTrash)                         // Empty entire trash
+  .get("/:id/hasDeletedAncestor", FolderController.hasDeletedAncestor);      // Check for deleted ancestors
 
 //=========================//
 // Mount under /folders

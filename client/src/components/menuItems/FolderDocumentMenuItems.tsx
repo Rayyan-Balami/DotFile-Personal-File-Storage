@@ -20,32 +20,31 @@ export const ContextMenuItems = React.memo(
     id,
     isPinned = false,
     deletedAt = null,
+    hasDeletedAncestor = false,
   }: {
     cardType: "folder" | "document";
     title: string;
     id: string;
     isPinned?: boolean;
     deletedAt?: string | null;
+    hasDeletedAncestor?: boolean;
   }) => {
-    // console.log('[ContextMenuItems] id:', id, 'deletedAt:', deletedAt);
     const { openCreateFolderDialog, openRenameDialog, openDeleteDialog } = useDialogStore();
     const queryClient = useQueryClient();
     const restoreFolder = useRestoreFolder();
     const restoreFile = useRestoreFile();
     
-    // Remove setTimeout which can cause timing issues
     const handleAction = (action: string) => {
       console.log(`Action triggered: ${action} on ${title} (${id})`);
       
       if (action === "create-folder") {
-        // If we're in a folder, use its ID as the parent
         if (cardType === "folder") {
           openCreateFolderDialog(id);
         }
       } else if (action === "rename") {
         openRenameDialog(id, cardType, title);
       } else if (action === "delete") {
-        openDeleteDialog(id, cardType, title, deletedAt);
+        openDeleteDialog(id, cardType, title, deletedAt, hasDeletedAncestor);
       } else if (action === "restore") {
         if (cardType === "folder") {
           restoreFolder.mutate(id, {
@@ -62,6 +61,22 @@ export const ContextMenuItems = React.memo(
             }
           });
         }
+      } else if (action === "pin") {
+        if (cardType === "folder") {
+          // Implement pinFolder mutation
+        }
+      } else if (action === "unpin") {
+        if (cardType === "folder") {
+          // Implement unpinFolder mutation
+        }
+      } else if (action === "open") {
+        // Implement open action
+      } else if (action === "share") {
+        // Implement share action
+      } else if (action === "copy-link") {
+        // Implement copy-link action
+      } else if (action === "info") {
+        // Implement info action
       }
     };
 
@@ -92,7 +107,7 @@ export const ContextMenuItems = React.memo(
           More Info
         </ContextMenuItem>
         <ContextMenuSeparator />
-        {deletedAt ? (
+        {deletedAt && !hasDeletedAncestor ? (
           <>
             <ContextMenuItem
               onClick={() => handleAction("restore")}
@@ -107,7 +122,7 @@ export const ContextMenuItems = React.memo(
           onClick={() => handleAction("delete")}
           className="text-red-600 focus:text-red-600 focus:bg-red-700/20"
         >
-          {deletedAt ? "Delete Permanently" : "Move to Trash"}
+          {deletedAt || hasDeletedAncestor ? "Delete Permanently" : "Move to Trash"}
         </ContextMenuItem>
       </>
     );
@@ -152,14 +167,16 @@ export const DropdownMenuItems = React.memo(
     id,
     isPinned = false,
     deletedAt = null,
+    hasDeletedAncestor = false,
   }: {
     cardType: "folder" | "document";
     title: string;
     id: string;
     isPinned?: boolean;
     deletedAt?: string | null;
+    hasDeletedAncestor?: boolean;
   }) => {
-    // console.log('[DropdownMenuItems] id:', id, 'deletedAt:', deletedAt);
+  console.log("hasDeletedAncestor" ,hasDeletedAncestor);
     const { openCreateFolderDialog, openRenameDialog, openDeleteDialog } = useDialogStore();
     const queryClient = useQueryClient();
     const restoreFolder = useRestoreFolder();
@@ -169,14 +186,13 @@ export const DropdownMenuItems = React.memo(
       console.log(`Action triggered: ${action} on ${title} (${id})`);
       
       if (action === "create-folder") {
-        // If we're in a folder, use its ID as the parent
         if (cardType === "folder") {
           openCreateFolderDialog(id);
         }
       } else if (action === "rename") {
         openRenameDialog(id, cardType, title);
       } else if (action === "delete") {
-        openDeleteDialog(id, cardType, title, deletedAt);
+        openDeleteDialog(id, cardType, title, deletedAt, hasDeletedAncestor);
       } else if (action === "restore") {
         if (cardType === "folder") {
           restoreFolder.mutate(id, {
@@ -193,6 +209,22 @@ export const DropdownMenuItems = React.memo(
             }
           });
         }
+      } else if (action === "pin") {
+        if (cardType === "folder") {
+          // Implement pinFolder mutation
+        }
+      } else if (action === "unpin") {
+        if (cardType === "folder") {
+          // Implement unpinFolder mutation
+        }
+      } else if (action === "open") {
+        // Implement open action
+      } else if (action === "share") {
+        // Implement share action
+      } else if (action === "copy-link") {
+        // Implement copy-link action
+      } else if (action === "info") {
+        // Implement info action
       }
     };
 
@@ -220,7 +252,7 @@ export const DropdownMenuItems = React.memo(
           More Info
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        {deletedAt ? (
+        {deletedAt && !hasDeletedAncestor ? (
           <>
             <DropdownMenuItem
               onClick={() => handleAction("restore")}
@@ -235,7 +267,7 @@ export const DropdownMenuItems = React.memo(
           onClick={() => handleAction("delete")}
           className="text-red-600 focus:text-red-600 focus:bg-red-700/20"
         >
-          {deletedAt ? "Delete Permanently" : "Move to Trash"}
+          {deletedAt || hasDeletedAncestor ? "Delete Permanently" : "Move to Trash"}
         </DropdownMenuItem>
       </>
     );

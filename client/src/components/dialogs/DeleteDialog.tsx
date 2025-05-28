@@ -6,6 +6,7 @@ import { useMoveFileToTrash, usePermanentDeleteFile } from "@/api/file/file.quer
 import { useMoveToTrash, usePermanentDelete } from "@/api/folder/folder.query";
 import { logger } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/apiErrorHandler";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function DeleteDialog() {
   const {
@@ -14,9 +15,11 @@ export function DeleteDialog() {
     deleteItemType,
     deleteItemName,
     deleteItemDeletedAt,
+    deleteItemHasDeletedAncestor,
     closeDeleteDialog,
   } = useDialogStore();
 
+  const queryClient = useQueryClient();
   const moveFileToTrash = useMoveFileToTrash();
   const permanentDeleteFile = usePermanentDeleteFile();
   const moveFolderToTrash = useMoveToTrash();
@@ -25,20 +28,30 @@ export function DeleteDialog() {
   const handleDelete = async () => {
     try {
       if (deleteItemType === "folder") {
-        if (deleteItemDeletedAt) {
+        if (deleteItemDeletedAt || deleteItemHasDeletedAncestor) {
           await permanentDeleteFolder.mutateAsync(deleteItemId!);
           toast.success("Folder permanently deleted!");
+          queryClient.invalidateQueries({ queryKey: ['folders', 'trash'] });
+          queryClient.invalidateQueries({ queryKey: ['folders'] });
         } else {
           await moveFolderToTrash.mutateAsync(deleteItemId!);
           toast.success("Folder moved to trash!");
+          queryClient.invalidateQueries({ queryKey: ['folders', 'trash'] });
+          queryClient.invalidateQueries({ queryKey: ['folders'] });
         }
       } else {
-        if (deleteItemDeletedAt) {
+        if (deleteItemDeletedAt || deleteItemHasDeletedAncestor) {
           await permanentDeleteFile.mutateAsync(deleteItemId!);
           toast.success("File permanently deleted!");
+          queryClient.invalidateQueries({ queryKey: ['files'] });
+          queryClient.invalidateQueries({ queryKey: ['files', 'trash'] });
+          queryClient.invalidateQueries({ queryKey: ['folders'] });
         } else {
           await moveFileToTrash.mutateAsync(deleteItemId!);
           toast.success("File moved to trash!");
+          queryClient.invalidateQueries({ queryKey: ['files'] });
+          queryClient.invalidateQueries({ queryKey: ['files', 'trash'] });
+          queryClient.invalidateQueries({ queryKey: ['folders'] });
         }
       }
       
@@ -49,7 +62,7 @@ export function DeleteDialog() {
     }
   };
 
-  const isPermanentDelete = !!deleteItemDeletedAt;
+  const isPermanentDelete = !!deleteItemDeletedAt || deleteItemHasDeletedAncestor;
   const isPending = 
     moveFileToTrash.isPending || 
     permanentDeleteFile.isPending || 

@@ -6,11 +6,13 @@ import { ColorOption } from '@/config/colors';
 export interface FolderItem extends FolderResponseDto {
   cardType: 'folder';
   color: ColorOption; // Override string with ColorOption type
+  hasDeletedAncestor?: boolean;
 }
 
 // Document item based on FileResponseDto with UI properties
 export interface DocumentItem extends FileResponseDto {
   cardType: 'document';
+  hasDeletedAncestor?: boolean;
 }
 
 // Combined type

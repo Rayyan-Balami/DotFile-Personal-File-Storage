@@ -40,6 +40,7 @@ export interface FolderResponseDto {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
+  hasDeletedAncestor?: boolean;
 }
 
 export interface FolderResponseWithFilesDto extends FolderResponseDto {

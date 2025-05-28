@@ -152,8 +152,14 @@ class FolderService {
       const rootFolders = await folderDao.getUserFoldersWithCounts(userId, null, includeDeleted);
       const rootFiles = await fileService.getUserFilesByFolders(userId, null, includeDeleted);
       return {
-        folders: rootFolders.map((folder) => this.sanitizeFolder(folder)),
-        files: rootFiles,
+        folders: rootFolders.map((folder) => ({
+          ...this.sanitizeFolder(folder),
+          hasDeletedAncestor: false // Root folders can't have deleted ancestors
+        })),
+        files: rootFiles.map(file => ({
+          ...file,
+          hasDeletedAncestor: false // Root files can't have deleted ancestors
+        })),
         pathSegments
       };
     }
@@ -179,9 +185,18 @@ class FolderService {
     const folders = await folderDao.getUserFoldersWithCounts(userId, folderId, shouldIncludeDeleted);
     const files = await fileService.getUserFilesByFolders(userId, folderId, shouldIncludeDeleted);
 
+    // Check if current folder is deleted
+    const isCurrentFolderDeleted = folder.deletedAt !== null;
+
     return {
-      folders: folders.map((folder) => this.sanitizeFolder(folder)),
-      files: files,
+      folders: folders.map((folder) => ({
+        ...this.sanitizeFolder(folder),
+        hasDeletedAncestor: isCurrentFolderDeleted // If parent is deleted, all children have deleted ancestor
+      })),
+      files: files.map(file => ({
+        ...file,
+        hasDeletedAncestor: isCurrentFolderDeleted // If parent is deleted, all children have deleted ancestor
+      })),
       pathSegments
     };
   }
@@ -804,6 +819,36 @@ class FolderService {
     }
 
     return this.sanitizeFolder(movedFolder);
+  }
+
+  /**
+   * Check if any ancestor folder is deleted
+   * @param folderId - Target folder ID
+   * @returns true if any ancestor is deleted
+   */
+  async hasDeletedAncestor(folderId: string): Promise<boolean> {
+    let currentFolder = await folderDao.getFolderById(folderId, true);
+    
+    while (currentFolder && currentFolder.parent) {
+      // If current folder is deleted, return true
+      if (currentFolder.deletedAt !== null) {
+        return true;
+      }
+      
+      // Get parent folder
+      const parentId = typeof currentFolder.parent === 'string' ? 
+        currentFolder.parent : 
+        (currentFolder.parent._id ? currentFolder.parent._id.toString() : currentFolder.parent.toString());
+      
+      currentFolder = await folderDao.getFolderById(parentId, true);
+      
+      // If parent doesn't exist or is deleted, return true
+      if (!currentFolder || currentFolder.deletedAt !== null) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 }
 

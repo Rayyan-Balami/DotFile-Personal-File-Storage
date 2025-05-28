@@ -229,6 +229,22 @@ class FolderController {
       .status(200)
       .json(new ApiResponse(200, { folder: updatedFolder }, "Folder updated successfully"));
   });
+
+  /** Check if folder has deleted ancestors */
+  hasDeletedAncestor = asyncHandler(async (req, res) => {
+    logger.info("Checking for deleted ancestors");
+    const folderId = req.params.id;
+    
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+    
+    const hasDeletedAncestor = await folderService.hasDeletedAncestor(folderId);
+    
+    res
+      .status(200)
+      .json(new ApiResponse(200, { hasDeletedAncestor }, "Ancestor check completed"));
+  });
 }
 
 export default new FolderController();

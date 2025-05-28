@@ -29,7 +29,8 @@ interface DialogState {
   deleteItemType: "folder" | "document" | null;
   deleteItemName: string | null;
   deleteItemDeletedAt: string | null;
-  openDeleteDialog: (id: string, type: "folder" | "document", name: string, deletedAt?: string | null) => void;
+  deleteItemHasDeletedAncestor: boolean;
+  openDeleteDialog: (id: string, type: "folder" | "document", name: string, deletedAt?: string | null, hasDeletedAncestor?: boolean) => void;
   closeDeleteDialog: () => void;
 
   // Helper to close all dialogs
@@ -105,13 +106,15 @@ export const useDialogStore = create<DialogState>((set) => ({
   deleteItemType: null,
   deleteItemName: null,
   deleteItemDeletedAt: null,
-  openDeleteDialog: (id: string, type: "folder" | "document", name: string, deletedAt = null) => set((state) => ({
+  deleteItemHasDeletedAncestor: false,
+  openDeleteDialog: (id: string, type: "folder" | "document", name: string, deletedAt = null, hasDeletedAncestor = false) => set((state) => ({
     ...state,
     deleteDialogOpen: true,
     deleteItemId: id,
     deleteItemType: type,
     deleteItemName: name,
     deleteItemDeletedAt: deletedAt,
+    deleteItemHasDeletedAncestor: hasDeletedAncestor,
     createFolderOpen: false,
     renameDialogOpen: false,
     duplicateDialogOpen: false
@@ -122,7 +125,8 @@ export const useDialogStore = create<DialogState>((set) => ({
     deleteItemId: null,
     deleteItemType: null,
     deleteItemName: null,
-    deleteItemDeletedAt: null
+    deleteItemDeletedAt: null,
+    deleteItemHasDeletedAncestor: false
   })),
 
   // Helper to close all dialogs
@@ -142,6 +146,7 @@ export const useDialogStore = create<DialogState>((set) => ({
     deleteItemId: null,
     deleteItemType: null,
     deleteItemName: null,
-    deleteItemDeletedAt: null
+    deleteItemDeletedAt: null,
+    deleteItemHasDeletedAncestor: false
   }))
 }));

@@ -259,6 +259,7 @@ const CardContent = React.memo(
     extension,
     deletedAt,
     createdAt,
+    hasDeletedAncestor = false,
   }: {
     id: string;
     title: string;
@@ -271,6 +272,7 @@ const CardContent = React.memo(
     dateModified?: string;
     deletedAt?: Date | null;
     createdAt?: string | Date;
+    hasDeletedAncestor?: boolean;
   }) => {
     const [menuOpen, setMenuOpen] = useState(false);
 
@@ -301,6 +303,7 @@ const CardContent = React.memo(
                 id={id}
                 isPinned={isPinned} 
                 deletedAt={deletedAt instanceof Date ? deletedAt.toISOString() : deletedAt}
+                hasDeletedAncestor={hasDeletedAncestor}
               />
             </Suspense>
           </DropdownMenuContent>
@@ -376,7 +379,8 @@ const CardContent = React.memo(
       prevProps.cardType === nextProps.cardType &&
       prevProps.extension === nextProps.extension &&
       prevProps.deletedAt === nextProps.deletedAt &&
-      prevProps.createdAt === nextProps.createdAt
+      prevProps.createdAt === nextProps.createdAt &&
+      prevProps.hasDeletedAncestor === nextProps.hasDeletedAncestor
     );
   }
 );
@@ -553,6 +557,7 @@ const FolderDocumentCard = React.memo(
               dateModified={updatedAt instanceof Date ? updatedAt.toISOString() : String(updatedAt)}
               deletedAt={deletedAt}
               createdAt={createdAt instanceof Date ? createdAt.toISOString() : String(createdAt)}
+              hasDeletedAncestor={item.hasDeletedAncestor ?? false}
             />
           </div>
         </ContextMenuTrigger>
@@ -570,6 +575,7 @@ const FolderDocumentCard = React.memo(
               id={id} 
               isPinned={isPinned} 
               deletedAt={deletedAt instanceof Date ? deletedAt.toISOString() : deletedAt}
+              hasDeletedAncestor={item.hasDeletedAncestor ?? false}
             />
           </Suspense>
         </ContextMenuContent>

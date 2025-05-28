@@ -40,4 +40,5 @@ export interface FileResponseDto {
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  hasDeletedAncestor?: boolean;
 }
