@@ -539,7 +539,12 @@ const FolderDocumentCard = React.memo(
     useEffect(() => {
       if (!window.__cardSelectionHandler) {
         window.__cardSelectionHandler = (e: MouseEvent) => {
-          if (!(e.target as Element).closest("[data-folder-card]")) {
+          const target = e.target as Element;
+          // Don't clear selection if clicking on UI controls
+          if (target.closest('button') || target.closest('[role="button"]')) {
+            return;
+          }
+          if (!target.closest("[data-folder-card]")) {
             useSelectionStore.getState().clear();
           }
         };
