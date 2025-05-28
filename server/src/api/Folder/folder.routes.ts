@@ -34,6 +34,7 @@ authRoutes
 
   // Trash handling
   .get("/trash/contents", FolderController.getTrashFolderContents)           // Get trash contents
+  .get("/pins/contents", FolderController.getPinContents)                    // Get pinned contents
   .delete("/:id", FolderController.softDeleteFolder)                         // Soft delete (move to trash)
   .delete("/:id/permanent", FolderController.permanentDeleteFolder)          // Permanently delete
   .post("/:id/restore", FolderController.restoreFolder)                      // Restore from trash

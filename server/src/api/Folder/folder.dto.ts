@@ -70,3 +70,14 @@ export interface FolderResponseWithFilesDto {
   files: FileResponseDto[];
   pathSegments?: PathSegment[];
 }
+
+/**
+ * Paginated pin contents response
+ */
+export interface PaginatedPinContentsDto {
+  folders: FolderResponseDto[];
+  files: FileResponseDto[];
+  pathSegments?: PathSegment[];
+  totalCount: number;
+  hasMore: boolean;
+}

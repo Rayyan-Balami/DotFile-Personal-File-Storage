@@ -3,7 +3,8 @@ import {
   MoreHorizontal,
   Share,
   Trash2,
-  type LucideIcon,
+  File,
+  Loader2,
 } from "lucide-react"
 
 import {
@@ -30,6 +31,10 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { Link } from "@tanstack/react-router"
+import { usePinContents } from "@/api/folder/folder.query"
+import { useState } from "react"
+import type { FolderResponseDto } from "@/types/folder.dto"
+import type { FileResponseDto } from "@/types/file.dto"
 
 // Helper function to keep menu options consistent between dropdown and context menu
 const MenuItems = () => (
@@ -68,23 +73,62 @@ const DropdownMenuOptions = () => (
   </>
 )
 
-export function NavPins({
-  projects,
-}: {
-  projects: {
-    name: string
-    url: string
-    icon: LucideIcon
-  }[]
-}) {
+export function NavPins() {
   const { isMobile } = useSidebar()
+  const [currentOffset, setCurrentOffset] = useState(0)
+  const limit = 10
+  
+  const { data, isLoading, error } = usePinContents(currentOffset, limit)
+  const pinContents = data?.data?.folderContents
+  const pagination = data?.data?.pagination
+  
+  // Combine folders and files into a single array for display
+  const pinnedItems = [
+    ...(pinContents?.folders || []).map((folder: FolderResponseDto) => ({
+      id: folder.id,
+      name: folder.name,
+      type: 'folder' as const,
+      url: `/folder/${folder.id}`,
+      icon: Folder
+    })),
+    ...(pinContents?.files || []).map((file: FileResponseDto) => ({
+      id: file.id,
+      name: file.name,
+      type: 'file' as const,
+      url: `/file/${file.id}`,
+      icon: File
+    }))
+  ]
+
+  const handleLoadMore = () => {
+    if (pagination?.hasMore) {
+      setCurrentOffset(prev => prev + limit)
+    }
+  }
 
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Pinned</SidebarGroupLabel>
       <SidebarMenu>
-        {projects.map((item) => (
-          <ContextMenu key={item.name}>
+        {isLoading && currentOffset === 0 && (
+          <SidebarMenuItem>
+            <SidebarMenuButton disabled>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Loading...</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        )}
+        
+        {error && (
+          <SidebarMenuItem>
+            <SidebarMenuButton disabled>
+              <span className="text-destructive">Error loading pins</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        )}
+        
+        {pinnedItems.map((item) => (
+          <ContextMenu key={item.id}>
             <ContextMenuTrigger asChild>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild tooltip={item.name}>
@@ -115,14 +159,23 @@ export function NavPins({
             </ContextMenuContent>
           </ContextMenu>
         ))}
-        <SidebarMenuItem>
-          <SidebarMenuButton asChild tooltip="More Projects">
-            <Link to="/">
-            <MoreHorizontal />
-            <span>More</span>
-            </Link>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
+        
+        {pagination?.hasMore && (
+          <SidebarMenuItem>
+            <SidebarMenuButton 
+              onClick={handleLoadMore}
+              disabled={isLoading}
+              tooltip="Load More Pins"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <MoreHorizontal />
+              )}
+              <span>Load More</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        )}
       </SidebarMenu>
     </SidebarGroup>
   )

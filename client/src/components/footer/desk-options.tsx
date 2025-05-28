@@ -1,16 +1,15 @@
-import { LampDesk } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Menubar,
   MenubarContent,
   MenubarLabel,
   MenubarMenu,
   MenubarRadioGroup,
   MenubarRadioItem,
   MenubarSeparator,
-  MenubarTrigger,
+  MenubarTrigger
 } from "@/components/ui/menubar";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { LampDesk } from "lucide-react";
 
 export function DeskOptions() {
   const [selectedDesk, setSelectedDesk] = useLocalStorage<string | null>("selected-desk", null);

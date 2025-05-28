@@ -1,15 +1,14 @@
-import { Copy, Ellipsis, LampDesk, Mail, Tag, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Menubar,
   MenubarContent,
   MenubarItem,
   MenubarLabel,
   MenubarMenu,
   MenubarSeparator,
   MenubarShortcut,
-  MenubarTrigger,
+  MenubarTrigger
 } from "@/components/ui/menubar";
+import { Copy, Ellipsis, LampDesk, Mail, Tag, Users } from "lucide-react";
 
 export function MoreOptions() {
   return (

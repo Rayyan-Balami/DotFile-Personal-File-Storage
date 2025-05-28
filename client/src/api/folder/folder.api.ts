@@ -56,6 +56,10 @@ const folderApi = {
   getTrashContents: () => 
     API.get("/folders/trash/contents"),
 
+  // Get pinned contents with pagination
+  getPinContents: (offset: number = 0, limit: number = 10) => 
+    API.get("/folders/pins/contents", { params: { offset, limit } }),
+
   // Empty trash (delete all trashed folders)  
   emptyTrash: () => 
     API.post("/folders/trash/empty")

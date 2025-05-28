@@ -6,6 +6,7 @@ import {
   FolderResponseDto,
   FolderResponseWithFilesDto,
   MoveFolderDto,
+  PaginatedPinContentsDto,
   PathSegment,
   RenameFolderDto,
   UpdateFolderDto,
@@ -716,6 +717,59 @@ class FolderService {
       })),
       files: directlyDeletedFiles,
       pathSegments: [{ id: null, name: "Trash" }]
+    };
+  }
+
+  /**
+   * Get user's pinned items (both folders and files)
+   * @param userId - Target user
+   * @param offset - Number of items to skip for pagination
+   * @param limit - Maximum number of items to return (default 10)
+   * @returns Pinned files and folders in flat list
+   */
+  async getPinContents(
+    userId: string, 
+    offset: number = 0, 
+    limit: number = 10
+  ): Promise<PaginatedPinContentsDto> {
+    // Get pinned folders for this user
+    const allPinnedFolders = await folderDao.getUserFolders(userId, undefined, false);
+    const pinnedFolders = allPinnedFolders.filter(folder => folder.isPinned);
+    
+    // Get pinned files for this user
+    const allPinnedFiles = await fileService.getUserFilesByFolders(userId, undefined, false);
+    const pinnedFiles = allPinnedFiles.filter(file => file.isPinned);
+
+    // Combine and sort by updatedAt (most recent first)
+    const allPinnedItems = [
+      ...pinnedFolders.map(folder => ({ ...this.sanitizeFolder(folder), itemType: 'folder' as const, updatedAt: folder.updatedAt })),
+      ...pinnedFiles.map(file => ({ ...file, itemType: 'file' as const }))
+    ].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+    // Apply pagination
+    const paginatedItems = allPinnedItems.slice(offset, offset + limit);
+
+    // Separate back into folders and files
+    const resultFolders = paginatedItems
+      .filter(item => item.itemType === 'folder')
+      .map(item => {
+        const { itemType, ...folder } = item;
+        return folder;
+      });
+    
+    const resultFiles = paginatedItems
+      .filter(item => item.itemType === 'file')
+      .map(item => {
+        const { itemType, ...file } = item;
+        return file;
+      });
+
+    return {
+      folders: resultFolders,
+      files: resultFiles,
+      pathSegments: [{ id: null, name: "Pinned" }],
+      totalCount: allPinnedItems.length,
+      hasMore: offset + limit < allPinnedItems.length
     };
   }
 

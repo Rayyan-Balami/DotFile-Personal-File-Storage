@@ -1,12 +1,9 @@
 import {
   Clock,
   Database,
-  File,
-  Folder,
   FolderClosed,
   PanelRightClose,
   Trash2,
-  UsersRound,
 } from "lucide-react";
 import * as React from "react";
 
@@ -46,23 +43,6 @@ const data = {
       title: "Trash",
       url: "/trash",
       icon: Trash2,
-    },
-  ],
-  pins: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Folder,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: Folder,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: File,
     },
   ],
 };
@@ -107,7 +87,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavPins projects={data.pins} />
+        <NavPins />
       </SidebarContent>
       <SidebarFooter className="min-h-(--footer-height)">
         <NavColors />

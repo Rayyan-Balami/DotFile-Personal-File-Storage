@@ -51,3 +51,14 @@ export interface FolderResponseWithFilesDto extends FolderResponseDto {
     name: string;
   }>;
 }
+
+export interface PaginatedPinContentsDto {
+  folders: FolderResponseDto[];
+  files: FileResponseDto[];
+  pathSegments?: Array<{
+    id: string;
+    name: string;
+  }>;
+  totalCount: number;
+  hasMore: boolean;
+}

@@ -6,6 +6,8 @@ import folderApi from "./folder.api";
 export const FOLDER_KEYS = {
   all: ["folders"] as const,
   trash: ["folders", "trash"] as const,
+  pins: (offset?: number, limit?: number) => 
+    ["folders", "pins", { offset, limit }] as const,
   contents: (folderId?: string) => 
     folderId ? [...FOLDER_KEYS.all, "contents", folderId] : [...FOLDER_KEYS.all, "root-contents"],
   detail: (id: string) => [...FOLDER_KEYS.all, id] as const,
@@ -52,6 +54,15 @@ export const useTrashContents = () =>
   useQuery({
     queryKey: FOLDER_KEYS.trash,
     queryFn: () => folderApi.getTrashContents().then((res) => res.data),
+  });
+
+/**
+ * Hook to get pinned contents with pagination
+ */
+export const usePinContents = (offset: number = 0, limit: number = 10) =>
+  useQuery({
+    queryKey: FOLDER_KEYS.pins(offset, limit),
+    queryFn: () => folderApi.getPinContents(offset, limit).then((res) => res.data),
   });
 
 /**

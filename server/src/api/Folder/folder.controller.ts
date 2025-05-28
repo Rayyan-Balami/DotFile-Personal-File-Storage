@@ -245,6 +245,40 @@ class FolderController {
       .status(200)
       .json(new ApiResponse(200, { hasDeletedAncestor }, "Ancestor check completed"));
   });
+  
+  /**
+   * Get all pinned items with pagination
+   */
+  getPinContents = asyncHandler(async (req, res) => {
+    logger.info("Getting pin contents");
+    
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+    const userId = req.user.id;
+    
+    // Parse pagination parameters
+    const offset = parseInt(req.query.offset as string) || 0;
+    const limit = parseInt(req.query.limit as string) || 10;
+    
+    const pinContents = await folderService.getPinContents(userId, offset, limit);
+    
+    res
+      .status(200)
+      .json(new ApiResponse(200, { 
+        folderContents: {
+          folders: pinContents.folders,
+          files: pinContents.files,
+          pathSegments: pinContents.pathSegments || [{ id: null, name: "Pinned" }]
+        },
+        pagination: {
+          totalCount: pinContents.totalCount,
+          hasMore: pinContents.hasMore,
+          offset,
+          limit
+        }
+      }, "Pin contents retrieved successfully"));
+  });
 }
 
 export default new FolderController();
