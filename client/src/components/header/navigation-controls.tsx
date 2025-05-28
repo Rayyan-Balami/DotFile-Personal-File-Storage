@@ -14,7 +14,7 @@ export function NavigationControls() {
 
   return (
     <>
-      {state !== "collapsed" && (
+      {(state !== "collapsed" || isMobile) && (
         <Button
           className="group shadow-none rounded-md text-sidebar-foreground hover:text-primary border border-transparent hover:border-border"
           variant="secondary"

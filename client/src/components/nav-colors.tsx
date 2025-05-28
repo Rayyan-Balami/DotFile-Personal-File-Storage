@@ -2,59 +2,104 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+} from "@/components/ui/collapsible";
 import {
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel
-} from "@/components/ui/sidebar"
+  SidebarGroupLabel,
+  SidebarMenuButton,
+  useSidebar,
+} from "@/components/ui/sidebar";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { colorMap, type ColorOption } from "@/config/colors"
-import { useLocalStorage } from "@/hooks/use-local-storage"
-import { Link } from "@tanstack/react-router"
-import { ChevronDown, Squircle } from "lucide-react"
+} from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { colorMap, type ColorOption } from "@/config/colors";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import { Link } from "@tanstack/react-router";
+import { ChevronDown, Squircle } from "lucide-react";
 
-// Single color item component
-const ColorItem = ({ 
-  color 
-}: { 
-  color: ColorOption
-}) => (
-  <TooltipProvider>
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Link to="/" className="block">
-          <Squircle 
-            className="size-4.5 rounded-full transition-transform hover:scale-110 stroke-3" 
-            fill={colorMap[color].secondary}
-            stroke={colorMap[color].primary}
-          />
-        </Link>
-      </TooltipTrigger>
-      <TooltipContent>
-        <p className="capitalize">{color}</p>
-      </TooltipContent>
-    </Tooltip>
-  </TooltipProvider>
-)
+// Reusable color grid
+const ColorGrid = ({ colors }: { colors: ColorOption[] }) => (
+  <div className="grid grid-cols-[repeat(auto-fill,minmax(24px,1fr))] gap-2 p-2">
+    {colors.map((color) => (
+      <TooltipProvider key={color}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link to="/" className="block">
+              <Squircle
+                className="size-4.5 transition-transform hover:scale-110 stroke-3"
+                fill={colorMap[color].secondary}
+                stroke={colorMap[color].primary}
+              />
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="capitalize">{color}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    ))}
+  </div>
+);
 
 export function NavColors() {
-  // Get all color options from the colorMap
-  const colors = Object.keys(colorMap) as ColorOption[]
-  
-  // Colors for each letter in "Colors" - Professional blue/premium theme
-  const letterColors = ['cyan', 'orange', 'default', 'ocean', 'coral', 'rose'] as ColorOption[]
+  const colors = Object.keys(colorMap) as ColorOption[];
+  const letterColors = [
+    "cyan",
+    "orange",
+    "default",
+    "ocean",
+    "coral",
+    "rose",
+  ] as ColorOption[];
+  const [isOpen, setIsOpen] = useLocalStorage("nav-colors-open", true);
+  const { state, isMobile } = useSidebar();
 
-  // Use local storage to persist the collapsible state
-  const [isOpen, setIsOpen] = useLocalStorage('nav-colors-open', true)
+  // Collapsed view (icon trigger with dropdown)
+  if (state === "collapsed") {
+    return (
+      <SidebarGroup>
+        <DropdownMenu>
+          <DropdownMenuTrigger className="cursor-pointer grid place-content-center">
+            <SidebarMenuButton asChild tooltip="Colors">
+              <Squircle
+                className="stroke-3"
+                fill={colorMap.default.secondary}
+                stroke={colorMap.default.primary}
+              />
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            className={`w-48 ${isMobile ? "" : "mb-4"}`}
+            side={isMobile ? "bottom" : "right"}
+            align={isMobile ? "end" : "start"}
+          >
+            <DropdownMenuLabel className="text-muted-foreground text-xs">
+              Colors
+            </DropdownMenuLabel>{" "}
+            <ColorGrid colors={colors} />
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarGroup>
+    );
+  }
 
+  // Expanded view (collapsible with label and color grid)
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="group/collapsible">
+    <Collapsible
+      open={isOpen}
+      onOpenChange={setIsOpen}
+      className="group/collapsible"
+    >
       <SidebarGroup>
         <SidebarGroupLabel asChild>
           <CollapsibleTrigger>
@@ -62,10 +107,12 @@ export function NavColors() {
               Colors
             </span>
             <span className="hidden group-data-[state=closed]/collapsible:inline">
-              {"Colors".split('').map((letter, index) => (
-                <span 
+              {"Colors".split("").map((letter, index) => (
+                <span
                   key={index}
-                  style={{ color: colorMap[letterColors[index]]?.primary || '#000' }}
+                  style={{
+                    color: colorMap[letterColors[index]]?.primary || "#000",
+                  }}
                   className="font-semibold"
                 >
                   {letter}
@@ -77,14 +124,10 @@ export function NavColors() {
         </SidebarGroupLabel>
         <CollapsibleContent>
           <SidebarGroupContent>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(24px,1fr))] gap-2 p-2">
-              {colors.map((color) => (
-                <ColorItem key={color} color={color} />
-              ))}
-            </div>
+            <ColorGrid colors={colors} />
           </SidebarGroupContent>
         </CollapsibleContent>
       </SidebarGroup>
     </Collapsible>
-  )
-} 
+  );
+}

@@ -28,6 +28,7 @@ import { Link } from "@tanstack/react-router";
 import { NavColors } from "./nav-colors";
 import { NavPins } from "./nav-pins";
 import { Button } from "./ui/button";
+import { VITE_APP_NAME, VITE_APP_VERSION } from "@/config/constants";
 
 const data = {
   navMain: [
@@ -109,12 +110,17 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavPins projects={data.projects} />
       </SidebarContent>
       <SidebarFooter className="min-h-(--footer-height)">
-        {/* <SidebarMenu> */}
         <NavColors />
-        {/* </SidebarMenu> */}
-        <small className="text-muted-foreground text-[11px] text-center w-full block">
-          © 2025 Acme v1.0.0
-        </small>
+        {/* copyright */}
+        {state !== "collapsed" && (
+          <div className="text-muted-foreground text-[11px] text-center w-full block leading-tight">
+            © {new Date().getFullYear()}{" "}
+            <span className="font-semibold text-foreground">
+              {VITE_APP_NAME}
+            </span>{" "}
+            <span>{VITE_APP_VERSION}</span>
+          </div>
+        )}
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

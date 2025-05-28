@@ -2,7 +2,7 @@ export const VITE_ENV = import.meta.env.VITE_ENV || "development";
 export const IS_DEVELOPMENT = VITE_ENV === "development";
 export const IS_PRODUCTION = VITE_ENV === "production";
 
-export const VITE_APP_NAME = import.meta.env.VITE_APP_NAME || "DotFile";
+export const VITE_APP_NAME = import.meta.env.VITE_APP_NAME || "Dot File";
 export const VITE_APP_VERSION = import.meta.env.VITE_APP_VERSION || "0.1.0";
 export const VITE_APP_DESCRIPTION =
   import.meta.env.VITE_APP_DESCRIPTION || "Cloud Storage Solution";
