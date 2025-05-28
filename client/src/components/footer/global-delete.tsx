@@ -53,6 +53,7 @@ export function GlobalDelete(props: ComponentProps<typeof Button>) {
         "group shadow-none text-sidebar-foreground hover:text-primary border border-transparent hover:border-border",
         props.className
       )}
+      disabled={getSelectedItems().length === 0}
     >
       <Trash2 className="size-4 group-hover:scale-105 transition-transform" />
       <span className="sr-only">Delete Selected Items</span>
