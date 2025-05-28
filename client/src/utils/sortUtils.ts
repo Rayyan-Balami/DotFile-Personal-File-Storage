@@ -1,4 +1,4 @@
-import { FileSystemItem } from "@/stores/useFileSystemStore";
+import { FileSystemItem } from "@/types/folderDocumnet";
 import { useMemo } from "react";
 import { useSortPreferencesStore } from "@/stores/useSortPreferencesStore";
 

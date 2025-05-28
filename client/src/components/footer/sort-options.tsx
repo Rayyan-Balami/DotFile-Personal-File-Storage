@@ -14,7 +14,7 @@ import { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 type SortDirection = "asc" | "desc";
-type SortBy = "name" | "kind" | "dateAdded" | "dateOpened" | "size"
+type SortBy = "name" | "kind" | "dateAdded" | "dateUpdated" | "size"
 type FolderArrangement = "separated" | "mixed";
 
 export function SortOptions(props: ComponentProps<typeof Button>) {
@@ -50,7 +50,7 @@ export function SortOptions(props: ComponentProps<typeof Button>) {
           <DropdownMenuRadioItem value="name">Name</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="kind">Kind</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="dateAdded">Date Added</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="dateOpened">Date Last Opened</DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="dateUpdated">Date Updated</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="size">Size</DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
