@@ -9,12 +9,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSortPreferencesStore } from "@/stores/useSortPreferencesStore";
-import { AlignVerticalSpaceAround, SortAsc, SortDesc } from "lucide-react";
+import { AlignVerticalSpaceAround, SeparatorHorizontal, Shapes, SortAsc, SortDesc } from "lucide-react";
 import { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 type SortDirection = "asc" | "desc";
-type SortBy = "name" | "kind" | "dateModified" | "dateAdded" | "dateOpened" | "size" | "desk";
+type SortBy = "name" | "kind" | "dateAdded" | "dateOpened" | "size"
 type FolderArrangement = "separated" | "mixed";
 
 export function SortOptions(props: ComponentProps<typeof Button>) {
@@ -43,17 +43,15 @@ export function SortOptions(props: ComponentProps<typeof Button>) {
           <span className="sr-only">Sort Document or Folder</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
+      <DropdownMenuContent className="min-w-48">
         <DropdownMenuLabel>Sort By</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuRadioGroup value={sortBy} onValueChange={(value) => setSortBy(value as SortBy)}>
           <DropdownMenuRadioItem value="name">Name</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="kind">Kind</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="dateModified">Date Modified</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="dateAdded">Date Added</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="dateOpened">Date Last Opened</DropdownMenuRadioItem>
           <DropdownMenuRadioItem value="size">Size</DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="desk">Workspace</DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
         <DropdownMenuLabel>Direction</DropdownMenuLabel>
@@ -79,11 +77,12 @@ export function SortOptions(props: ComponentProps<typeof Button>) {
           onValueChange={(value) => setFolderArrangement(value as FolderArrangement)}
         >
           <DropdownMenuRadioItem value="separated" className="flex items-center">
-            <SortAsc className="size-4 mr-2" />
+            <SeparatorHorizontal className="size-4 mr-2" />
             Separated
           </DropdownMenuRadioItem>
-          <DropdownMenuRadioItem value="mixed" className="flex items-center">
-            <SortDesc className="size-4 mr-2" />
+          <DropdownMenuRadioItem value="mixed" className="flex items-center"
+          disabled={sortBy == "kind"}>
+            <Shapes className="size-4 mr-2" />
             Mixed
           </DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>

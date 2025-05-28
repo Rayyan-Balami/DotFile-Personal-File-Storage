@@ -21,9 +21,21 @@ export const useSortPreferencesStore = create<SortPreferencesState>()(
       sortDirection: "asc", // Default sort direction
       setSortDirection: (sortDirection) => set({ sortDirection }),
       sortBy: "name", // Default sort by
-      setSortBy: (sortBy) => set({ sortBy }),
+      setSortBy: (sortBy) => set((state) => {
+        // If sorting by kind, force separated arrangement
+        if (sortBy === "kind") {
+          return { sortBy, folderArrangement: "separated" };
+        }
+        return { sortBy };
+      }),
       folderArrangement: "separated", // Default folder arrangement
-      setFolderArrangement: (folderArrangement) => set({ folderArrangement }),
+      setFolderArrangement: (folderArrangement) => set((state) => {
+        // Don't allow mixed arrangement when sorting by kind
+        if (state.sortBy === "kind" && folderArrangement === "mixed") {
+          return state;
+        }
+        return { folderArrangement };
+      }),
     }),
     {
       name: "sort-preferences",

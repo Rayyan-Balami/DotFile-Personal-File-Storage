@@ -6,7 +6,7 @@ import {
 } from "@/stores/useSelectionStore";
 import { useSortPreferencesStore } from "@/stores/useSortPreferencesStore";
 import { useViewPreferencesStore } from "@/stores/useViewPreferencesStore";
-import { useSortedItems } from "@/utils/sortUtils";
+import { useSortedItems, getMimeCategory } from "@/utils/sortUtils";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -44,6 +44,9 @@ export default function DirectoryView({
   const navigate = useNavigate();
   const setVisibleItems = useSelectionStore((state) => state.setVisibleItems);
   const addItem = useFileSystemStore((state) => state.addItem);
+  const sortBy = useSortPreferencesStore((state) => state.sortBy);
+  const folderArrangement = useSortPreferencesStore((state) => state.folderArrangement);
+  const viewType = useViewPreferencesStore((state) => state.viewType);
 
   // Map the items to ensure they have cardType
   const mappedItems = useMemo(() => items.map(mapToFileSystemItem), [items]);
@@ -61,6 +64,29 @@ export default function DirectoryView({
   // Pre-filter items for better performance
   const folders = sortedItems.filter((item) => item.cardType === "folder");
   const documents = sortedItems.filter((item) => item.cardType === "document");
+
+  // Group documents by MIME type when sorting by kind
+  const groupedDocuments = useMemo(() => {
+    if (sortBy !== "kind") return { "Files": documents };
+
+    const groups: Record<string, FileSystemItem[]> = {};
+    
+    // Add folders group
+    if (folders.length > 0) {
+      groups["Folders"] = folders;
+    }
+
+    // Group documents by MIME category
+    documents.forEach(doc => {
+      const category = getMimeCategory(doc.type);
+      if (!groups[category]) {
+        groups[category] = [];
+      }
+      groups[category].push(doc);
+    });
+
+    return groups;
+  }, [documents, folders, sortBy]);
 
   // Callback for opening items (double click)
   const handleOpenItem = (id: string) => {
@@ -106,12 +132,6 @@ export default function DirectoryView({
     setVisibleItems(sortedItems);
   }, [sortedItems, setVisibleItems]);
 
-  // Get view preferences
-  const viewType = useViewPreferencesStore((state) => state.viewType);
-  const folderArrangement = useSortPreferencesStore(
-    (state) => state.folderArrangement
-  );
-
   return (
     <FileDropZone>
       <ContextMenu modal={false}>
@@ -127,7 +147,7 @@ export default function DirectoryView({
 
             {folderArrangement === "separated" ? (
               <>
-                {folders.length > 0 && (
+                {folders.length > 0 && sortBy !== "kind" && (
                   <section className="flex flex-col gap-4 mb-6">
                     <h2 className="text-lg font-medium">Folders</h2>
                     <CardGrid
@@ -139,16 +159,34 @@ export default function DirectoryView({
                   </section>
                 )}
 
-                {documents.length > 0 && (
-                  <section className="flex flex-col gap-4">
-                    <h2 className="text-lg font-medium">Files</h2>
-                    <CardGrid
-                      items={documents}
-                      viewType={viewType}
-                      onItemClick={handleSelectItem}
-                      onItemOpen={handleOpenItem}
-                    />
-                  </section>
+                {sortBy === "kind" ? (
+                  // Show grouped items when sorting by kind
+                  Object.entries(groupedDocuments).map(([groupName, items]) => (
+                    items.length > 0 && (
+                      <section key={groupName} className="flex flex-col gap-4 mb-6">
+                        <h2 className="text-lg font-medium capitalize">{groupName}</h2>
+                        <CardGrid
+                          items={items}
+                          viewType={viewType}
+                          onItemClick={handleSelectItem}
+                          onItemOpen={handleOpenItem}
+                        />
+                      </section>
+                    )
+                  ))
+                ) : (
+                  // Show regular files section when not sorting by kind
+                  documents.length > 0 && (
+                    <section className="flex flex-col gap-4">
+                      <h2 className="text-lg font-medium">Files</h2>
+                      <CardGrid
+                        items={documents}
+                        viewType={viewType}
+                        onItemClick={handleSelectItem}
+                        onItemOpen={handleOpenItem}
+                      />
+                    </section>
+                  )
                 )}
               </>
             ) : (
