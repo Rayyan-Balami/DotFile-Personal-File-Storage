@@ -42,12 +42,16 @@ const MenuItems = () => (
   <>
     <ContextMenuItem>
       <Pin className="text-muted-foreground mr-2 h-4 w-4 rotate-20" />
-      <span>Unpin</span>
+      <span>Open in New Tab</span>
+    </ContextMenuItem>
+    <ContextMenuItem>
+      <Pin className="text-muted-foreground mr-2 h-4 w-4 rotate-20" />
+      <span>Show in Enclosing Folder</span>
     </ContextMenuItem>
     <ContextMenuSeparator />
     <ContextMenuItem>
-      <Trash2 className="text-muted-foreground mr-2 h-4 w-4" />
-      <span>Delete</span>
+      <Pin className="text-muted-foreground mr-2 h-4 w-4 rotate-20" />
+      <span>Unpin</span>
     </ContextMenuItem>
   </>
 )
@@ -56,12 +60,17 @@ const DropdownMenuOptions = () => (
   <>
     <DropdownMenuItem>
       <Pin className="text-muted-foreground mr-2 h-4 w-4 rotate-20" />
-      <span>Unpin</span>
+      <span>Open in New Tab</span>
+    </DropdownMenuItem>
+
+    <DropdownMenuItem>
+      <Pin className="text-muted-foreground mr-2 h-4 w-4 rotate-20" />
+      <span>Show in Enclosing Folder</span>
     </DropdownMenuItem>
     <DropdownMenuSeparator />
     <DropdownMenuItem>
-      <Trash2 className="text-muted-foreground mr-2 h-4 w-4" />
-      <span>Delete</span>
+      <Pin className="text-muted-foreground mr-2 h-4 w-4 rotate-20" />
+      <span>Unpin</span>
     </DropdownMenuItem>
   </>
 )
@@ -138,7 +147,7 @@ export function NavPins() {
                     </SidebarMenuAction>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
-                    className="w-48"
+                    className="w-min-48"
                     side={isMobile ? "bottom" : "right"}
                     align={isMobile ? "end" : "start"}
                   >
@@ -147,7 +156,7 @@ export function NavPins() {
                 </DropdownMenu>
               </SidebarMenuItem>
             </ContextMenuTrigger>
-            <ContextMenuContent className="w-48">
+            <ContextMenuContent className="min-w-48">
               <MenuItems />
             </ContextMenuContent>
           </ContextMenu>

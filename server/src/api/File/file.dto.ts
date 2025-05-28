@@ -17,7 +17,6 @@ export interface CreateFileDto {
  * Data transfer object for updating file properties
  */
 export interface UpdateFileDto {
-  name?: string;
   folder?: string | null;
   isPinned?: boolean;
 }
