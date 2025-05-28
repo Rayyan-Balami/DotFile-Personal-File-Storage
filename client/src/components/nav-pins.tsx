@@ -1,11 +1,11 @@
 import {
   Folder,
   MoreHorizontal,
-  Share,
-  Trash2,
   File,
   Loader2,
-  Pin,
+  ExternalLink,
+  FolderOpen,
+  PinOff,
 } from "lucide-react"
 
 import {
@@ -31,49 +31,143 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { Link } from "@tanstack/react-router"
-import { usePinContents } from "@/api/folder/folder.query"
+import { Link, useNavigate } from "@tanstack/react-router"
+import { usePinContents, useUpdateFolder } from "@/api/folder/folder.query"
+import { useUpdateFile } from "@/api/file/file.query"
 import { useState } from "react"
 import type { FolderResponseDto } from "@/types/folder.dto"
 import type { FileResponseDto } from "@/types/file.dto"
+import { toast } from "sonner"
+
+interface PinItemProps {
+  item: {
+    id: string
+    name: string
+    type: 'folder' | 'file'
+    url: string
+    icon: any
+    parentId?: string | null
+  }
+}
 
 // Helper function to keep menu options consistent between dropdown and context menu
-const MenuItems = () => (
-  <>
-    <ContextMenuItem>
-      <Pin className="text-muted-foreground mr-2 h-4 w-4 rotate-20" />
-      <span>Open in New Tab</span>
-    </ContextMenuItem>
-    <ContextMenuItem>
-      <Pin className="text-muted-foreground mr-2 h-4 w-4 rotate-20" />
-      <span>Show in Enclosing Folder</span>
-    </ContextMenuItem>
-    <ContextMenuSeparator />
-    <ContextMenuItem>
-      <Pin className="text-muted-foreground mr-2 h-4 w-4 rotate-20" />
-      <span>Unpin</span>
-    </ContextMenuItem>
-  </>
-)
+const MenuItems = ({ item }: PinItemProps) => {
+  const navigate = useNavigate()
+  const updateFolderMutation = useUpdateFolder()
+  const updateFileMutation = useUpdateFile()
 
-const DropdownMenuOptions = () => (
-  <>
-    <DropdownMenuItem>
-      <Pin className="text-muted-foreground mr-2 h-4 w-4 rotate-20" />
-      <span>Open in New Tab</span>
-    </DropdownMenuItem>
+  const handleOpenInNewTab = () => {
+    window.open(item.url, '_blank')
+  }
 
-    <DropdownMenuItem>
-      <Pin className="text-muted-foreground mr-2 h-4 w-4 rotate-20" />
-      <span>Show in Enclosing Folder</span>
-    </DropdownMenuItem>
-    <DropdownMenuSeparator />
-    <DropdownMenuItem>
-      <Pin className="text-muted-foreground mr-2 h-4 w-4 rotate-20" />
-      <span>Unpin</span>
-    </DropdownMenuItem>
-  </>
-)
+  const handleShowInEnclosingFolder = () => {
+    if (item.type === 'folder' && item.parentId) {
+      navigate({ to: `/folder/${item.parentId}` })
+    } else if (item.type === 'file' && item.parentId) {
+      navigate({ to: `/folder/${item.parentId}` })
+    } else {
+      // Navigate to root if no parent
+      navigate({ to: '/' })
+    }
+  }
+
+  const handleUnpin = async () => {
+    try {
+      if (item.type === 'folder') {
+        await updateFolderMutation.mutateAsync({
+          folderId: item.id,
+          data: { isPinned: false }
+        })
+        toast.success(`${item.name} unpinned successfully`)
+      } else {
+        await updateFileMutation.mutateAsync({
+          fileId: item.id,
+          data: { isPinned: false }
+        })
+        toast.success(`${item.name} unpinned successfully`)
+      }
+    } catch (error) {
+      toast.error(`Failed to unpin ${item.name}`)
+    }
+  }
+
+  return (
+    <>
+      <ContextMenuItem onClick={handleOpenInNewTab}>
+        <ExternalLink className="text-muted-foreground mr-2 h-4 w-4" />
+        <span>Open in New Tab</span>
+      </ContextMenuItem>
+      <ContextMenuItem onClick={handleShowInEnclosingFolder}>
+        <FolderOpen className="text-muted-foreground mr-2 h-4 w-4" />
+        <span>Show in Enclosing Folder</span>
+      </ContextMenuItem>
+      <ContextMenuSeparator />
+      <ContextMenuItem onClick={handleUnpin}>
+        <PinOff className="text-muted-foreground mr-2 h-4 w-4" />
+        <span>Unpin</span>
+      </ContextMenuItem>
+    </>
+  )
+}
+
+const DropdownMenuOptions = ({ item }: PinItemProps) => {
+  const navigate = useNavigate()
+  const updateFolderMutation = useUpdateFolder()
+  const updateFileMutation = useUpdateFile()
+
+  const handleOpenInNewTab = () => {
+    window.open(item.url, '_blank')
+  }
+
+  const handleShowInEnclosingFolder = () => {
+    if (item.type === 'folder' && item.parentId) {
+      navigate({ to: `/folder/${item.parentId}` })
+    } else if (item.type === 'file' && item.parentId) {
+      navigate({ to: `/folder/${item.parentId}` })
+    } else {
+      // Navigate to root if no parent
+      navigate({ to: '/' })
+    }
+  }
+
+  const handleUnpin = async () => {
+    try {
+      if (item.type === 'folder') {
+        await updateFolderMutation.mutateAsync({
+          folderId: item.id,
+          data: { isPinned: false }
+        })
+        toast.success(`${item.name} unpinned successfully`)
+      } else {
+        await updateFileMutation.mutateAsync({
+          fileId: item.id,
+          data: { isPinned: false }
+        })
+        toast.success(`${item.name} unpinned successfully`)
+      }
+    } catch (error) {
+      toast.error(`Failed to unpin ${item.name}`)
+    }
+  }
+
+  return (
+    <>
+      <DropdownMenuItem onClick={handleOpenInNewTab}>
+        <ExternalLink className="text-muted-foreground mr-2 h-4 w-4" />
+        <span>Open in New Tab</span>
+      </DropdownMenuItem>
+      <DropdownMenuItem onClick={handleShowInEnclosingFolder}>
+        <FolderOpen className="text-muted-foreground mr-2 h-4 w-4" />
+        <span>Show in Enclosing Folder</span>
+      </DropdownMenuItem>
+      <DropdownMenuSeparator />
+      <DropdownMenuItem onClick={handleUnpin}>
+        <PinOff className="text-muted-foreground mr-2 h-4 w-4" />
+        <span>Unpin</span>
+      </DropdownMenuItem>
+    </>
+  )
+}
 
 export function NavPins() {
   const { isMobile } = useSidebar()
@@ -91,14 +185,16 @@ export function NavPins() {
       name: folder.name,
       type: 'folder' as const,
       url: `/folder/${folder.id}`,
-      icon: Folder
+      icon: Folder,
+      parentId: folder.parent
     })),
     ...(pinContents?.files || []).map((file: FileResponseDto) => ({
       id: file.id,
       name: file.name,
       type: 'file' as const,
       url: `/file/${file.id}`,
-      icon: File
+      icon: File,
+      parentId: file.folder
     }))
   ]
 
@@ -151,13 +247,13 @@ export function NavPins() {
                     side={isMobile ? "bottom" : "right"}
                     align={isMobile ? "end" : "start"}
                   >
-                    <DropdownMenuOptions />
+                    <DropdownMenuOptions item={item} />
                   </DropdownMenuContent>
                 </DropdownMenu>
               </SidebarMenuItem>
             </ContextMenuTrigger>
             <ContextMenuContent className="min-w-48">
-              <MenuItems />
+              <MenuItems item={item} />
             </ContextMenuContent>
           </ContextMenu>
         ))}

@@ -110,6 +110,13 @@ export const useUpdateFolder = () => {
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.contents(variables.folderId),
       });
+      
+      // If isPinned property was updated, invalidate pins cache
+      if (variables.data.isPinned !== undefined) {
+        queryClient.invalidateQueries({
+          queryKey: ["folders", "pins"],
+        });
+      }
     },
   });
 };
