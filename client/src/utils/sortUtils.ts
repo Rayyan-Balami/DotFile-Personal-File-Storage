@@ -25,6 +25,84 @@ export function getMimeCategory(type: string): string {
   return 'other';
 }
 
+// Type for date-based groups
+type DateGroup = {
+  label: string;
+  items: FileSystemItem[];
+};
+
+// Group items by date (Today, Yesterday, Previous 7 Days, etc.)
+export function groupItemsByDate(items: FileSystemItem[], sortBy: "dateAdded" | "dateUpdated"): DateGroup[] {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const lastWeek = new Date(today);
+  lastWeek.setDate(lastWeek.getDate() - 7);
+  const lastMonth = new Date(today);
+  lastMonth.setDate(lastMonth.getDate() - 30);
+
+  const groups: DateGroup[] = [];
+  const dateField = sortBy === "dateAdded" ? "createdAt" : "updatedAt";
+
+  // Helper function to get the month year string
+  const getMonthYearString = (date: Date) => {
+    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+  };
+
+  // Initialize group buckets
+  const todayItems: FileSystemItem[] = [];
+  const yesterdayItems: FileSystemItem[] = [];
+  const last7DaysItems: FileSystemItem[] = [];
+  const last30DaysItems: FileSystemItem[] = [];
+  const olderItems: Map<string, FileSystemItem[]> = new Map(); // Key is "Month Year"
+
+  items.forEach(item => {
+    const itemDate = new Date(item[dateField]);
+    const itemDay = new Date(itemDate.getFullYear(), itemDate.getMonth(), itemDate.getDate());
+
+    if (itemDay.getTime() === today.getTime()) {
+      todayItems.push(item);
+    } else if (itemDay.getTime() === yesterday.getTime()) {
+      yesterdayItems.push(item);
+    } else if (itemDay > lastWeek) {
+      last7DaysItems.push(item);
+    } else if (itemDay > lastMonth) {
+      last30DaysItems.push(item);
+    } else {
+      const monthYearKey = getMonthYearString(itemDate);
+      if (!olderItems.has(monthYearKey)) {
+        olderItems.set(monthYearKey, []);
+      }
+      olderItems.get(monthYearKey)!.push(item);
+    }
+  });
+
+  // Add groups in chronological order
+  if (todayItems.length > 0) {
+    groups.push({ label: "Today", items: todayItems });
+  }
+  if (yesterdayItems.length > 0) {
+    groups.push({ label: "Yesterday", items: yesterdayItems });
+  }
+  if (last7DaysItems.length > 0) {
+    groups.push({ label: "Previous 7 Days", items: last7DaysItems });
+  }
+  if (last30DaysItems.length > 0) {
+    groups.push({ label: "Previous 30 Days", items: last30DaysItems });
+  }
+
+  // Add monthly groups in reverse chronological order
+  const sortedMonths = Array.from(olderItems.entries())
+    .sort((a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime());
+
+  sortedMonths.forEach(([monthYear, monthItems]) => {
+    groups.push({ label: monthYear, items: monthItems });
+  });
+
+  return groups;
+}
+
 // Compare function for sorting items
 function compareItems(
   a: FileSystemItem, 

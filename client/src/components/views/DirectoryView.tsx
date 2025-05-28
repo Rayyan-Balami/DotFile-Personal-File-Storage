@@ -6,7 +6,7 @@ import {
 } from "@/stores/useSelectionStore";
 import { useSortPreferencesStore } from "@/stores/useSortPreferencesStore";
 import { useViewPreferencesStore } from "@/stores/useViewPreferencesStore";
-import { useSortedItems, getMimeCategory } from "@/utils/sortUtils";
+import { useSortedItems, getMimeCategory, groupItemsByDate } from "@/utils/sortUtils";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -32,14 +32,12 @@ interface DirectoryViewProps {
   currentPath?: string;
   directoryName?: string;
   parentId?: string | null;
-  showTrashActions?: boolean;
 }
 
 export default function DirectoryView({
   items = [],
   directoryName = "Directory",
   parentId = null,
-  showTrashActions = false,
 }: DirectoryViewProps) {
   const navigate = useNavigate();
   const setVisibleItems = useSelectionStore((state) => state.setVisibleItems);
@@ -87,6 +85,14 @@ export default function DirectoryView({
 
     return groups;
   }, [documents, folders, sortBy]);
+
+  // Group documents by date when sorting by date fields
+  const groupedByDate = useMemo(() => {
+    if (folderArrangement === "separated" && (sortBy === "dateAdded" || sortBy === "dateUpdated")) {
+      return groupItemsByDate(documents, sortBy);
+    }
+    return null;
+  }, [documents, sortBy, folderArrangement]);
 
   // Callback for opening items (double click)
   const handleOpenItem = (id: string) => {
@@ -174,8 +180,23 @@ export default function DirectoryView({
                       </section>
                     )
                   ))
+                ) : groupedByDate ? (
+                  // Show date-based groups when sorting by date
+                  groupedByDate.map(({ label, items }) => (
+                    items.length > 0 && (
+                      <section key={label} className="flex flex-col gap-4 mb-6">
+                        <h2 className="text-lg font-medium">{label}</h2>
+                        <CardGrid
+                          items={items}
+                          viewType={viewType}
+                          onItemClick={handleSelectItem}
+                          onItemOpen={handleOpenItem}
+                        />
+                      </section>
+                    )
+                  ))
                 ) : (
-                  // Show regular files section when not sorting by kind
+                  // Show regular files section for other sort types
                   documents.length > 0 && (
                     <section className="flex flex-col gap-4">
                       <h2 className="text-lg font-medium">Files</h2>

@@ -352,7 +352,7 @@ const CardContent = React.memo(
             {dropdownMenu}
             {isPinned ? (
               <Pin
-                className="size-3.75 rotate-45 text-primary"
+                className="size-3.75 rotate-20 text-primary"
                 aria-hidden={!isPinned}
               />
             ) : (
@@ -385,7 +385,7 @@ const CardContent = React.memo(
           {dropdownMenu}
           {isPinned && (
             <Pin
-              className="size-3.75 text-primary rotate-45"
+              className="size-3.75 text-primary rotate-20"
               aria-label="Pinned"
             />
           )}
