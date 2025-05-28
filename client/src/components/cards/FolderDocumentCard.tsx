@@ -271,7 +271,7 @@ const CardContent = React.memo(
     extension,
     deletedAt,
     createdAt,
-    hasDeletedAncestor = false,
+    hasDeletedAncestor,
   }: {
     id: string;
     title: string;
@@ -287,6 +287,7 @@ const CardContent = React.memo(
     hasDeletedAncestor?: boolean;
   }) => {
     const [menuOpen, setMenuOpen] = useState(false);
+    const isMobile = useIsMobile();
 
     // Only render dropdown content when menu is open
     const dropdownMenu = (
@@ -343,11 +344,11 @@ const CardContent = React.memo(
                 byteCount={byteCount}
               />
               <span className="text-xs text-muted-foreground text-left whitespace-nowrap">
-                {formatDate(createdAt, useIsMobile() ? false : true)}
+                {formatDate(createdAt, isMobile ? false : true)}
               </span>
             </div>
           </div>
-          <div className="flex flex-col-reverse lg:flex-row-reverse justify-between items-center gap-4 max-lg:my-1.5">
+          <div className="flex flex-col-reverse lg:flex-row-reverse justify-between items-center gap-4 max-lg:mb-1.5 max-lg:mt-0.75">
             {dropdownMenu}
             {isPinned ? (
               <Pin
@@ -364,7 +365,7 @@ const CardContent = React.memo(
     }
 
     return (
-      <div className="px-1 flex-1 flex gap-6">
+      <div className="px-1 flex-1 flex gap-6 mb-0.5">
         <div className="flex-1 flex flex-col">
           <h3 className="text-sm font-[425] line-clamp-1 break-all mb-1.5">
             {cardType === "document" && extension
@@ -376,11 +377,11 @@ const CardContent = React.memo(
             childCount={childCount}
             byteCount={byteCount}
           />
-          <span className="flex-1 text-xs font-light text-muted-foreground mt-3">
-            {formatDate(createdAt)}
+          <span className="text-xs font-light text-muted-foreground pt-3 mt-auto">
+            {formatDate(createdAt, isMobile ? false : true)}
           </span>
         </div>
-        <div className="flex flex-col-reverse justify-between items-center my-0.5">
+        <div className="flex flex-col-reverse justify-between items-center mt-0.75">
           {dropdownMenu}
           {isPinned && (
             <Pin

@@ -21,7 +21,7 @@ export function CardGrid({ items, viewType, onItemClick, onItemOpen }: CardGridP
     <div
       className={`grid ${
         viewType === "large"
-          ? "grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4 md:gap-6"
+          ? "grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(13.5rem,1fr))] gap-4 md:gap-6"
           : viewType === "compact"
           ? "grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-4 md:gap-6"
           : "grid-cols-1 gap-0.5"
