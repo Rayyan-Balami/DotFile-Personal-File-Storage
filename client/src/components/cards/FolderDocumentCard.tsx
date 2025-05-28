@@ -11,7 +11,11 @@ import {
   FileSystemItem,
   FolderItem,
 } from "@/types/folderDocumnet";
-import { formatChildCount, formatFileSize, formatDate } from "@/utils/formatUtils";
+import {
+  formatChildCount,
+  formatFileSize,
+  formatDate,
+} from "@/utils/formatUtils";
 import { EllipsisVertical, Loader2, Pin } from "lucide-react";
 import React, {
   lazy,
@@ -38,6 +42,7 @@ import {
 } from "../ui/dropdown-menu";
 import { FolderIcon } from "../ui/folder-icon";
 import { ColorOption } from "@/config/colors";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Types remain the same
 export type CardVariant = "large" | "compact" | "list";
@@ -159,7 +164,8 @@ const FileOrFolderIcon = React.memo(
     const memoKey = `${cardType}-${variant}`;
     const scaleClass = useMemo(() => {
       if (cardType === "folder") return styles.iconScale;
-      if (cardType === "document" && fileType && !fileType.startsWith('image/')) return styles.docIconScale;
+      if (cardType === "document" && fileType && !fileType.startsWith("image/"))
+        return styles.docIconScale;
       return "";
     }, [memoKey]);
     const iconStyles =
@@ -167,7 +173,13 @@ const FileOrFolderIcon = React.memo(
 
     // Use file preview hook for images only
     let preview: React.ReactNode = null;
-    if (cardType === 'document' && fileId && fileType && typeof fileType === 'string' && fileType.startsWith('image/')) {
+    if (
+      cardType === "document" &&
+      fileId &&
+      fileType &&
+      typeof fileType === "string" &&
+      fileType.startsWith("image/")
+    ) {
       preview = useFilePreview({ fileId, mimeType: fileType });
     }
 
@@ -179,7 +191,9 @@ const FileOrFolderIcon = React.memo(
           scaleClass
         )}
       >
-        {cardType === "folder" && <FolderIcon className="size-full" color={color as ColorOption} />}
+        {cardType === "folder" && (
+          <FolderIcon className="size-full" color={color as ColorOption} />
+        )}
         {cardType === "document" && preview}
         {cardType === "document" && !preview && iconStyles && (
           <FileIcon extension={fileExtension} {...iconStyles} />
@@ -198,8 +212,6 @@ const FileOrFolderIcon = React.memo(
 );
 FileOrFolderIcon.displayName = "FileOrFolderIcon";
 
-
-
 const ItemCount = React.memo(
   ({
     cardType,
@@ -213,14 +225,14 @@ const ItemCount = React.memo(
     if (cardType === "folder") {
       if (childCount === undefined) return null;
       return (
-        <span className="flex-1 my-1.5 text-xs text-muted-foreground">
+        <span className="text-xs text-muted-foreground capitalize whitespace-nowrap">
           {formatChildCount(childCount)}
         </span>
       );
     } else {
       if (byteCount === undefined) return null;
       return (
-        <span className="flex-1 my-1.5 text-xs text-muted-foreground">
+        <span className="text-xs text-muted-foreground capitalize whitespace-nowrap">
           {formatFileSize(byteCount)}
         </span>
       );
@@ -297,12 +309,16 @@ const CardContent = React.memo(
                 </DropdownMenuItem>
               }
             >
-              <LazyDropdownMenuItems 
-                cardType={cardType} 
-                title={title} 
+              <LazyDropdownMenuItems
+                cardType={cardType}
+                title={title}
                 id={id}
-                isPinned={isPinned} 
-                deletedAt={deletedAt instanceof Date ? deletedAt.toISOString() : deletedAt}
+                isPinned={isPinned}
+                deletedAt={
+                  deletedAt instanceof Date
+                    ? deletedAt.toISOString()
+                    : deletedAt
+                }
                 hasDeletedAncestor={hasDeletedAncestor}
               />
             </Suspense>
@@ -316,20 +332,22 @@ const CardContent = React.memo(
         <div className="px-1 flex-1 flex gap-6">
           <div className="flex-1 flex max-lg:flex-col lg:items-center">
             <h3 className="flex-1 text-sm font-[425] line-clamp-1 break-all max-w-sm w-full">
-              {cardType === "document" && extension ? `${title}.${extension}` : title}
+              {cardType === "document" && extension
+                ? `${title}.${extension}`
+                : title}
             </h3>
-            <div className="flex-1 flex items-center">
+            <div className="flex-1 flex items-center max-sm:gap-4 *:flex-1">
               <ItemCount
                 cardType={cardType}
                 childCount={childCount}
                 byteCount={byteCount}
               />
-              <span className="text-xs text-gray-500">
-                {formatDate(createdAt)}
+              <span className="text-xs text-muted-foreground text-left whitespace-nowrap">
+                {formatDate(createdAt, useIsMobile() ? false : true)}
               </span>
             </div>
           </div>
-          <div className="flex flex-col-reverse lg:flex-row-reverse justify-between items-center gap-4 max-lg:my-0.5">
+          <div className="flex flex-col-reverse lg:flex-row-reverse justify-between items-center gap-4 max-lg:my-1.5">
             {dropdownMenu}
             {isPinned ? (
               <Pin
@@ -348,14 +366,19 @@ const CardContent = React.memo(
     return (
       <div className="px-1 flex-1 flex gap-6">
         <div className="flex-1 flex flex-col">
-          <h3 className="text-sm font-[425] line-clamp-1 break-all">
-            {cardType === "document" && extension ? `${title}.${extension}` : title}
+          <h3 className="text-sm font-[425] line-clamp-1 break-all mb-1.5">
+            {cardType === "document" && extension
+              ? `${title}.${extension}`
+              : title}
           </h3>
           <ItemCount
             cardType={cardType}
             childCount={childCount}
             byteCount={byteCount}
           />
+          <span className="flex-1 text-xs font-light text-muted-foreground mt-3">
+            {formatDate(createdAt)}
+          </span>
         </div>
         <div className="flex flex-col-reverse justify-between items-center my-0.5">
           {dropdownMenu}
@@ -398,8 +421,17 @@ const FolderDocumentCard = React.memo(
     } = props;
 
     // Extract properties from item based on type
-    const { id, type, cardType, name, isPinned, updatedAt, deletedAt, createdAt } = item;
-    
+    const {
+      id,
+      type,
+      cardType,
+      name,
+      isPinned,
+      updatedAt,
+      deletedAt,
+      createdAt,
+    } = item;
+
     // Extract type-specific properties
     let items: number | undefined;
     let color: string | undefined;
@@ -554,9 +586,17 @@ const FolderDocumentCard = React.memo(
               isPinned={isPinned}
               variant={variant}
               extension={extension}
-              dateModified={updatedAt instanceof Date ? updatedAt.toISOString() : String(updatedAt)}
+              dateModified={
+                updatedAt instanceof Date
+                  ? updatedAt.toISOString()
+                  : String(updatedAt)
+              }
               deletedAt={deletedAt}
-              createdAt={createdAt instanceof Date ? createdAt.toISOString() : String(createdAt)}
+              createdAt={
+                createdAt instanceof Date
+                  ? createdAt.toISOString()
+                  : String(createdAt)
+              }
               hasDeletedAncestor={item.hasDeletedAncestor ?? false}
             />
           </div>
@@ -569,12 +609,14 @@ const FolderDocumentCard = React.memo(
               </ContextMenuItem>
             }
           >
-            <LazyContextMenuItems 
-              cardType={cardType} 
-              title={name} 
-              id={id} 
-              isPinned={isPinned} 
-              deletedAt={deletedAt instanceof Date ? deletedAt.toISOString() : deletedAt}
+            <LazyContextMenuItems
+              cardType={cardType}
+              title={name}
+              id={id}
+              isPinned={isPinned}
+              deletedAt={
+                deletedAt instanceof Date ? deletedAt.toISOString() : deletedAt
+              }
               hasDeletedAncestor={item.hasDeletedAncestor ?? false}
             />
           </Suspense>

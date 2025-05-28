@@ -39,15 +39,37 @@ export function formatItemCount(item: { cardType: 'folder' | 'document', childCo
 }
 
 /**
- * Format a date to a consistent string format
- * @param date Date object or string to format
- * @returns Formatted date string like "May 28, 2024"
+ * Format a date as "Yesterday at 3:19 PM" or "May 24, 2025 at 6:09 PM"
+ * @param date Date string or object
+ * @param withTime Whether to include the time part
+ * @returns Formatted human-friendly date
  */
-export function formatDate(date: string | Date | null | undefined): string {
+export function formatDate(date: string | Date | null | undefined, withTime = false): string {
   if (!date) return '';
-  return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+  const d = new Date(date);
+  const now = new Date();
+
+  const isToday = d.toDateString() === now.toDateString();
+
+  const yesterday = new Date();
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday = d.toDateString() === yesterday.toDateString();
+
+  const timeString = d.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit'
   });
+
+  if (isToday) {
+    return withTime ? `Today at ${timeString}` : 'Today';
+  } else if (isYesterday) {
+    return withTime ? `Yesterday at ${timeString}` : 'Yesterday';
+  } else {
+    const dateString = d.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    return withTime ? `${dateString} at ${timeString}` : dateString;
+  }
 }
