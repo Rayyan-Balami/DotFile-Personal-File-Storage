@@ -31,7 +31,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { Link, useNavigate } from "@tanstack/react-router"
+import { Link, useNavigate, useLocation } from "@tanstack/react-router"
 import { usePinContents, useUpdateFolder } from "@/api/folder/folder.query"
 import { useUpdateFile } from "@/api/file/file.query"
 import { useState } from "react"
@@ -173,6 +173,7 @@ export function NavPins() {
   const { isMobile } = useSidebar()
   const [currentOffset, setCurrentOffset] = useState(0)
   const limit = 10
+  const location = useLocation()
   
   const { data, isLoading, error } = usePinContents(currentOffset, limit)
   const pinContents = data?.data?.folderContents
@@ -180,17 +181,20 @@ export function NavPins() {
   
   // Combine folders and files into a single array for display
   const pinnedItems = [
-    ...(pinContents?.folders || []).map((folder: FolderResponseDto) => ({
-      id: folder.id,
-      name: folder.name,
-      type: 'folder' as const,
-      url: `/folder/${folder.id}`,
-      icon: Folder,
-      parentId: folder.parent
-    })),
+    ...(pinContents?.folders || []).map((folder: FolderResponseDto) => {
+      const isCurrentFolder = location.pathname === `/folder/${folder.id}`
+      return {
+        id: folder.id,
+        name: folder.name,
+        type: 'folder' as const,
+        url: `/folder/${folder.id}`,
+        icon: isCurrentFolder ? FolderOpen : Folder,
+        parentId: folder.parent
+      }
+    }),
     ...(pinContents?.files || []).map((file: FileResponseDto) => ({
       id: file.id,
-      name: file.name,
+      name: file.extension ? `${file.name}.${file.extension}` : file.name,
       type: 'file' as const,
       url: `/file/${file.id}`,
       icon: File,
