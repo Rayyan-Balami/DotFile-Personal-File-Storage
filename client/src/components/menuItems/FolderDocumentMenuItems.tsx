@@ -8,9 +8,11 @@ import {
   DropdownMenuSeparator,
 } from "../ui/dropdown-menu";
 import { useDialogStore } from "@/stores/useDialogStore";
-import { useRestoreFolder } from '@/api/folder/folder.query';
-import { useRestoreFile } from '@/api/file/file.query';
+import { useRestoreFolder, useUpdateFolder } from '@/api/folder/folder.query';
+import { useRestoreFile, useUpdateFile } from '@/api/file/file.query';
 import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
+import { toast } from 'sonner';
 
 // Context menu items component
 export const ContextMenuItems = React.memo(
@@ -33,8 +35,11 @@ export const ContextMenuItems = React.memo(
     const queryClient = useQueryClient();
     const restoreFolder = useRestoreFolder();
     const restoreFile = useRestoreFile();
+    const updateFolder = useUpdateFolder();
+    const updateFile = useUpdateFile();
+    const navigate = useNavigate();
     
-    const handleAction = (action: string) => {
+    const handleAction = async (action: string) => {
       console.log(`Action triggered: ${action} on ${title} (${id})`);
       
       if (action === "create-folder") {
@@ -62,21 +67,53 @@ export const ContextMenuItems = React.memo(
           });
         }
       } else if (action === "pin") {
-        if (cardType === "folder") {
-          // Implement pinFolder mutation
+        try {
+          if (cardType === "folder") {
+            await updateFolder.mutateAsync({
+              folderId: id,
+              data: { isPinned: true }
+            });
+            toast.success(`${title} pinned successfully`);
+          } else {
+            await updateFile.mutateAsync({
+              fileId: id,
+              data: { isPinned: true }
+            });
+            toast.success(`${title} pinned successfully`);
+          }
+        } catch (error) {
+          toast.error(`Failed to pin ${title}`);
         }
       } else if (action === "unpin") {
-        if (cardType === "folder") {
-          // Implement unpinFolder mutation
+        try {
+          if (cardType === "folder") {
+            await updateFolder.mutateAsync({
+              folderId: id,
+              data: { isPinned: false }
+            });
+            toast.success(`${title} unpinned successfully`);
+          } else {
+            await updateFile.mutateAsync({
+              fileId: id,
+              data: { isPinned: false }
+            });
+            toast.success(`${title} unpinned successfully`);
+          }
+        } catch (error) {
+          toast.error(`Failed to unpin ${title}`);
         }
       } else if (action === "open") {
-        // Implement open action
-      } else if (action === "share") {
-        // Implement share action
-      } else if (action === "copy-link") {
-        // Implement copy-link action
+        if (cardType === "folder") {
+          navigate({ to: `/folder/${id}` });
+        } else {
+          navigate({ to: `/file/${id}` });
+        }
+      } else if (action === "open-new-tab") {
+        const url = cardType === "folder" ? `/folder/${id}` : `/file/${id}`;
+        window.open(url, '_blank');
       } else if (action === "info") {
         // Implement info action
+        toast.info("Info dialog coming soon");
       }
     };
 
@@ -89,14 +126,7 @@ export const ContextMenuItems = React.memo(
           Rename
         </ContextMenuItem>
         <ContextMenuSeparator />
-        <ContextMenuItem onClick={() => handleAction("share")}>
-          Share
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => handleAction("copy-link")}>
-          Copy link
-        </ContextMenuItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem onClick={() => handleAction("pin")}>
+        <ContextMenuItem onClick={() => handleAction(isPinned ? "unpin" : "pin")}>
           {isPinned ? "Unpin" : "Pin"}
         </ContextMenuItem>
         <ContextMenuSeparator />
@@ -181,8 +211,11 @@ export const DropdownMenuItems = React.memo(
     const queryClient = useQueryClient();
     const restoreFolder = useRestoreFolder();
     const restoreFile = useRestoreFile();
+    const updateFolder = useUpdateFolder();
+    const updateFile = useUpdateFile();
+    const navigate = useNavigate();
     
-    const handleAction = (action: string) => {
+    const handleAction = async (action: string) => {
       console.log(`Action triggered: ${action} on ${title} (${id})`);
       
       if (action === "create-folder") {
@@ -210,21 +243,53 @@ export const DropdownMenuItems = React.memo(
           });
         }
       } else if (action === "pin") {
-        if (cardType === "folder") {
-          // Implement pinFolder mutation
+        try {
+          if (cardType === "folder") {
+            await updateFolder.mutateAsync({
+              folderId: id,
+              data: { isPinned: true }
+            });
+            toast.success(`${title} pinned successfully`);
+          } else {
+            await updateFile.mutateAsync({
+              fileId: id,
+              data: { isPinned: true }
+            });
+            toast.success(`${title} pinned successfully`);
+          }
+        } catch (error) {
+          toast.error(`Failed to pin ${title}`);
         }
       } else if (action === "unpin") {
-        if (cardType === "folder") {
-          // Implement unpinFolder mutation
+        try {
+          if (cardType === "folder") {
+            await updateFolder.mutateAsync({
+              folderId: id,
+              data: { isPinned: false }
+            });
+            toast.success(`${title} unpinned successfully`);
+          } else {
+            await updateFile.mutateAsync({
+              fileId: id,
+              data: { isPinned: false }
+            });
+            toast.success(`${title} unpinned successfully`);
+          }
+        } catch (error) {
+          toast.error(`Failed to unpin ${title}`);
         }
       } else if (action === "open") {
-        // Implement open action
-      } else if (action === "share") {
-        // Implement share action
-      } else if (action === "copy-link") {
-        // Implement copy-link action
+        if (cardType === "folder") {
+          navigate({ to: `/folder/${id}` });
+        } else {
+          navigate({ to: `/file/${id}` });
+        }
+      } else if (action === "open-new-tab") {
+        const url = cardType === "folder" ? `/folder/${id}` : `/file/${id}`;
+        window.open(url, '_blank');
       } else if (action === "info") {
         // Implement info action
+        toast.info("Info dialog coming soon");
       }
     };
 
@@ -237,14 +302,7 @@ export const DropdownMenuItems = React.memo(
           Rename
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => handleAction("share")}>
-          Share
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleAction("copy-link")}>
-          Copy link
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => handleAction("pin")}>
+        <DropdownMenuItem onClick={() => handleAction(isPinned ? "unpin" : "pin")}>
           {isPinned ? "Unpin" : "Pin"}
         </DropdownMenuItem>
         <DropdownMenuSeparator />

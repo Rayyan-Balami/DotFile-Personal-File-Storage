@@ -79,6 +79,18 @@ export const useUpdateFile = () => {
           queryKey: FOLDER_KEYS.all,
         });
       }
+      
+      // If isPinned property was updated, invalidate pins cache
+      if (variables.data.isPinned !== undefined) {
+        queryClient.invalidateQueries({
+          queryKey: ["folders", "pins"],
+        });
+      }
+      
+      // Always invalidate folder contents to update the UI cards
+      queryClient.invalidateQueries({
+        queryKey: FOLDER_KEYS.all,
+      });
     },
   });
 };

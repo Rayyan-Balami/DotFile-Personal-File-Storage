@@ -117,6 +117,11 @@ export const useUpdateFolder = () => {
           queryKey: ["folders", "pins"],
         });
       }
+      
+      // Always invalidate all folder contents to update the UI cards
+      queryClient.invalidateQueries({
+        queryKey: FOLDER_KEYS.all,
+      });
     },
   });
 };
