@@ -72,7 +72,11 @@ const fileApi = {
 
   // Move a file to a different folder
   moveFile: (fileId: string, data: MoveFileDto) => 
-    API.post(`/files/${fileId}/move`, data)
+    API.post(`/files/${fileId}/move`, data),
+
+  // Get recent files
+  getRecentFiles: () =>
+    API.get("/files/recent"),
 };
 
 export default fileApi;

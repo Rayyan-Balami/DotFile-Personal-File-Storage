@@ -264,6 +264,28 @@ class FileDao {
       deletedCount: result.deletedCount,
     };
   }
+
+  /**
+   * Get recent files for user within last month
+   * @param userId - MongoDB ObjectId string of the user
+   * @returns Array of recent files sorted by updated date
+   */
+  async getRecentFiles(
+    userId: string
+  ): Promise<IFile[]> {
+    // Get files updated in the last month
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+    return await File.find({
+      owner: userId,
+      deletedAt: null, // Exclude deleted files
+      updatedAt: { $gte: oneMonthAgo } // Only files updated in last month
+    })
+      .populate("owner")
+      .populate("folder")
+      .sort({ updatedAt: -1 }); // Most recently updated first
+  }
 }
 
 export default new FileDao();

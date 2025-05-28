@@ -326,6 +326,21 @@ class FileController {
     res.json(new ApiResponse(200, { files }, "Files retrieved successfully"));
   });
 
+  /**
+   * Get recent files for user
+   * @returns Array of recently modified files
+   */
+  getRecentFiles = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+
+    const files = await fileService.getRecentFiles(userId);
+    
+    res.json(new ApiResponse(200, { files }, "Recent files retrieved successfully"));
+  });
+
 }
 
 export default new FileController();

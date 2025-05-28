@@ -9,6 +9,7 @@ export const FILE_KEYS = {
   detail: (id: string) => [...FILE_KEYS.all, id] as const,
   list: (params?: { folderId?: string, includeDeleted?: boolean }) => 
     [...FILE_KEYS.all, params] as const,
+  recent: ["files", "recent"] as const,
 };
 
 /**
@@ -217,3 +218,12 @@ export function useDeleteFile() {
     },
   });
 }
+
+/**
+ * Hook to get recent files
+ */
+export const useRecentFiles = () =>
+  useQuery({
+    queryKey: FILE_KEYS.recent,
+    queryFn: () => fileApi.getRecentFiles().then((res) => res.data),
+  });

@@ -733,6 +733,19 @@ class FileService {
       throw new ApiError(404, [{ file: "File not found or could not be decrypted" }]);
     }
   }
+
+  /**
+   * Get recent files for user within last month
+   * @param userId - ID of the user
+   * @returns Array of recent files
+   */
+  async getRecentFiles(userId: string): Promise<FileResponseDto[]> {
+    // Get recent files for this user
+    const recentFiles = await fileDao.getRecentFiles(userId);
+    
+    // Sanitize for response
+    return recentFiles.map(file => this.sanitizeFile(file));
+  }
 }
 
 export default new FileService();

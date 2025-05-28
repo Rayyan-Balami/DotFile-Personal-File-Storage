@@ -21,6 +21,7 @@ authRoutes
   // CRUD operations
   .post("/upload", FileController.uploadFiles)                            // Upload file
   .get("/", FileController.getUserFiles)                                  // List user files
+  .get("/recent", FileController.getRecentFiles)                         // Get recent files
   .get("/:id", FileController.getFileById)                                // Get file by ID
   .patch("/:id", validateData(updateFileSchema), FileController.updateFile) // Update file metadata
   .delete("/:id", FileController.softDeleteFile)                          // Soft delete file
