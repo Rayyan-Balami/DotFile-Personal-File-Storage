@@ -5,6 +5,7 @@ import {
   Trash2,
   File,
   Loader2,
+  Pin,
 } from "lucide-react"
 
 import {
@@ -40,11 +41,7 @@ import type { FileResponseDto } from "@/types/file.dto"
 const MenuItems = () => (
   <>
     <ContextMenuItem>
-      <Folder className="text-muted-foreground mr-2 h-4 w-4" />
-      <span>View</span>
-    </ContextMenuItem>
-    <ContextMenuItem>
-      <Share className="text-muted-foreground mr-2 h-4 w-4" />
+      <Pin className="text-muted-foreground mr-2 h-4 w-4 rotate-20" />
       <span>Unpin</span>
     </ContextMenuItem>
     <ContextMenuSeparator />
@@ -58,11 +55,7 @@ const MenuItems = () => (
 const DropdownMenuOptions = () => (
   <>
     <DropdownMenuItem>
-      <Folder className="text-muted-foreground mr-2 h-4 w-4" />
-      <span>View</span>
-    </DropdownMenuItem>
-    <DropdownMenuItem>
-      <Share className="text-muted-foreground mr-2 h-4 w-4" />
+      <Pin className="text-muted-foreground mr-2 h-4 w-4 rotate-20" />
       <span>Unpin</span>
     </DropdownMenuItem>
     <DropdownMenuSeparator />
@@ -110,20 +103,20 @@ export function NavPins() {
     <SidebarGroup>
       <SidebarGroupLabel>Pinned</SidebarGroupLabel>
       <SidebarMenu>
-        {isLoading && currentOffset === 0 && (
+        { isLoading && currentOffset === 0 && (
           <SidebarMenuItem>
-            <SidebarMenuButton disabled>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Loading...</span>
-            </SidebarMenuButton>
+            <SidebarGroupLabel>
+              <Loader2 className="h-4 w-4 animate-spin mx-auto text-primary" />
+              <span className="sr-only">Loading Pins</span>
+            </SidebarGroupLabel>
           </SidebarMenuItem>
         )}
-        
+
         {error && (
           <SidebarMenuItem>
-            <SidebarMenuButton disabled>
-              <span className="text-destructive">Error loading pins</span>
-            </SidebarMenuButton>
+            <SidebarGroupLabel>
+              <span className="text-destructive font-light mx-auto">Error loading pins</span>
+            </SidebarGroupLabel>
           </SidebarMenuItem>
         )}
         
