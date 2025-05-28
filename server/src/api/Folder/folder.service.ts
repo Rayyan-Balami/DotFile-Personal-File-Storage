@@ -185,17 +185,17 @@ class FolderService {
     const folders = await folderDao.getUserFoldersWithCounts(userId, folderId, shouldIncludeDeleted);
     const files = await fileService.getUserFilesByFolders(userId, folderId, shouldIncludeDeleted);
 
-    // Check if current folder is deleted
-    const isCurrentFolderDeleted = folder.deletedAt !== null;
+    // Check if any ancestor is deleted
+    const hasDeletedAncestor = await this.hasDeletedAncestor(folderId);
 
     return {
       folders: folders.map((folder) => ({
         ...this.sanitizeFolder(folder),
-        hasDeletedAncestor: isCurrentFolderDeleted // If parent is deleted, all children have deleted ancestor
+        hasDeletedAncestor // Pass the ancestor check result to all children
       })),
       files: files.map(file => ({
         ...file,
-        hasDeletedAncestor: isCurrentFolderDeleted // If parent is deleted, all children have deleted ancestor
+        hasDeletedAncestor // Pass the ancestor check result to all children
       })),
       pathSegments
     };
@@ -830,22 +830,20 @@ class FolderService {
     let currentFolder = await folderDao.getFolderById(folderId, true);
     
     while (currentFolder && currentFolder.parent) {
-      // If current folder is deleted, return true
-      if (currentFolder.deletedAt !== null) {
-        return true;
-      }
-      
-      // Get parent folder
+      // Get parent folder first
       const parentId = typeof currentFolder.parent === 'string' ? 
         currentFolder.parent : 
         (currentFolder.parent._id ? currentFolder.parent._id.toString() : currentFolder.parent.toString());
       
-      currentFolder = await folderDao.getFolderById(parentId, true);
+      const parentFolder = await folderDao.getFolderById(parentId, true);
       
       // If parent doesn't exist or is deleted, return true
-      if (!currentFolder || currentFolder.deletedAt !== null) {
+      if (!parentFolder || parentFolder.deletedAt !== null) {
         return true;
       }
+      
+      // Move up to parent for next iteration
+      currentFolder = parentFolder;
     }
     
     return false;
