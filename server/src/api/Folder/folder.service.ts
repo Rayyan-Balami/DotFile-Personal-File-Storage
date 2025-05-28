@@ -185,8 +185,8 @@ class FolderService {
     const folders = await folderDao.getUserFoldersWithCounts(userId, folderId, shouldIncludeDeleted);
     const files = await fileService.getUserFilesByFolders(userId, folderId, shouldIncludeDeleted);
 
-    // Check if any ancestor is deleted
-    const hasDeletedAncestor = await this.hasDeletedAncestor(folderId);
+    // Check if any ancestor is deleted OR if the current folder itself is deleted
+    const hasDeletedAncestor = folder.deletedAt !== null || await this.hasDeletedAncestor(folderId);
 
     return {
       folders: folders.map((folder) => ({

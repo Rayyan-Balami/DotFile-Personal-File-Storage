@@ -100,6 +100,44 @@ const MenuItems = React.memo(({
   const { cardType, title, id, isPinned = false, deletedAt = null, hasDeletedAncestor = false } = props;
   const handleAction = useMenuActions({ cardType, title, id });
 
+  // Debug logging to check hasDeletedAncestor status
+  console.log(`🔍 Menu Debug for "${title}" (${cardType}):`, {
+    id,
+    deletedAt: deletedAt ? 'YES' : 'NO',
+    hasDeletedAncestor: hasDeletedAncestor ? 'YES' : 'NO',
+    isDeleted: (deletedAt || hasDeletedAncestor) ? 'YES' : 'NO'
+  });
+
+  const isDeleted = deletedAt || hasDeletedAncestor;
+
+  // For deleted items, show only limited actions
+  if (isDeleted) {
+    return (
+      <>
+        <Item onClick={() => handleAction("open")}>Open</Item>
+        <Item onClick={() => handleAction("open-new-tab")}>Open in new tab</Item>
+        <Separator />
+        <Item onClick={() => handleAction("info")} className="text-blue-600 focus:text-blue-600 focus:bg-blue-700/20">
+          More Info
+        </Item>
+        <Separator />
+        {/* Only show "Put back" if item is directly deleted (has deletedAt) but no deleted ancestors */}
+        {deletedAt && !hasDeletedAncestor && (
+          <>
+            <Item onClick={() => handleAction("restore")} className="text-green-600 focus:text-green-600 focus:bg-green-700/20">
+              Put back
+            </Item>
+            <Separator />
+          </>
+        )}
+        <Item onClick={() => handleAction("delete", deletedAt, hasDeletedAncestor)} className="text-red-600 focus:text-red-600 focus:bg-red-700/20">
+          Delete Permanently
+        </Item>
+      </>
+    );
+  }
+
+  // For non-deleted items, show full menu
   const commonItems = (
     <>
       <Item onClick={() => handleAction("open")}>Open</Item>
@@ -114,16 +152,8 @@ const MenuItems = React.memo(({
         More Info
       </Item>
       <Separator />
-      {deletedAt && !hasDeletedAncestor && (
-        <>
-          <Item onClick={() => handleAction("restore")} className="text-green-600 focus:text-green-600 focus:bg-green-700/20">
-            Put back
-          </Item>
-          <Separator />
-        </>
-      )}
       <Item onClick={() => handleAction("delete", deletedAt, hasDeletedAncestor)} className="text-red-600 focus:text-red-600 focus:bg-red-700/20">
-        {deletedAt || hasDeletedAncestor ? "Delete Permanently" : "Move to Trash"}
+        Move to Trash
       </Item>
     </>
   );
