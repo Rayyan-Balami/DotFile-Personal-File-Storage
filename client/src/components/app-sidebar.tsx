@@ -48,7 +48,7 @@ const data = {
       icon: Trash2,
     },
   ],
-  projects: [
+  pins: [
     {
       name: "Design Engineering",
       url: "#",
@@ -107,7 +107,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavPins projects={data.projects} />
+        <NavPins projects={data.pins} />
       </SidebarContent>
       <SidebarFooter className="min-h-(--footer-height)">
         <NavColors />
