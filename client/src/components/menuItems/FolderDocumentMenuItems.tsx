@@ -49,9 +49,11 @@ const useMenuActions = ({ cardType, title, id }: Pick<MenuProps, 'cardType' | 't
       },
       'pin': async () => {
         try {
-          const mutation = cardType === "folder" ? updateFolder : updateFile;
-          const param = cardType === "folder" ? { folderId: id, data: { isPinned: true } } : { fileId: id, data: { isPinned: true } };
-          await mutation.mutateAsync(param);
+          if (cardType === "folder") {
+            await updateFolder.mutateAsync({ folderId: id, data: { isPinned: true } });
+          } else {
+            await updateFile.mutateAsync({ fileId: id, data: { isPinned: true } });
+          }
           toast.success(`${title} pinned successfully`);
         } catch (error) {
           toast.error(`Failed to pin ${title}`);
@@ -59,9 +61,11 @@ const useMenuActions = ({ cardType, title, id }: Pick<MenuProps, 'cardType' | 't
       },
       'unpin': async () => {
         try {
-          const mutation = cardType === "folder" ? updateFolder : updateFile;
-          const param = cardType === "folder" ? { folderId: id, data: { isPinned: false } } : { fileId: id, data: { isPinned: false } };
-          await mutation.mutateAsync(param);
+          if (cardType === "folder") {
+            await updateFolder.mutateAsync({ folderId: id, data: { isPinned: false } });
+          } else {
+            await updateFile.mutateAsync({ fileId: id, data: { isPinned: false } });
+          }
           toast.success(`${title} unpinned successfully`);
         } catch (error) {
           toast.error(`Failed to unpin ${title}`);
