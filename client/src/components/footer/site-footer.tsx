@@ -5,8 +5,8 @@ import { SearchForm } from "@/components/search-form";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { useUploadStore } from "@/stores/useUploadStore";
 import { formatFileSize } from "@/utils/formatUtils";
-import GlobalDelete from "./global-delete";
 import GlobalMove from "./global-move";
+import { GlobalDelete } from "./global-delete";
 
 export function SiteFooter() {
   const { uploads, cancelUpload } = useUploadStore();

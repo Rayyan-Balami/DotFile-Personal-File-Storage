@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { useEffect } from 'react';
 import type { FileSystemItem } from '@/types/folderDocumnet';
+import { useDialogStore } from '@/stores/useDialogStore';
 
 export type SelectableItem = FileSystemItem;
 
@@ -313,7 +314,33 @@ export function useKeyboardShortcuts(onDelete?: (id: string) => void) {
         if ((e.metaKey || e.ctrlKey) && !e.shiftKey) {
           if (selectedItems.length > 0) {
             console.log('Soft deleting items:', selectedItems.map(item => item.name));
-            store.deleteSelected(onDelete);
+            // Group items by type
+            const folders = selectedItems.filter(item => item.cardType === 'folder');
+            const files = selectedItems.filter(item => item.cardType === 'document');
+
+            // Handle folders
+            if (folders.length > 0) {
+              const { openDeleteDialog } = useDialogStore.getState();
+              openDeleteDialog(
+                folders.map(f => f.id),
+                "folder",
+                folders.map(f => f.name),
+                null,
+                false
+              );
+            }
+
+            // Handle files
+            if (files.length > 0) {
+              const { openDeleteDialog } = useDialogStore.getState();
+              openDeleteDialog(
+                files.map(f => f.id),
+                "document",
+                files.map(f => f.name),
+                null,
+                false
+              );
+            }
           }
           return;
         }
@@ -322,8 +349,33 @@ export function useKeyboardShortcuts(onDelete?: (id: string) => void) {
         if ((e.metaKey || e.ctrlKey) && e.shiftKey) {
           if (selectedItems.length > 0) {
             console.log('Permanently deleting items:', selectedItems.map(item => item.name));
-            // TODO: Add confirmation dialog for permanent delete
-            store.deleteSelected(onDelete);
+            // Group items by type
+            const folders = selectedItems.filter(item => item.cardType === 'folder');
+            const files = selectedItems.filter(item => item.cardType === 'document');
+
+            // Handle folders
+            if (folders.length > 0) {
+              const { openDeleteDialog } = useDialogStore.getState();
+              openDeleteDialog(
+                folders.map(f => f.id),
+                "folder",
+                folders.map(f => f.name),
+                null,
+                true
+              );
+            }
+
+            // Handle files
+            if (files.length > 0) {
+              const { openDeleteDialog } = useDialogStore.getState();
+              openDeleteDialog(
+                files.map(f => f.id),
+                "document",
+                files.map(f => f.name),
+                null,
+                true
+              );
+            }
           }
           return;
         }

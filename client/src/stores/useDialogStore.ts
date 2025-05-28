@@ -30,7 +30,9 @@ interface DialogState {
   deleteItemName: string | null;
   deleteItemDeletedAt: string | null;
   deleteItemHasDeletedAncestor: boolean;
-  openDeleteDialog: (id: string, type: "folder" | "document", name: string, deletedAt?: string | null, hasDeletedAncestor?: boolean) => void;
+  deleteItemIds: string[];
+  deleteItemNames: string[];
+  openDeleteDialog: (id: string | string[], type: "folder" | "document", name: string | string[], deletedAt?: string | null, hasDeletedAncestor?: boolean) => void;
   closeDeleteDialog: () => void;
 
   // Helper to close all dialogs
@@ -107,12 +109,16 @@ export const useDialogStore = create<DialogState>((set) => ({
   deleteItemName: null,
   deleteItemDeletedAt: null,
   deleteItemHasDeletedAncestor: false,
-  openDeleteDialog: (id: string, type: "folder" | "document", name: string, deletedAt = null, hasDeletedAncestor = false) => set((state) => ({
+  deleteItemIds: [],
+  deleteItemNames: [],
+  openDeleteDialog: (id: string | string[], type: "folder" | "document", name: string | string[], deletedAt = null, hasDeletedAncestor = false) => set((state) => ({
     ...state,
     deleteDialogOpen: true,
-    deleteItemId: id,
+    deleteItemId: Array.isArray(id) ? null : id,
+    deleteItemIds: Array.isArray(id) ? id : [],
     deleteItemType: type,
-    deleteItemName: name,
+    deleteItemName: Array.isArray(name) ? null : name,
+    deleteItemNames: Array.isArray(name) ? name : [],
     deleteItemDeletedAt: deletedAt,
     deleteItemHasDeletedAncestor: hasDeletedAncestor,
     createFolderOpen: false,
@@ -126,7 +132,9 @@ export const useDialogStore = create<DialogState>((set) => ({
     deleteItemType: null,
     deleteItemName: null,
     deleteItemDeletedAt: null,
-    deleteItemHasDeletedAncestor: false
+    deleteItemHasDeletedAncestor: false,
+    deleteItemIds: [],
+    deleteItemNames: []
   })),
 
   // Helper to close all dialogs
@@ -147,6 +155,8 @@ export const useDialogStore = create<DialogState>((set) => ({
     deleteItemType: null,
     deleteItemName: null,
     deleteItemDeletedAt: null,
-    deleteItemHasDeletedAncestor: false
+    deleteItemHasDeletedAncestor: false,
+    deleteItemIds: [],
+    deleteItemNames: []
   }))
 }));
