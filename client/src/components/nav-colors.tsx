@@ -65,7 +65,7 @@ export function NavColors() {
   const { state, isMobile } = useSidebar();
 
   // Collapsed view (icon trigger with dropdown)
-  if (state === "collapsed") {
+  if (state === "collapsed" && !isMobile) {
     return (
       <SidebarGroup>
         <DropdownMenu>

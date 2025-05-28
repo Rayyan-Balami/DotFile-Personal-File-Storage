@@ -68,7 +68,7 @@ export function NavUser() {
           <SidebarMenuButton
             size="lg"
             tooltip={"Your Account"}
-            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground [&>svg]:size-4"
           >
             <Avatar className="h-8 w-8 rounded-lg">
               <AvatarImage src={`${VITE_API_URL}${user.avatar}`}
@@ -79,7 +79,7 @@ export function NavUser() {
               <span className="truncate font-medium">{user.name}</span>
               <span className="truncate text-xs">{user.email}</span>
             </div>
-            <ChevronsUpDown className="ml-auto size-4" />
+            <ChevronsUpDown className="ml-auto" />
           </SidebarMenuButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent

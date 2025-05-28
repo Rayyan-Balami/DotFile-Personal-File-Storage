@@ -112,8 +112,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarFooter className="min-h-(--footer-height)">
         <NavColors />
         {/* copyright */}
-        {state !== "collapsed" && (
-          <div className="text-muted-foreground text-[11px] text-center w-full block leading-tight">
+        {(state !== "collapsed" || isMobile) && (
+          <div className="text-muted-foreground text-[11px] text-center w-full block leading-tight pb-2">
             © {new Date().getFullYear()}{" "}
             <span className="font-semibold text-foreground">
               {VITE_APP_NAME}
