@@ -6,6 +6,7 @@ import {
   ExternalLink,
   FolderOpen,
   PinOff,
+  Pin,
 } from "lucide-react"
 
 import {
@@ -34,7 +35,7 @@ import {
 import { Link, useNavigate, useLocation } from "@tanstack/react-router"
 import { usePinContents, useUpdateFolder } from "@/api/folder/folder.query"
 import { useUpdateFile } from "@/api/file/file.query"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import type { FolderResponseDto } from "@/types/folder.dto"
 import type { FileResponseDto } from "@/types/file.dto"
 import { toast } from "sonner"
@@ -172,6 +173,8 @@ const DropdownMenuOptions = ({ item }: PinItemProps) => {
 export function NavPins() {
   const { isMobile } = useSidebar()
   const [currentOffset, setCurrentOffset] = useState(0)
+  const [allItems, setAllItems] = useState<any[]>([])
+  const [isExpanded, setIsExpanded] = useState(false)
   const limit = 10
   const location = useLocation()
   
@@ -179,33 +182,73 @@ export function NavPins() {
   const pinContents = data?.data?.folderContents
   const pagination = data?.data?.pagination
   
-  // Combine folders and files into a single array for display
-  const pinnedItems = [
-    ...(pinContents?.folders || []).map((folder: FolderResponseDto) => {
-      const isCurrentFolder = location.pathname === `/folder/${folder.id}`
-      return {
-        id: folder.id,
-        name: folder.name,
-        type: 'folder' as const,
-        url: `/folder/${folder.id}`,
-        icon: isCurrentFolder ? FolderOpen : Folder,
-        parentId: folder.parent
+  // Process new items when data changes
+  useEffect(() => {
+    if (pinContents) {
+      const newItems = [
+        ...(pinContents.folders || []).map((folder: FolderResponseDto) => {
+          const isCurrentFolder = location.pathname === `/folder/${folder.id}`
+          return {
+            id: folder.id,
+            name: folder.name,
+            type: 'folder' as const,
+            url: `/folder/${folder.id}`,
+            icon: isCurrentFolder ? FolderOpen : Folder,
+            parentId: folder.parent
+          }
+        }),
+        ...(pinContents.files || []).map((file: FileResponseDto) => ({
+          id: file.id,
+          name: file.extension ? `${file.name}.${file.extension}` : file.name,
+          type: 'file' as const,
+          url: `/file/${file.id}`,
+          icon: File,
+          parentId: file.folder
+        }))
+      ]
+      
+      if (currentOffset === 0) {
+        // First load or reset
+        setAllItems(newItems)
+      } else {
+        // Append new items, avoiding duplicates
+        setAllItems(prev => {
+          const existingIds = new Set(prev.map(item => item.id))
+          const uniqueNewItems = newItems.filter(item => !existingIds.has(item.id))
+          return [...prev, ...uniqueNewItems]
+        })
       }
-    }),
-    ...(pinContents?.files || []).map((file: FileResponseDto) => ({
-      id: file.id,
-      name: file.extension ? `${file.name}.${file.extension}` : file.name,
-      type: 'file' as const,
-      url: `/file/${file.id}`,
-      icon: File,
-      parentId: file.folder
+    }
+  }, [pinContents, location.pathname])
+  
+  // Update folder icons when location changes
+  useEffect(() => {
+    setAllItems(prev => prev.map(item => {
+      if (item.type === 'folder') {
+        const isCurrentFolder = location.pathname === `/folder/${item.id}`
+        return {
+          ...item,
+          icon: isCurrentFolder ? FolderOpen : Folder
+        }
+      }
+      return item
     }))
-  ]
+  }, [location.pathname])
+  
+  // Show only first 10 items unless expanded
+  const displayItems = isExpanded ? allItems : allItems.slice(0, limit)
 
   const handleLoadMore = () => {
     if (pagination?.hasMore) {
       setCurrentOffset(prev => prev + limit)
+      setIsExpanded(true)
     }
+  }
+
+  const handleShowLess = () => {
+    setCurrentOffset(0)
+    setIsExpanded(false)
+    setAllItems(prev => prev.slice(0, limit))
   }
 
   return (
@@ -229,7 +272,7 @@ export function NavPins() {
           </SidebarMenuItem>
         )}
         
-        {pinnedItems.map((item) => (
+        {displayItems.map((item) => (
           <ContextMenu key={item.id}>
             <ContextMenuTrigger asChild>
               <SidebarMenuItem>
@@ -262,19 +305,33 @@ export function NavPins() {
           </ContextMenu>
         ))}
         
-        {pagination?.hasMore && (
+        {/* Show Load More button if there are more items and not expanded beyond initial load */}
+        {pagination?.hasMore && !isExpanded && (
           <SidebarMenuItem>
             <SidebarMenuButton 
               onClick={handleLoadMore}
               disabled={isLoading}
-              tooltip="Load More Pins"
+              tooltip="More Pins"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <MoreHorizontal />
+                <Pin className="rotate-20" />
               )}
-              <span>Load More</span>
+              <span>More Pins</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        )}
+        
+        {/* Show Show Less button if expanded and showing more than initial limit */}
+        {isExpanded && allItems.length > limit && (
+          <SidebarMenuItem>
+            <SidebarMenuButton 
+              onClick={handleShowLess}
+              tooltip="Less Pins"
+            >
+              <Pin className="rotate-20" />
+              <span>Show Less</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         )}
