@@ -34,7 +34,7 @@ const data = {
   navMain: [
     {
       title: "Recent",
-      url: "#",
+      url: "/recent",
       icon: Clock,
     },
     {

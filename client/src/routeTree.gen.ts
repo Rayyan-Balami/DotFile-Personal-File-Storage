@@ -15,7 +15,7 @@ import { Route as userRouteImport } from './routes/(user)/route'
 import { Route as authRouteImport } from './routes/(auth)/route'
 import { Route as userIndexImport } from './routes/(user)/index'
 import { Route as userTrashImport } from './routes/(user)/trash'
-import { Route as userAboutImport } from './routes/(user)/about'
+import { Route as userRecentImport } from './routes/(user)/recent'
 import { Route as authRegisterImport } from './routes/(auth)/register'
 import { Route as authLoginImport } from './routes/(auth)/login'
 import { Route as userFolderIdImport } from './routes/(user)/folder/$id'
@@ -44,9 +44,9 @@ const userTrashRoute = userTrashImport.update({
   getParentRoute: () => userRouteRoute,
 } as any)
 
-const userAboutRoute = userAboutImport.update({
-  id: '/about',
-  path: '/about',
+const userRecentRoute = userRecentImport.update({
+  id: '/recent',
+  path: '/recent',
   getParentRoute: () => userRouteRoute,
 } as any)
 
@@ -100,11 +100,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authRegisterImport
       parentRoute: typeof authRouteImport
     }
-    '/(user)/about': {
-      id: '/(user)/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof userAboutImport
+    '/(user)/recent': {
+      id: '/(user)/recent'
+      path: '/recent'
+      fullPath: '/recent'
+      preLoaderRoute: typeof userRecentImport
       parentRoute: typeof userRouteImport
     }
     '/(user)/trash': {
@@ -148,14 +148,14 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
 )
 
 interface userRouteRouteChildren {
-  userAboutRoute: typeof userAboutRoute
+  userRecentRoute: typeof userRecentRoute
   userTrashRoute: typeof userTrashRoute
   userIndexRoute: typeof userIndexRoute
   userFolderIdRoute: typeof userFolderIdRoute
 }
 
 const userRouteRouteChildren: userRouteRouteChildren = {
-  userAboutRoute: userAboutRoute,
+  userRecentRoute: userRecentRoute,
   userTrashRoute: userTrashRoute,
   userIndexRoute: userIndexRoute,
   userFolderIdRoute: userFolderIdRoute,
@@ -169,7 +169,7 @@ export interface FileRoutesByFullPath {
   '/': typeof userIndexRoute
   '/login': typeof authLoginRoute
   '/register': typeof authRegisterRoute
-  '/about': typeof userAboutRoute
+  '/recent': typeof userRecentRoute
   '/trash': typeof userTrashRoute
   '/folder/$id': typeof userFolderIdRoute
 }
@@ -178,7 +178,7 @@ export interface FileRoutesByTo {
   '/': typeof userIndexRoute
   '/login': typeof authLoginRoute
   '/register': typeof authRegisterRoute
-  '/about': typeof userAboutRoute
+  '/recent': typeof userRecentRoute
   '/trash': typeof userTrashRoute
   '/folder/$id': typeof userFolderIdRoute
 }
@@ -189,7 +189,7 @@ export interface FileRoutesById {
   '/(user)': typeof userRouteRouteWithChildren
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/register': typeof authRegisterRoute
-  '/(user)/about': typeof userAboutRoute
+  '/(user)/recent': typeof userRecentRoute
   '/(user)/trash': typeof userTrashRoute
   '/(user)/': typeof userIndexRoute
   '/(user)/folder/$id': typeof userFolderIdRoute
@@ -197,16 +197,16 @@ export interface FileRoutesById {
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/register' | '/about' | '/trash' | '/folder/$id'
+  fullPaths: '/' | '/login' | '/register' | '/recent' | '/trash' | '/folder/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/register' | '/about' | '/trash' | '/folder/$id'
+  to: '/' | '/login' | '/register' | '/recent' | '/trash' | '/folder/$id'
   id:
     | '__root__'
     | '/(auth)'
     | '/(user)'
     | '/(auth)/login'
     | '/(auth)/register'
-    | '/(user)/about'
+    | '/(user)/recent'
     | '/(user)/trash'
     | '/(user)/'
     | '/(user)/folder/$id'
@@ -247,7 +247,7 @@ export const routeTree = rootRoute
     "/(user)": {
       "filePath": "(user)/route.tsx",
       "children": [
-        "/(user)/about",
+        "/(user)/recent",
         "/(user)/trash",
         "/(user)/",
         "/(user)/folder/$id"
@@ -261,8 +261,8 @@ export const routeTree = rootRoute
       "filePath": "(auth)/register.tsx",
       "parent": "/(auth)"
     },
-    "/(user)/about": {
-      "filePath": "(user)/about.tsx",
+    "/(user)/recent": {
+      "filePath": "(user)/recent.tsx",
       "parent": "/(user)"
     },
     "/(user)/trash": {
