@@ -9,7 +9,7 @@ export function ViewOptions() {
   const setViewType = useViewPreferencesStore((state) => state.setViewType);
   
   return (
-    <ButtonGroup orientation="horizontal" className="bg-secondary rounded-md">
+    <ButtonGroup orientation="horizontal">
       <Button
         className={`group shadow-none text-sidebar-foreground hover:text-primary border ${
           viewType === "large"

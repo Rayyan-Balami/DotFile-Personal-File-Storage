@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 interface ButtonGroupProps {
   className?: string;
   orientation?: 'horizontal' | 'vertical';
-  children: ReactElement<React.ComponentProps<typeof Button>>[];
+  children: ReactElement[];
 }
 
 export const ButtonGroup = ({
@@ -33,7 +33,8 @@ export const ButtonGroup = ({
         const isFirst = index === 0;
         const isLast = index === totalButtons - 1;
 
-        return cloneElement(child, {
+        // Find the Button component in the child's props
+        const buttonProps = {
           className: cn(
             {
               'rounded-l-none': isHorizontal && !isFirst,
@@ -44,8 +45,19 @@ export const ButtonGroup = ({
               'rounded-b-none': isVertical && !isLast,
               'border-t-0': isVertical && !isFirst,
             },
-            child.props.className
+            (child as ReactElement<{ className?: string }>).props.className
           ),
+        };
+
+        // If the child is a Button, apply the props directly
+        if (child.type === Button) {
+          return cloneElement(child, buttonProps);
+        }
+
+        // If the child is a component that contains a Button, clone it and pass the props
+        return cloneElement(child, {
+          ...(child as ReactElement<{ className?: string }>).props,
+          ...buttonProps,
         });
       })}
     </div>
