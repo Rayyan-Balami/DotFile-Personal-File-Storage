@@ -79,7 +79,14 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
   
   getSelectedItems: () => {
     const { selectedIds, visibleItems } = get();
-    return visibleItems.filter(item => selectedIds.has(item.id));
+    const items = visibleItems.filter(item => selectedIds.has(item.id));
+    console.log('Selection Store - getSelectedItems:', {
+      selectedIdsCount: selectedIds.size,
+      visibleItemsCount: visibleItems.length,
+      returnedItemsCount: items.length,
+      selectedIds: Array.from(selectedIds)
+    });
+    return items;
   },
   
   logSelection: () => {
@@ -217,6 +224,11 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
   clear: () => {
     const { selectedIds } = get();
     if (selectedIds.size === 0) return;
+    
+    console.log('Selection Store - Clearing Selection:', {
+      previousSelectionCount: selectedIds.size,
+      selectedIds: Array.from(selectedIds)
+    });
     
     set({
       selectedIds: new Set<string>(),

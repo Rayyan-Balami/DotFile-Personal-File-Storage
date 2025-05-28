@@ -11,33 +11,37 @@ export function GlobalDelete(props: ComponentProps<typeof Button>) {
 
   const handleDelete = () => {
     const selectedItems = getSelectedItems();
+    console.log('Global Delete - Selected Items:', {
+      count: selectedItems.length,
+      items: selectedItems.map(item => ({
+        id: item.id,
+        name: item.name,
+        type: item.cardType
+      }))
+    });
+
     if (selectedItems.length === 0) return;
 
     // Group items by type
     const folders = selectedItems.filter(item => item.cardType === 'folder');
     const files = selectedItems.filter(item => item.cardType === 'document');
 
-    // Handle folders
-    if (folders.length > 0) {
-      openDeleteDialog(
-        folders.map(f => f.id),
-        "folder",
-        folders.map(f => f.name),
-        null,
-        false
-      );
-    }
+    console.log('Global Delete - Grouped Items:', {
+      folders: folders.map(f => ({ id: f.id, name: f.name })),
+      files: files.map(f => ({ id: f.id, name: f.name }))
+    });
 
-    // Handle files
-    if (files.length > 0) {
-      openDeleteDialog(
-        files.map(f => f.id),
-        "document",
-        files.map(f => f.name),
-        null,
-        false
-      );
-    }
+    // Open a single dialog for all items
+    const allIds = selectedItems.map(item => item.id);
+    const allNames = selectedItems.map(item => `${item.name} (${item.cardType})`);
+
+    openDeleteDialog(
+      allIds,
+      folders.length > 0 && files.length > 0 ? 'folder' : folders.length > 0 ? 'folder' : 'document',
+      allNames,
+      null,
+      false
+    );
   };
 
   return (

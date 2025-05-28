@@ -33,34 +33,51 @@ export function DeleteDialog() {
       if (deleteItemIds && deleteItemIds.length > 0) {
         const isPermanentDelete = !!deleteItemDeletedAt || deleteItemHasDeletedAncestor;
         
-        // Process each item
-        for (const id of deleteItemIds) {
-          if (deleteItemType === "folder") {
-            if (isPermanentDelete) {
-              await permanentDeleteFolder.mutateAsync(id);
-            } else {
-              await moveFolderToTrash.mutateAsync(id);
-            }
+        // Group items by type
+        const folders = deleteItemIds.filter(id => {
+          const item = deleteItemNames[deleteItemIds.indexOf(id)];
+          return item.toLowerCase().includes('folder');
+        });
+        const files = deleteItemIds.filter(id => {
+          const item = deleteItemNames[deleteItemIds.indexOf(id)];
+          return !item.toLowerCase().includes('folder');
+        });
+        
+        // Process folders
+        for (const id of folders) {
+          if (isPermanentDelete) {
+            await permanentDeleteFolder.mutateAsync(id);
           } else {
-            if (isPermanentDelete) {
-              await permanentDeleteFile.mutateAsync(id);
-            } else {
-              await moveFileToTrash.mutateAsync(id);
-            }
+            await moveFolderToTrash.mutateAsync(id);
+          }
+        }
+
+        // Process files
+        for (const id of files) {
+          if (isPermanentDelete) {
+            await permanentDeleteFile.mutateAsync(id);
+          } else {
+            await moveFileToTrash.mutateAsync(id);
           }
         }
 
         // Show success message
         const action = isPermanentDelete ? "permanently deleted" : "moved to trash";
-        const itemType = deleteItemType === "folder" ? "Folders" : "Files";
-        toast.success(`${itemType} ${action}!`);
+        const messages = [];
+        if (folders.length > 0) {
+          messages.push(`${folders.length} folder${folders.length > 1 ? 's' : ''}`);
+        }
+        if (files.length > 0) {
+          messages.push(`${files.length} file${files.length > 1 ? 's' : ''}`);
+        }
+        toast.success(`${messages.join(' and ')} ${action}!`);
 
         // Invalidate queries
         queryClient.invalidateQueries({ queryKey: ['folders', 'trash'] });
         queryClient.invalidateQueries({ queryKey: ['folders'] });
         queryClient.invalidateQueries({ queryKey: ['files'] });
         queryClient.invalidateQueries({ queryKey: ['files', 'trash'] });
-      } 
+      }
       // Handle single item (existing behavior)
       else if (deleteItemId) {
         if (deleteItemType === "folder") {
@@ -109,15 +126,31 @@ export function DeleteDialog() {
   // Get the appropriate title and description based on whether we're deleting multiple items
   const getDialogContent = () => {
     if (deleteItemIds && deleteItemIds.length > 0) {
-      const itemType = deleteItemType === "folder" ? "Folders" : "Files";
-      const count = deleteItemIds.length;
-      const names = deleteItemNames?.slice(0, 3).join(", ") + (count > 3 ? ` and ${count - 3} more` : "");
+      // Group items by type
+      const folders = deleteItemIds.filter(id => {
+        const item = deleteItemNames[deleteItemIds.indexOf(id)];
+        return item.toLowerCase().includes('folder');
+      });
+      const files = deleteItemIds.filter(id => {
+        const item = deleteItemNames[deleteItemIds.indexOf(id)];
+        return !item.toLowerCase().includes('folder');
+      });
+
+      const messages = [];
+      if (folders.length > 0) {
+        messages.push(`${folders.length} folder${folders.length > 1 ? 's' : ''}`);
+      }
+      if (files.length > 0) {
+        messages.push(`${files.length} file${files.length > 1 ? 's' : ''}`);
+      }
+
+      const names = deleteItemNames?.slice(0, 3).join(", ") + (deleteItemIds.length > 3 ? ` and ${deleteItemIds.length - 3} more` : "");
       
       return {
-        title: isPermanentDelete ? `Permanently Delete ${itemType}` : `Move ${itemType} to Trash`,
+        title: isPermanentDelete ? `Permanently Delete Items` : `Move Items to Trash`,
         description: isPermanentDelete
-          ? `Are you sure you want to permanently delete ${count} ${itemType.toLowerCase()} (${names})? This action cannot be undone.`
-          : `Are you sure you want to move ${count} ${itemType.toLowerCase()} (${names}) to trash? You can restore them later.`
+          ? `Are you sure you want to permanently delete ${messages.join(' and ')} (${names})? This action cannot be undone.`
+          : `Are you sure you want to move ${messages.join(' and ')} (${names}) to trash? You can restore them later.`
       };
     } else {
       return {
