@@ -1,9 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { Folder, File, Loader2, X } from "lucide-react";
-import { getFolderNameFromZip, isZipFile } from "@/utils/uploadUtils";
 import { useUploadStore } from "@/stores/useUploadStore";
 import { formatFileSize } from "@/utils/formatUtils";
-import { useState } from "react";
+import { getFolderNameFromZip, isZipFile } from "@/utils/uploadUtils";
+import { File, Folder, Loader2, X } from "lucide-react";
 
 interface UploadItemProps {
   id: string;
