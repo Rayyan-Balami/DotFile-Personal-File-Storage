@@ -109,12 +109,17 @@ const useMenuActions = ({ cardType, title, id }: Pick<MenuProps, 'cardType' | 't
               // Start the upload
               await uploadFiles.mutateAsync({
                 files: fileArray,
-                folderData: { folderId: id }
+                folderData: { folderId: id },
+                onProgress: (progress) => {
+                  // Update progress for all files in this batch
+                  uploadIds.forEach(uploadId => {
+                    updateUploadProgress(uploadId, progress);
+                  });
+                }
               });
 
               // Update all uploads to success
               uploadIds.forEach(uploadId => {
-                updateUploadProgress(uploadId, 100);
                 setUploadStatus(uploadId, 'success');
               });
 
@@ -211,12 +216,17 @@ const useMenuActions = ({ cardType, title, id }: Pick<MenuProps, 'cardType' | 't
             // Start the upload
             await uploadFiles.mutateAsync({
               files: zipFiles,
-              folderData: { folderId: id }
+              folderData: { folderId: id },
+              onProgress: (progress) => {
+                // Update progress for all files in this batch
+                uploadIds.forEach(uploadId => {
+                  updateUploadProgress(uploadId, progress);
+                });
+              }
             });
 
             // Update all uploads to success
             uploadIds.forEach(uploadId => {
-              updateUploadProgress(uploadId, 100);
               setUploadStatus(uploadId, 'success');
             });
 

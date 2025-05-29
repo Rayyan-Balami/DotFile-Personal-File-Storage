@@ -73,12 +73,17 @@ export const ContextMenuItems = React.memo(({ parentId }: { parentId?: string | 
             // Start the upload
             await uploadFiles.mutateAsync({
               files: fileArray,
-              folderData: parentId ? { folderId: parentId } : undefined
+              folderData: parentId ? { folderId: parentId } : undefined,
+              onProgress: (progress) => {
+                // Update progress for all files in this batch
+                uploadIds.forEach(id => {
+                  updateUploadProgress(id, progress);
+                });
+              }
             });
 
             // Update all uploads to success
             uploadIds.forEach((id: string) => {
-              updateUploadProgress(id, 100);
               setUploadStatus(id, 'success');
             });
 

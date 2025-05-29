@@ -2,7 +2,8 @@ import { Button } from "@/components/ui/button";
 import { useUploadStore } from "@/stores/useUploadStore";
 import { formatFileSize } from "@/utils/formatUtils";
 import { getFolderNameFromZip, isZipFile } from "@/utils/uploadUtils";
-import { File, Folder, Loader2, X } from "lucide-react";
+import { TriangleAlert, File, Folder, Loader2, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface UploadItemProps {
   id: string;
@@ -24,9 +25,15 @@ function UploadCard({
   onCancel,
 }: UploadItemProps) {
   const icon = isFolder ? (
-    <Folder className="text-muted-foreground" />
+    <Folder className={cn(
+      "text-muted-foreground",
+      status === "error" && "text-destructive"
+    )} />
   ) : (
-    <File className="text-muted-foreground" />
+    <File className={cn(
+      "text-muted-foreground",
+      status === "error" && "text-destructive"
+    )} />
   );
 
   const handleCancel = () => {
@@ -38,14 +45,27 @@ function UploadCard({
     isFolder && isZipFile(fileName) ? getFolderNameFromZip(fileName) : fileName;
 
   return (
-    <div className="group flex items-center h-12 p-1.5 gap-2 rounded-md bg-sidebar hover:bg-muted border hover:shadow-xs min-w-48 shrink-0 transition-colors ease-out duration-100 focus:outline-none focus:ring-1 focus:ring-primary/40 select-none whitespace-nowrap">
-      <div className="h-full grid place-items-center aspect-square bg-sidebar rounded-[0.5rem] *:scale-65">
+    <div className={cn(
+      "group flex items-center h-12 p-1.5 gap-2 rounded-md bg-sidebar hover:bg-muted border hover:shadow-xs min-w-48 shrink-0 transition-colors ease-out duration-100 focus:outline-none focus:ring-1 focus:ring-primary/40 select-none whitespace-nowrap",
+      status === "error" && "border-destructive/50"
+    )}>
+      <div className={cn(
+        "h-full grid place-items-center aspect-square bg-sidebar rounded-[0.5rem] *:scale-65",
+        status === "error" && "bg-destructive/10"
+      )}>
         {icon}
       </div>
       <div className="flex-1 flex flex-col justify-between text-xs text-muted-foreground pr-4 mx-1">
-        <span className="font-medium">{displayName}</span>
+        <span className={cn(
+          "font-medium",
+          status === "error" && "text-destructive"
+        )}>{displayName}</span>
         <div className="flex items-center gap-2 w-full">
-          <span className="text-xs font-light text-muted-foreground">
+          {/* <span className="text-xs font-light text-muted-foreground"> */}
+          <span className={cn(
+            "text-xs font-light text-muted-foreground",
+            status === "error" && "text-destructive"
+          )}>
             {fileSize}
           </span>
           {(status === "uploading" || status === "creating-zip") &&
@@ -54,6 +74,12 @@ function UploadCard({
                 {progress}%
               </span>
             )}
+          {status === "error" && (
+            <span className="text-xs font-medium text-destructive ml-auto flex items-center gap-1">
+              <TriangleAlert className="size-3" />
+              Failed
+            </span>
+          )}
         </div>
       </div>
       {(status === "uploading" || status === "creating-zip") && (
@@ -64,7 +90,12 @@ function UploadCard({
       <Button
         variant="ghost"
         onClick={handleCancel}
-        className="h-full bg-sidebar grid place-items-center aspect-square rounded-[0.5rem] *:scale-65 shadow-none hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground"
+        className={cn(
+          "h-full bg-sidebar grid place-items-center aspect-square rounded-[0.5rem] *:scale-65 shadow-none hover:bg-muted-foreground/10",
+          status === "error" 
+            ? "text-destructive hover:text-destructive hover:bg-destructive/10" 
+            : "text-muted-foreground hover:text-foreground"
+        )}
       >
         <X className="size-auto animate-pulse" />
       </Button>

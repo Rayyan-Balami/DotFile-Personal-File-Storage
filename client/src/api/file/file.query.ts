@@ -38,11 +38,12 @@ export const useUploadFiles = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ files, folderData }: { 
+    mutationFn: ({ files, folderData, onProgress }: { 
       files: File[], 
-      folderData?: { folderId?: string } 
+      folderData?: { folderId?: string },
+      onProgress?: (progress: number) => void
     }) => 
-      fileApi.uploadFiles(files, folderData).then((res) => res.data),
+      fileApi.uploadFiles(files, folderData, onProgress).then((res) => res.data),
     onSuccess: (data, variables) => {
       console.log('🚀 File Upload Success - Starting cache invalidation');
       
