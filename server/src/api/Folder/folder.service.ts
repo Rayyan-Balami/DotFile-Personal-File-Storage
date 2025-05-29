@@ -662,16 +662,50 @@ class FolderService {
     filesDeleted: number;
     foldersDeleted: number;
   }> {
-    // Get all deleted folders for this user
-    const deletedFolders =
-      await folderDao.permanentDeleteAllDeletedFolders(userId);
-    // Get all deleted files for this user
+    // Get all folders that were explicitly deleted (have deletedAt timestamp)
+    const deletedFolders = await folderDao.getUserDeletedFolders(userId);
+    let totalFoldersDeleted = 0;
+
+    // For each deleted folder, delete it and all its descendants (like permanentDeleteFolder does)
+    for (const folder of deletedFolders) {
+      const folderId = folder._id.toString();
+      
+      // Get all descendant folders (including those without deletedAt)
+      const descendants = await folderDao.getAllDescendantFolders(folderId, true);
+
+      // Delete all files in this folder and descendant folders
+      for (const descendantId of [...descendants, folderId]) {
+        const files = await fileService.getUserFilesByFolders(userId, descendantId, true); // Include deleted files
+        for (const file of files) {
+          try {
+            await fileService.permanentDeleteFile(file.id, userId);
+          } catch (error) {
+            logger.error(`Failed to delete file ${file.id}:`, error);
+            // Continue with other files even if one fails
+          }
+        }
+      }
+
+      // Delete all descendant folders (reverse order to delete children first)
+      for (const descendantId of descendants.reverse()) {
+        await folderDao.permanentDeleteFolder(descendantId);
+        totalFoldersDeleted++;
+      }
+
+      // Finally, delete the folder itself
+      const deleted = await folderDao.permanentDeleteFolder(folderId);
+      if (deleted) {
+        totalFoldersDeleted++;
+      }
+    }
+
+    // Delete all explicitly deleted files
     await fileService.permanentDeleteAllDeletedFiles(userId);
 
     return {
       acknowledged: true,
       filesDeleted: 0, // Since we can't get the count anymore
-      foldersDeleted: deletedFolders.deletedCount,
+      foldersDeleted: totalFoldersDeleted,
     };
   }
 
