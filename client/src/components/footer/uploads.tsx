@@ -99,7 +99,7 @@ export function Uploads() {
 
   return (
     <section 
-      className="w-auto flex items-center gap-3.5 px-4 pt-3 overflow-x-scroll pb-3"
+      className="w-full flex items-center gap-3.5 px-4 pt-3 pb-3"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
@@ -112,7 +112,7 @@ export function Uploads() {
       >
         Close Uploads
       </Button>
-      <div className="flex items-center gap-2 overflow-x-auto w-full">
+      <div className="flex items-center gap-2 overflow-x-auto min-w-0 flex-1">
         {uploads.map((upload) => (
           <UploadCard
             key={upload.id}

@@ -26,9 +26,11 @@ function RouteComponent() {
     <SidebarProvider>
       <FileSystemDndProvider>
           <AppSidebar />
-          <SidebarInset className="sidebar-container">
+          <SidebarInset className="h-screen overflow-y-auto">
             <SiteHeader />
-            <Outlet /> {/* Render the current route component here */}
+            <section className="flex-1 flex flex-col">
+              <Outlet />
+            </section>
             <SiteFooter />
           </SidebarInset>
       </FileSystemDndProvider>
