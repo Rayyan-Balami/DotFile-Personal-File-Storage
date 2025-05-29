@@ -7,7 +7,7 @@ import {
   MAX_FILES_PER_UPLOAD_BATCH,
   MAX_SIZE_PER_UPLOAD_BATCH,
   UPLOADS_DIR,
-  ZIP_NAME_PREFIX
+  ZIP_NAME_PREFIX,
 } from "@config/constants.js";
 import { ApiError } from "@utils/apiError.utils.js";
 import logger from "@utils/logger.utils.js";
@@ -69,48 +69,64 @@ const getErrorMessage = (err: unknown): string =>
   err instanceof Error ? err.message : String(err);
 
 // Build a folder map from ZIP entries (used to create database folders)
-const buildFolderHierarchy = (entries: AdmZip.IZipEntry[]): Map<string, VirtualFolder> => {
+const buildFolderHierarchy = (
+  entries: AdmZip.IZipEntry[]
+): Map<string, VirtualFolder> => {
   const folders = new Map<string, VirtualFolder>();
 
   // --- First Pass: Detect folders explicitly defined in ZIP
-  entries.forEach(entry => {
+  entries.forEach((entry) => {
     if (!entry.isDirectory) return;
 
-    const folderPath = entry.entryName.endsWith('/')
+    const folderPath = entry.entryName.endsWith("/")
       ? entry.entryName.slice(0, -1)
       : entry.entryName;
 
-    if (!folderPath || folderPath.startsWith('.') || folderPath.includes('/.') || folderPath.startsWith('__')) return;
+    if (
+      !folderPath ||
+      folderPath.startsWith(".") ||
+      folderPath.includes("/.") ||
+      folderPath.startsWith("__")
+    )
+      return;
 
-    const segments = folderPath.split('/');
+    const segments = folderPath.split("/");
     const name = segments[segments.length - 1];
-    const parentPath = segments.length > 1 ? segments.slice(0, -1).join('/') : null;
+    const parentPath =
+      segments.length > 1 ? segments.slice(0, -1).join("/") : null;
 
-    if (name.startsWith('.') || name.startsWith('__')) return;
+    if (name.startsWith(".") || name.startsWith("__")) return;
 
     folders.set(folderPath, { name, parentPath });
   });
 
   // --- Second Pass: Infer folders from file paths
-  entries.forEach(entry => {
+  entries.forEach((entry) => {
     if (entry.isDirectory) return;
 
     const entryName = entry.entryName;
     const baseName = path.basename(entryName);
-    if (entryName.startsWith('__') || baseName.startsWith('.') || entryName.includes('/.') || entry.header.size === 0) return;
+    if (
+      entryName.startsWith("__") ||
+      baseName.startsWith(".") ||
+      entryName.includes("/.") ||
+      entry.header.size === 0
+    )
+      return;
 
     const dirPath = path.dirname(entryName);
-    if (dirPath === '.' || folders.has(dirPath)) return;
+    if (dirPath === "." || folders.has(dirPath)) return;
 
-    const segments = dirPath.split('/');
-    let currentPath = '';
+    const segments = dirPath.split("/");
+    let currentPath = "";
     for (let i = 0; i < segments.length; i++) {
       const segment = segments[i];
-      if (!segment || segment.startsWith('.') || segment.startsWith('__')) continue;
+      if (!segment || segment.startsWith(".") || segment.startsWith("__"))
+        continue;
 
       currentPath = currentPath ? `${currentPath}/${segment}` : segment;
       if (!folders.has(currentPath)) {
-        const parentPath = i > 0 ? segments.slice(0, i).join('/') : null;
+        const parentPath = i > 0 ? segments.slice(0, i).join("/") : null;
         folders.set(currentPath, { name: segment, parentPath });
       }
     }
@@ -132,10 +148,15 @@ const storage: StorageEngine = multer.diskStorage({
       if (!userId) return cb(new Error("User not authenticated"), "");
 
       const uploadPath = getUserDirectoryPath(userId);
-      if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
+      if (!fs.existsSync(uploadPath))
+        fs.mkdirSync(uploadPath, { recursive: true });
 
       // Initialize session but don't check file limits here - that's done in fileFilter
-      const session = uploadSessions.get(req.requestId!) || { totalSize: 0, fileCount: 0, files: [] };
+      const session = uploadSessions.get(req.requestId!) || {
+        totalSize: 0,
+        fileCount: 0,
+        files: [],
+      };
       uploadSessions.set(req.requestId!, session);
       cb(null, uploadPath);
     } catch (err) {
@@ -149,36 +170,96 @@ const storage: StorageEngine = multer.diskStorage({
 });
 
 // File validation and upload limit checks
-const fileFilter = async (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
+const fileFilter = async (
+  req: Request,
+  file: Express.Multer.File,
+  cb: FileFilterCallback
+) => {
   try {
     const userId = req.user?.id;
-    if (!userId) return cb(new ApiError(401, [{ authentication: "User not authenticated" }]));
+    if (!userId)
+      return cb(
+        new ApiError(401, [{ authentication: "User not authenticated" }])
+      );
+
+    // Ensure requestId exists
+    if (!req.requestId) {
+      return cb(new ApiError(400, [{ request: "Missing request ID" }]));
+    }
 
     const user = await userService.getUserById(userId);
-    const session = uploadSessions.get(req.requestId!) || { totalSize: 0, fileCount: 0, files: [] };
+
+    // Get fresh user data for each file to prevent race conditions
+    const currentUser = await userService.getUserById(userId);
+    const session = uploadSessions.get(req.requestId) || {
+      totalSize: 0,
+      fileCount: 0,
+      files: [],
+    };
+
+    // Log file details and storage validation
+    const actualAvailableStorage =
+      currentUser.maxStorageLimit - currentUser.storageUsed;
+    const isFit = file.size <= actualAvailableStorage;
+
+    logger.info(`📁 File Upload Validation:
+      File Name: ${file.originalname}
+      Size: ${formatBytes(file.size)}
+      Available Storage: ${formatBytes(actualAvailableStorage)}
+      User Storage Used: ${formatBytes(currentUser.storageUsed)}
+      User Storage Limit: ${formatBytes(currentUser.maxStorageLimit)}
+      Fits in Storage: ${isFit ? "✅ Yes" : "❌ No"}
+    `);
+
+    // Double check storage limits with fresh data
+    if (!isFit) {
+      logger.warn(
+        `❌ File "${file.originalname}" rejected - Exceeds available storage`
+      );
+      return cb(
+        new ApiError(400, [
+          {
+            file: `File "${file.originalname}" (${formatBytes(file.size)}) exceeds available storage space (${formatBytes(actualAvailableStorage)}). File skipped.`,
+          },
+        ])
+      );
+    }
 
     // Check current upload batch file count limit
     if (session.fileCount >= MAX_FILES_PER_UPLOAD_BATCH) {
-      return cb(new ApiError(400, [{ 
-        file: `Maximum ${MAX_FILES_PER_UPLOAD_BATCH} files per upload batch exceeded. File "${file.originalname}" skipped.` 
-      }]));
-    }
-
-    // Check individual file storage limit (most important check)
-    const availableStorage = user.maxStorageLimit - user.storageUsed - session.totalSize;
-    if (file.size > availableStorage) {
-      return cb(new ApiError(400, [{
-        file: `File "${file.originalname}" (${formatBytes(file.size)}) exceeds available storage space (${formatBytes(availableStorage)}). File skipped.`
-      }]));
+      return cb(
+        new ApiError(400, [
+          {
+            file: `Maximum ${MAX_FILES_PER_UPLOAD_BATCH} files per upload batch exceeded. File "${file.originalname}" skipped.`,
+          },
+        ])
+      );
     }
 
     // Check current upload batch size limit
     const newTotalSize = session.totalSize + file.size;
     if (newTotalSize > MAX_SIZE_PER_UPLOAD_BATCH) {
-      return cb(new ApiError(400, [{
-        file: `File "${file.originalname}" (${formatBytes(file.size)}) would exceed batch size limit of ${Math.floor(MAX_SIZE_PER_UPLOAD_BATCH / (1024 * 1024))}MB. File skipped.`
-      }]));
+      logger.warn(`❌ File "${file.originalname}" rejected - Batch size limit exceeded
+        Current Batch Size: ${formatBytes(session.totalSize)}
+        This File Size: ${formatBytes(file.size)}
+        New Total Size: ${formatBytes(newTotalSize)}
+        Batch Size Limit: ${formatBytes(MAX_SIZE_PER_UPLOAD_BATCH)}
+      `);
+      return cb(
+        new ApiError(400, [
+          {
+            file: `File "${file.originalname}" (${formatBytes(file.size)}) would exceed batch size limit of ${Math.floor(MAX_SIZE_PER_UPLOAD_BATCH / (1024 * 1024))}MB. File skipped.`,
+          },
+        ])
+      );
     }
+
+    logger.info(`✅ File "${file.originalname}" accepted - Adding to batch
+      Current Batch Size: ${formatBytes(session.totalSize)}
+      This File Size: ${formatBytes(file.size)}
+      New Total Size: ${formatBytes(newTotalSize)}
+      Files in Batch: ${session.fileCount + 1}
+    `);
 
     session.totalSize = newTotalSize;
     session.fileCount++;
@@ -202,16 +283,21 @@ export const upload = multer({
 // --------------------- ZIP File Extraction Handler ---------------------
 
 // Extracts and organizes ZIP files, preserving folder structure
-export const processZipFiles = async (req: Request, _res: Response, next: NextFunction) => {
+export const processZipFiles = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+) => {
   try {
     const userId = req.user?.id;
     if (!userId || !req.files) return next();
 
     const files = req.files as Express.Multer.File[];
     // Only process ZIP files with the special prefix for folder uploads
-    const zipFiles = files.filter(file => 
-      file.originalname.toLowerCase().endsWith(".zip") && 
-      file.originalname.startsWith(ZIP_NAME_PREFIX)
+    const zipFiles = files.filter(
+      (file) =>
+        file.originalname.toLowerCase().endsWith(".zip") &&
+        file.originalname.startsWith(ZIP_NAME_PREFIX)
     );
     if (zipFiles.length === 0) {
       req.fileToFolderMap = req.fileToFolderMap || {};
@@ -220,9 +306,12 @@ export const processZipFiles = async (req: Request, _res: Response, next: NextFu
     }
 
     // Remove only the prefixed zip files from the files array
-    req.files = files.filter(file => 
-      !(file.originalname.toLowerCase().endsWith(".zip") && 
-        file.originalname.startsWith(ZIP_NAME_PREFIX))
+    req.files = files.filter(
+      (file) =>
+        !(
+          file.originalname.toLowerCase().endsWith(".zip") &&
+          file.originalname.startsWith(ZIP_NAME_PREFIX)
+        )
     );
 
     const fileToFolderMap: Record<string, string> = {};
@@ -234,28 +323,39 @@ export const processZipFiles = async (req: Request, _res: Response, next: NextFu
 
       // Validate MAX_FILES_PER_FOLDER constraint for ZIP extraction
       const folderFileCount = new Map<string, number>();
-      
+
       // Count files per folder in the ZIP
-      entries.forEach(entry => {
+      entries.forEach((entry) => {
         if (entry.isDirectory) return;
-        
+
         const entryName = entry.entryName;
         const baseName = path.basename(entryName);
-        if (entryName.startsWith('__') || baseName.startsWith('.') || baseName === 'Thumbs.db' || entryName.includes('/.') || entry.header.size === 0) {
+        if (
+          entryName.startsWith("__") ||
+          baseName.startsWith(".") ||
+          baseName === "Thumbs.db" ||
+          entryName.includes("/.") ||
+          entry.header.size === 0
+        ) {
           return;
         }
 
         const dirPath = path.dirname(entryName);
-        const folderKey = dirPath === '.' ? 'root' : dirPath;
-        folderFileCount.set(folderKey, (folderFileCount.get(folderKey) || 0) + 1);
+        const folderKey = dirPath === "." ? "root" : dirPath;
+        folderFileCount.set(
+          folderKey,
+          (folderFileCount.get(folderKey) || 0) + 1
+        );
       });
 
       // Check if any folder exceeds the file limit
       for (const [folderPath, fileCount] of folderFileCount) {
         if (fileCount > MAX_FILES_PER_FOLDER) {
-          throw new ApiError(400, [{
-            folder: `Folder "${folderPath === 'root' ? 'root folder' : folderPath}" contains ${fileCount} files, which exceeds the maximum of ${MAX_FILES_PER_FOLDER} files per folder`
-          }]);
+          throw new ApiError(400, [
+            {
+              folder: `Folder "${folderPath === "root" ? "root folder" : folderPath}" contains ${fileCount} files, which exceeds the maximum of ${MAX_FILES_PER_FOLDER} files per folder`,
+            },
+          ]);
         }
       }
 
@@ -267,7 +367,7 @@ export const processZipFiles = async (req: Request, _res: Response, next: NextFu
       for (const folderPath of Array.from(folders.keys())) {
         const folder = folders.get(folderPath)!;
         let parentId = null;
-        
+
         if (folder.parentPath) {
           parentId = virtualFolders[folder.parentPath];
         } else if (req.body.folderId) {
@@ -279,12 +379,19 @@ export const processZipFiles = async (req: Request, _res: Response, next: NextFu
         }
 
         try {
-          const newFolder = await folderService.createFolder({ name: folder.name, parent: parentId }, userId);
+          const newFolder = await folderService.createFolder(
+            { name: folder.name, parent: parentId },
+            userId
+          );
           virtualFolders[folderPath] = newFolder.id;
           allVirtualFolders[folderPath] = newFolder.id;
         } catch (error) {
           if (error instanceof ApiError && error.statusCode === 409) {
-            const existingFolder = await folderService.getFolderByNameAndParent(folder.name, parentId, userId);
+            const existingFolder = await folderService.getFolderByNameAndParent(
+              folder.name,
+              parentId,
+              userId
+            );
             if (existingFolder) {
               virtualFolders[folderPath] = existingFolder.id;
               allVirtualFolders[folderPath] = existingFolder.id;
@@ -301,7 +408,13 @@ export const processZipFiles = async (req: Request, _res: Response, next: NextFu
 
         const entryName = entry.entryName;
         const baseName = path.basename(entryName);
-        if (entryName.startsWith('__') || baseName.startsWith('.') || baseName === 'Thumbs.db' || entryName.includes('/.') || entry.header.size === 0) {
+        if (
+          entryName.startsWith("__") ||
+          baseName.startsWith(".") ||
+          baseName === "Thumbs.db" ||
+          entryName.includes("/.") ||
+          entry.header.size === 0
+        ) {
           continue;
         }
 
@@ -311,17 +424,17 @@ export const processZipFiles = async (req: Request, _res: Response, next: NextFu
         const fileData = entry.getData();
         fs.writeFileSync(filePath, fileData);
 
-        const mimeType = mime.lookup(baseName) || 'application/octet-stream';
+        const mimeType = mime.lookup(baseName) || "application/octet-stream";
         const extractedFile: Express.Multer.File = {
-          fieldname: 'file',
+          fieldname: "file",
           originalname: baseName,
-          encoding: '7bit',
+          encoding: "7bit",
           mimetype: mimeType,
           destination: getUserDirectoryPath(userId),
           filename: fileName,
           path: filePath,
           size: entry.header.size,
-          buffer: fileData
+          buffer: fileData,
         } as Express.Multer.File;
 
         extractedFiles.push(extractedFile);
@@ -332,9 +445,9 @@ export const processZipFiles = async (req: Request, _res: Response, next: NextFu
 
       fs.unlinkSync(zipFile.path); // Delete uploaded ZIP file
 
-      req.files = Array.isArray(req.files) 
+      req.files = Array.isArray(req.files)
         ? [...req.files, ...extractedFiles]
-        : [...(Object.values(req.files || {}).flat()), ...extractedFiles];
+        : [...Object.values(req.files || {}).flat(), ...extractedFiles];
     }
 
     req.fileToFolderMap = fileToFolderMap;
@@ -344,12 +457,14 @@ export const processZipFiles = async (req: Request, _res: Response, next: NextFu
   } catch (error) {
     // Cleanup on failure
     if (req.files) {
-      const filesToClean = Array.isArray(req.files) ? req.files : Object.values(req.files).flat();
+      const filesToClean = Array.isArray(req.files)
+        ? req.files
+        : Object.values(req.files).flat();
       for (const file of filesToClean) {
         try {
           if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
         } catch (cleanupError) {
-          logger.error('Error cleaning up file:', cleanupError);
+          logger.error("Error cleaning up file:", cleanupError);
         }
       }
     }
@@ -360,31 +475,43 @@ export const processZipFiles = async (req: Request, _res: Response, next: NextFu
 // --------------------- Middleware: Update Storage Usage ---------------------
 
 // Add size of uploaded files to user's storage usage
-export const updateUserStorageUsage = async (req: Request, _res: Response, next: NextFunction) => {
+export const updateUserStorageUsage = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+) => {
   try {
     const userId = req.user?.id;
     if (!userId || !req.files) return next();
 
     const files = req.files as Express.Multer.File[];
-    
+
     // Calculate the actual storage size needed
     // Note: ZIP files are already removed from req.files by processZipFiles middleware
     // so we only count the final files that will be stored
     const totalSize = files.reduce((sum, file) => sum + file.size, 0);
 
-    logger.info(`📊 Storage check - User: ${userId}, Upload size: ${formatBytes(totalSize)}`);
+    logger.info(
+      `📊 Storage check - User: ${userId}, Upload size: ${formatBytes(totalSize)}`
+    );
 
     // Get current user to check storage limits
     const user = await userService.getUserById(userId);
     const newStorageUsed = user.storageUsed + totalSize;
 
-    logger.info(`📊 Storage details - Current: ${formatBytes(user.storageUsed)}, Adding: ${formatBytes(totalSize)}, New total: ${formatBytes(newStorageUsed)}, Limit: ${formatBytes(user.maxStorageLimit)}`);
-    logger.info(`📊 Available space: ${formatBytes(user.maxStorageLimit - user.storageUsed)}`);
+    logger.info(
+      `📊 Storage details - Current: ${formatBytes(user.storageUsed)}, Adding: ${formatBytes(totalSize)}, New total: ${formatBytes(newStorageUsed)}, Limit: ${formatBytes(user.maxStorageLimit)}`
+    );
+    logger.info(
+      `📊 Available space: ${formatBytes(user.maxStorageLimit - user.storageUsed)}`
+    );
 
     // Storage limit is already checked per-file in fileFilter, so we can safely update usage
     // Update storage usage
     await userService.updateUserStorageUsage(userId, totalSize);
-    logger.debug(`Storage updated - Added: ${formatBytes(totalSize)}, New total: ${formatBytes(newStorageUsed)}`);
+    logger.debug(
+      `Storage updated - Added: ${formatBytes(totalSize)}, New total: ${formatBytes(newStorageUsed)}`
+    );
     next();
   } catch (error) {
     // Clean up uploaded files on error
@@ -416,4 +543,14 @@ export const rollbackUploadedFiles = async (req: Request) => {
   } catch (error) {
     logger.error("Error in rollbackUploadedFiles:", error);
   }
+};
+
+// Add requestId middleware to ensure each request has a unique ID
+export const addRequestId = (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+) => {
+  req.requestId = crypto.randomBytes(16).toString("hex");
+  next();
 };
