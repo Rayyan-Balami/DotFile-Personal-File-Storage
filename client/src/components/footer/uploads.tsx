@@ -2,8 +2,9 @@ import { Button } from "@/components/ui/button";
 import { useUploadStore } from "@/stores/useUploadStore";
 import { formatFileSize } from "@/utils/formatUtils";
 import { getFolderNameFromZip, isZipFile } from "@/utils/uploadUtils";
-import { TriangleAlert, File, Folder, Loader2, X, Ban } from "lucide-react";
+import { TriangleAlert, File, Folder, Loader2, X, Ban, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import React from "react";
 
 interface UploadItemProps {
   id: string;
@@ -111,17 +112,44 @@ function UploadCard({
 }
 
 export function Uploads() {
-  const { uploads, cancelUpload } = useUploadStore();
+  const { uploads, cancelUpload, clearCompleted } = useUploadStore();
+  const [isVisible, setIsVisible] = React.useState(false);
+
+  // Check if any upload is in progress
+  const hasActiveUploads = uploads.some(
+    upload => upload.status === "uploading" || upload.status === "creating-zip"
+  );
+
+  // Show section when new uploads start
+  React.useEffect(() => {
+    if (uploads.length > 0) {
+      setIsVisible(true);
+    }
+  }, [uploads]);
+
+  const handleClose = () => {
+    if (!hasActiveUploads) {
+      setIsVisible(false);
+      clearCompleted(); // Clear all completed/failed/cancelled uploads when closing
+    }
+  };
+
+  // Only show if there are uploads and section is visible
+  if (uploads.length === 0 || !isVisible) {
+    return null;
+  }
 
   return (
-    <section className="w-full flex items-center gap-3.5 px-4 pt-3 pb-3">
+    <section className="w-full flex gap-3.5 px-4 pt-3 pb-3">
       <Button
-        className="group shadow-none text-sidebar-foreground hover:text-primary border border-transparent hover:border-border h-full"
+        className="group shadow-none text-sidebar-foreground hover:text-primary border border-transparent hover:border-border size-12 disabled:cursor-not-allowed disabled:opacity-50"
         variant="secondary"
-        // onClick={toggleSectionVisibility}
+        onClick={handleClose}
+        disabled={hasActiveUploads}
+        title={hasActiveUploads ? "Cannot close while uploads are in progress" : "Close uploads"}
       >
-        <X className="size-4 group-hover:scale-105 transition-transform" />
-        <span className="sr-only">Close all uploads</span>
+        <ChevronDown className="size-4 group-hover:scale-105 transition-transform" />
+        <span className="sr-only">Close uploads section</span>
       </Button>
       <div className="flex items-center gap-2 overflow-x-auto min-w-0 flex-1">
         {uploads.map((upload) => (

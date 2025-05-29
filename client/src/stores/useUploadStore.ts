@@ -42,7 +42,7 @@ export const useUploadStore = create<UploadStore>((set) => ({
     };
     
     set(state => ({
-      uploads: [...state.uploads, newUpload]
+      uploads: [newUpload, ...state.uploads]
     }));
     
     return id;
