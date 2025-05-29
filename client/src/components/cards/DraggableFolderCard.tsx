@@ -1,15 +1,15 @@
+import { useUploadFiles } from "@/api/file/file.query";
 import { cn } from "@/lib/utils";
 import { useFileSystemStore } from "@/stores/useFileSystemStore";
 import { useUploadStore } from "@/stores/useUploadStore";
-import { FileSystemItem, DocumentItem, FolderItem } from "@/types/folderDocumnet";
-import { createZipFromFiles, collectFilesFromDirectory } from "@/utils/uploadUtils";
+import { DocumentItem, FileSystemItem, FolderItem } from "@/types/folderDocumnet";
+import { useMatches } from "@tanstack/react-router";
 import { getDetailedErrorInfo } from "@/utils/apiErrorHandler";
-import { useUploadFiles } from "@/api/file/file.query";
+import { collectFilesFromDirectory, createZipFromFiles } from "@/utils/uploadUtils";
 import { nanoid } from "nanoid";
 import React, { memo, useCallback, useState } from "react";
 import { toast } from "sonner";
 import FolderDocumentCard, { CardVariant } from "./FolderDocumentCard";
-import { UploadItem } from "@/stores/useUploadStore";
 
 interface DraggableFolderCardProps {
   item: FileSystemItem;
@@ -34,6 +34,16 @@ export const DraggableFolderCard = memo(
     const addItem = useFileSystemStore(state => state.addItem);
     const { addUpload, updateUploadProgress, setUploadStatus } = useUploadStore();
     const uploadFiles = useUploadFiles();
+    const matches = useMatches();
+
+    // Route detection to determine current context
+    const trashMatch = matches.find(match => match.routeId.includes('/(user)/trash'));
+    const recentMatch = matches.find(match => match.routeId.includes('/(user)/recent'));
+    
+    // Determine if we're in a read-only context (trash or recent)
+    const isInTrashContext = !!trashMatch;
+    const isInRecentContext = !!recentMatch;
+    const isReadOnlyContext = isInTrashContext || isInRecentContext;
 
     // Drag handling states
     const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -42,12 +52,12 @@ export const DraggableFolderCard = memo(
       e.preventDefault();
       e.stopPropagation();
       
-      // Only show drop effect if files are being dragged
-      if (e.dataTransfer.types.includes('Files')) {
+      // Only show drop effect if files are being dragged and not in read-only context
+      if (e.dataTransfer.types.includes('Files') && !isReadOnlyContext) {
         setIsDraggingOver(true);
         e.dataTransfer.dropEffect = 'copy';
       }
-    }, []);
+    }, [isReadOnlyContext]);
 
     const handleDragLeave = useCallback((e: React.DragEvent) => {
       e.preventDefault();
@@ -60,6 +70,12 @@ export const DraggableFolderCard = memo(
         e.preventDefault();
         e.stopPropagation();
         setIsDraggingOver(false);
+
+        // Prevent file dropping in read-only contexts
+        if (isReadOnlyContext) {
+          toast.error("Cannot upload files in this view");
+          return;
+        }
 
         // Handle dropped items
         if (e.dataTransfer.items) {
