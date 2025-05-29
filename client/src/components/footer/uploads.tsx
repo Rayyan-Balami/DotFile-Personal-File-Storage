@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Folder, File, Loader2, X } from "lucide-react";
 import { getFolderNameFromZip, isZipFile } from "@/utils/uploadUtils";
+import { useUploadStore } from "@/stores/useUploadStore";
+import { formatFileSize } from "@/utils/formatUtils";
+import { useEffect, useState } from "react";
 
-export interface UploadItemProps {
+interface UploadItemProps {
   id: string;
   fileName: string;
   fileSize: string;
@@ -10,9 +13,10 @@ export interface UploadItemProps {
   status: 'creating-zip' | 'uploading' | 'success' | 'error';
   progress?: number;
   onCancel?: (id: string) => void;
+  isPaused?: boolean;
 }
 
-export function UploadItem({
+function UploadCard({
   id,
   fileName,
   fileSize,
@@ -20,6 +24,7 @@ export function UploadItem({
   status = 'uploading',
   progress = 0,
   onCancel,
+  isPaused = false,
 }: UploadItemProps) {
   const icon = isFolder ? 
     <Folder className="text-muted-foreground" /> : 
@@ -28,6 +33,17 @@ export function UploadItem({
   const handleCancel = () => {
     if (onCancel) onCancel(id);
   };
+
+  // Auto-remove after 5 seconds when upload is successful, but pause when hovering
+  useEffect(() => {
+    if (status === 'success' && onCancel && !isPaused) {
+      const timer = setTimeout(() => {
+        onCancel(id);
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [status, onCancel, id, isPaused]);
 
   // For folder uploads, show the original folder name without the ZIP prefix
   const displayName = isFolder && isZipFile(fileName) 
@@ -62,8 +78,55 @@ export function UploadItem({
         onClick={handleCancel}
         className="h-full bg-sidebar grid place-items-center aspect-square rounded-[0.5rem] *:scale-65 shadow-none hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground"
       >
-        <X className="size-auto" />
+        <X className="size-auto animate-pulse" />
       </Button>
     </div>
+  );
+}
+
+export function Uploads() {
+  const { uploads, cancelUpload } = useUploadStore();
+  const [isHovering, setIsHovering] = useState(false);
+
+  const handleCloseAll = () => {
+    uploads.forEach(upload => cancelUpload(upload.id));
+  };
+
+  // Only show if there are active uploads
+  if (uploads.length === 0) {
+    return null;
+  }
+
+  return (
+    <section 
+      className="w-auto flex items-center gap-3.5 px-4 pt-3 overflow-x-scroll pb-3"
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+    >
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-8 px-2.5 rounded-md text-xs font-medium"
+        title="Close all uploads"
+        onClick={handleCloseAll}
+      >
+        Close Uploads
+      </Button>
+      <div className="flex items-center gap-2 overflow-x-auto w-full">
+        {uploads.map((upload) => (
+          <UploadCard
+            key={upload.id}
+            id={upload.id}
+            fileName={upload.fileName}
+            fileSize={formatFileSize(upload.fileSize)}
+            isFolder={upload.isFolder}
+            status={upload.status}
+            progress={upload.progress}
+            onCancel={cancelUpload}
+            isPaused={isHovering}
+          />
+        ))}
+      </div>
+    </section>
   );
 }
