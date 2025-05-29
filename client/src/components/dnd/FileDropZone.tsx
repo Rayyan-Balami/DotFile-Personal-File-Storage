@@ -1,6 +1,6 @@
 import { useFileSystemStore } from '@/stores/useFileSystemStore';
 import { useUploadStore } from '@/stores/useUploadStore';
-import { useParams } from '@tanstack/react-router';
+import { useParams, useMatches } from '@tanstack/react-router';
 import { nanoid } from 'nanoid';
 import React, { useCallback, useState } from 'react';
 import { DocumentItem, FolderItem } from '@/types/folderDocumnet';
@@ -17,9 +17,19 @@ export function FileDropZone({ children }: FileDropZoneProps) {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   // Use strict: false to make useParams work anywhere in the component tree
   const params = useParams({ strict: false });
+  const matches = useMatches();
   const addItem = useFileSystemStore(state => state.addItem);
   const { addUpload, updateUploadProgress, setUploadStatus } = useUploadStore();
   const uploadFiles = useUploadFiles();
+
+  // Route detection to determine current context
+  const trashMatch = matches.find(match => match.routeId.includes('/(user)/trash'));
+  const recentMatch = matches.find(match => match.routeId.includes('/(user)/recent'));
+  
+  // Determine if we're in a read-only context (trash or recent)
+  const isInTrashContext = !!trashMatch;
+  const isInRecentContext = !!recentMatch;
+  const isReadOnlyContext = isInTrashContext || isInRecentContext;
 
   // Get current folder ID from URL or use root
   const getCurrentFolderId = () => {
@@ -40,12 +50,12 @@ export function FileDropZone({ children }: FileDropZoneProps) {
     e.preventDefault();
     e.stopPropagation();
     
-    // Only show drop effect if files are being dragged
-    if (e.dataTransfer.types.includes('Files')) {
+    // Only show drop effect if files are being dragged and not in read-only context
+    if (e.dataTransfer.types.includes('Files') && !isReadOnlyContext) {
       setIsDraggingOver(true);
       e.dataTransfer.dropEffect = 'copy';
     }
-  }, []);
+  }, [isReadOnlyContext]);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -184,6 +194,12 @@ export function FileDropZone({ children }: FileDropZoneProps) {
     e.preventDefault();
     e.stopPropagation();
     setIsDraggingOver(false);
+
+    // Prevent file dropping in read-only contexts
+    if (isReadOnlyContext) {
+      toast.error("Cannot upload files in this view");
+      return;
+    }
 
     const targetFolderId = getCurrentFolderId();
 
