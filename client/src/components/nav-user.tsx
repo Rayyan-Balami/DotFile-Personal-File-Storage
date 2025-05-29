@@ -5,6 +5,7 @@ import {
 } from "lucide-react"
 
 import { useLogout } from "@/api/user/user.query"
+import { getErrorMessage } from "@/utils/apiErrorHandler"
 import {
   Avatar,
   AvatarFallback,
@@ -48,7 +49,7 @@ export function NavUser() {
       navigate({ to: "/login" });
     } catch (error) {
       console.error("Logout error:", error);
-      toast.error("Failed to logout. Please try again.");
+      toast.error(getErrorMessage(error));
       // Still clear auth in case API fails but we want to logout anyway
       clearAuth();
       navigate({ to: "/login" });

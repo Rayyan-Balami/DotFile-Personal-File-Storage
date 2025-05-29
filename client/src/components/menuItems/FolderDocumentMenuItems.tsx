@@ -12,6 +12,7 @@ import { useRestoreFolder, useUpdateFolder } from '@/api/folder/folder.query';
 import { useRestoreFile, useUpdateFile, useUploadFiles } from '@/api/file/file.query';
 import { useUploadStore } from '@/stores/useUploadStore';
 import { processDirectoryInput } from '@/utils/uploadUtils';
+import { getDetailedErrorInfo, getErrorMessage } from '@/utils/apiErrorHandler';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
@@ -60,7 +61,8 @@ const useMenuActions = ({ cardType, title, id }: Pick<MenuProps, 'cardType' | 't
           }
           toast.success(`${title} pinned successfully`);
         } catch (error) {
-          toast.error(`Failed to pin ${title}`);
+          console.error("Pin error:", error);
+          toast.error(getErrorMessage(error));
         }
       },
       'unpin': async () => {
@@ -72,7 +74,8 @@ const useMenuActions = ({ cardType, title, id }: Pick<MenuProps, 'cardType' | 't
           }
           toast.success(`${title} unpinned successfully`);
         } catch (error) {
-          toast.error(`Failed to unpin ${title}`);
+          console.error("Unpin error:", error);
+          toast.error(getErrorMessage(error));
         }
       },
       'open': () => navigate({ to: `/${cardType === "folder" ? "folder" : "file"}/${id}` }),
@@ -95,10 +98,11 @@ const useMenuActions = ({ cardType, title, id }: Pick<MenuProps, 'cardType' | 't
           const files = target.files;
           if (files && files.length > 0) {
             const fileArray = Array.from(files);
+            let uploadIds: string[] = [];
             
             try {
               // Create upload entries for tracking
-              const uploadIds = fileArray.map(file => 
+              uploadIds = fileArray.map(file => 
                 addUpload(file, id)
               );
 
@@ -117,11 +121,22 @@ const useMenuActions = ({ cardType, title, id }: Pick<MenuProps, 'cardType' | 't
               toast.success(`Successfully uploaded ${fileArray.length} file(s) to ${title}`);
             } catch (error) {
               console.error("Upload failed:", error);
-              toast.error("Upload failed. Please try again.");
+              
+              // Get detailed error information
+              const errorInfo = getDetailedErrorInfo(error);
+              
+              // Show main error message
+              toast.error(errorInfo.message);
+              
+              // Show individual file errors if available
+              if (errorInfo.details.length > 1) {
+                errorInfo.details.slice(1).forEach((detail: string) => {
+                  toast.error(detail, { duration: 5000 });
+                });
+              }
               
               // Update any pending uploads to error state
-              fileArray.forEach((_, index) => {
-                const uploadId = `upload-${Date.now()}-${index}`;
+              uploadIds.forEach((uploadId: string) => {
                 setUploadStatus(uploadId, 'error');
               });
             }
@@ -208,10 +223,22 @@ const useMenuActions = ({ cardType, title, id }: Pick<MenuProps, 'cardType' | 't
             toast.success(`Successfully uploaded ${zipFiles.length} folder(s) to ${title}`);
           } catch (error) {
             console.error("Folder upload failed:", error);
-            toast.error("Folder upload failed. Please try again.");
+            
+            // Get detailed error information
+            const errorInfo = getDetailedErrorInfo(error);
+            
+            // Show main error message
+            toast.error(errorInfo.message);
+            
+            // Show individual file errors if available
+            if (errorInfo.details.length > 1) {
+              errorInfo.details.slice(1).forEach((detail: string) => {
+                toast.error(detail, { duration: 5000 });
+              });
+            }
             
             // Update any pending uploads to error state
-            uploadIds.forEach(uploadId => {
+            uploadIds.forEach((uploadId: string) => {
               setUploadStatus(uploadId, 'error');
             });
           }

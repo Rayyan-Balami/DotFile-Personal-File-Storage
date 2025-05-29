@@ -2,6 +2,7 @@ import { useDialogStore } from "@/stores/useDialogStore";
 import { useUploadFiles } from "@/api/file/file.query";
 import { useUploadStore } from "@/stores/useUploadStore";
 import { processDirectoryInput } from "@/utils/uploadUtils";
+import { getDetailedErrorInfo } from "@/utils/apiErrorHandler";
 import React from "react";
 import { toast } from "sonner";
 import { ContextMenuItem, ContextMenuSeparator } from "../ui/context-menu";
@@ -84,7 +85,19 @@ export const ContextMenuItems = React.memo(({ parentId }: { parentId?: string | 
             toast.success(`Successfully uploaded ${fileArray.length} file(s)`);
           } catch (error) {
             console.error("Upload failed:", error);
-            toast.error("Upload failed. Please try again.");
+            
+            // Get detailed error information
+            const errorInfo = getDetailedErrorInfo(error);
+            
+            // Show main error message
+            toast.error(errorInfo.message);
+            
+            // Show individual file errors if available
+            if (errorInfo.details.length > 1) {
+              errorInfo.details.slice(1).forEach(detail => {
+                toast.error(detail, { duration: 5000 });
+              });
+            }
             
             // Update any pending uploads to error state
             uploadIds.forEach((id: string) => {
@@ -140,7 +153,19 @@ export const ContextMenuItems = React.memo(({ parentId }: { parentId?: string | 
           toast.success(`Successfully uploaded ${zipFiles.length} folder(s)`);
         } catch (error) {
           console.error("Folder upload failed:", error);
-          toast.error("Folder upload failed. Please try again.");
+          
+          // Get detailed error information
+          const errorInfo = getDetailedErrorInfo(error);
+          
+          // Show main error message
+          toast.error(errorInfo.message);
+          
+          // Show individual errors if available
+          if (errorInfo.details.length > 1) {
+            errorInfo.details.slice(1).forEach(detail => {
+              toast.error(detail, { duration: 5000 });
+            });
+          }
           
           // Update any pending uploads to error state
           uploadIds.forEach((id: string) => {
