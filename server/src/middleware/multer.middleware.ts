@@ -159,14 +159,24 @@ const fileFilter = async (req: Request, file: Express.Multer.File, cb: FileFilte
 
     // Check current upload batch file count limit
     if (session.fileCount >= MAX_FILES_PER_UPLOAD_BATCH) {
-      return cb(new ApiError(400, [{ files: `Maximum ${MAX_FILES_PER_UPLOAD_BATCH} files per upload batch` }]));
+      return cb(new ApiError(400, [{ 
+        file: `Maximum ${MAX_FILES_PER_UPLOAD_BATCH} files per upload batch exceeded. File "${file.originalname}" skipped.` 
+      }]));
+    }
+
+    // Check individual file storage limit (most important check)
+    const availableStorage = user.maxStorageLimit - user.storageUsed - session.totalSize;
+    if (file.size > availableStorage) {
+      return cb(new ApiError(400, [{
+        file: `File "${file.originalname}" (${formatBytes(file.size)}) exceeds available storage space (${formatBytes(availableStorage)}). File skipped.`
+      }]));
     }
 
     // Check current upload batch size limit
     const newTotalSize = session.totalSize + file.size;
     if (newTotalSize > MAX_SIZE_PER_UPLOAD_BATCH) {
       return cb(new ApiError(400, [{
-        files: `Total upload size cannot exceed ${Math.floor(MAX_SIZE_PER_UPLOAD_BATCH / (1024 * 1024))}MB per batch`
+        file: `File "${file.originalname}" (${formatBytes(file.size)}) would exceed batch size limit of ${Math.floor(MAX_SIZE_PER_UPLOAD_BATCH / (1024 * 1024))}MB. File skipped.`
       }]));
     }
 
@@ -371,15 +381,7 @@ export const updateUserStorageUsage = async (req: Request, _res: Response, next:
     logger.info(`📊 Storage details - Current: ${formatBytes(user.storageUsed)}, Adding: ${formatBytes(totalSize)}, New total: ${formatBytes(newStorageUsed)}, Limit: ${formatBytes(user.maxStorageLimit)}`);
     logger.info(`📊 Available space: ${formatBytes(user.maxStorageLimit - user.storageUsed)}`);
 
-    // Check if this would exceed storage limit
-    if (newStorageUsed > user.maxStorageLimit) {
-      // Clean up uploaded files
-      await rollbackUploadedFiles(req);
-      throw new ApiError(400, [{
-        storage: `Upload would exceed storage limit. Available: ${formatBytes(user.maxStorageLimit - user.storageUsed)}, Required: ${formatBytes(totalSize)}`
-      }]);
-    }
-
+    // Storage limit is already checked per-file in fileFilter, so we can safely update usage
     // Update storage usage
     await userService.updateUserStorageUsage(userId, totalSize);
     logger.debug(`Storage updated - Added: ${formatBytes(totalSize)}, New total: ${formatBytes(newStorageUsed)}`);
