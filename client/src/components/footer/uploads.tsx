@@ -3,7 +3,7 @@ import { Folder, File, Loader2, X } from "lucide-react";
 import { getFolderNameFromZip, isZipFile } from "@/utils/uploadUtils";
 import { useUploadStore } from "@/stores/useUploadStore";
 import { formatFileSize } from "@/utils/formatUtils";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface UploadItemProps {
   id: string;
@@ -13,7 +13,6 @@ interface UploadItemProps {
   status: 'creating-zip' | 'uploading' | 'success' | 'error';
   progress?: number;
   onCancel?: (id: string) => void;
-  isPaused?: boolean;
 }
 
 function UploadCard({
@@ -24,7 +23,6 @@ function UploadCard({
   status = 'uploading',
   progress = 0,
   onCancel,
-  isPaused = false,
 }: UploadItemProps) {
   const icon = isFolder ? 
     <Folder className="text-muted-foreground" /> : 
@@ -33,17 +31,6 @@ function UploadCard({
   const handleCancel = () => {
     if (onCancel) onCancel(id);
   };
-
-  // Auto-remove after 5 seconds when upload is successful, but pause when hovering
-  useEffect(() => {
-    if (status === 'success' && onCancel && !isPaused) {
-      const timer = setTimeout(() => {
-        onCancel(id);
-      }, 5000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [status, onCancel, id, isPaused]);
 
   // For folder uploads, show the original folder name without the ZIP prefix
   const displayName = isFolder && isZipFile(fileName) 
@@ -110,7 +97,7 @@ export function Uploads() {
         title="Close all uploads"
         onClick={handleCloseAll}
       >
-        Close Uploads
+        <X className="size-4" />
       </Button>
       <div className="flex items-center gap-2 overflow-x-auto min-w-0 flex-1">
         {uploads.map((upload) => (
@@ -123,7 +110,6 @@ export function Uploads() {
             status={upload.status}
             progress={upload.progress}
             onCancel={cancelUpload}
-            isPaused={isHovering}
           />
         ))}
       </div>

@@ -52,19 +52,12 @@ export const useGetCurrentUser = () => {
   return useQuery<CurrentUserResponse>({
     queryKey: ["currentUser"],
     queryFn: async () => {
-      console.log('📡 Fetching current user data');
       const response = await userApi.getCurrentUser();
-      console.log('📥 Received user data:', response.data);
       return response.data;
     },
     select: (data) => {
-      console.log('🔄 Processing user data in select:', data);
-      // Update the auth store with the new user data
       if (data?.data?.user) {
-        console.log('👤 Updating auth store with user:', data.data.user);
         updateUser(data.data.user);
-      } else {
-        console.log('⚠️ No user data found in response');
       }
       return data;
     },
@@ -108,7 +101,7 @@ export const useGetUserById = (id: string) =>
   useQuery({
     queryKey: ["adminUser", id],
     queryFn: () => userApi.getUserById(id).then((res) => res.data),
-    enabled: !!id, // only run if id is truthy
+    enabled: !!id,
   });
 
 export const useUpdateUser = () =>

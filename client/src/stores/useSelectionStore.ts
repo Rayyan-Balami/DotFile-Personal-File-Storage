@@ -47,162 +47,127 @@ const removeFromSet = <T>(set: Set<T>, item: T): Set<T> => {
 };
 
 export const useSelectionStore = create<SelectionStore>((set, get) => ({
-  selectedIds: new Set<string>(),
+  selectedIds: new Set(),
   lastSelectedId: null,
   selectionAnchor: null,
   lastClickTime: 0,
   lastClickId: null,
-  itemPositions: new Map<string, number>(),
+  itemPositions: new Map(),
   visibleItems: [],
   isDeleting: false,
-  
-  setVisibleItems: (items: SelectableItem[]) => {
+
+  setVisibleItems: (items) => {
     set({ visibleItems: items });
     get().updateItemPositions(items);
   },
-  
+
   selectAll: () => {
     const { visibleItems } = get();
     if (!visibleItems.length) return;
-    
-    const newSelectedIds = new Set<string>();
-    for (const item of visibleItems) {
-      newSelectedIds.add(item.id);
-    }
-    
+    const allIds = new Set(visibleItems.map(item => item.id));
     set({
-      selectedIds: newSelectedIds,
-      lastSelectedId: visibleItems[visibleItems.length - 1].id,
+      selectedIds: allIds,
+      lastSelectedId: visibleItems.at(-1)?.id ?? null,
       selectionAnchor: visibleItems[0].id
     });
   },
-  
+
   getSelectedItems: () => {
     const { selectedIds, visibleItems } = get();
     const items = visibleItems.filter(item => selectedIds.has(item.id));
-    console.log('Selection Store - getSelectedItems:', {
-      selectedIdsCount: selectedIds.size,
-      visibleItemsCount: visibleItems.length,
-      returnedItemsCount: items.length,
-      selectedIds: Array.from(selectedIds)
-    });
+    console.log(`[SELECTED] ${items.length} item(s)`, [...selectedIds]);
     return items;
   },
-  
+
   logSelection: () => {
-    const selectedItems = get().getSelectedItems();
-    if (selectedItems.length === 0) {
-      console.log("No items selected");
-      return;
-    }
-    
-    console.group(`${selectedItems.length} item(s) selected:`);
-    
-    // Group by cardType for better organization
-    const folders = selectedItems.filter(item => item.cardType === 'folder');
-    const documents = selectedItems.filter(item => item.cardType === 'document');
-    
-    if (folders.length > 0) {
-      console.group(`Folders (${folders.length}):`);
-      folders.forEach(folder => console.log(`- ${folder.name}`));
+    const selected = get().getSelectedItems();
+    if (!selected.length) return console.log('[LOG] No items selected');
+
+    console.group(`[LOG] ${selected.length} selected`);
+    const folders = selected.filter(i => i.cardType === 'folder');
+    const documents = selected.filter(i => i.cardType === 'document');
+
+    if (folders.length) {
+      console.group(`Folders (${folders.length})`);
+      folders.forEach(f => console.log(`- ${f.name}`));
       console.groupEnd();
     }
-    
-    if (documents.length > 0) {
-      console.group(`Documents (${documents.length}):`);
-      documents.forEach(doc => console.log(`- ${doc.name}`));
+
+    if (documents.length) {
+      console.group(`Documents (${documents.length})`);
+      documents.forEach(d => console.log(`- ${d.name}`));
       console.groupEnd();
     }
-    
+
     console.groupEnd();
   },
-  
-  deleteSelected: (onDelete?: (id: string) => void) => {
+
+  deleteSelected: (onDelete) => {
     const { selectedIds } = get();
-    if (selectedIds.size === 0) return;
-    
-    set({ isDeleting: true });
-    
-    // Log items being deleted
-    console.log(`Deleting ${selectedIds.size} items:`);
+    if (!selectedIds.size) return;
+
+    console.log(`[DELETE] ${selectedIds.size} item(s)`);
     get().logSelection();
-    
-    if (onDelete) {
-      // Call onDelete for each selected ID
-      selectedIds.forEach(id => onDelete(id));
-    } else {
-      console.log('Delete action for items:', Array.from(selectedIds));
-    }
-    
+    set({ isDeleting: true });
+
+    onDelete
+      ? selectedIds.forEach(id => onDelete(id))
+      : console.log('[DELETE] No callback');
+
     set({
-      selectedIds: new Set<string>(),
+      selectedIds: new Set(),
       lastSelectedId: null,
       selectionAnchor: null,
       isDeleting: false
     });
   },
-  
-  handleKeyDown: (e: KeyboardEvent) => {
+
+  handleKeyDown: (e) => {
     const target = e.target as HTMLElement;
-    if (
-      target.tagName === 'INPUT' ||
-      target.tagName === 'TEXTAREA' ||
-      target.isContentEditable
-    ) {
-      return;
-    }
-    
+    if (['INPUT', 'TEXTAREA'].includes(target.tagName) || target.isContentEditable) return;
+
+    const store = get();
+
     if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
       e.preventDefault();
-      get().selectAll();
+      store.selectAll();
     }
-    
+
     if (e.key === 'Escape') {
-      get().clear();
+      store.clear();
     }
 
-    // Cmd/Ctrl + Delete for soft delete (move to trash)
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Delete' && !e.shiftKey && !e.altKey) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Delete') {
       e.preventDefault();
-      e.stopPropagation();
-      const selectedItems = get().getSelectedItems();
-      if (selectedItems.length > 0) {
-        console.log('Soft deleting items:', selectedItems.map(item => item.name));
-        get().deleteSelected();
-      }
-    }
+      const items = store.getSelectedItems();
+      if (!items.length) return;
 
-    // Cmd/Ctrl + Shift + Delete for permanent delete
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Delete' && e.shiftKey) {
-      e.preventDefault();
-      e.stopPropagation();
-      const selectedItems = get().getSelectedItems();
-      if (selectedItems.length > 0) {
-        console.log('Permanently deleting items:', selectedItems.map(item => item.name));
-        // TODO: Add confirmation dialog for permanent delete
-        get().deleteSelected();
-      }
+      const folders = items.filter(i => i.cardType === 'folder');
+      const docs = items.filter(i => i.cardType === 'document');
+      const { openDeleteDialog } = useDialogStore.getState();
+
+      openDeleteDialog(
+        [...folders, ...docs].map(i => i.id),
+        folders.length ? 'folder' : 'document',
+        [...folders, ...docs].map(i => i.name),
+        null,
+        e.shiftKey
+      );
     }
   },
-  
-  select: (id: string, event: React.MouseEvent) => {
+
+  select: (id, event) => {
     if (event.metaKey || event.ctrlKey) {
-      // Toggle selection with Ctrl/Cmd
       set(state => ({
-        selectedIds: state.selectedIds.has(id) 
+        selectedIds: state.selectedIds.has(id)
           ? removeFromSet(state.selectedIds, id)
           : addToSet(state.selectedIds, id),
         lastSelectedId: id,
         selectionAnchor: id
       }));
     } else if (event.shiftKey && get().selectionAnchor) {
-      // Shift-select for range
-      const anchorId = get().selectionAnchor;
-      if (anchorId) {
-        get().selectRange(anchorId, id);
-      }
+      get().selectRange(get().selectionAnchor!, id);
     } else {
-      // Normal single selection
       set({
         selectedIds: new Set([id]),
         lastSelectedId: id,
@@ -210,8 +175,8 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
       });
     }
   },
-  
-  toggle: (id: string) => {
+
+  toggle: (id) => {
     set(state => ({
       selectedIds: state.selectedIds.has(id)
         ? removeFromSet(state.selectedIds, id)
@@ -220,199 +185,64 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
       selectionAnchor: id
     }));
   },
-  
+
   clear: () => {
     const { selectedIds } = get();
-    if (selectedIds.size === 0) return;
-    
-    console.log('Selection Store - Clearing Selection:', {
-      previousSelectionCount: selectedIds.size,
-      selectedIds: Array.from(selectedIds)
-    });
-    
+    if (!selectedIds.size) return;
+    console.log('[CLEAR] Selection cleared');
     set({
-      selectedIds: new Set<string>(),
+      selectedIds: new Set(),
       lastSelectedId: null,
       selectionAnchor: null
     });
-    console.log("Selection cleared");
   },
-  
-  updateItemPositions: (items: SelectableItem[]) => {
-    const itemPositions = new Map<string, number>();
-    items.forEach((item, index) => {
-      itemPositions.set(item.id, index);
-    });
-    set({ itemPositions });
+
+  updateItemPositions: (items) => {
+    const posMap = new Map<string, number>();
+    items.forEach((item, i) => posMap.set(item.id, i));
+    set({ itemPositions: posMap });
   },
-  
-  selectRange: (startId: string, endId: string) => {
+
+  selectRange: (startId, endId) => {
     const { itemPositions, visibleItems } = get();
-    
-    const startIndex = itemPositions.get(startId);
-    const endIndex = itemPositions.get(endId);
-    
-    if (startIndex === undefined || endIndex === undefined) return;
-    
-    const start = Math.min(startIndex, endIndex);
-    const end = Math.max(startIndex, endIndex);
-    
-    const newSelectedIds = new Set<string>();
-    for (let i = start; i <= end; i++) {
-      if (visibleItems[i]) {
-        newSelectedIds.add(visibleItems[i].id);
-      }
-    }
-    
-    set({ 
-      selectedIds: newSelectedIds,
-      lastSelectedId: endId
-    });
+    const start = itemPositions.get(startId);
+    const end = itemPositions.get(endId);
+    if (start === undefined || end === undefined) return;
+
+    const range = visibleItems.slice(Math.min(start, end), Math.max(start, end) + 1);
+    const rangeIds = new Set(range.map(item => item.id));
+    set({ selectedIds: rangeIds, lastSelectedId: endId });
   },
-  
-  isSelected: (id: string) => {
-    return get().selectedIds.has(id);
-  },
-  
-  handleItemClick: (id: string, event: React.MouseEvent, onOpen?: () => void) => {
-    const { isDeleting } = get();
-    if (isDeleting) {
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
+
+  isSelected: (id) => get().selectedIds.has(id),
+
+  handleItemClick: (id, event, onOpen) => {
+    if (get().isDeleting) return event.stopPropagation();
 
     const now = Date.now();
-    const { lastClickTime, lastClickId } = get();
-    
+    const { lastClickId, lastClickTime } = get();
+
     if (lastClickId === id && now - lastClickTime < 350) {
-      // Double click
-      if (onOpen) onOpen();
+      onOpen?.();
     } else {
-      // Single click
       get().select(id, event);
     }
-    
-    set({ 
-      lastClickTime: now,
-      lastClickId: id
-    });
+
+    set({ lastClickTime: now, lastClickId: id });
   }
 }));
 
 export function useKeyboardShortcuts(onDelete?: (id: string) => void) {
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't handle keyboard events in input fields
-      const target = e.target as HTMLElement;
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
-      ) {
-        return;
-      }
-
-      const store = useSelectionStore.getState();
-      const selectedItems = store.getSelectedItems();
-
-      // Handle delete operations
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        // Always prevent default for delete keys
-        e.preventDefault();
-        e.stopPropagation();
-
-        // Cmd/Ctrl + Delete for soft delete
-        if ((e.metaKey || e.ctrlKey) && !e.shiftKey) {
-          if (selectedItems.length > 0) {
-            console.log('Soft deleting items:', selectedItems.map(item => item.name));
-            // Group items by type
-            const folders = selectedItems.filter(item => item.cardType === 'folder');
-            const files = selectedItems.filter(item => item.cardType === 'document');
-
-            // Handle folders
-            if (folders.length > 0) {
-              const { openDeleteDialog } = useDialogStore.getState();
-              openDeleteDialog(
-                folders.map(f => f.id),
-                "folder",
-                folders.map(f => f.name),
-                null,
-                false
-              );
-            }
-
-            // Handle files
-            if (files.length > 0) {
-              const { openDeleteDialog } = useDialogStore.getState();
-              openDeleteDialog(
-                files.map(f => f.id),
-                "document",
-                files.map(f => f.name),
-                null,
-                false
-              );
-            }
-          }
-          return;
-        }
-
-        // Cmd/Ctrl + Shift + Delete for permanent delete
-        if ((e.metaKey || e.ctrlKey) && e.shiftKey) {
-          if (selectedItems.length > 0) {
-            console.log('Permanently deleting items:', selectedItems.map(item => item.name));
-            // Group items by type
-            const folders = selectedItems.filter(item => item.cardType === 'folder');
-            const files = selectedItems.filter(item => item.cardType === 'document');
-
-            // Handle folders
-            if (folders.length > 0) {
-              const { openDeleteDialog } = useDialogStore.getState();
-              openDeleteDialog(
-                folders.map(f => f.id),
-                "folder",
-                folders.map(f => f.name),
-                null,
-                true
-              );
-            }
-
-            // Handle files
-            if (files.length > 0) {
-              const { openDeleteDialog } = useDialogStore.getState();
-              openDeleteDialog(
-                files.map(f => f.id),
-                "document",
-                files.map(f => f.name),
-                null,
-                true
-              );
-            }
-          }
-          return;
-        }
-
-        // Single delete key - do nothing
-        return;
-      }
-
-      // Handle other shortcuts
-      if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
-        e.preventDefault();
-        store.selectAll();
-      }
-
-      if (e.key === 'Escape') {
-        store.clear();
-      }
-    };
+    const handleKeyDown = (e: KeyboardEvent) =>
+      useSelectionStore.getState().handleKeyDown(e);
 
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [onDelete]);
 }
 
-export const useSelectedIds = () => 
+export const useSelectedIds = () =>
   useSelectionStore(state => state.selectedIds);
 
 export const useSelectionCount = () =>
@@ -420,8 +250,6 @@ export const useSelectionCount = () =>
 
 export const selectedIdsEqual = (prev: Set<string>, next: Set<string>) => {
   if (prev.size !== next.size) return false;
-  for (const id of prev) {
-    if (!next.has(id)) return false;
-  }
+  for (const id of prev) if (!next.has(id)) return false;
   return true;
 };
