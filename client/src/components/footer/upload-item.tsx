@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Folder, FileText, Loader2, X } from "lucide-react";
+import { Folder, File, Loader2, X } from "lucide-react";
 import { getFolderNameFromZip, isZipFile } from "@/utils/uploadUtils";
 
 export interface UploadItemProps {
@@ -23,7 +23,7 @@ export function UploadItem({
 }: UploadItemProps) {
   const icon = isFolder ? 
     <Folder className="text-muted-foreground" /> : 
-    <FileText className="text-muted-foreground" />;
+    <File className="text-muted-foreground" />;
   
   const handleCancel = () => {
     if (onCancel) onCancel(id);
@@ -35,7 +35,7 @@ export function UploadItem({
     : fileName;
 
   return (
-    <div className="group flex items-center h-12 p-1.5 gap-2 rounded-md bg-sidebar hover:bg-sidebar-foreground/4 border hover:shadow-xs min-w-48 shrink-0 transition-colors ease-out duration-100 focus:outline-none focus:ring-1 focus:ring-primary/40 select-none whitespace-nowrap">
+    <div className="group flex items-center h-12 p-1.5 gap-2 rounded-md bg-sidebar hover:bg-muted border hover:shadow-xs min-w-48 shrink-0 transition-colors ease-out duration-100 focus:outline-none focus:ring-1 focus:ring-primary/40 select-none whitespace-nowrap">
       <div className="h-full grid place-items-center aspect-square bg-sidebar rounded-[0.5rem] *:scale-65">
         {icon}
       </div>
@@ -60,7 +60,7 @@ export function UploadItem({
       <Button
         variant="ghost"
         onClick={handleCancel}
-        className="h-full bg-muted grid place-items-center aspect-square rounded-[0.5rem] *:scale-65 shadow-none hover:bg-muted-foreground/6 text-muted-foreground hover:text-foreground"
+        className="h-full bg-sidebar grid place-items-center aspect-square rounded-[0.5rem] *:scale-65 shadow-none hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground"
       >
         <X className="size-auto" />
       </Button>
