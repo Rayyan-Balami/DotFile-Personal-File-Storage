@@ -7,6 +7,8 @@ import {
   UpdateUserInput,
   UpdateUserPasswordInput,
 } from "@/validation/authForm";
+import { useAuthStore } from "@/stores/authStore";
+import { User } from "@/types/user";
 
 // ==========================
 // GUEST USER HOOKS
@@ -34,11 +36,40 @@ export const useRefreshToken = () =>
 // AUTH USER HOOKS
 // ==========================
 
-export const useGetCurrentUser = () =>
-  useQuery({
+interface CurrentUserResponse {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: {
+    user: User;
+  };
+  timestamp: string;
+}
+
+export const useGetCurrentUser = () => {
+  const updateUser = useAuthStore((state) => state.updateUser);
+  
+  return useQuery<CurrentUserResponse>({
     queryKey: ["currentUser"],
-    queryFn: () => userApi.getCurrentUser().then((res) => res.data),
+    queryFn: async () => {
+      console.log('📡 Fetching current user data');
+      const response = await userApi.getCurrentUser();
+      console.log('📥 Received user data:', response.data);
+      return response.data;
+    },
+    select: (data) => {
+      console.log('🔄 Processing user data in select:', data);
+      // Update the auth store with the new user data
+      if (data?.data?.user) {
+        console.log('👤 Updating auth store with user:', data.data.user);
+        updateUser(data.data.user);
+      } else {
+        console.log('⚠️ No user data found in response');
+      }
+      return data;
+    },
   });
+};
 
 export const useUpdateProfile = () => {
   const queryClient = useQueryClient();

@@ -7,6 +7,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { useEffect } from "react";
+import { UserDataSync } from "@/components/UserDataSync";
 
 export const Route = createFileRoute('/(user)')({
   component: RouteComponent,
@@ -25,6 +26,7 @@ function RouteComponent() {
   return (
     <SidebarProvider>
       <FileSystemDndProvider>
+          <UserDataSync />
           <AppSidebar />
           <SidebarInset className="h-screen overflow-y-auto">
             <SiteHeader />

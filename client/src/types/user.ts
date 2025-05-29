@@ -1,5 +1,3 @@
-import { Plan } from "@/types/plan";
-
 export interface User {
   id: string;
   avatar: string;

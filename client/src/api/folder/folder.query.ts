@@ -210,6 +210,10 @@ export const usePermanentDelete = () => {
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.trash,
       });
+      // Refresh user data to update storage usage
+      queryClient.invalidateQueries({
+        queryKey: ["currentUser"],
+      });
     },
   });
 };
@@ -247,6 +251,10 @@ export const useEmptyTrash = () => {
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.trash,
       });
+      // Refresh user data to update storage usage
+      queryClient.invalidateQueries({
+        queryKey: ["currentUser"],
+      });
     },
   });
 };
@@ -261,6 +269,10 @@ export function useDeleteFolder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["folders"] });
+      // Refresh user data to update storage usage
+      queryClient.invalidateQueries({
+        queryKey: ["currentUser"],
+      });
     },
   });
 }

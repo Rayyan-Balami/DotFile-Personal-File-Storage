@@ -44,22 +44,39 @@ export const useUploadFiles = () => {
     }) => 
       fileApi.uploadFiles(files, folderData).then((res) => res.data),
     onSuccess: (data, variables) => {
+      console.log('🚀 File Upload Success - Starting cache invalidation');
+      
       // Invalidate all folder queries to ensure UI updates with new folders/files
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.all,
       });
+      console.log('📂 Invalidated folder queries');
       
       // If files were uploaded to a specific folder, also invalidate that folder's contents
       if (variables.folderData?.folderId) {
         queryClient.invalidateQueries({
           queryKey: FOLDER_KEYS.contents(variables.folderData.folderId),
         });
+        console.log('📁 Invalidated specific folder contents');
       } else {
         // Otherwise invalidate root contents
         queryClient.invalidateQueries({
           queryKey: FOLDER_KEYS.contents(),
         });
+        console.log('📁 Invalidated root folder contents');
       }
+      
+      // Refresh user data to update storage usage
+      console.log('🔄 Invalidating currentUser query');
+      queryClient.invalidateQueries({
+        queryKey: ["currentUser"],
+      });
+      
+      // Force an immediate refetch of current user data
+      console.log('🔄 Forcing currentUser refetch');
+      queryClient.refetchQueries({
+        queryKey: ["currentUser"],
+      });
       
       // If folders were created during upload, force a refetch
       if (data?.folders && Object.keys(data.folders).length > 0) {
@@ -143,6 +160,10 @@ export const usePermanentDeleteFile = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: FILE_KEYS.list({ includeDeleted: true }),
+      });
+      // Refresh user data to update storage usage
+      queryClient.invalidateQueries({
+        queryKey: ["currentUser"],
       });
     },
   });
@@ -241,6 +262,10 @@ export function useDeleteFile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["files"] });
+      // Refresh user data to update storage usage
+      queryClient.invalidateQueries({
+        queryKey: ["currentUser"],
+      });
     },
   });
 }
