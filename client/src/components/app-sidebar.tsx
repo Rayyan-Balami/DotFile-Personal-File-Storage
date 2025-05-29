@@ -26,6 +26,7 @@ import { NavColors } from "./nav-colors";
 import { NavPins } from "./nav-pins";
 import { Button } from "./ui/button";
 import { VITE_APP_NAME, VITE_APP_VERSION } from "@/config/constants";
+import { NavUpload } from "./nav-upload";
 
 const data = {
   navMain: [
@@ -71,9 +72,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild tooltip="Acme Inc">
               <Link to="/">
-                <div className="bg-primary text-white flex aspect-square size-8 items-center justify-center rounded-lg font-serif text-lg">
+                <section className="bg-primary text-white flex aspect-square size-8 items-center justify-center rounded-lg font-serif text-lg">
                   <Database className="size-4 text-primary-foreground" />
-                </div>
+                </section>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">Acme Inc</span>
                   <span className="truncate text-xs">Enterprise</span>
@@ -86,6 +87,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarSeparator />
       </SidebarHeader>
       <SidebarContent>
+        <NavUpload />
         <NavMain items={data.navMain} />
         <NavPins />
       </SidebarContent>
