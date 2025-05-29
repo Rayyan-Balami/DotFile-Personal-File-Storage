@@ -4,7 +4,10 @@ import { useParams } from '@tanstack/react-router';
 import { nanoid } from 'nanoid';
 import React, { useCallback, useState } from 'react';
 import { DocumentItem, FolderItem } from '@/types/folderDocumnet';
-import { formatFileSize } from '@/utils/formatUtils';
+import { useUploadFiles } from '@/api/file/file.query';
+import { getDetailedErrorInfo } from '@/utils/apiErrorHandler';
+import { toast } from 'sonner';
+import { createZipFromFiles, collectFilesFromDirectory } from '@/utils/uploadUtils';
 
 interface FileDropZoneProps {
   children: React.ReactNode;
@@ -16,12 +19,12 @@ export function FileDropZone({ children }: FileDropZoneProps) {
   const params = useParams({ strict: false });
   const addItem = useFileSystemStore(state => state.addItem);
   const { addUpload, updateUploadProgress, setUploadStatus } = useUploadStore();
-  
+  const uploadFiles = useUploadFiles();
+
   // Get current folder ID from URL or use root
   const getCurrentFolderId = () => {
     // Check if we're in a folder route with folderId parameter
     const folderId = params.id;
-    
     return folderId || null;
   };
 
@@ -50,127 +53,131 @@ export function FileDropZone({ children }: FileDropZoneProps) {
     setIsDraggingOver(false);
   }, []);
 
-  // Function to process file entries recursively
-  const processEntry = async (entry: FileSystemEntry, parentId: string | null) => {
-    if (entry.isFile) {
-      const fileEntry = entry as FileSystemFileEntry;
-      
-      return new Promise<void>((resolve) => {
-        fileEntry.file((file) => {
-          const newFileId = `doc-${nanoid(6)}`;
-          const extension = file.name.split('.').pop()?.toLowerCase() || '';
-          
-          // Create upload item
-          const uploadId = addUpload(file, parentId);
-          
-          // Simulate upload progress (in real app, replace with actual upload logic)
-          let progress = 0;
-          const interval = setInterval(() => {
-            progress += 10;
-            updateUploadProgress(uploadId, progress);
-            
-            if (progress >= 100) {
-              clearInterval(interval);
-              setUploadStatus(uploadId, 'success');
-              
-              // Create file system item on successful upload with new structure
-              const newFile: DocumentItem = {
-                id: newFileId,
-                type: file.type || 'application/octet-stream',
-                cardType: 'document',
-                name: file.name,
-                owner: 'user-1',
-                folder: parentId ? {
-                  id: parentId,
-                  name: getCurrentFolderName(),
-                  type: 'folder',
-                  owner: 'user-1',
-                  color: 'blue',
-                  parent: null,
-                  items: 0,
-                  isPinned: false,
-                  createdAt: new Date(),
-                  updatedAt: new Date(),
-                  deletedAt: null
-                } : null,
-                extension,
-                size: file.size,
-                isPinned: false,
-                storageKey: `file-${nanoid()}.${extension}`,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                deletedAt: null
-              };
-              
-              addItem(newFile);
-              resolve();
-            }
-          }, 500);
-        });
+  // Function to handle server upload for individual files
+  const uploadToServer = async (files: File[], uploadId: string, parentId: string | null = null) => {
+    try {
+      await uploadFiles.mutateAsync({
+        files,
+        folderData: parentId ? { folderId: parentId } : undefined,
+        onProgress: (progress) => {
+          updateUploadProgress(uploadId, progress);
+        },
+        uploadId
       });
-    } else if (entry.isDirectory) {
-      const dirEntry = entry as FileSystemDirectoryEntry;
-      const newFolderId = `folder-${nanoid(6)}`;
+      setUploadStatus(uploadId, 'success');
+      return true;
+    } catch (error) {
+      console.error('Upload failed:', error);
       
-      // Create upload item for folder
-      const uploadId = addUpload({ 
-        name: entry.name, 
-        size: 0, 
-        isFolder: true 
-      }, parentId);
-      
-      // Simulate folder creation progress
-      setTimeout(() => {
-        setUploadStatus(uploadId, 'success');
-        
-        // Create folder item with new structure
-        const newFolder: FolderItem = {
-          id: newFolderId,
-          type: 'folder',
-          cardType: 'folder',
-          name: entry.name,
-          owner: 'user-1',
-          parent: parentId,
-          color: 'blue',
-          items: 0,
-          isPinned: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          deletedAt: null
-        };
-        
-        addItem(newFolder);
-      }, 1000);
-      
-      // Process directory contents
-      const dirReader = dirEntry.createReader();
-      const entries: FileSystemEntry[] = await readAllDirectoryEntries(dirReader);
-      
-      console.log(`Processing ${entries.length} entries in directory "${entry.name}"`);
-      
-      // Process all entries in the directory
-      for (const childEntry of entries) {
-        await processEntry(childEntry, newFolderId);
+      // Don't update status for cancelled uploads
+      if (error instanceof Error && error.message === 'Upload cancelled') {
+        return false;
       }
+      
+      // Get detailed error information
+      const errorInfo = getDetailedErrorInfo(error);
+      
+      // Show main error message
+      toast.error(errorInfo.message);
+      
+      // Show individual file errors if available
+      if (errorInfo.details?.length > 1) {
+        errorInfo.details.slice(1).forEach(detail => {
+          toast.error(detail, { duration: 5000 });
+        });
+      }
+      
+      setUploadStatus(uploadId, 'error');
+      return false;
     }
   };
-  
-  // Helper function to read all entries from a directory
-  const readAllDirectoryEntries = async (reader: FileSystemDirectoryReader): Promise<FileSystemEntry[]> => {
-    const entries: FileSystemEntry[] = [];
-    let readEntries: FileSystemEntry[] = [];
+
+  // Function to process dropped directories
+  const processDroppedDirectory = async (items: DataTransferItemList, parentId: string | null) => {
+    // Create a dummy input to use with processDirectoryInput
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.setAttribute('webkitdirectory', '');
     
-    // Directory reader uses callbacks and may return results in chunks
-    do {
-      readEntries = await new Promise((resolve) => {
-        reader.readEntries((results) => {
-          resolve(Array.from(results));
+    // Convert DataTransferItemList to FileList and store files
+    const files: File[] = [];
+    const directories: FileSystemDirectoryEntry[] = [];
+    
+    for (const item of Array.from(items)) {
+      if (item.kind !== 'file') continue;
+      
+      const entry = item.webkitGetAsEntry();
+      if (!entry) continue;
+
+      if (entry.isDirectory) {
+        directories.push(entry as FileSystemDirectoryEntry);
+      } else {
+        const fileEntry = entry as FileSystemFileEntry;
+        const file = await new Promise<File>((resolve, reject) => {
+          fileEntry.file(resolve, reject);
         });
-      });
-      entries.push(...readEntries);
-    } while (readEntries.length > 0);
-    
-    return entries;
+        files.push(file);
+      }
+    }
+
+    // Process directories one by one to maintain folder structure
+    for (const dirEntry of directories) {
+      const dirFiles = await collectFilesFromDirectory(dirEntry);
+      const folderName = dirEntry.name;
+      
+      // Create upload entry for tracking (in creating-zip state)
+      const totalSize = dirFiles.reduce((sum, entry) => sum + entry.file.size, 0);
+      const uploadId = addUpload({ name: `${folderName}.zip`, size: totalSize, isFolder: true }, parentId);
+      
+      try {
+        // Create zip file with progress tracking
+        const progressCallback = (progress: number) => {
+          updateUploadProgress(uploadId, progress);
+          if (progress === 100) {
+            setUploadStatus(uploadId, 'uploading');
+          }
+        };
+
+        // Add root folder to each file's path
+        const filesWithRootFolder = dirFiles.map(entry => ({
+          file: entry.file,
+          path: `${folderName}/${entry.path}` // Include root folder in path
+        }));
+
+        const zipFile = await createZipFromFiles(filesWithRootFolder, folderName, progressCallback);
+
+        // Upload the zip file
+        await uploadFiles.mutateAsync({
+          files: [zipFile],
+          folderData: parentId ? { folderId: parentId } : undefined,
+          onProgress: (progress) => {
+            updateUploadProgress(uploadId, progress);
+          },
+          uploadId
+        });
+
+        // Update upload to success
+        setUploadStatus(uploadId, 'success');
+        toast.success(`Successfully uploaded folder "${folderName}"`);
+      } catch (error) {
+        console.error('Folder upload failed:', error);
+        
+        if (error instanceof Error && error.message === 'Upload cancelled') {
+          continue;
+        }
+        
+        const errorInfo = getDetailedErrorInfo(error);
+        toast.error(errorInfo.message);
+        
+        setUploadStatus(uploadId, 'error');
+      }
+    }
+
+    // Handle regular files if any
+    for (const file of files) {
+      const uploadId = addUpload(file, parentId);
+      await uploadToServer([file], uploadId, parentId);
+    }
   };
 
   const handleDrop = useCallback(async (e: React.DragEvent) => {
@@ -178,56 +185,47 @@ export function FileDropZone({ children }: FileDropZoneProps) {
     e.stopPropagation();
     setIsDraggingOver(false);
 
-    // Get the current folder ID where files are being dropped
     const targetFolderId = getCurrentFolderId();
-    const targetFolderName = getCurrentFolderName();
-    const currentLocation = window.location.pathname;
 
-    console.log(`Items dropped on ${targetFolderId ? `folder "${targetFolderName}" (ID: ${targetFolderId})` : 'root directory'}`);
-    console.log(`Current path: ${currentLocation}`);
-
-    // Check if we have DataTransferItemList support
+    // Handle dropped items
     if (e.dataTransfer.items) {
-      console.log(`Processing ${e.dataTransfer.items.length} items...`);
-      
-      for (const item of Array.from(e.dataTransfer.items)) {
-        // Skip if not file or directory
-        if (item.kind !== 'file') {
-          console.log('Skipping non-file item');
-          continue;
-        }
-        
-        // Get WebkitEntry (for directory support)
-        const entry = item.webkitGetAsEntry();
-        if (!entry) {
-          console.log('No entry found for item, skipping');
-          continue;
-        }
-        
-        console.log(`Processing ${entry.isDirectory ? 'directory' : 'file'}: ${entry.name}`);
-        await processEntry(entry, targetFolderId);
+      // First, separate files and directories
+      const files: File[] = [];
+      const hasDirectories = Array.from(e.dataTransfer.items).some(
+        item => item.webkitGetAsEntry()?.isDirectory
+      );
+
+      if (hasDirectories) {
+        // Process directories using the new method
+        await processDroppedDirectory(e.dataTransfer.items, targetFolderId);
       }
-    } else {
-      // Fallback for browsers without DataTransferItemList support
-      const { files } = e.dataTransfer;
-      if (files && files.length > 0) {
-        console.log(`Processing ${files.length} files (directory support unavailable)...`);
+
+      // Collect individual files
+      for (const item of Array.from(e.dataTransfer.items)) {
+        if (item.kind !== 'file') continue;
         
-        Array.from(files).forEach(file => {
-          // Create a new file item with new structure
-          const newFileId = `doc-${nanoid(6)}`;
-          const extension = file.name.split('.').pop()?.toLowerCase() || '';
-          
-          // Create file system item with new structure
+        const entry = item.webkitGetAsEntry();
+        if (!entry || entry.isDirectory) continue;
+
+        const file = item.getAsFile();
+        if (file) files.push(file);
+      }
+
+      // Upload individual files
+      for (const file of files) {
+        const uploadId = addUpload(file, targetFolderId);
+        const success = await uploadToServer([file], uploadId, targetFolderId);
+        
+        if (success) {
           const newFile: DocumentItem = {
-            id: newFileId,
+            id: `doc-${nanoid(6)}`,
             type: file.type || 'application/octet-stream',
             cardType: 'document',
             name: file.name,
             owner: 'user-1',
             folder: targetFolderId ? {
               id: targetFolderId,
-              name: targetFolderName,
+              name: getCurrentFolderName(),
               type: 'folder',
               owner: 'user-1',
               color: 'blue',
@@ -238,23 +236,56 @@ export function FileDropZone({ children }: FileDropZoneProps) {
               updatedAt: new Date(),
               deletedAt: null
             } : null,
-            extension,
+            extension: file.name.split('.').pop()?.toLowerCase() || '',
             size: file.size,
             isPinned: false,
-            storageKey: `file-${nanoid()}.${extension}`,
+            storageKey: `file-${nanoid()}.${file.name.split('.').pop()?.toLowerCase() || ''}`,
             createdAt: new Date(),
             updatedAt: new Date(),
             deletedAt: null
           };
-          
           addItem(newFile);
-          console.log(`Added file: "${file.name}" (Size: ${formatFileSize(file.size)}, Type: ${file.type}) to folder: ${targetFolderName} (${targetFolderId || 'root'})`);
-        });
+        }
+      }
+    } else if (e.dataTransfer.files?.length > 0) {
+      // Fallback for browsers without FileSystemAPI support
+      for (const file of Array.from(e.dataTransfer.files)) {
+        const uploadId = addUpload(file, targetFolderId);
+        const success = await uploadToServer([file], uploadId, targetFolderId);
+        
+        if (success) {
+          const newFile: DocumentItem = {
+            id: `doc-${nanoid(6)}`,
+            type: file.type || 'application/octet-stream',
+            cardType: 'document',
+            name: file.name,
+            owner: 'user-1',
+            folder: targetFolderId ? {
+              id: targetFolderId,
+              name: getCurrentFolderName(),
+              type: 'folder',
+              owner: 'user-1',
+              color: 'blue',
+              parent: null,
+              items: 0,
+              isPinned: false,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              deletedAt: null
+            } : null,
+            extension: file.name.split('.').pop()?.toLowerCase() || '',
+            size: file.size,
+            isPinned: false,
+            storageKey: `file-${nanoid()}.${file.name.split('.').pop()?.toLowerCase() || ''}`,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            deletedAt: null
+          };
+          addItem(newFile);
+        }
       }
     }
-    
-    console.log('Drop processing completed');
-  }, [addItem, params.id]);
+  }, [addItem, addUpload, getCurrentFolderId, getCurrentFolderName, uploadFiles]);
 
   return (
     <div 

@@ -12,7 +12,7 @@ export interface UploadOptions {
 /**
  * File entry for zip creation
  */
-interface FileEntry {
+export interface FileEntry {
   file: File;
   path: string;
 }
@@ -98,7 +98,7 @@ export async function processFileSystemEntry(
  * @param basePath Base path for the zip structure
  * @returns Promise<FileEntry[]> - Array of file entries with paths
  */
-async function collectFilesFromDirectory(
+export async function collectFilesFromDirectory(
   dirEntry: FileSystemDirectoryEntry,
   basePath: string = ''
 ): Promise<FileEntry[]> {
