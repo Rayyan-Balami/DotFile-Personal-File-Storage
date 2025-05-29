@@ -5,18 +5,48 @@ import { processDirectoryInput } from "@/utils/uploadUtils";
 import React from "react";
 import { toast } from "sonner";
 import { ContextMenuItem, ContextMenuSeparator } from "../ui/context-menu";
+import { useMatches } from "@tanstack/react-router";
 
 // Context menu items component
 export const ContextMenuItems = React.memo(({ parentId }: { parentId?: string | null } = {}) => {
   const { openCreateFolderDialog } = useDialogStore();
   const uploadFiles = useUploadFiles();
   const { addUpload, updateUploadProgress, setUploadStatus } = useUploadStore();
+  const matches = useMatches();
   
+  // Route detection to determine current context
+  const trashMatch = matches.find(match => match.routeId.includes('/(user)/trash'));
+  const recentMatch = matches.find(match => match.routeId.includes('/(user)/recent'));
+  
+  // Determine if we're in a read-only context (trash or recent)
+  const isInTrashContext = !!trashMatch;
+  const isInRecentContext = !!recentMatch;
+  const isReadOnlyContext = isInTrashContext || isInRecentContext;
+  
+  // Get dialog functions
+  const { openDeleteDialog } = useDialogStore();
+
   // Handle the action
   const handleAction = (action: string) => {
     if (action === "createFolder") {
       // Pass the parent ID (null for root)
       openCreateFolderDialog(parentId);
+    } else if (action === "emptyTrash") {
+      // Use existing delete dialog for empty trash confirmation
+      // We'll use a special ID to identify this as an empty trash operation
+      openDeleteDialog(
+        "empty-trash",
+        "folder", 
+        "all items in trash",
+        new Date().toISOString(), // Mark as permanent delete
+        true // Force permanent delete UI
+      );
+    } else if (action === "selectAll") {
+      // Handle select all action
+      console.log("Select all action");
+    } else if (action === "refresh") {
+      // Handle refresh action
+      window.location.reload();
     } else if (action === "uploadFile") {
       // Create input dynamically for file upload
       const fileInput = document.createElement('input');
@@ -129,27 +159,46 @@ export const ContextMenuItems = React.memo(({ parentId }: { parentId?: string | 
   
   return (
     <>
-      {/* File Operations */}
-      <ContextMenuItem onClick={() => handleAction("createFolder")}>
-        Create New Folder
-      </ContextMenuItem>
-      <ContextMenuItem onClick={() => handleAction("uploadFile")}>
-        Upload File
-      </ContextMenuItem>
-      <ContextMenuItem onClick={() => handleAction("uploadFolder")}>
-        Upload Folder
-      </ContextMenuItem>
+      {/* Only show file/folder creation and upload options in normal contexts */}
+      {!isReadOnlyContext && (
+        <>
+          {/* File Operations */}
+          <ContextMenuItem onClick={() => handleAction("createFolder")}>
+            Create New Folder
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => handleAction("uploadFile")}>
+            Upload File
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => handleAction("uploadFolder")}>
+            Upload Folder
+          </ContextMenuItem>
 
-      <ContextMenuSeparator />
+          <ContextMenuSeparator />
+        </>
+      )}
 
-      {/* Selection Operations */}
+      {/* Trash-specific actions */}
+      {isInTrashContext && (
+        <>
+          <ContextMenuItem 
+            onClick={() => handleAction("emptyTrash")}
+            className="text-red-600 focus:text-red-600 focus:bg-red-700/20"
+          >
+            Empty Trash
+          </ContextMenuItem>
+
+          <ContextMenuSeparator />
+        </>
+      )}
+
+      {/* Selection Operations - available in all contexts */}
       <ContextMenuItem onClick={() => handleAction("selectAll")}>
         Select All
       </ContextMenuItem>
 
       <ContextMenuSeparator />
 
-      {/* View Operations */}
+      {/* View Operations - available in all contexts */}
       <ContextMenuItem onClick={() => handleAction("refresh")}>
         Refresh
       </ContextMenuItem>

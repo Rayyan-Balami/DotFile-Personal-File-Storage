@@ -3,7 +3,7 @@ import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { useDialogStore } from "@/stores/useDialogStore";
 import { toast } from "sonner";
 import { useMoveFileToTrash, usePermanentDeleteFile } from "@/api/file/file.query";
-import { useMoveToTrash, usePermanentDelete } from "@/api/folder/folder.query";
+import { useMoveToTrash, usePermanentDelete, useEmptyTrash } from "@/api/folder/folder.query";
 import { logger } from "@/lib/utils";
 import { getErrorMessage } from "@/utils/apiErrorHandler";
 import { useQueryClient } from "@tanstack/react-query";
@@ -26,9 +26,21 @@ export function DeleteDialog() {
   const permanentDeleteFile = usePermanentDeleteFile();
   const moveFolderToTrash = useMoveToTrash();
   const permanentDeleteFolder = usePermanentDelete();
+  const emptyTrash = useEmptyTrash();
 
   const handleDelete = async () => {
     try {
+      // Handle special case for empty trash
+      if (deleteItemId === "empty-trash") {
+        await emptyTrash.mutateAsync();
+        toast.success("Trash emptied successfully");
+        queryClient.invalidateQueries({ queryKey: ['folders', 'trash'] });
+        queryClient.invalidateQueries({ queryKey: ['folders'] });
+        queryClient.invalidateQueries({ queryKey: ['files'] });
+        queryClient.invalidateQueries({ queryKey: ['files', 'trash'] });
+        closeDeleteDialog();
+        return;
+      }
       // Handle multiple items
       if (deleteItemIds && deleteItemIds.length > 0) {
         const isPermanentDelete = !!deleteItemDeletedAt || deleteItemHasDeletedAncestor;
@@ -121,10 +133,18 @@ export function DeleteDialog() {
     moveFileToTrash.isPending || 
     permanentDeleteFile.isPending || 
     moveFolderToTrash.isPending || 
-    permanentDeleteFolder.isPending;
+    permanentDeleteFolder.isPending ||
+    emptyTrash.isPending;
 
   // Get the appropriate title and description based on whether we're deleting multiple items
   const getDialogContent = () => {
+    // Handle special case for empty trash
+    if (deleteItemId === "empty-trash") {
+      return {
+        title: "Empty Trash",
+        description: "Are you sure you want to permanently delete all items in trash? This action cannot be undone."
+      };
+    }
     if (deleteItemIds && deleteItemIds.length > 0) {
       // Group items by type
       const folders = deleteItemIds.filter(id => {
