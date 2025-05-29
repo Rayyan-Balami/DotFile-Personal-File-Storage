@@ -279,6 +279,19 @@ export const upload = multer({
   },
 }).array('files', MAX_FILES_PER_UPLOAD_BATCH);
 
+// Handle aborted uploads and cleanup
+export const handleAbortedUploads = (req: Request, res: Response, next: NextFunction) => {
+  // Handle client disconnection
+  req.on('close', async () => {
+    if (!res.headersSent) {  // If response hasn't been sent, the upload was aborted
+      logger.warn('Upload aborted by client - cleaning up...');
+      await rollbackUploadedFiles(req);
+    }
+  });
+
+  next();
+};
+
 // Validate storage limits before processing files
 export const validateFileSize = async (req: Request, _res: Response, next: NextFunction) => {
   try {
@@ -586,22 +599,61 @@ export const updateUserStorageUsage = async (
 export const rollbackUploadedFiles = async (req: Request) => {
   try {
     const userId = req.user?.id;
-    if (!userId || !req.files) return;
+    if (!userId) return;
 
-    const files = req.files as Express.Multer.File[];
+    // Get all files that need to be cleaned up
+    const files = Array.isArray(req.files) 
+      ? req.files 
+      : req.files 
+        ? Object.values(req.files).flat() 
+        : [];
+
+    logger.info(`🧹 Starting cleanup for aborted/failed upload - ${files.length} files`);
+
+    // Delete each file
     for (const file of files) {
       try {
-        fs.unlinkSync(file.path);
+        if (fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+          logger.info(`✅ Cleaned up file: ${file.filename}`);
+        }
       } catch (err) {
-        logger.error(`Failed to delete file ${file.path}:`, err);
+        logger.error(`❌ Failed to delete file ${file.path}:`, err);
       }
     }
 
+    // Clean up session
     if (req.requestId) {
       uploadSessions.delete(req.requestId);
+      logger.info(`✅ Cleaned up upload session: ${req.requestId}`);
     }
+
+    // Clean up any temporary files in the user's directory
+    const userDir = getUserDirectoryPath(userId);
+    if (fs.existsSync(userDir)) {
+      const currentFiles = fs.readdirSync(userDir);
+      const now = Date.now();
+      
+      // Clean up any files that are incomplete/temporary (modified in the last minute)
+      for (const file of currentFiles) {
+        try {
+          const filePath = path.join(userDir, file);
+          const stats = fs.statSync(filePath);
+          
+          // If file was modified in the last minute, it might be from this aborted upload
+          if (now - stats.mtimeMs < 60000) {
+            fs.unlinkSync(filePath);
+            logger.info(`✅ Cleaned up potentially incomplete file: ${file}`);
+          }
+        } catch (err) {
+          logger.error(`❌ Error checking/cleaning temporary file:`, err);
+        }
+      }
+    }
+
+    logger.info('🧹 Upload cleanup completed');
   } catch (error) {
-    logger.error("Error in rollbackUploadedFiles:", error);
+    logger.error("❌ Error in rollbackUploadedFiles:", error);
   }
 };
 

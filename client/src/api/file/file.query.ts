@@ -2,6 +2,7 @@ import { MoveFileDto, RenameFileDto, UpdateFileDto } from "@/types/file.dto";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FOLDER_KEYS } from "../folder/folder.query";
 import fileApi from "./file.api";
+import { useUploadStore } from "@/stores/useUploadStore";
 
 // Query keys
 export const FILE_KEYS = {
@@ -36,14 +37,40 @@ export const useFile = (fileId: string) =>
  */
 export const useUploadFiles = () => {
   const queryClient = useQueryClient();
+  const { setUploadController, setUploadStatus } = useUploadStore();
   
   return useMutation({
-    mutationFn: ({ files, folderData, onProgress }: { 
+    mutationFn: async ({ files, folderData, onProgress, uploadId }: { 
       files: File[], 
       folderData?: { folderId?: string },
-      onProgress?: (progress: number) => void
-    }) => 
-      fileApi.uploadFiles(files, folderData, onProgress).then((res) => res.data),
+      onProgress?: (progress: number) => void,
+      uploadId: string
+    }) => {
+      // Create abort controller for this upload
+      const controller = new AbortController();
+      
+      // Store the controller in the upload store
+      setUploadController(uploadId, controller);
+      
+      try {
+        const response = await fileApi.uploadFiles(files, folderData, onProgress, controller.signal);
+        return response.data;
+      } catch (error) {
+        console.log('🚨 Upload error:', error);
+        // Check if this was an abort error
+        if (error instanceof Error && (error.name === 'AbortError' || error.name === 'CanceledError')) {
+          console.log('🛑 Upload was cancelled');
+          // Set status to cancelled
+          setUploadStatus(uploadId, 'cancelled');
+          // Re-throw as cancelled error
+          throw new Error('Upload cancelled');
+        }
+        // For other errors, set error status
+        console.log('❌ Setting error status');
+        setUploadStatus(uploadId, 'error');
+        throw error;
+      }
+    },
     onSuccess: (data, variables) => {
       console.log('🚀 File Upload Success - Starting cache invalidation');
       

@@ -6,19 +6,21 @@ export interface UploadItem {
   fileName: string;
   fileSize: number;
   isFolder: boolean;
-  status: 'creating-zip' | 'uploading' | 'success' | 'error';
+  status: 'creating-zip' | 'uploading' | 'success' | 'error' | 'cancelled';
   progress: number;
   file?: File;
   parentId: string | null;
+  abortController?: AbortController;
 }
 
 interface UploadStore {
   uploads: UploadItem[];
   addUpload: (file: File | { name: string, size: number, isFolder: true }, parentId: string | null) => string;
   updateUploadProgress: (id: string, progress: number) => void;
-  setUploadStatus: (id: string, status: 'creating-zip' | 'uploading' | 'success' | 'error') => void;
+  setUploadStatus: (id: string, status: 'creating-zip' | 'uploading' | 'success' | 'error' | 'cancelled') => void;
   cancelUpload: (id: string) => void;
   clearCompleted: () => void;
+  setUploadController: (id: string, controller: AbortController) => void;
 }
 
 export const useUploadStore = create<UploadStore>((set) => ({
@@ -55,23 +57,52 @@ export const useUploadStore = create<UploadStore>((set) => ({
   },
   
   setUploadStatus: (id, status) => {
+    console.log('🔄 Setting upload status:', { id, status });
     set(state => ({
       uploads: state.uploads.map(upload => 
         upload.id === id ? { ...upload, status } : upload
       )
     }));
   },
+
+  setUploadController: (id, controller) => {
+    set(state => ({
+      uploads: state.uploads.map(upload => 
+        upload.id === id ? { ...upload, abortController: controller } : upload
+      )
+    }));
+  },
   
   cancelUpload: (id) => {
-    set(state => ({
-      uploads: state.uploads.filter(upload => upload.id !== id)
-    }));
+    console.log('❌ Cancelling upload:', id);
+    set(state => {
+      // Find the upload to cancel
+      const upload = state.uploads.find(u => u.id === id);
+      console.log('📦 Current upload state:', upload);
+      
+      // Abort the request if there's an abort controller
+      if (upload?.abortController) {
+        console.log('🛑 Aborting request');
+        upload.abortController.abort();
+      }
+      
+      // Update status to cancelled instead of removing
+      return {
+        uploads: state.uploads.map(upload => {
+          if (upload.id === id) {
+            console.log('📝 Updating upload status to cancelled');
+            return { ...upload, status: 'cancelled' };
+          }
+          return upload;
+        })
+      };
+    });
   },
   
   clearCompleted: () => {
     set(state => ({
       uploads: state.uploads.filter(upload => 
-        upload.status === 'uploading'
+        upload.status === 'uploading' || upload.status === 'creating-zip'
       )
     }));
   }

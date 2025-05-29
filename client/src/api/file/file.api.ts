@@ -6,7 +6,7 @@ import { MoveFileDto, RenameFileDto, UpdateFileDto } from "@/types/file.dto";
  */
 const fileApi = {
   // Upload files to the server
-  uploadFiles: (files: File[], folderData?: { folderId?: string }, onProgress?: (progress: number) => void) => {
+  uploadFiles: (files: File[], folderData?: { folderId?: string }, onProgress?: (progress: number) => void, abortSignal?: AbortSignal) => {
     const formData = new FormData();
     
     // Append each file to the form data
@@ -23,6 +23,7 @@ const fileApi = {
       headers: {
         "Content-Type": "multipart/form-data",
       },
+      signal: abortSignal,
       onUploadProgress: (progressEvent) => {
         if (progressEvent.total) {
           const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);

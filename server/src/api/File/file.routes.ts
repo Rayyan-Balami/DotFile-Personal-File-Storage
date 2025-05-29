@@ -7,7 +7,13 @@ import {
 } from "@api/file/file.validator.js";
 import { verifyAuth } from "@middleware/auth.middleware.js";
 import { validateData } from "@middleware/validate.middleware.js";
-import { upload, validateFileSize, processZipFiles, updateUserStorageUsage } from "@middleware/multer.middleware.js";
+import { 
+  upload, 
+  validateFileSize, 
+  processZipFiles, 
+  updateUserStorageUsage,
+  handleAbortedUploads 
+} from "@middleware/multer.middleware.js";
 import { encryptFiles } from "@middleware/fileEncryption.middleware.js";
 
 //=========================//
@@ -22,6 +28,7 @@ authRoutes.use(verifyAuth); // Require authentication
 authRoutes
   // CRUD operations
   .post("/upload", 
+    handleAbortedUploads,
     upload,
     validateFileSize,
     processZipFiles,

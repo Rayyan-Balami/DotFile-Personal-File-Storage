@@ -79,7 +79,8 @@ export const ContextMenuItems = React.memo(({ parentId }: { parentId?: string | 
                 uploadIds.forEach(id => {
                   updateUploadProgress(id, progress);
                 });
-              }
+              },
+              uploadId: uploadIds[0] // Use first upload ID for the batch
             });
 
             // Update all uploads to success
@@ -90,6 +91,11 @@ export const ContextMenuItems = React.memo(({ parentId }: { parentId?: string | 
             toast.success(`Successfully uploaded ${fileArray.length} file(s)`);
           } catch (error) {
             console.error("Upload failed:", error);
+            
+            // Don't update status for cancelled uploads
+            if (error instanceof Error && error.message === 'Upload cancelled') {
+              return;
+            }
             
             // Get detailed error information
             const errorInfo = getDetailedErrorInfo(error);
@@ -146,7 +152,14 @@ export const ContextMenuItems = React.memo(({ parentId }: { parentId?: string | 
           // Start the upload
           await uploadFiles.mutateAsync({
             files: zipFiles,
-            folderData: parentId ? { folderId: parentId } : undefined
+            folderData: parentId ? { folderId: parentId } : undefined,
+            onProgress: (progress) => {
+              // Update progress for all files in this batch
+              uploadIds.forEach(id => {
+                updateUploadProgress(id, progress);
+              });
+            },
+            uploadId: uploadIds[0] // Use first upload ID for the batch
           });
 
           // Update all uploads to success
@@ -157,7 +170,7 @@ export const ContextMenuItems = React.memo(({ parentId }: { parentId?: string | 
 
           toast.success(`Successfully uploaded ${zipFiles.length} folder(s)`);
         } catch (error) {
-          console.error("Folder upload failed:", error);
+          console.error("Upload failed:", error);
           
           // Get detailed error information
           const errorInfo = getDetailedErrorInfo(error);
@@ -165,7 +178,7 @@ export const ContextMenuItems = React.memo(({ parentId }: { parentId?: string | 
           // Show main error message
           toast.error(errorInfo.message);
           
-          // Show individual errors if available
+          // Show individual file errors if available
           if (errorInfo.details.length > 1) {
             errorInfo.details.slice(1).forEach(detail => {
               toast.error(detail, { duration: 5000 });

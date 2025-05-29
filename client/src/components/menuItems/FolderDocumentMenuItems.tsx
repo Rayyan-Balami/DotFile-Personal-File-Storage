@@ -115,7 +115,8 @@ const useMenuActions = ({ cardType, title, id }: Pick<MenuProps, 'cardType' | 't
                   uploadIds.forEach(uploadId => {
                     updateUploadProgress(uploadId, progress);
                   });
-                }
+                },
+                uploadId: uploadIds[0]
               });
 
               // Update all uploads to success
@@ -222,7 +223,8 @@ const useMenuActions = ({ cardType, title, id }: Pick<MenuProps, 'cardType' | 't
                 uploadIds.forEach(uploadId => {
                   updateUploadProgress(uploadId, progress);
                 });
-              }
+              },
+              uploadId: uploadIds[0]
             });
 
             // Update all uploads to success
@@ -233,6 +235,11 @@ const useMenuActions = ({ cardType, title, id }: Pick<MenuProps, 'cardType' | 't
             toast.success(`Successfully uploaded ${zipFiles.length} folder(s) to ${title}`);
           } catch (error) {
             console.error("Folder upload failed:", error);
+            
+            // Don't update status for cancelled uploads
+            if (error instanceof Error && error.message === 'Upload cancelled') {
+              return;
+            }
             
             // Get detailed error information
             const errorInfo = getDetailedErrorInfo(error);
