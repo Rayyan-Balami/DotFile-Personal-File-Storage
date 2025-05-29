@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Folder, FileText, Loader2, X } from "lucide-react";
+import { getFolderNameFromZip, isZipFile } from "@/utils/uploadUtils";
 
 export interface UploadItemProps {
   id: string;
@@ -28,13 +29,18 @@ export function UploadItem({
     if (onCancel) onCancel(id);
   };
 
+  // For folder uploads, show the original folder name without the ZIP prefix
+  const displayName = isFolder && isZipFile(fileName) 
+    ? getFolderNameFromZip(fileName) 
+    : fileName;
+
   return (
     <div className="group flex items-center h-12 p-1.5 gap-2 rounded-md bg-sidebar hover:bg-sidebar-foreground/4 border hover:shadow-xs min-w-48 shrink-0 transition-colors ease-out duration-100 focus:outline-none focus:ring-1 focus:ring-primary/40 select-none whitespace-nowrap">
       <div className="h-full grid place-items-center aspect-square bg-sidebar rounded-[0.5rem] *:scale-65">
         {icon}
       </div>
       <div className="flex-1 flex flex-col justify-between text-xs text-muted-foreground pr-4 mx-1">
-        <span className="font-medium">{fileName}</span>
+        <span className="font-medium">{displayName}</span>
         <div className="flex items-center gap-2 w-full">
           <span className="text-xs font-light text-muted-foreground">
             {fileSize}
@@ -42,11 +48,6 @@ export function UploadItem({
           {(status === 'uploading' || status === 'creating-zip') && progress > 0 && (
             <span className="text-xs font-light text-muted-foreground ml-auto">
               {progress}%
-            </span>
-          )}
-          {status === 'creating-zip' && (
-            <span className="text-xs font-light text-blue-500 ml-auto">
-              Creating zip...
             </span>
           )}
         </div>
