@@ -93,11 +93,10 @@ function UploadCard({
         </div>
       </div>
       {(status === "uploading" || status === "creating-zip") && (
+        <>
         <div className="h-full grid place-items-center aspect-square rounded-[0.5rem] *:scale-65">
           <Loader2 className="animate-spin text-muted-foreground" />
         </div>
-      )}
-      {status === "uploading" && (
       <Button
         variant="ghost"
         onClick={handleCancel}
@@ -105,6 +104,7 @@ function UploadCard({
       >
         <X className="size-auto animate-pulse" />
       </Button>
+      </>
       )}
     </div>
   );
@@ -113,20 +113,12 @@ function UploadCard({
 export function Uploads() {
   const { uploads, cancelUpload } = useUploadStore();
 
-  const handleCloseAll = () => {
-    uploads.forEach((upload) => cancelUpload(upload.id));
-  };
-
-  if (uploads.length === 0) {
-    return null;
-  }
-
   return (
     <section className="w-full flex items-center gap-3.5 px-4 pt-3 pb-3">
       <Button
         className="group shadow-none text-sidebar-foreground hover:text-primary border border-transparent hover:border-border h-full"
         variant="secondary"
-        onClick={handleCloseAll}
+        // onClick={toggleSectionVisibility}
       >
         <X className="size-4 group-hover:scale-105 transition-transform" />
         <span className="sr-only">Close all uploads</span>

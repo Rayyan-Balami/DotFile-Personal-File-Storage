@@ -281,9 +281,18 @@ export const upload = multer({
 
 // Handle aborted uploads and cleanup
 export const handleAbortedUploads = (req: Request, res: Response, next: NextFunction) => {
+    // Track if this was a real abort vs. connection issue
+  let isRealAbort = false;
+  
+  // Handle actual client abort
+  req.on('abort', () => {
+    isRealAbort = true;
+  });
+
   // Handle client disconnection
   req.on('close', async () => {
-    if (!res.headersSent) {  // If response hasn't been sent, the upload was aborted
+    // Only clean up if it was a real abort and we haven't sent headers yet
+    if (isRealAbort && !res.headersSent) {
       logger.warn('Upload aborted by client - cleaning up...');
       await rollbackUploadedFiles(req);
     }
