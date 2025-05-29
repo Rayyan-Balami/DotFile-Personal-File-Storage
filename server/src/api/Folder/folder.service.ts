@@ -16,6 +16,7 @@ import logger from "@utils/logger.utils.js";
 import { sanitizeFilename } from "@utils/sanitize.utils.js";
 import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
 import mongoose, { Types } from "mongoose";
+import userService from "@api/user/user.service.js";
 
 /**
  * Business logic for folder operations
@@ -552,11 +553,15 @@ class FolderService {
     // Get all descendant folders
     const descendants = await folderDao.getAllDescendantFolders(folderId, true);
 
+    // Track total size of deleted files for storage update
+    let totalSizeFreed = 0;
+
     // Delete all files in this folder and descendant folders
     for (const descendantId of [...descendants, folderId]) {
       const files = await fileService.getUserFilesByFolders(userId, descendantId, true); // Include deleted files
       for (const file of files) {
         try {
+          totalSizeFreed += file.size;
           await fileService.permanentDeleteFile(file.id, userId);
         } catch (error) {
           logger.error(`Failed to delete file ${file.id}:`, error);
@@ -574,6 +579,11 @@ class FolderService {
     const deleted = await folderDao.permanentDeleteFolder(folderId);
     if (!deleted) {
       throw new ApiError(500, [{ folder: "Failed to delete folder" }]);
+    }
+
+    // Update user's storage usage if files were deleted
+    if (totalSizeFreed > 0) {
+      await userService.updateUserStorageUsage(userId, -totalSizeFreed);
     }
   }
 
@@ -665,6 +675,7 @@ class FolderService {
     // Get all folders that were explicitly deleted (have deletedAt timestamp)
     const deletedFolders = await folderDao.getUserDeletedFolders(userId);
     let totalFoldersDeleted = 0;
+    let totalSizeFreed = 0;
 
     // For each deleted folder, delete it and all its descendants (like permanentDeleteFolder does)
     for (const folder of deletedFolders) {
@@ -678,6 +689,7 @@ class FolderService {
         const files = await fileService.getUserFilesByFolders(userId, descendantId, true); // Include deleted files
         for (const file of files) {
           try {
+            totalSizeFreed += file.size;
             await fileService.permanentDeleteFile(file.id, userId);
           } catch (error) {
             logger.error(`Failed to delete file ${file.id}:`, error);
@@ -701,6 +713,11 @@ class FolderService {
 
     // Delete all explicitly deleted files
     await fileService.permanentDeleteAllDeletedFiles(userId);
+
+    // Update user's storage usage if files were deleted
+    if (totalSizeFreed > 0) {
+      await userService.updateUserStorageUsage(userId, -totalSizeFreed);
+    }
 
     return {
       acknowledged: true,

@@ -16,6 +16,7 @@ import fs from "fs";
 import * as fsPromises from "fs/promises";
 import { Types } from "mongoose";
 import path from "path";
+import userService from "@api/user/user.service.js";
 
 /**
  * FileService: Business logic layer for file operations
@@ -523,6 +524,9 @@ class FileService {
         { server: "Failed to delete file from database" },
       ]);
     }
+
+    // Update user's storage usage
+    await userService.updateUserStorageUsage(userId, -file.size);
   }
 
   /**
@@ -629,6 +633,10 @@ class FileService {
   async permanentDeleteAllDeletedFiles(userId: string): Promise<void> {
     // Get all deleted files for this user
     const deletedFiles = await fileDao.getAllDeletedFiles(userId);
+    
+    // Calculate total size to be freed
+    const totalSize = deletedFiles.reduce((sum, file) => sum + file.size, 0);
+    
     // remove all files from upload directory
     for (const file of deletedFiles) {
       const userStorageDir = `uploads/user-${userId}`;
@@ -643,10 +651,16 @@ class FileService {
         logger.error(`Failed to delete physical file: ${error}`);
       }
     }
+    
     // Permanently delete all files recorded in the database
     const result = await fileDao.permanentDeleteAllDeletedFiles(userId);
     if (!result) {
       throw new ApiError(500, [{ delete: "Failed to empty trash" }]);
+    }
+
+    // Update user's storage usage if files were deleted
+    if (totalSize > 0) {
+      await userService.updateUserStorageUsage(userId, -totalSize);
     }
   }
 
