@@ -1,12 +1,6 @@
 import fileService from "@api/file/file.service.js";
 import { FolderResponseDto } from "@api/folder/folder.dto.js";
 import folderService from "@api/folder/folder.service.js";
-import {
-  processZipFiles,
-  updateUserStorageUsage,
-  upload,
-} from "@middleware/multer.middleware.js";
-import { encryptFiles } from "@middleware/fileEncryption.middleware.js"; // Import the encryption middleware
 import { ApiError } from "@utils/apiError.utils.js";
 import { ApiResponse } from "@utils/apiResponse.utils.js";
 import asyncHandler from "@utils/asyncHandler.utils.js";
@@ -20,90 +14,83 @@ import { Request, Response } from "express";
 class FileController {
   /**
    * Universal file upload handler for both regular files and folders (as zip)
-   * @process Validates authorization → Processes uploads → Encrypts files → Updates storage usage
    * @returns Created files and folders with count information
    */
-  uploadFiles = [
-    upload.array("files"),
-    processZipFiles, // Process ZIP files first to extract files
-    encryptFiles, // Then encrypt all files (including extracted ones)
-    updateUserStorageUsage,
-    asyncHandler(async (req: Request, res: Response) => {
-      const userId = req.user?.id;
-      if (!userId) {
-        throw new ApiError(401, [{ file: "Unauthorized" }]);
+  uploadFiles = asyncHandler(async (req: Request, res: Response) => {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new ApiError(401, [{ file: "Unauthorized" }]);
+    }
+    
+    // Safely handle the folderId from the request body
+    const folderId = req.body && req.body.folderId ? req.body.folderId : null;
+    
+    // Ensure files is always an array
+    const files = Array.isArray(req.files) ? req.files : 
+                  (req.files ? Array.isArray(req.files.files) ? req.files.files : 
+                  Object.values(req.files).flat() : []);
+    
+    // Make sure fileToFolderMap and virtualFolders are initialized properly
+    const fileToFolderMap = req.fileToFolderMap || {};
+    const virtualFolders = req.virtualFolders || {};
+    
+    const folderKeys = Object.keys(virtualFolders);
+    const hasCreatedFolders = folderKeys.length > 0;
+    const folderCount = folderKeys.length;
+    
+    if (!hasCreatedFolders && (!files || files.length === 0)) {
+      throw new ApiError(400, [{ file: "No files uploaded" }]);
+    }
+    
+    // Get complete folder information if folders were created
+    let folders: Record<string, FolderResponseDto> = {};
+    if (hasCreatedFolders) {
+      for (const [path, folderId] of Object.entries(virtualFolders)) {
+        const folder = await folderService.getFolderById(folderId, userId);
+        folders[path] = folder;
       }
+    }
+    
+    if (hasCreatedFolders && (!files || files.length === 0)) {
+      logger.debug(`ZIP contained only folders (${folderCount}) with no files`);
       
-      // Safely handle the folderId from the request body
-      const folderId = req.body && req.body.folderId ? req.body.folderId : null;
-      
-      // Ensure files is always an array
-      const files = Array.isArray(req.files) ? req.files : 
-                    (req.files ? Array.isArray(req.files.files) ? req.files.files : 
-                    Object.values(req.files).flat() : []);
-      
-      // Make sure fileToFolderMap and virtualFolders are initialized properly
-      const fileToFolderMap = req.fileToFolderMap || {};
-      const virtualFolders = req.virtualFolders || {};
-      
-      const folderKeys = Object.keys(virtualFolders);
-      const hasCreatedFolders = folderKeys.length > 0;
-      const folderCount = folderKeys.length;
-      
-      if (!hasCreatedFolders && (!files || files.length === 0)) {
-        throw new ApiError(400, [{ file: "No files uploaded" }]);
-      }
-      
-      // Get complete folder information if folders were created
-      let folders: Record<string, FolderResponseDto> = {};
-      if (hasCreatedFolders) {
-        for (const [path, folderId] of Object.entries(virtualFolders)) {
-          const folder = await folderService.getFolderById(folderId, userId);
-          folders[path] = folder;
-        }
-      }
-      
-      if (hasCreatedFolders && (!files || files.length === 0)) {
-        logger.debug(`ZIP contained only folders (${folderCount}) with no files`);
-        
-        res.status(201).json(
-          new ApiResponse(
-            201,
-            {
-              files: [],
-              folders,
-              count: 0,
-              folderCount: folderCount
-            },
-            `Successfully created ${folderCount} folder(s) from ZIP`
-          )
-        );
-        return;
-      }
-      
-      logger.debug(`Passing ${files.length} files to service layer for processing`);
-      
-      const uploadResults = await fileService.processUploadedFiles(
-        files,
-        userId,
-        folderId,
-        fileToFolderMap || {},
-      );
-
       res.status(201).json(
         new ApiResponse(
           201,
           {
-            files: uploadResults,
+            files: [],
             folders,
-            count: uploadResults.length,
+            count: 0,
             folderCount: folderCount
           },
-          `Successfully uploaded ${uploadResults.length} file(s)${folderCount > 0 ? ` and created ${folderCount} folder(s)` : ''}`
+          `Successfully created ${folderCount} folder(s) from ZIP`
         )
       );
-    }),
-  ];
+      return;
+    }
+    
+    logger.debug(`Passing ${files.length} files to service layer for processing`);
+    
+    const uploadResults = await fileService.processUploadedFiles(
+      files,
+      userId,
+      folderId,
+      fileToFolderMap || {},
+    );
+
+    res.status(201).json(
+      new ApiResponse(
+        201,
+        {
+          files: uploadResults,
+          folders,
+          count: uploadResults.length,
+          folderCount: folderCount
+        },
+        `Successfully uploaded ${uploadResults.length} file(s)${folderCount > 0 ? ` and created ${folderCount} folder(s)` : ''}`
+      )
+    );
+  });
 
   /**
    * Gets single file details by ID

@@ -271,14 +271,74 @@ const fileFilter = async (
   }
 };
 
-// Export multer instance
+// Export multer instance with basic configuration
 export const upload = multer({
   storage,
-  fileFilter,
   limits: {
     fileSize: MAX_SIZE_PER_UPLOAD_BATCH,
   },
-});
+}).array('files', MAX_FILES_PER_UPLOAD_BATCH);
+
+// Validate storage limits before processing files
+export const validateFileSize = async (req: Request, _res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return next(new ApiError(401, [{ authentication: "User not authenticated" }]));
+
+    const files = req.files as Express.Multer.File[];
+    if (!files || !Array.isArray(files) || files.length === 0) {
+      return next(new ApiError(400, [{ file: "No files uploaded" }]));
+    }
+
+    const currentUser = await userService.getUserById(userId);
+    const actualAvailableStorage = currentUser.maxStorageLimit - currentUser.storageUsed;
+
+    // Calculate total size of all files in this batch
+    const totalBatchSize = files.reduce((sum, file) => sum + file.size, 0);
+
+    // Check if total batch size exceeds available storage
+    if (totalBatchSize > actualAvailableStorage) {
+      // Clean up uploaded files
+      files.forEach(file => {
+        try {
+          fs.existsSync(file.path) && fs.unlinkSync(file.path);
+        } catch (err) {
+          logger.error(`Failed to clean up file ${file.path}:`, err);
+        }
+      });
+
+      return next(new ApiError(400, [{
+        file: `Total upload size (${formatBytes(totalBatchSize)}) exceeds available storage space (${formatBytes(actualAvailableStorage)}). Upload cancelled.`
+      }]));
+    }
+
+    // Log validation details for each file
+    files.forEach(file => {
+      logger.info(`📁 File Upload Validation:
+        File Name: ${file.originalname}
+        Size: ${formatBytes(file.size)}
+        Available Storage: ${formatBytes(actualAvailableStorage)}
+        User Storage Used: ${formatBytes(currentUser.storageUsed)}
+        User Storage Limit: ${formatBytes(currentUser.maxStorageLimit)}
+        Fits in Storage: ✅ Yes
+      `);
+    });
+
+    next();
+  } catch (err) {
+    // Clean up any uploaded files on error
+    if (req.files && Array.isArray(req.files)) {
+      req.files.forEach(file => {
+        try {
+          fs.existsSync(file.path) && fs.unlinkSync(file.path);
+        } catch (cleanupErr) {
+          logger.error(`Failed to clean up file ${file.path}:`, cleanupErr);
+        }
+      });
+    }
+    next(new ApiError(500, [{ server: getErrorMessage(err) }]));
+  }
+};
 
 // --------------------- ZIP File Extraction Handler ---------------------
 
