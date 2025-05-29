@@ -134,13 +134,8 @@ const storage: StorageEngine = multer.diskStorage({
       const uploadPath = getUserDirectoryPath(userId);
       if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
 
-      const filesInFolder = fs.readdirSync(uploadPath).length;
+      // Initialize session but don't check file limits here - that's done in fileFilter
       const session = uploadSessions.get(req.requestId!) || { totalSize: 0, fileCount: 0, files: [] };
-
-      if (filesInFolder + session.fileCount >= MAX_FILES_PER_FOLDER) {
-        return cb(new Error("Storage limit exceeded, Buy more"), "");
-      }
-
       uploadSessions.set(req.requestId!, session);
       cb(null, uploadPath);
     } catch (err) {
@@ -162,14 +157,16 @@ const fileFilter = async (req: Request, file: Express.Multer.File, cb: FileFilte
     const user = await userService.getUserById(userId);
     const session = uploadSessions.get(req.requestId!) || { totalSize: 0, fileCount: 0, files: [] };
 
+    // Check current upload batch file count limit
     if (session.fileCount >= MAX_FILES_PER_UPLOAD_BATCH) {
-      return cb(new ApiError(400, [{ files: `Maximum ${MAX_FILES_PER_UPLOAD_BATCH} files per upload` }]));
+      return cb(new ApiError(400, [{ files: `Maximum ${MAX_FILES_PER_UPLOAD_BATCH} files per upload batch` }]));
     }
 
+    // Check current upload batch size limit
     const newTotalSize = session.totalSize + file.size;
     if (newTotalSize > MAX_SIZE_PER_UPLOAD_BATCH) {
       return cb(new ApiError(400, [{
-        files: `Total upload size cannot exceed ${Math.floor(MAX_SIZE_PER_UPLOAD_BATCH / (1024 * 1024))}MB`
+        files: `Total upload size cannot exceed ${Math.floor(MAX_SIZE_PER_UPLOAD_BATCH / (1024 * 1024))}MB per batch`
       }]));
     }
 
@@ -224,6 +221,33 @@ export const processZipFiles = async (req: Request, _res: Response, next: NextFu
     for (const zipFile of zipFiles) {
       const zip = new AdmZip(zipFile.path);
       const entries = zip.getEntries();
+
+      // Validate MAX_FILES_PER_FOLDER constraint for ZIP extraction
+      const folderFileCount = new Map<string, number>();
+      
+      // Count files per folder in the ZIP
+      entries.forEach(entry => {
+        if (entry.isDirectory) return;
+        
+        const entryName = entry.entryName;
+        const baseName = path.basename(entryName);
+        if (entryName.startsWith('__') || baseName.startsWith('.') || baseName === 'Thumbs.db' || entryName.includes('/.') || entry.header.size === 0) {
+          return;
+        }
+
+        const dirPath = path.dirname(entryName);
+        const folderKey = dirPath === '.' ? 'root' : dirPath;
+        folderFileCount.set(folderKey, (folderFileCount.get(folderKey) || 0) + 1);
+      });
+
+      // Check if any folder exceeds the file limit
+      for (const [folderPath, fileCount] of folderFileCount) {
+        if (fileCount > MAX_FILES_PER_FOLDER) {
+          throw new ApiError(400, [{
+            folder: `Folder "${folderPath === 'root' ? 'root folder' : folderPath}" contains ${fileCount} files, which exceeds the maximum of ${MAX_FILES_PER_FOLDER} files per folder`
+          }]);
+        }
+      }
 
       const folders = buildFolderHierarchy(entries);
       const virtualFolders: Record<string, string> = {};
@@ -332,11 +356,20 @@ export const updateUserStorageUsage = async (req: Request, _res: Response, next:
     if (!userId || !req.files) return next();
 
     const files = req.files as Express.Multer.File[];
+    
+    // Calculate the actual storage size needed
+    // Note: ZIP files are already removed from req.files by processZipFiles middleware
+    // so we only count the final files that will be stored
     const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+
+    logger.info(`📊 Storage check - User: ${userId}, Upload size: ${formatBytes(totalSize)}`);
 
     // Get current user to check storage limits
     const user = await userService.getUserById(userId);
     const newStorageUsed = user.storageUsed + totalSize;
+
+    logger.info(`📊 Storage details - Current: ${formatBytes(user.storageUsed)}, Adding: ${formatBytes(totalSize)}, New total: ${formatBytes(newStorageUsed)}, Limit: ${formatBytes(user.maxStorageLimit)}`);
+    logger.info(`📊 Available space: ${formatBytes(user.maxStorageLimit - user.storageUsed)}`);
 
     // Check if this would exceed storage limit
     if (newStorageUsed > user.maxStorageLimit) {
@@ -349,6 +382,7 @@ export const updateUserStorageUsage = async (req: Request, _res: Response, next:
 
     // Update storage usage
     await userService.updateUserStorageUsage(userId, totalSize);
+    logger.debug(`Storage updated - Added: ${formatBytes(totalSize)}, New total: ${formatBytes(newStorageUsed)}`);
     next();
   } catch (error) {
     // Clean up uploaded files on error
