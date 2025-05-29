@@ -313,7 +313,7 @@ class UserService {
   /**
    * Update user's storage usage
    * @param userId - Target user ID
-   * @param bytesToAdd - Bytes to add/subtract
+   * @param bytesToAdd - Bytes to add (positive) or subtract (negative)
    * @throws User not found
    */
   async updateUserStorageUsage(
@@ -326,9 +326,12 @@ class UserService {
       throw new ApiError(404, [{ id: "User not found" }]);
     }
 
+    // Calculate new storage used
+    const newStorageUsed = Math.max(0, user.storageUsed + bytesToAdd);
+
     // Update storage calculation
     const updatedUser = await userDAO.updateUser(userId, {
-      storageUsed: Math.max(0, (user.storageUsed || 0) + bytesToAdd),
+      storageUsed: newStorageUsed,
     });
 
     if (!updatedUser) {

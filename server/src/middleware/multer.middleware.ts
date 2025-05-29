@@ -12,6 +12,7 @@ import {
 import { ApiError } from "@utils/apiError.utils.js";
 import logger from "@utils/logger.utils.js";
 import { getUserDirectoryPath } from "@utils/mkdir.utils.js";
+import { formatBytes } from "@utils/formatBytes.utils.js";
 import AdmZip from "adm-zip";
 import crypto from "crypto";
 import { NextFunction, Request, Response } from "express";
@@ -333,9 +334,25 @@ export const updateUserStorageUsage = async (req: Request, _res: Response, next:
     const files = req.files as Express.Multer.File[];
     const totalSize = files.reduce((sum, file) => sum + file.size, 0);
 
+    // Get current user to check storage limits
+    const user = await userService.getUserById(userId);
+    const newStorageUsed = user.storageUsed + totalSize;
+
+    // Check if this would exceed storage limit
+    if (newStorageUsed > user.maxStorageLimit) {
+      // Clean up uploaded files
+      await rollbackUploadedFiles(req);
+      throw new ApiError(400, [{
+        storage: `Upload would exceed storage limit. Available: ${formatBytes(user.maxStorageLimit - user.storageUsed)}, Required: ${formatBytes(totalSize)}`
+      }]);
+    }
+
+    // Update storage usage
     await userService.updateUserStorageUsage(userId, totalSize);
     next();
   } catch (error) {
+    // Clean up uploaded files on error
+    await rollbackUploadedFiles(req);
     next(error);
   }
 };
