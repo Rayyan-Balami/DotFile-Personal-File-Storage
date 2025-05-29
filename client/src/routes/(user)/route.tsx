@@ -7,13 +7,16 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { useEffect } from "react";
-import { UserDataSync } from "@/components/UserDataSync";
+import { useUserSync } from "@/hooks/useUserSync";
 
 export const Route = createFileRoute('/(user)')({
   component: RouteComponent,
 })
 
 function RouteComponent() {
+  // Keep user data in sync
+  useUserSync();
+
   useEffect(() => {
     // Disable right click to prevent browser context menu
     const disableRightClick = (e: MouseEvent) => {
@@ -26,7 +29,6 @@ function RouteComponent() {
   return (
     <SidebarProvider>
       <FileSystemDndProvider>
-          <UserDataSync />
           <AppSidebar />
           <SidebarInset className="h-screen overflow-y-auto">
             <SiteHeader />
