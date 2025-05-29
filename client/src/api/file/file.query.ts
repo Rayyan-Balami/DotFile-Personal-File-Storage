@@ -43,8 +43,15 @@ export const useUploadFiles = () => {
       folderData?: { folderId?: string } 
     }) => 
       fileApi.uploadFiles(files, folderData).then((res) => res.data),
-    onSuccess: (_, variables) => {
-      // If files were uploaded to a folder, invalidate that folder's contents
+    onSuccess: (data, variables) => {
+      console.log("📁 Upload success response:", data);
+      
+      // Invalidate all folder queries to ensure UI updates with new folders/files
+      queryClient.invalidateQueries({
+        queryKey: FOLDER_KEYS.all,
+      });
+      
+      // If files were uploaded to a specific folder, also invalidate that folder's contents
       if (variables.folderData?.folderId) {
         queryClient.invalidateQueries({
           queryKey: FOLDER_KEYS.contents(variables.folderData.folderId),
@@ -54,6 +61,16 @@ export const useUploadFiles = () => {
         queryClient.invalidateQueries({
           queryKey: FOLDER_KEYS.contents(),
         });
+      }
+      
+      // If folders were created during upload, force a refetch
+      if (data?.folders && Object.keys(data.folders).length > 0) {
+        console.log("📂 Folders created during upload, forcing refetch...");
+        setTimeout(() => {
+          queryClient.refetchQueries({
+            queryKey: FOLDER_KEYS.all,
+          });
+        }, 100);
       }
     },
   });

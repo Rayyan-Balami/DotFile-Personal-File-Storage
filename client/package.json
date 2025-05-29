@@ -39,8 +39,10 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "immer": "^10.1.1",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.487.0",
     "mime-types": "^3.0.1",
+    "nanoid": "^5.1.5",
     "next-themes": "^0.4.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -57,6 +59,7 @@
   "devDependencies": {
     "@eslint/js": "^9.21.0",
     "@tanstack/router-plugin": "^1.117.0",
+    "@types/jszip": "^3.4.0",
     "@types/node": "^22.14.0",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.0.4",

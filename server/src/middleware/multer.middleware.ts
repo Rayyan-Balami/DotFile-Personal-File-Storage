@@ -6,7 +6,8 @@ import {
   MAX_FILES_PER_FOLDER,
   MAX_FILES_PER_UPLOAD_BATCH,
   MAX_SIZE_PER_UPLOAD_BATCH,
-  UPLOADS_DIR
+  UPLOADS_DIR,
+  ZIP_NAME_PREFIX
 } from "@config/constants.js";
 import { ApiError } from "@utils/apiError.utils.js";
 import logger from "@utils/logger.utils.js";
@@ -199,16 +200,25 @@ export const processZipFiles = async (req: Request, _res: Response, next: NextFu
     if (!userId || !req.files) return next();
 
     const files = req.files as Express.Multer.File[];
-    const zipFiles = files.filter(file => file.originalname.toLowerCase().endsWith(".zip"));
+    // Only process ZIP files with the special prefix for folder uploads
+    const zipFiles = files.filter(file => 
+      file.originalname.toLowerCase().endsWith(".zip") && 
+      file.originalname.startsWith(ZIP_NAME_PREFIX)
+    );
     if (zipFiles.length === 0) {
       req.fileToFolderMap = req.fileToFolderMap || {};
       req.virtualFolders = req.virtualFolders || {};
       return next();
     }
 
-    req.files = files.filter(file => !file.originalname.toLowerCase().endsWith(".zip"));
+    // Remove only the prefixed zip files from the files array
+    req.files = files.filter(file => 
+      !(file.originalname.toLowerCase().endsWith(".zip") && 
+        file.originalname.startsWith(ZIP_NAME_PREFIX))
+    );
 
     const fileToFolderMap: Record<string, string> = {};
+    const allVirtualFolders: Record<string, string> = {};
 
     for (const zipFile of zipFiles) {
       const zip = new AdmZip(zipFile.path);
@@ -236,10 +246,14 @@ export const processZipFiles = async (req: Request, _res: Response, next: NextFu
         try {
           const newFolder = await folderService.createFolder({ name: folder.name, parent: parentId }, userId);
           virtualFolders[folderPath] = newFolder.id;
+          allVirtualFolders[folderPath] = newFolder.id;
         } catch (error) {
           if (error instanceof ApiError && error.statusCode === 409) {
             const existingFolder = await folderService.getFolderByNameAndParent(folder.name, parentId, userId);
-            if (existingFolder) virtualFolders[folderPath] = existingFolder.id;
+            if (existingFolder) {
+              virtualFolders[folderPath] = existingFolder.id;
+              allVirtualFolders[folderPath] = existingFolder.id;
+            }
           } else {
             throw error;
           }
@@ -286,10 +300,10 @@ export const processZipFiles = async (req: Request, _res: Response, next: NextFu
       req.files = Array.isArray(req.files) 
         ? [...req.files, ...extractedFiles]
         : [...(Object.values(req.files || {}).flat()), ...extractedFiles];
-
-      req.fileToFolderMap = fileToFolderMap;
-      req.virtualFolders = virtualFolders;
     }
+
+    req.fileToFolderMap = fileToFolderMap;
+    req.virtualFolders = allVirtualFolders;
 
     next();
   } catch (error) {

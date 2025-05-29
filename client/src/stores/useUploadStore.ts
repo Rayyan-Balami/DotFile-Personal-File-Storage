@@ -6,7 +6,7 @@ export interface UploadItem {
   fileName: string;
   fileSize: number;
   isFolder: boolean;
-  status: 'uploading' | 'success' | 'error';
+  status: 'creating-zip' | 'uploading' | 'success' | 'error';
   progress: number;
   file?: File;
   parentId: string | null;
@@ -16,12 +16,12 @@ interface UploadStore {
   uploads: UploadItem[];
   addUpload: (file: File | { name: string, size: number, isFolder: true }, parentId: string | null) => string;
   updateUploadProgress: (id: string, progress: number) => void;
-  setUploadStatus: (id: string, status: 'uploading' | 'success' | 'error') => void;
+  setUploadStatus: (id: string, status: 'creating-zip' | 'uploading' | 'success' | 'error') => void;
   cancelUpload: (id: string) => void;
   clearCompleted: () => void;
 }
 
-export const useUploadStore = create<UploadStore>((set, get) => ({
+export const useUploadStore = create<UploadStore>((set) => ({
   uploads: [],
   
   addUpload: (fileOrFolder, parentId) => {
@@ -33,7 +33,7 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
       fileName: fileOrFolder.name,
       fileSize: fileOrFolder.size,
       isFolder,
-      status: 'uploading',
+      status: isFolder ? 'creating-zip' : 'uploading',
       progress: 0,
       file: isFolder ? undefined : fileOrFolder as File,
       parentId

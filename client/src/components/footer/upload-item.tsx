@@ -1,13 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Folder, FileText, Loader2, X } from "lucide-react";
-import { useState, useEffect } from "react";
 
 export interface UploadItemProps {
   id: string;
   fileName: string;
   fileSize: string;
   isFolder?: boolean;
-  status: 'uploading' | 'success' | 'error';
+  status: 'creating-zip' | 'uploading' | 'success' | 'error';
   progress?: number;
   onCancel?: (id: string) => void;
 }
@@ -40,14 +39,19 @@ export function UploadItem({
           <span className="text-xs font-light text-muted-foreground">
             {fileSize}
           </span>
-          {status === 'uploading' && progress > 0 && (
+          {(status === 'uploading' || status === 'creating-zip') && progress > 0 && (
             <span className="text-xs font-light text-muted-foreground ml-auto">
               {progress}%
             </span>
           )}
+          {status === 'creating-zip' && (
+            <span className="text-xs font-light text-blue-500 ml-auto">
+              Creating zip...
+            </span>
+          )}
         </div>
       </div>
-      {status === 'uploading' && (
+      {(status === 'uploading' || status === 'creating-zip') && (
         <div className="h-full grid place-items-center aspect-square rounded-[0.5rem] *:scale-65">
           <Loader2 className="animate-spin text-muted-foreground" />
         </div>

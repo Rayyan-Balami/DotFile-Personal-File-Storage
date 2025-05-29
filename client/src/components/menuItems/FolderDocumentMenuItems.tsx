@@ -9,7 +9,9 @@ import {
 } from "../ui/dropdown-menu";
 import { useDialogStore } from "@/stores/useDialogStore";
 import { useRestoreFolder, useUpdateFolder } from '@/api/folder/folder.query';
-import { useRestoreFile, useUpdateFile } from '@/api/file/file.query';
+import { useRestoreFile, useUpdateFile, useUploadFiles } from '@/api/file/file.query';
+import { useUploadStore } from '@/stores/useUploadStore';
+import { processDirectoryInput } from '@/utils/uploadUtils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
@@ -31,6 +33,8 @@ const useMenuActions = ({ cardType, title, id }: Pick<MenuProps, 'cardType' | 't
   const restoreFile = useRestoreFile();
   const updateFolder = useUpdateFolder();
   const updateFile = useUpdateFile();
+  const uploadFiles = useUploadFiles();
+  const { addUpload, updateUploadProgress, setUploadStatus } = useUploadStore();
   const navigate = useNavigate();
 
   return async (action: string, deletedAt?: string | null, hasDeletedAncestor?: boolean) => {
@@ -79,7 +83,146 @@ const useMenuActions = ({ cardType, title, id }: Pick<MenuProps, 'cardType' | 't
       'info': () => toast.info("Info dialog coming soon"),
       'download': () => console.log('Download action'),
       'preview': () => console.log('Preview action'),
-      'upload-file': () => console.log('Upload file action'),
+      'upload-file': () => {
+        // Trigger file input for folder upload
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.multiple = true;
+        fileInput.style.display = 'none';
+        
+        fileInput.onchange = async (e) => {
+          const target = e.target as HTMLInputElement;
+          const files = target.files;
+          if (files && files.length > 0) {
+            const fileArray = Array.from(files);
+            
+            try {
+              // Create upload entries for tracking
+              const uploadIds = fileArray.map(file => 
+                addUpload(file, id)
+              );
+
+              // Start the upload
+              await uploadFiles.mutateAsync({
+                files: fileArray,
+                folderData: { folderId: id }
+              });
+
+              // Update all uploads to success
+              uploadIds.forEach(uploadId => {
+                updateUploadProgress(uploadId, 100);
+                setUploadStatus(uploadId, 'success');
+              });
+
+              toast.success(`Successfully uploaded ${fileArray.length} file(s) to ${title}`);
+            } catch (error) {
+              console.error("Upload failed:", error);
+              toast.error("Upload failed. Please try again.");
+              
+              // Update any pending uploads to error state
+              fileArray.forEach((_, index) => {
+                const uploadId = `upload-${Date.now()}-${index}`;
+                setUploadStatus(uploadId, 'error');
+              });
+            }
+          }
+          
+          // Clean up
+          document.body.removeChild(fileInput);
+        };
+        
+        document.body.appendChild(fileInput);
+        fileInput.click();
+      },
+      'upload-folder': () => {
+        // Trigger folder input for folder upload
+        const folderInput = document.createElement('input');
+        folderInput.type = 'file';
+        folderInput.multiple = true;
+        folderInput.style.display = 'none';
+        // Set webkitdirectory attribute
+        folderInput.setAttribute('webkitdirectory', '');
+        
+        folderInput.onchange = async (e) => {
+          const target = e.target as HTMLInputElement;
+          let zipFiles: File[] = [];
+          let uploadIds: string[] = [];
+          
+          try {
+            // First, create upload entries for tracking (in creating-zip state)
+            const files = target.files;
+            if (!files || files.length === 0) {
+              toast.error("No files selected");
+              return;
+            }
+
+            // Group files by their root directory to determine folder names
+            const folderMap = new Map<string, File[]>();
+            for (const file of Array.from(files)) {
+              const pathParts = file.webkitRelativePath.split('/');
+              const rootFolder = pathParts[0];
+              if (!folderMap.has(rootFolder)) {
+                folderMap.set(rootFolder, []);
+              }
+              folderMap.get(rootFolder)!.push(file);
+            }
+
+            // Create upload entries for each folder
+            uploadIds = Array.from(folderMap.keys()).map(folderName => {
+              const folderFiles = folderMap.get(folderName)!;
+              const totalSize = folderFiles.reduce((sum, file) => sum + file.size, 0);
+              return addUpload({ name: `${folderName}.zip`, size: totalSize, isFolder: true }, id);
+            });
+
+            // Process the directory input and create zip files with progress tracking
+            zipFiles = await processDirectoryInput(target, (folderName: string, progress: number) => {
+              // Find the corresponding upload ID and update progress
+              const uploadIndex = Array.from(folderMap.keys()).indexOf(folderName);
+              if (uploadIndex >= 0 && uploadIndex < uploadIds.length) {
+                updateUploadProgress(uploadIds[uploadIndex], progress);
+                if (progress === 100) {
+                  setUploadStatus(uploadIds[uploadIndex], 'uploading');
+                }
+              }
+            });
+            
+            if (zipFiles.length === 0) {
+              toast.error("No files found in the selected folder");
+              // Clean up upload entries
+              uploadIds.forEach(uploadId => setUploadStatus(uploadId, 'error'));
+              return;
+            }
+
+            // Start the upload
+            await uploadFiles.mutateAsync({
+              files: zipFiles,
+              folderData: { folderId: id }
+            });
+
+            // Update all uploads to success
+            uploadIds.forEach(uploadId => {
+              updateUploadProgress(uploadId, 100);
+              setUploadStatus(uploadId, 'success');
+            });
+
+            toast.success(`Successfully uploaded ${zipFiles.length} folder(s) to ${title}`);
+          } catch (error) {
+            console.error("Folder upload failed:", error);
+            toast.error("Folder upload failed. Please try again.");
+            
+            // Update any pending uploads to error state
+            uploadIds.forEach(uploadId => {
+              setUploadStatus(uploadId, 'error');
+            });
+          }
+          
+          // Clean up
+          document.body.removeChild(folderInput);
+        };
+        
+        document.body.appendChild(folderInput);
+        folderInput.click();
+      },
     };
 
     const actionFn = actions[action as keyof typeof actions];
@@ -163,6 +306,7 @@ const MenuItems = React.memo(({
       <>
         <Item onClick={() => handleAction("create-folder")}>Create new folder</Item>
         <Item onClick={() => handleAction("upload-file")}>Upload file</Item>
+        <Item onClick={() => handleAction("upload-folder")}>Upload folder</Item>
         <Separator />
         {commonItems}
       </>
