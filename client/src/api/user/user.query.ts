@@ -9,6 +9,7 @@ import {
 } from "@/validation/authForm";
 import { useAuthStore } from "@/stores/authStore";
 import { User } from "@/types/user";
+import { useEffect } from "react";
 
 // ==========================
 // GUEST USER HOOKS
@@ -49,19 +50,21 @@ interface CurrentUserResponse {
 export const useGetCurrentUser = () => {
   const updateUser = useAuthStore((state) => state.updateUser);
   
-  return useQuery<CurrentUserResponse>({
+  const query = useQuery<CurrentUserResponse>({
     queryKey: ["currentUser"],
     queryFn: async () => {
       const response = await userApi.getCurrentUser();
       return response.data;
     },
-    select: (data) => {
-      if (data?.data?.user) {
-        updateUser(data.data.user);
-      }
-      return data;
-    },
   });
+
+  useEffect(() => {
+    if (query.data?.data?.user) {
+      updateUser(query.data.data.user);
+    }
+  }, [query.data, updateUser]);
+
+  return query;
 };
 
 export const useUpdateProfile = () => {

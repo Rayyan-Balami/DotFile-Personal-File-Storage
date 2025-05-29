@@ -10,7 +10,7 @@ interface UploadItemProps {
   fileName: string;
   fileSize: string;
   isFolder?: boolean;
-  status: 'creating-zip' | 'uploading' | 'success' | 'error';
+  status: "creating-zip" | "uploading" | "success" | "error";
   progress?: number;
   onCancel?: (id: string) => void;
 }
@@ -20,22 +20,23 @@ function UploadCard({
   fileName,
   fileSize,
   isFolder = false,
-  status = 'uploading',
+  status = "uploading",
   progress = 0,
   onCancel,
 }: UploadItemProps) {
-  const icon = isFolder ? 
-    <Folder className="text-muted-foreground" /> : 
-    <File className="text-muted-foreground" />;
-  
+  const icon = isFolder ? (
+    <Folder className="text-muted-foreground" />
+  ) : (
+    <File className="text-muted-foreground" />
+  );
+
   const handleCancel = () => {
     if (onCancel) onCancel(id);
   };
 
   // For folder uploads, show the original folder name without the ZIP prefix
-  const displayName = isFolder && isZipFile(fileName) 
-    ? getFolderNameFromZip(fileName) 
-    : fileName;
+  const displayName =
+    isFolder && isZipFile(fileName) ? getFolderNameFromZip(fileName) : fileName;
 
   return (
     <div className="group flex items-center h-12 p-1.5 gap-2 rounded-md bg-sidebar hover:bg-muted border hover:shadow-xs min-w-48 shrink-0 transition-colors ease-out duration-100 focus:outline-none focus:ring-1 focus:ring-primary/40 select-none whitespace-nowrap">
@@ -48,14 +49,15 @@ function UploadCard({
           <span className="text-xs font-light text-muted-foreground">
             {fileSize}
           </span>
-          {(status === 'uploading' || status === 'creating-zip') && progress > 0 && (
-            <span className="text-xs font-light text-muted-foreground ml-auto">
-              {progress}%
-            </span>
-          )}
+          {(status === "uploading" || status === "creating-zip") &&
+            progress > 0 && (
+              <span className="text-xs font-light text-muted-foreground ml-auto">
+                {progress}%
+              </span>
+            )}
         </div>
       </div>
-      {(status === 'uploading' || status === 'creating-zip') && (
+      {(status === "uploading" || status === "creating-zip") && (
         <div className="h-full grid place-items-center aspect-square rounded-[0.5rem] *:scale-65">
           <Loader2 className="animate-spin text-muted-foreground" />
         </div>
@@ -73,10 +75,9 @@ function UploadCard({
 
 export function Uploads() {
   const { uploads, cancelUpload } = useUploadStore();
-  const [isHovering, setIsHovering] = useState(false);
 
   const handleCloseAll = () => {
-    uploads.forEach(upload => cancelUpload(upload.id));
+    uploads.forEach((upload) => cancelUpload(upload.id));
   };
 
   // Only show if there are active uploads
@@ -85,19 +86,14 @@ export function Uploads() {
   }
 
   return (
-    <section 
-      className="w-full flex items-center gap-3.5 px-4 pt-3 pb-3"
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
-    >
+    <section className="w-full flex items-center gap-3.5 px-4 pt-3 pb-3">
       <Button
-        variant="outline"
-        size="sm"
-        className="h-8 px-2.5 rounded-md text-xs font-medium"
-        title="Close all uploads"
+        className="group shadow-none text-sidebar-foreground hover:text-primary border border-transparent hover:border-border"
+        variant="secondary"
         onClick={handleCloseAll}
       >
-        <X className="size-4" />
+        <X className="size-4 group-hover:scale-105 transition-transform" />
+        <span className="sr-only">Close all uploads</span>
       </Button>
       <div className="flex items-center gap-2 overflow-x-auto min-w-0 flex-1">
         {uploads.map((upload) => (

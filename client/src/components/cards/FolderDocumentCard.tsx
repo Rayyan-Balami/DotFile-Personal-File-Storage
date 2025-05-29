@@ -332,7 +332,7 @@ const CardContent = React.memo(
       return (
         <div className="px-1 flex-1 flex gap-6">
           <div className="flex-1 flex max-lg:flex-col lg:items-center">
-            <h3 className="flex-1 text-sm font-[425] line-clamp-1 break-all max-w-sm w-full">
+            <h3 className="text-sm font-[425] line-clamp-1 break-all mb-1.5 lg:max-w-sm w-full">
               {cardType === "document" && extension
                 ? `${title}.${extension}`
                 : title}
