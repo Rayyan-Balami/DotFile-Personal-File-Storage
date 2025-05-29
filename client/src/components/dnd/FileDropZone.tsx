@@ -1,13 +1,13 @@
+import { useUploadFiles } from '@/api/file/file.query';
 import { useFileSystemStore } from '@/stores/useFileSystemStore';
 import { useUploadStore } from '@/stores/useUploadStore';
-import { useParams, useMatches } from '@tanstack/react-router';
+import { DocumentItem } from '@/types/folderDocumnet';
+import { getDetailedErrorInfo } from '@/utils/apiErrorHandler';
+import { collectFilesFromDirectory, createZipFromFiles } from '@/utils/uploadUtils';
+import { useMatches, useParams } from '@tanstack/react-router';
 import { nanoid } from 'nanoid';
 import React, { useCallback, useState } from 'react';
-import { DocumentItem, FolderItem } from '@/types/folderDocumnet';
-import { useUploadFiles } from '@/api/file/file.query';
-import { getDetailedErrorInfo } from '@/utils/apiErrorHandler';
 import { toast } from 'sonner';
-import { createZipFromFiles, collectFilesFromDirectory } from '@/utils/uploadUtils';
 
 interface FileDropZoneProps {
   children: React.ReactNode;
