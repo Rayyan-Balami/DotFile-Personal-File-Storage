@@ -44,8 +44,6 @@ export const useUploadFiles = () => {
     }) => 
       fileApi.uploadFiles(files, folderData).then((res) => res.data),
     onSuccess: (data, variables) => {
-      console.log("📁 Upload success response:", data);
-      
       // Invalidate all folder queries to ensure UI updates with new folders/files
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.all,
@@ -65,7 +63,6 @@ export const useUploadFiles = () => {
       
       // If folders were created during upload, force a refetch
       if (data?.folders && Object.keys(data.folders).length > 0) {
-        console.log("📂 Folders created during upload, forcing refetch...");
         setTimeout(() => {
           queryClient.refetchQueries({
             queryKey: FOLDER_KEYS.all,
