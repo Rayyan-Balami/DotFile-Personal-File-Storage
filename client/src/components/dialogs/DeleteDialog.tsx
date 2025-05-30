@@ -209,10 +209,10 @@ export function DeleteDialog() {
         </Button>
         <Button
           type="button"
-          variant={isPermanentDelete ? "destructive" : "default"}
           onClick={handleDelete}
           loading={isPending}
           disabled={isPending}
+          className="text-white bg-red-600 hover:bg-red-700"
         >
           {isPermanentDelete ? "Delete Permanently" : "Move to Trash"}
         </Button>
