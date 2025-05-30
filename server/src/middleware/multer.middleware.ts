@@ -579,6 +579,7 @@ export const processZipFiles = async (
 
       req.fileToFolderMap = fileToFolderMap;
       req.virtualFolders = allVirtualFolders;
+      req.files = extractedFiles;  // Add the extracted files to req.files
       next();
     }
   } catch (error) {
