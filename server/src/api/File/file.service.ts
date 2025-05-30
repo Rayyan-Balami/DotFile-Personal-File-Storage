@@ -46,6 +46,7 @@ class FileService {
    * @param fileData - File data including name, type, size, and storage key
    * @param userId - User ID who owns the file
    * @param folderId - Optional virtual folder ID
+   * @param duplicateAction - Action to take if a file with the same name exists ("replace" or "keepBoth")
    * @returns Created file document
    */
   async createFileWithVirtualFolder(
@@ -56,25 +57,54 @@ class FileService {
       storageKey: string;
     },
     userId: string,
-    folderId?: string | null
+    folderId?: string | null,
+    duplicateAction?: "replace" | "keepBoth"
   ): Promise<FileResponseDto> {
     logger.debug(`Creating file record for ${fileData.name} by user ${userId}`);
 
     // Get the extension from storage key
     const fileExtension = path.extname(fileData.storageKey).substring(1).toLowerCase();
 
-    // Ensure file name is unique within the folder
-    const uniqueName = await this.ensureUniqueNameAtLevel(
+    // Check if file already exists
+    const existingFile = await fileDao.checkFileExists(
       fileData.name,
       fileExtension,
       userId,
-      folderId
+      folderId || null
     );
+
+    if (existingFile) {
+      if (!duplicateAction) {
+        throw new ApiError(409, [{ name: `A file named "${fileData.name}.${fileExtension}" already exists in this location` }]);
+      }
+
+      if (duplicateAction === "replace") {
+        // Delete the existing file from disk first
+        const filePath = path.join(getUserDirectoryPath(userId), existingFile.storageKey);
+        try {
+          await fsPromises.unlink(filePath);
+        } catch (err) {
+          logger.error(`Error deleting file ${filePath}:`, err);
+          // Continue even if file delete fails - it may have been already deleted
+        }
+        // Then delete from database
+        await this.permanentDeleteFile(existingFile._id.toString(), userId);
+      } else if (duplicateAction === "keepBoth") {
+        // Find unique name for the new file
+        const uniqueName = await this.ensureUniqueNameAtLevel(
+          fileData.name,
+          fileExtension,
+          userId,
+          folderId
+        );
+        fileData.name = uniqueName;
+      }
+    }
 
     // Create the file document
     const file = await fileDao.createFile({
       ...fileData,
-      name: uniqueName,
+      name: fileData.name,
       owner: userId,
       folder: folderId || null,
       extension: fileExtension  // Store just the file extension
@@ -320,6 +350,7 @@ class FileService {
    * @param userId - User ID who owns the files
    * @param folderId - Optional target folder ID
    * @param fileToFolderMap - Map of filenames to their virtual folder paths (for zip extraction)
+   * @param duplicateAction - Action to take if a file with the same name exists ("replace" or "keepBoth")
    * @returns Array of processed file results
    */
   async processUploadedFiles(
@@ -327,6 +358,7 @@ class FileService {
     userId: string,
     folderId: string | null | undefined,
     fileToFolderMap: Record<string, string> = {},
+    duplicateAction?: "replace" | "keepBoth"
   ): Promise<FileResponseDto[]> {
     logger.debug(`Processing ${files.length} files in service layer`);
     
@@ -348,7 +380,8 @@ class FileService {
               storageKey: file.filename,
             },
             userId,
-            targetFolderId
+            targetFolderId,
+            duplicateAction
           );
           
           uploadResults.push(savedFile);
@@ -366,13 +399,15 @@ class FileService {
               storageKey: file.filename,
             },
             userId,
-            folderId
+            folderId,
+            duplicateAction
           );
           
           uploadResults.push(savedFile);
         }
       } catch (fileError) {
         logger.error(`Error processing uploaded file ${file.filename}:`, fileError);
+        throw fileError; // Re-throw to handle in controller
       }
     }
     

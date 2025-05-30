@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FOLDER_KEYS } from "../folder/folder.query";
 import fileApi from "./file.api";
 import { useUploadStore } from "@/stores/useUploadStore";
+import { useDialogStore } from "@/stores/useDialogStore";
 
 // Query keys
 export const FILE_KEYS = {
@@ -38,13 +39,21 @@ export const useFile = (fileId: string) =>
 export const useUploadFiles = () => {
   const queryClient = useQueryClient();
   const { setUploadController, setUploadStatus } = useUploadStore();
+  const { openDuplicateDialog } = useDialogStore();
   
   return useMutation({
-    mutationFn: async ({ files, folderData, onProgress, uploadId }: { 
+    mutationFn: async ({ 
+      files, 
+      folderData, 
+      onProgress, 
+      uploadId,
+      duplicateAction 
+    }: { 
       files: File[], 
       folderData?: { folderId?: string },
       onProgress?: (progress: number) => void,
-      uploadId: string
+      uploadId: string,
+      duplicateAction?: "replace" | "keepBoth"
     }) => {
       // Create abort controller for this upload
       const controller = new AbortController();
@@ -53,9 +62,9 @@ export const useUploadFiles = () => {
       setUploadController(uploadId, controller);
       
       try {
-        const response = await fileApi.uploadFiles(files, folderData, onProgress, controller.signal);
+        const response = await fileApi.uploadFiles(files, folderData, onProgress, controller.signal, duplicateAction);
         return response.data;
-      } catch (error) {
+      } catch (error: any) {
         console.log('🚨 Upload error:', error);
         // Check if this was an abort error
         if (error instanceof Error && (error.name === 'AbortError' || error.name === 'CanceledError')) {
@@ -65,6 +74,23 @@ export const useUploadFiles = () => {
           // Re-throw as cancelled error
           throw new Error('Upload cancelled');
         }
+
+        // Handle duplicate file conflict
+        if (error.response?.status === 409) {
+          // Convert to promise to handle dialog action
+          return new Promise((resolve, reject) => {
+            const fileName = files[0]?.name || 'file';
+            const fileType = fileName.endsWith('.zip') ? 'folder' : 'file';
+
+            openDuplicateDialog(fileName, fileType, (action) => {
+              // Retry upload with duplicate action
+              fileApi.uploadFiles(files, folderData, onProgress, controller.signal, action)
+                .then((response) => resolve(response.data))
+                .catch(reject);
+            });
+          });
+        }
+        
         // For other errors, set error status
         console.log('❌ Setting error status');
         setUploadStatus(uploadId, 'error');

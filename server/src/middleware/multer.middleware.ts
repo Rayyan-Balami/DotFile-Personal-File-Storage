@@ -461,23 +461,50 @@ export const processZipFiles = async (
         }
 
         try {
-          const newFolder = await folderService.createFolder(
-            { name: folder.name, parent: parentId },
+          // First check if folder exists
+          const existingFolder = await folderService.getFolderByNameAndParent(
+            folder.name,
+            parentId,
             userId
           );
-          virtualFolders[folderPath] = newFolder.id;
-          allVirtualFolders[folderPath] = newFolder.id;
-        } catch (error) {
-          if (error instanceof ApiError && error.statusCode === 409) {
-            const existingFolder = await folderService.getFolderByNameAndParent(
-              folder.name,
-              parentId,
-              userId
-            );
-            if (existingFolder) {
+
+          if (existingFolder) {
+            // If there's no duplicate action specified, throw 409 error
+            if (!req.body.duplicateAction) {
+              throw new ApiError(409, [{
+                folder: `A folder with name "${folder.name}" already exists in this location.`,
+                type: "folder",
+                name: folder.name
+              }]);
+            }
+
+            // Handle based on duplicate action
+            if (req.body.duplicateAction === "replace") {
+              // Keep the existing folder - this matches macOS behavior
               virtualFolders[folderPath] = existingFolder.id;
               allVirtualFolders[folderPath] = existingFolder.id;
+            } else if (req.body.duplicateAction === "keepBoth") {
+              // Create a new folder with a numbered suffix
+              const newFolder = await folderService.createFolder(
+                { name: folder.name, parent: parentId },
+                userId,
+                "keepBoth"
+              );
+              virtualFolders[folderPath] = newFolder.id;
+              allVirtualFolders[folderPath] = newFolder.id;
             }
+          } else {
+            // No duplicate - create normally
+            const newFolder = await folderService.createFolder(
+              { name: folder.name, parent: parentId },
+              userId
+            );
+            virtualFolders[folderPath] = newFolder.id;
+            allVirtualFolders[folderPath] = newFolder.id;
+          }
+        } catch (error) {
+          if (error instanceof ApiError && error.statusCode === 409) {
+            throw error; // Let client handle the conflict
           } else {
             throw error;
           }

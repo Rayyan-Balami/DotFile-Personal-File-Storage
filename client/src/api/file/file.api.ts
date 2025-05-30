@@ -6,7 +6,7 @@ import { MoveFileDto, RenameFileDto, UpdateFileDto } from "@/types/file.dto";
  */
 const fileApi = {
   // Upload files to the server
-  uploadFiles: (files: File[], folderData?: { folderId?: string }, onProgress?: (progress: number) => void, abortSignal?: AbortSignal) => {
+  uploadFiles: (files: File[], folderData?: { folderId?: string }, onProgress?: (progress: number) => void, abortSignal?: AbortSignal, duplicateAction?: "replace" | "keepBoth") => {
     const formData = new FormData();
     
     // Append each file to the form data
@@ -17,6 +17,11 @@ const fileApi = {
     // Add folder information if provided
     if (folderData?.folderId) {
       formData.append("folderId", folderData.folderId);
+    }
+
+    // Add duplicate action if provided
+    if (duplicateAction) {
+      formData.append("duplicateAction", duplicateAction);
     }
     
     return API.post("/files/upload", formData, {

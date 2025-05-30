@@ -22,8 +22,8 @@ class FileController {
       throw new ApiError(401, [{ file: "Unauthorized" }]);
     }
     
-    // Safely handle the folderId from the request body
-    const folderId = req.body && req.body.folderId ? req.body.folderId : null;
+    // Safely handle the folderId and duplicateAction from the request body
+    const { folderId, duplicateAction } = req.body || {};
     
     // Ensure files is always an array
     const files = Array.isArray(req.files) ? req.files : 
@@ -42,7 +42,7 @@ class FileController {
       throw new ApiError(400, [{ file: "No files uploaded" }]);
     }
     
-    // Get complete folder information if folders were created
+    // Get complete folder information if folders were created 
     let folders: Record<string, FolderResponseDto> = {};
     if (hasCreatedFolders) {
       for (const [path, folderId] of Object.entries(virtualFolders)) {
@@ -76,6 +76,7 @@ class FileController {
       userId,
       folderId,
       fileToFolderMap || {},
+      duplicateAction
     );
 
     res.status(201).json(

@@ -19,7 +19,7 @@ export function NavUpload() {
   const matches = useMatches();
   const uploadFiles = useUploadFiles();
   const { addUpload, updateUploadProgress, setUploadStatus } = useUploadStore();
-  const { openUploadChoiceDialog } = useDialogStore();
+  const { openUploadChoiceDialog, openDuplicateDialog } = useDialogStore();
 
   const isReadOnlyContext = matches.some(match =>
     match.routeId.includes("/(user)/trash") ||
@@ -55,6 +55,7 @@ export function NavUpload() {
         const filesByDirectory = new Map<string, File[]>();
         const individualFiles: File[] = [];
 
+        // Group files by directory
         Array.from(files).forEach(file => {
           const relativePath = file.webkitRelativePath;
           const pathParts = relativePath.split("/");
@@ -69,8 +70,25 @@ export function NavUpload() {
         });
 
         const uploadIds: string[] = [];
+        let retryWithDuplicateAction: "replace" | "keepBoth" | undefined;
 
-        try {
+        const handleDuplicateError = async (fileName: string, fileType: "file" | "folder") => {
+          return new Promise<void>((resolve, reject) => {
+            openDuplicateDialog(fileName, fileType, async (action: "replace" | "keepBoth") => {
+              retryWithDuplicateAction = action;
+              try {
+                // Retry the upload with the chosen action
+                await processUploads();
+                resolve();
+              } catch (retryError) {
+                reject(retryError);
+              }
+            });
+          });
+        };
+
+        const processUploads = async () => {
+          // Handle directory uploads first
           for (const [dirName, dirFiles] of filesByDirectory) {
             if (dirFiles.length === 0) continue;
 
@@ -91,12 +109,14 @@ export function NavUpload() {
               files: [zipFile],
               folderData: folderId ? { folderId } : undefined,
               onProgress: progress => updateUploadProgress(uploadId, progress),
-              uploadId
+              uploadId,
+              duplicateAction: retryWithDuplicateAction
             });
 
             setUploadStatus(uploadId, "success");
           }
 
+          // Then handle individual files
           if (individualFiles.length > 0) {
             const fileUploadIds = individualFiles.map(file => addUpload(file, folderId));
             uploadIds.push(...fileUploadIds);
@@ -105,17 +125,27 @@ export function NavUpload() {
               files: individualFiles,
               folderData: folderId ? { folderId } : undefined,
               onProgress: progress => fileUploadIds.forEach(id => updateUploadProgress(id, progress)),
-              uploadId: fileUploadIds[0]
+              uploadId: fileUploadIds[0],
+              duplicateAction: retryWithDuplicateAction
             });
 
             fileUploadIds.forEach(id => setUploadStatus(id, "success"));
           }
+        };
 
+        try {
+          await processUploads();
           const folderCount = filesByDirectory.size;
           const fileCount = individualFiles.length;
           toast.success(`Uploaded ${folderCount} folder(s) and ${fileCount} file(s)`);
+        } catch (error: any) {
+          if (error.response?.status === 409 && !retryWithDuplicateAction) {
+            const fileName = individualFiles[0]?.name || Array.from(filesByDirectory.keys())[0] || 'file';
+            const fileType = individualFiles.length > 0 ? 'file' : 'folder';
+            await handleDuplicateError(fileName, fileType);
+            return;
+          }
 
-        } catch (error) {
           const errorInfo = getDetailedErrorInfo(error);
           toast.error(errorInfo.message);
           uploadIds.forEach(id => setUploadStatus(id, "error"));
