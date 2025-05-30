@@ -17,6 +17,7 @@ import AdmZip from "adm-zip";
 import crypto from "crypto";
 import { NextFunction, Request, Response } from "express";
 import fs from "fs";
+import * as fsPromises from "fs/promises";
 import mime from "mime-types";
 import multer, { FileFilterCallback, StorageEngine } from "multer";
 import path from "path";
@@ -370,6 +371,7 @@ export const processZipFiles = async (
   _res: Response,
   next: NextFunction
 ) => {
+  const zipFileCleanupPaths: string[] = [];  // Store paths of ZIP files to clean up
   try {
     const userId = req.user?.id;
     if (!userId || !req.files) return next();
@@ -386,6 +388,11 @@ export const processZipFiles = async (
       req.virtualFolders = req.virtualFolders || {};
       return next();
     }
+
+    // Store paths of ZIP files for cleanup
+    zipFiles.forEach(file => {
+      zipFileCleanupPaths.push(file.path);
+    });
 
     // Remove only the prefixed zip files from the files array
     req.files = files.filter(
@@ -558,29 +565,31 @@ export const processZipFiles = async (
         if (folderId) fileToFolderMap[fileName] = folderId;
       }
 
-      fs.unlinkSync(zipFile.path); // Delete uploaded ZIP file
-
-      req.files = Array.isArray(req.files)
-        ? [...req.files, ...extractedFiles]
-        : [...Object.values(req.files || {}).flat(), ...extractedFiles];
-    }
-
-    req.fileToFolderMap = fileToFolderMap;
-    req.virtualFolders = allVirtualFolders;
-
-    next();
-  } catch (error) {
-    // Cleanup on failure
-    if (req.files) {
-      const filesToClean = Array.isArray(req.files)
-        ? req.files
-        : Object.values(req.files).flat();
-      for (const file of filesToClean) {
+      // After successful extraction and processing, clean up the original ZIP files
+      for (const zipPath of zipFileCleanupPaths) {
         try {
-          if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
-        } catch (cleanupError) {
-          logger.error("Error cleaning up file:", cleanupError);
+          await fsPromises.access(zipPath);
+          await fsPromises.unlink(zipPath);
+          logger.debug(`Cleaned up ZIP file: ${zipPath}`);
+        } catch (err) {
+          logger.error(`Error cleaning up ZIP file ${zipPath}:`, err);
+          // Continue even if cleanup fails
         }
+      }
+
+      req.fileToFolderMap = fileToFolderMap;
+      req.virtualFolders = allVirtualFolders;
+      next();
+    }
+  } catch (error) {
+    // Clean up ZIP files even if processing failed
+    for (const zipPath of zipFileCleanupPaths) {
+      try {
+        await fsPromises.access(zipPath);
+        await fsPromises.unlink(zipPath);
+        logger.debug(`Cleaned up ZIP file after error: ${zipPath}`);
+      } catch (err) {
+        logger.error(`Error cleaning up ZIP file ${zipPath} after error:`, err);
       }
     }
     next(error);
