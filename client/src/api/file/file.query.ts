@@ -85,8 +85,14 @@ export const useUploadFiles = () => {
             openDuplicateDialog(fileName, fileType, (action) => {
               // Retry upload with duplicate action
               fileApi.uploadFiles(files, folderData, onProgress, controller.signal, action)
-                .then((response) => resolve(response.data))
-                .catch(reject);
+                .then((response) => {
+                  resolve(response.data);
+                })
+                .catch(reject)
+                .finally(() => {
+                  // Always close the dialog, regardless of success or failure
+                  useDialogStore.getState().closeDuplicateDialog();
+                });
             });
           });
         }

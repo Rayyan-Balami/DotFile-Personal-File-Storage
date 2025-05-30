@@ -80,7 +80,7 @@ export function RenameDialog() {
       
       if (fieldError && fieldError.field === "name" && error.response?.status === 409) {
         // Handle duplicate item
-        const { openDuplicateDialog, closeDuplicateDialog } = useDialogStore.getState();
+        const { openDuplicateDialog } = useDialogStore.getState();
         openDuplicateDialog(
           values.name,
           values.cardType === 'folder' ? 'folder' : 'file',
@@ -105,11 +105,13 @@ export function RenameDialog() {
               }
               toast.success("Item renamed successfully!");
               closeRenameDialog();
-              closeDuplicateDialog();
               form.reset();
             } catch (error: any) {
               logger.error("Rename error:", error);
               toast.error(getErrorMessage(error));
+            } finally {
+              // Always close the duplicate dialog
+              useDialogStore.getState().closeDuplicateDialog();
             }
           }
         );

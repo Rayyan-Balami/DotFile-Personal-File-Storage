@@ -77,6 +77,9 @@ export function CreateFolderDialog() {
             } catch (error: any) {
               logger.error("Create folder error:", error);
               toast.error(getErrorMessage(error));
+            } finally {
+              // Always close the duplicate dialog
+              useDialogStore.getState().closeDuplicateDialog();
             }
           }
         );
