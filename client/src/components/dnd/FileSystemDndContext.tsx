@@ -118,8 +118,13 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
       } : 'not found'
     });
     
-    // Only allow dropping on folders
-    setIsOver(overItem?.cardType === 'folder' ? overId : null);
+    // Allow dropping on folders only
+    if (!overItem || overItem.cardType !== 'folder') {
+      setIsOver(null);
+      return;
+    }
+    
+    setIsOver(overId);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -127,13 +132,20 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
     
     // Early returns for invalid states
     if (!over) {
-      console.log('Drag cancelled: No target');
+      console.log('🚫 Drag cancelled: No target');
       resetDragState();
       return;
     }
     
     const overId = over.id as string;
     const overItem = items[overId];
+    
+    // Only allow dropping on folders
+    if (!overItem || overItem.cardType !== 'folder') {
+      console.log('🚫 Cannot drop: Target is not a folder');
+      resetDragState();
+      return;
+    }
     
     // Prevent self-drop
     if (active.id === overId) {

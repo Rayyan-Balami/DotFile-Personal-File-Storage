@@ -10,6 +10,7 @@ import { nanoid } from "nanoid";
 import React, { memo, useCallback, useState } from "react";
 import { toast } from "sonner";
 import FolderDocumentCard, { CardVariant } from "./FolderDocumentCard";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
 
 interface DraggableFolderCardProps {
   item: FileSystemItem;
@@ -40,16 +41,63 @@ export const DraggableFolderCard = memo(
     const isInRecentContext = matches.some(match => match.routeId.includes('/(user)/recent'));
     const isReadOnlyContext = isInTrashContext || isInRecentContext;
 
+    // Set up draggable functionality
+    const { attributes, listeners, setNodeRef: setDraggableRef, isDragging } = useDraggable({
+      id: id,
+      data: {
+        type: item.cardType,
+        item: item,
+        variant: variant
+      }
+    });
+
+    // Set up droppable functionality for folders
+    const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+      id: id,
+      data: {
+        type: item.cardType,
+        item: item
+      },
+      disabled: item.cardType !== 'folder' || isReadOnlyContext
+    });
+
+    // Combine the refs
+    const setRefs = useCallback((element: HTMLDivElement | null) => {
+      setDraggableRef(element);
+      setDroppableRef(element);
+    }, [setDraggableRef, setDroppableRef]);
+
     const [isDraggingOver, setIsDraggingOver] = useState(false);
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      if (e.dataTransfer.types.includes('Files') && !isReadOnlyContext) {
+      
+      // Only allow drops on folder cards
+      if (item.cardType !== 'folder') {
+        e.dataTransfer.dropEffect = 'none';
+        return;
+      }
+
+      if (isReadOnlyContext) {
+        e.dataTransfer.dropEffect = 'none';
+        return;
+      }
+
+      // Handle OS file drops
+      if (e.dataTransfer.types.includes('Files')) {
         setIsDraggingOver(true);
         e.dataTransfer.dropEffect = 'copy';
+        return;
       }
-    }, [isReadOnlyContext]);
+
+      // Handle internal drag and drop
+      const draggedIds = e.dataTransfer.getData('text/plain');
+      if (draggedIds) {
+        setIsDraggingOver(true);
+        e.dataTransfer.dropEffect = 'move';
+      }
+    }, [isReadOnlyContext, item.cardType]);
 
     const handleDragLeave = useCallback((e: React.DragEvent) => {
       e.preventDefault();
@@ -61,8 +109,15 @@ export const DraggableFolderCard = memo(
       e.preventDefault();
       e.stopPropagation();
       setIsDraggingOver(false);
+
+      // Don't allow drops in read-only contexts
       if (isReadOnlyContext) {
-        toast.error("Cannot upload files in this view");
+        toast.error("Cannot modify files in this view");
+        return;
+      }
+
+      // Don't allow drops on non-folder items
+      if (item.cardType !== 'folder') {
         return;
       }
 
@@ -188,11 +243,16 @@ export const DraggableFolderCard = memo(
 
     return (
       <div
-        className={cn("transition-all duration-500 relative")}
+        ref={setRefs}
+        className={cn("transition-all duration-500 relative", 
+          isDragging && "opacity-30 grayscale blur-[0.3px]"
+        )}
         onClick={handleClick}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        {...listeners}
+        {...attributes}
         tabIndex={-1}
       >
         <FolderDocumentCard
@@ -202,12 +262,12 @@ export const DraggableFolderCard = memo(
           onOpen={onOpen}
           className={cn(
             className,
-            isDraggingOver &&
-              "opacity-30 grayscale blur-[0.3px] pointer-events-none"
+            !isDragging && (isDraggingOver || isOver) && item.cardType === 'folder' &&
+              "opacity-50"
           )}
         />
-        {isDraggingOver && (
-          <div className="absolute inset-0 bg-primary/10 pointer-events-none z-50 border-2 border-primary border-dashed flex items-center justify-end rounded-md"/>
+        {!isDragging && (isDraggingOver || (isOver && item.cardType === 'folder')) && (
+          <div className="absolute inset-0 bg-primary/10 pointer-events-none z-50 border-2 border-primary border-dashed rounded-md"/>
         )}
       </div>
     );
