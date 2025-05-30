@@ -480,9 +480,15 @@ export const processZipFiles = async (
 
             // Handle based on duplicate action
             if (req.body.duplicateAction === "replace") {
-              // Keep the existing folder - this matches macOS behavior
-              virtualFolders[folderPath] = existingFolder.id;
-              allVirtualFolders[folderPath] = existingFolder.id;
+              // Delete the existing folder completely (including contents)
+              await folderService.permanentDeleteFolder(existingFolder.id, userId);
+              // Create new folder in its place
+              const newFolder = await folderService.createFolder(
+                { name: folder.name, parent: parentId },
+                userId
+              );
+              virtualFolders[folderPath] = newFolder.id;
+              allVirtualFolders[folderPath] = newFolder.id;
             } else if (req.body.duplicateAction === "keepBoth") {
               // Create a new folder with a numbered suffix
               const newFolder = await folderService.createFolder(

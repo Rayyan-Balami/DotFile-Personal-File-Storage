@@ -538,52 +538,41 @@ class FolderService {
    * @throws Delete operation failed
    */
   async permanentDeleteFolder(folderId: string, userId: string): Promise<void> {
-    // Verify ownership - check both active and deleted folders
-    const folder = await folderDao.getFolderById(folderId, true);
+    // First verify folder exists and user owns it
+    const folder = await this.verifyFolderOwnership(folderId, userId);
     if (!folder) {
       throw new ApiError(404, [{ folder: "Folder not found" }]);
     }
 
-    if (folder.owner.toString() !== userId) {
-      throw new ApiError(403, [
-        { authorization: "You do not have permission to access this folder" },
-      ]);
-    }
-
-    // Get all descendant folders
-    const descendants = await folderDao.getAllDescendantFolders(folderId, true);
-
-    // Track total size of deleted files for storage update
-    let totalSizeFreed = 0;
-
-    // Delete all files in this folder and descendant folders
-    for (const descendantId of [...descendants, folderId]) {
-      const files = await fileService.getUserFilesByFolders(userId, descendantId, true); // Include deleted files
-      for (const file of files) {
-        try {
-          totalSizeFreed += file.size;
+    // Get all descendant folders recursively
+    const descendantFolderIds = await folderDao.getAllDescendantFolders(folderId, true);
+    
+    // Include the target folder itself
+    const allFolderIds = [folderId, ...descendantFolderIds];
+    
+    // For each folder (including target and descendants):
+    // 1. Get all files in the folder
+    // 2. Delete files from storage and DB
+    // 3. Delete the folder from DB
+    for (const curFolderId of allFolderIds) {
+      try {
+        // Get all files in this folder
+        const files = await fileService.getUserFilesByFolders(userId, curFolderId, true);
+        
+        // Delete each file (both storage and DB)
+        for (const file of files) {
           await fileService.permanentDeleteFile(file.id, userId);
-        } catch (error) {
-          logger.error(`Failed to delete file ${file.id}:`, error);
-          // Continue with other files even if one fails
         }
+        
+        // Delete the folder from DB
+        const result = await folderDao.permanentDeleteFolder(curFolderId);
+        if (!result) {
+          logger.error(`Failed to delete folder ${curFolderId} from database`);
+        }
+      } catch (error) {
+        logger.error(`Error deleting folder ${curFolderId} contents:`, error);
+        // Continue with other folders even if one fails
       }
-    }
-
-    // Delete all descendant folders (reverse order to delete children first)
-    for (const descendantId of descendants.reverse()) {
-      await folderDao.permanentDeleteFolder(descendantId);
-    }
-
-    // Finally, delete the folder itself
-    const deleted = await folderDao.permanentDeleteFolder(folderId);
-    if (!deleted) {
-      throw new ApiError(500, [{ folder: "Failed to delete folder" }]);
-    }
-
-    // Update user's storage usage if files were deleted
-    if (totalSizeFreed > 0) {
-      await userService.updateUserStorageUsage(userId, -totalSizeFreed);
     }
   }
 
