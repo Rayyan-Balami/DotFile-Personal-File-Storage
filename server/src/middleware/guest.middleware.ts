@@ -27,16 +27,24 @@ export const verifyGuest = asyncHandler(
         req.cookies?.refreshToken || req.body?.refreshToken || "";
 
       // Fetch user session
-      const user = await userService.getUserById(decoded.id, {
-        includeRefreshToken: true,
-        deletedAt: false,
-      });
+      try {
+        const user = await userService.getUserById(decoded.id, {
+          includeRefreshToken: true,
+          deletedAt: false,
+        });
 
-      // If valid session exists, reject guest route access
-      if (user?.refreshToken === refreshToken) {
-        throw new ApiError(403, [
-          { auth: "Already authenticated. Please logout first." },
-        ]);
+        // If valid session exists, reject guest route access
+        if (user?.refreshToken === refreshToken) {
+          throw new ApiError(403, [
+            { auth: "Already authenticated. Please logout first." },
+          ]);
+        }
+      } catch (error) {
+        // If user not found, allow access (token might be old/invalid)
+        if (error instanceof ApiError && error.statusCode === 404) {
+          return next();
+        }
+        throw error;
       }
 
       // Token exists but session mismatch — allow as guest
