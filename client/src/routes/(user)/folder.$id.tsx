@@ -19,7 +19,6 @@ function RouteComponent() {
   const { data, isLoading } = useFolderContents(id, { includeDeleted: isDeletedFolder || hasDeletedAncestor });
   const folderContents = data?.data?.folderContents;
   const setFolderReadOnly = useFileSystemStore(state => state.setFolderReadOnly);
-  const isFolderReadOnly = useFileSystemStore(state => state.isFolderReadOnly(id));
   
   useEffect(() => {
     setFolderReadOnly(id, isDeletedFolder || hasDeletedAncestor || false);

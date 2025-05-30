@@ -24,11 +24,11 @@ export function NavUpload() {
   const isFolderReadOnly = useFileSystemStore(state => state.isFolderReadOnly);
 
   const getCurrentFolderId = () => params.id || null;
+  const currentFolderId = getCurrentFolderId();
 
-  const isReadOnlyContext = !!(matches.some(match =>
-    match.routeId.includes("/(user)/trash") ||
-    match.routeId.includes("/(user)/recent")
-  ) || isFolderReadOnly);
+  const isInTrashContext = matches.some(match => match.routeId.includes('/(user)/trash'));
+  const isInRecentContext = matches.some(match => match.routeId.includes('/(user)/recent'));
+  const isReadOnlyContext = (currentFolderId ? isFolderReadOnly(currentFolderId) : false) || isInTrashContext || isInRecentContext;
 
   const handleUpload = () => {
     if (isReadOnlyContext) return toast.error("Cannot upload files in this view");
