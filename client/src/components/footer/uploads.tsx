@@ -148,7 +148,7 @@ export function Uploads() {
         disabled={hasActiveUploads}
         title={hasActiveUploads ? "Cannot close while uploads are in progress" : "Close uploads"}
       >
-        <ChevronDown className="size-4 group-hover:scale-105 transition-transform" />
+        <ChevronDown className="size-5 group-hover:scale-105 transition-transform" />
         <span className="sr-only">Close uploads section</span>
       </Button>
       <div className="flex items-center gap-2 overflow-x-auto min-w-0 flex-1">
