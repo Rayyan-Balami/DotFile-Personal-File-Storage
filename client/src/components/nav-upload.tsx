@@ -9,6 +9,7 @@ import { Upload } from "lucide-react";
 import { useMatches, useParams } from "@tanstack/react-router";
 import { useUploadFiles } from "@/api/file/file.query";
 import { useUploadStore } from "@/stores/useUploadStore";
+import { useFileSystemStore } from "@/stores/useFileSystemStore";
 import { createZipFromFiles } from "@/utils/uploadUtils";
 import { getDetailedErrorInfo } from "@/utils/apiErrorHandler";
 import { toast } from "sonner";
@@ -21,12 +22,20 @@ export function NavUpload() {
   const { addUpload, updateUploadProgress, setUploadStatus } = useUploadStore();
   const { openUploadChoiceDialog, openDuplicateDialog } = useDialogStore();
 
-  const isReadOnlyContext = matches.some(match =>
-    match.routeId.includes("/(user)/trash") ||
-    match.routeId.includes("/(user)/recent")
+  const getCurrentFolderId = () => params.id || null;
+  
+  // Check if current folder is deleted or has deleted ancestor
+  const currentFolderId = getCurrentFolderId();
+  const items = useFileSystemStore(state => state.items);
+  const isCurrentFolderDeleted = currentFolderId && (
+    !!items[currentFolderId]?.deletedAt || 
+    !!items[currentFolderId]?.hasDeletedAncestor
   );
 
-  const getCurrentFolderId = () => params.id || null;
+  const isReadOnlyContext = !!(matches.some(match =>
+    match.routeId.includes("/(user)/trash") ||
+    match.routeId.includes("/(user)/recent")
+  ) || isCurrentFolderDeleted);
 
   const handleUpload = () => {
     if (isReadOnlyContext) return toast.error("Cannot upload files in this view");

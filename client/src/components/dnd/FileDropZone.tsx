@@ -23,9 +23,18 @@ export function FileDropZone({ children }: FileDropZoneProps) {
 
   const isInTrashContext = matches.some(match => match.routeId.includes('/(user)/trash'));
   const isInRecentContext = matches.some(match => match.routeId.includes('/(user)/recent'));
-  const isReadOnlyContext = isInTrashContext || isInRecentContext;
-
+  
   const getCurrentFolderId = () => params.id || null;
+  
+  // Check if current folder is deleted or has deleted ancestor
+  const currentFolderId = getCurrentFolderId();
+  const items = useFileSystemStore(state => state.items);
+  const isCurrentFolderDeleted = currentFolderId && (
+    items[currentFolderId]?.deletedAt || 
+    items[currentFolderId]?.hasDeletedAncestor
+  );
+  
+  const isReadOnlyContext = isInTrashContext || isInRecentContext || isCurrentFolderDeleted;
 
   const getCurrentFolderName = () => {
     const folderId = getCurrentFolderId();

@@ -7,16 +7,22 @@ import { getDetailedErrorInfo } from "@/utils/apiErrorHandler";
 import { toast } from "sonner";
 import { ContextMenuItem, ContextMenuSeparator } from "../ui/context-menu";
 import { useMatches } from "@tanstack/react-router";
+import { useFileSystemStore } from "@/stores/useFileSystemStore";
 
 export const ContextMenuItems = React.memo(({ parentId }: { parentId?: string | null } = {}) => {
   const { openCreateFolderDialog, openDeleteDialog } = useDialogStore();
   const uploadFiles = useUploadFiles();
   const { addUpload, updateUploadProgress, setUploadStatus } = useUploadStore();
   const matches = useMatches();
+  const items = useFileSystemStore(state => state.items);
 
   const isInTrashContext = matches.some(m => m.routeId.includes('/(user)/trash'));
   const isInRecentContext = matches.some(m => m.routeId.includes('/(user)/recent'));
-  const isReadOnlyContext = isInTrashContext || isInRecentContext;
+  const isCurrentFolderDeleted = parentId && (
+    !!items[parentId]?.deletedAt || 
+    !!items[parentId]?.hasDeletedAncestor
+  );
+  const isReadOnlyContext = isInTrashContext || isInRecentContext || isCurrentFolderDeleted;
 
   const handleUpload = (files: File[], isFolder = false) => {
     if (files.length === 0) {
