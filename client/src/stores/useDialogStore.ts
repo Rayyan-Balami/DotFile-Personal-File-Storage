@@ -35,6 +35,12 @@ interface DialogState {
   openDeleteDialog: (id: string | string[], type: "folder" | "document", name: string | string[], deletedAt?: string | null, hasDeletedAncestor?: boolean) => void;
   closeDeleteDialog: () => void;
 
+  // Upload Choice Dialog
+  uploadChoiceDialogOpen: boolean;
+  uploadChoiceCallback: ((choice: "files" | "folder") => void) | null;
+  openUploadChoiceDialog: (callback: (choice: "files" | "folder") => void) => void;
+  closeUploadChoiceDialog: () => void;
+
   // Helper to close all dialogs
   closeAllDialogs: () => void;
 }
@@ -138,12 +144,31 @@ export const useDialogStore = create<DialogState>((set) => ({
   })),
 
   // Helper to close all dialogs
+  // Upload Choice Dialog
+  uploadChoiceDialogOpen: false,
+  uploadChoiceCallback: null,
+  openUploadChoiceDialog: (callback) => set((state) => ({
+    ...state,
+    uploadChoiceDialogOpen: true,
+    uploadChoiceCallback: callback,
+    createFolderOpen: false,
+    renameDialogOpen: false,
+    duplicateDialogOpen: false,
+    deleteDialogOpen: false
+  })),
+  closeUploadChoiceDialog: () => set((state) => ({
+    ...state,
+    uploadChoiceDialogOpen: false,
+    uploadChoiceCallback: null
+  })),
+
   closeAllDialogs: () => set((state) => ({
     ...state,
     createFolderOpen: false,
     renameDialogOpen: false,
     duplicateDialogOpen: false,
     deleteDialogOpen: false,
+    uploadChoiceDialogOpen: false,
     createFolderParentId: null,
     renameItemId: null,
     renameItemCardType: null,
@@ -151,6 +176,7 @@ export const useDialogStore = create<DialogState>((set) => ({
     duplicateItemName: null,
     duplicateItemType: null,
     duplicateItemAction: null,
+    uploadChoiceCallback: null,
     deleteItemId: null,
     deleteItemType: null,
     deleteItemName: null,
