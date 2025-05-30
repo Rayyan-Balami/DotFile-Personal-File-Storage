@@ -73,22 +73,39 @@ class FileService {
       folderId || null
     );
 
+    // First, ensure the new file exists on disk
+    const newFilePath = path.join(process.cwd(), 'uploads', `user-${userId}`, fileData.storageKey);
+    try {
+      await fsPromises.access(newFilePath);
+    } catch (error) {
+      throw new ApiError(500, [{ file: "New file not found on disk" }]);
+    }
+
     if (existingFile) {
       if (!duplicateAction) {
+        // If no duplicate action specified, we should delete the new file and throw error
+        try {
+          await fsPromises.unlink(newFilePath);
+        } catch (err) {
+          logger.error(`Error cleaning up new file ${newFilePath}:`, err);
+        }
         throw new ApiError(409, [{ name: `A file named "${fileData.name}.${fileExtension}" already exists in this location` }]);
       }
 
       if (duplicateAction === "replace") {
-        // Delete the existing file from disk first
-        const filePath = path.join(getUserDirectoryPath(userId), existingFile.storageKey);
         try {
-          await fsPromises.unlink(filePath);
-        } catch (err) {
-          logger.error(`Error deleting file ${filePath}:`, err);
-          // Continue even if file delete fails - it may have been already deleted
+          // First delete the existing file completely using permanentDeleteFile
+          // This will handle both disk file and database deletion
+          await this.permanentDeleteFile(existingFile._id.toString(), userId);
+        } catch (error) {
+          // If deletion of old file fails, clean up the new file and throw error
+          try {
+            await fsPromises.unlink(newFilePath);
+          } catch (err) {
+            logger.error(`Error cleaning up new file ${newFilePath}:`, err);
+          }
+          throw error;
         }
-        // Then delete from database
-        await this.permanentDeleteFile(existingFile._id.toString(), userId);
       } else if (duplicateAction === "keepBoth") {
         // Find unique name for the new file
         const uniqueName = await this.ensureUniqueNameAtLevel(
@@ -543,12 +560,19 @@ class FileService {
       throw new ApiError(404, [{ file: "File not found" }]);
     }
 
-    // Delete the physical file
-    const filePath = path.join(getUserDirectoryPath(userId), file.storageKey);
-    const fileDeleted = removeFile(filePath);
-
-    if (!fileDeleted) {
-      logger.error(`Failed to delete file ${filePath}`);
+    // Delete the physical file first
+    // Construct proper path relative to project root
+    const userStorageDir = path.join(process.cwd(), 'uploads', `user-${userId}`);
+    const filePath = path.join(userStorageDir, file.storageKey);
+    
+    try {
+      // Check if file exists before attempting to delete
+      await fsPromises.access(filePath);
+      await fsPromises.unlink(filePath);
+      logger.debug(`Physical file deleted: ${filePath}`);
+    } catch (error) {
+      // If file doesn't exist, log but continue with database deletion
+      logger.error(`Error deleting physical file ${filePath}:`, error);
     }
     
     // Delete from database
