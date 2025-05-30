@@ -18,6 +18,7 @@ export function FileDropZone({ children }: FileDropZoneProps) {
   const params = useParams({ strict: false });
   const matches = useMatches();
   const addItem = useFileSystemStore(state => state.addItem);
+  const isFolderReadOnly = useFileSystemStore(state => state.isFolderReadOnly);
   const { addUpload, updateUploadProgress, setUploadStatus } = useUploadStore();
   const uploadFiles = useUploadFiles();
 
@@ -25,16 +26,9 @@ export function FileDropZone({ children }: FileDropZoneProps) {
   const isInRecentContext = matches.some(match => match.routeId.includes('/(user)/recent'));
   
   const getCurrentFolderId = () => params.id || null;
-  
-  // Check if current folder is deleted or has deleted ancestor
   const currentFolderId = getCurrentFolderId();
-  const items = useFileSystemStore(state => state.items);
-  const isCurrentFolderDeleted = currentFolderId && (
-    items[currentFolderId]?.deletedAt || 
-    items[currentFolderId]?.hasDeletedAncestor
-  );
   
-  const isReadOnlyContext = isInTrashContext || isInRecentContext || isCurrentFolderDeleted;
+  const isReadOnlyContext = currentFolderId ? isFolderReadOnly(currentFolderId) : false || isInTrashContext || isInRecentContext;
 
   const getCurrentFolderName = () => {
     const folderId = getCurrentFolderId();

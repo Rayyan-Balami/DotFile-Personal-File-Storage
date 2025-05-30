@@ -21,21 +21,14 @@ export function NavUpload() {
   const uploadFiles = useUploadFiles();
   const { addUpload, updateUploadProgress, setUploadStatus } = useUploadStore();
   const { openUploadChoiceDialog, openDuplicateDialog } = useDialogStore();
+  const isFolderReadOnly = useFileSystemStore(state => state.isFolderReadOnly);
 
   const getCurrentFolderId = () => params.id || null;
-  
-  // Check if current folder is deleted or has deleted ancestor
-  const currentFolderId = getCurrentFolderId();
-  const items = useFileSystemStore(state => state.items);
-  const isCurrentFolderDeleted = currentFolderId && (
-    !!items[currentFolderId]?.deletedAt || 
-    !!items[currentFolderId]?.hasDeletedAncestor
-  );
 
   const isReadOnlyContext = !!(matches.some(match =>
     match.routeId.includes("/(user)/trash") ||
     match.routeId.includes("/(user)/recent")
-  ) || isCurrentFolderDeleted);
+  ) || isFolderReadOnly);
 
   const handleUpload = () => {
     if (isReadOnlyContext) return toast.error("Cannot upload files in this view");

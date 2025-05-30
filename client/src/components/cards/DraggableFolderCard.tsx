@@ -84,6 +84,12 @@ export const DraggableFolderCard = memo(
         return;
       }
 
+      // Don't allow drops on deleted items or items with deleted ancestors
+      if (item.deletedAt !== null || item.hasDeletedAncestor === true) {
+        e.dataTransfer.dropEffect = 'none';
+        return;
+      }
+
       // Handle OS file drops
       if (e.dataTransfer.types.includes('Files')) {
         setIsDraggingOver(true);
@@ -118,6 +124,12 @@ export const DraggableFolderCard = memo(
 
       // Don't allow drops on non-folder items
       if (item.cardType !== 'folder') {
+        return;
+      }
+
+      // Don't allow drops on deleted items or items with deleted ancestors
+      if (item.deletedAt !== null || item.hasDeletedAncestor === true) {
+        toast.error("Cannot upload files to a deleted folder");
         return;
       }
 

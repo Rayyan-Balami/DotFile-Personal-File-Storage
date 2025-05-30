@@ -5,23 +5,27 @@ import { DocumentItem, FileSystemItem, FolderItem } from '@/types/folderDocumnet
 interface FileSystemState {
   items: Record<string, FileSystemItem>;
   rootItems: string[]; // IDs of root level items
+  forceReadOnly: Record<string, boolean>; // Track read-only state for folders
   
   // Actions
   moveItem: (itemId: string, targetId: string | null) => void;
   addItem: (item: FileSystemItem) => void;
   removeItem: (itemId: string) => void;
   updateItem: (itemId: string, updates: Partial<FileSystemItem>) => void;
+  setFolderReadOnly: (folderId: string, isReadOnly: boolean) => void;
   
   // Helpers
   getChildren: (folderId: string | null) => FileSystemItem[];
   getPath: (itemId: string) => FileSystemItem[];
   getFolderById: (folderId: string) => FolderItem | undefined;
   getItemById: (itemId: string) => FileSystemItem | undefined;
+  isFolderReadOnly: (folderId: string) => boolean;
 }
 
 export const useFileSystemStore = create<FileSystemState>((set, get) => ({
   items: {},
   rootItems: [],
+  forceReadOnly: {},
   
   moveItem: (itemId, targetId) => set(produce((state) => {
     const item = state.items[itemId];
@@ -94,6 +98,15 @@ export const useFileSystemStore = create<FileSystemState>((set, get) => ({
     }
   })),
   
+  setFolderReadOnly: (folderId, isReadOnly) => set(produce((state) => {
+    state.forceReadOnly[folderId] = isReadOnly;
+  })),
+
+  isFolderReadOnly: (folderId) => {
+    const state = get();
+    return state.forceReadOnly[folderId] || false;
+  },
+
   getChildren: (folderId) => {
     const state = get();
     if (folderId === null) {
