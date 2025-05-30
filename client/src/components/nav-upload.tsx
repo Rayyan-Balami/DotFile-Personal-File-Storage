@@ -14,6 +14,7 @@ import { createZipFromFiles } from "@/utils/uploadUtils";
 import { getDetailedErrorInfo } from "@/utils/apiErrorHandler";
 import { toast } from "sonner";
 import { useDialogStore } from "@/stores/useDialogStore";
+import { useEffect } from "react";
 
 export function NavUpload() {
   const params = useParams({ strict: false });
@@ -21,14 +22,26 @@ export function NavUpload() {
   const uploadFiles = useUploadFiles();
   const { addUpload, updateUploadProgress, setUploadStatus } = useUploadStore();
   const { openUploadChoiceDialog, openDuplicateDialog } = useDialogStore();
-  const isFolderReadOnly = useFileSystemStore(state => state.isFolderReadOnly);
+  
+  // Get the raw state to ensure reactivity when any folder's read-only state changes
+  const readOnlyStates = useFileSystemStore(state => state.forceReadOnly);
 
   const getCurrentFolderId = () => params.id || null;
   const currentFolderId = getCurrentFolderId();
+  console.log("Current Folder ID:", currentFolderId);
 
   const isInTrashContext = matches.some(match => match.routeId.includes('/(user)/trash'));
   const isInRecentContext = matches.some(match => match.routeId.includes('/(user)/recent'));
-  const isReadOnlyContext = (currentFolderId ? isFolderReadOnly(currentFolderId) : false) || isInTrashContext || isInRecentContext;
+  
+  // Using readOnlyStates in our calculation ensures the component re-renders
+  // when any folder's read-only state changes
+  const isReadOnlyContext = (currentFolderId ? readOnlyStates[currentFolderId] || false : false) || isInTrashContext || isInRecentContext;
+
+  // Logging for debugging
+  useEffect(() => {
+    console.log("NavUpload: currentFolderId changed to", currentFolderId);
+    console.log("NavUpload: isReadOnlyContext", isReadOnlyContext);
+  }, [currentFolderId, isReadOnlyContext]);
 
   const handleUpload = () => {
     if (isReadOnlyContext) return toast.error("Cannot upload files in this view");
