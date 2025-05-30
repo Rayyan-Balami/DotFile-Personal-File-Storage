@@ -31,6 +31,9 @@ export function GlobalDelete(props: ComponentProps<typeof Button>) {
       files: files.map(f => ({ id: f.id, name: f.name }))
     });
 
+    // Check if any selected items are in trash or have deleted ancestors
+    const hasDeletedItems = selectedItems.some(item => item.deletedAt || item.hasDeletedAncestor);
+    
     // Open a single dialog for all items
     const allIds = selectedItems.map(item => item.id);
     const allNames = selectedItems.map(item => `${item.name} (${item.cardType})`);
@@ -39,8 +42,8 @@ export function GlobalDelete(props: ComponentProps<typeof Button>) {
       allIds,
       folders.length > 0 && files.length > 0 ? 'folder' : folders.length > 0 ? 'folder' : 'document',
       allNames,
-      null,
-      false
+      hasDeletedItems ? 'deleted' : null,
+      hasDeletedItems
     );
   };
 
