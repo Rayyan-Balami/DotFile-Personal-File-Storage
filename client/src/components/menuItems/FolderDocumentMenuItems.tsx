@@ -28,7 +28,9 @@ const useMenuActions = ({
   cardType,
   title,
   id,
-}: Pick<MenuProps, "cardType" | "title" | "id">) => {
+  deletedAt,
+  hasDeletedAncestor,
+}: Pick<MenuProps, "cardType" | "title" | "id" | "deletedAt" | "hasDeletedAncestor">) => {
   const { openCreateFolderDialog, openRenameDialog, openDeleteDialog } =
     useDialogStore();
   const queryClient = useQueryClient();
@@ -177,7 +179,7 @@ const useMenuActions = ({
         if (cardType === "folder") openCreateFolderDialog(id);
       },
       rename: () => openRenameDialog(id, cardType, title),
-      delete: () => openDeleteDialog(id, cardType, title),
+      delete: () => openDeleteDialog(id, cardType, title, deletedAt, hasDeletedAncestor),
       restore: async () => {
         const mutation = cardType === "folder" ? restoreFolder : restoreFile;
         await mutation.mutateAsync(id, {
@@ -237,7 +239,7 @@ const MenuItems = React.memo(
       deletedAt = null,
       hasDeletedAncestor = false,
     } = props;
-    const handleAction = useMenuActions({ cardType, title, id });
+    const handleAction = useMenuActions({ cardType, title, id, deletedAt, hasDeletedAncestor });
     const isDeleted = deletedAt || hasDeletedAncestor;
 
     if (isDeleted) {
