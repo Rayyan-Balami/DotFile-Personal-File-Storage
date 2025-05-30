@@ -9,7 +9,7 @@ import { ContextMenuItem, ContextMenuSeparator } from "../ui/context-menu";
 import { useMatches } from "@tanstack/react-router";
 import { useFileSystemStore } from "@/stores/useFileSystemStore";
 
-export const ContextMenuItems = React.memo(({ parentId }: { parentId?: string | null } = {}) => {
+export const ContextMenuItems = React.memo(({ parentId, forceReadOnly = false }: { parentId?: string | null, forceReadOnly?: boolean } = {}) => {
   const { openCreateFolderDialog, openDeleteDialog } = useDialogStore();
   const uploadFiles = useUploadFiles();
   const { addUpload, updateUploadProgress, setUploadStatus } = useUploadStore();
@@ -22,7 +22,7 @@ export const ContextMenuItems = React.memo(({ parentId }: { parentId?: string | 
     !!items[parentId]?.deletedAt || 
     !!items[parentId]?.hasDeletedAncestor
   );
-  const isReadOnlyContext = isInTrashContext || isInRecentContext || isCurrentFolderDeleted;
+  const isReadOnlyContext = forceReadOnly || isInTrashContext || isInRecentContext || isCurrentFolderDeleted;
 
   const handleUpload = (files: File[], isFolder = false) => {
     if (files.length === 0) {

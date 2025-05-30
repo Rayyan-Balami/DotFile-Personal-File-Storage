@@ -13,7 +13,8 @@ function RouteComponent() {
   const { id } = Route.useParams();
   const { data: folderData } = useFolderById(id);
   const isDeletedFolder = folderData?.data?.folder?.deletedAt != null;
-  const { data, isLoading } = useFolderContents(id, { includeDeleted: isDeletedFolder });
+  const hasDeletedAncestor = folderData?.data?.folder?.hasDeletedAncestor;
+  const { data, isLoading } = useFolderContents(id, { includeDeleted: isDeletedFolder || hasDeletedAncestor });
   const folderContents = data?.data?.folderContents;
   
   // Sort items by name
@@ -36,6 +37,7 @@ function RouteComponent() {
       directoryName={folderContents?.pathSegments?.[folderContents.pathSegments.length - 1]?.name || 'Loading...'}
       currentPath={`/folder/${id}`}
       parentId={id}
+      forceReadOnly={isDeletedFolder || hasDeletedAncestor}
     />
   );
 }

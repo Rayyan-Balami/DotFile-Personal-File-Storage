@@ -60,6 +60,7 @@ export interface FolderResponseDto {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
+  hasDeletedAncestor?: boolean; // Add this line
 }
 
 /**

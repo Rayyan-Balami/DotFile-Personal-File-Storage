@@ -232,7 +232,13 @@ class FolderService {
       ]);
     }
     
-    return this.sanitizeFolder(folder);
+    // Check if any ancestor is deleted OR if the current folder itself is deleted
+    const hasDeletedAncestor = folder.deletedAt !== null || await this.hasDeletedAncestor(folderId);
+
+    return {
+      ...this.sanitizeFolder(folder),
+      hasDeletedAncestor
+    };
   }
 
   /**

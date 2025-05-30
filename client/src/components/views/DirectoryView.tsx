@@ -32,12 +32,14 @@ interface DirectoryViewProps {
   currentPath?: string;
   directoryName?: string;
   parentId?: string | null;
+  forceReadOnly?: boolean;
 }
 
 export default function DirectoryView({
   items = [],
   directoryName = "Directory",
   parentId = null,
+  forceReadOnly = false,
 }: DirectoryViewProps) {
   const navigate = useNavigate();
   const setVisibleItems = useSelectionStore((state) => state.setVisibleItems);
@@ -237,7 +239,7 @@ export default function DirectoryView({
               </ContextMenuItem>
             }
           >
-            <LazyGlobalMenuItems parentId={parentId} />
+            <LazyGlobalMenuItems parentId={parentId} forceReadOnly={forceReadOnly} />
           </Suspense>
         </ContextMenuContent>
       </ContextMenu>
