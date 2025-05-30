@@ -29,7 +29,6 @@ function RouteComponent() {
       items={sortedItems} 
       directoryName="Trash" 
       parentId={null}
-      showTrashActions={true}
     />
   );
 }

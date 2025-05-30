@@ -18,7 +18,7 @@ import { Route as userTrashImport } from './routes/(user)/trash'
 import { Route as userRecentImport } from './routes/(user)/recent'
 import { Route as authRegisterImport } from './routes/(auth)/register'
 import { Route as authLoginImport } from './routes/(auth)/login'
-import { Route as userFolderIdImport } from './routes/(user)/folder/$id'
+import { Route as userFolderIdImport } from './routes/(user)/folder.$id'
 
 // Create/Update Routes
 
@@ -274,7 +274,7 @@ export const routeTree = rootRoute
       "parent": "/(user)"
     },
     "/(user)/folder/$id": {
-      "filePath": "(user)/folder/$id.tsx",
+      "filePath": "(user)/folder.$id.tsx",
       "parent": "/(user)"
     }
   }

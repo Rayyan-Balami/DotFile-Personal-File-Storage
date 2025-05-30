@@ -36,7 +36,6 @@ function RouteComponent() {
       directoryName={folderContents?.pathSegments?.[folderContents.pathSegments.length - 1]?.name || 'Loading...'}
       currentPath={`/folder/${id}`}
       parentId={id}
-      showTrashActions={isDeletedFolder}
     />
   );
 }
