@@ -13,194 +13,165 @@ class Node {
 const huffman = {
   /**
    * Compress a Buffer using Huffman coding.
-   * Returns buffer with original length, frequency table, and encoded data.
-   * 
-   * @param data - Raw data buffer to compress
-   * @returns Compressed Buffer with metadata
+   * Returns compressed buffer or original if compression not beneficial.
    */
   compress(data: Buffer): Buffer {
     if (data.length === 0) return data;
-
-    // Store original length for decompression
-    const originalLength = Buffer.alloc(4);
-    originalLength.writeUInt32BE(data.length, 0);
 
     // Count frequency of each byte
     const freq = [...data].reduce((map, byte) =>
       map.set(byte, (map.get(byte) || 0) + 1), new Map<number, number>());
 
-    // Create initial nodes from frequency map
-    let nodes = [...freq.entries()].map(([byte, f]) => new Node(byte, f));
+    // If data has low entropy (few unique bytes), compression may not be beneficial
+    if (freq.size > data.length * 0.8) {
+      logger.debug('High entropy data, skipping compression');
+      return data;
+    }
 
-    // Edge case: single unique byte
-    if (nodes.length === 1) {
-      const byte = nodes[0].byte;
-      return Buffer.concat([
+    // Original length for decompression
+    const originalLength = Buffer.alloc(4);
+    originalLength.writeUInt32BE(data.length, 0);
+
+    // Single byte case optimization
+    if (freq.size === 1) {
+      const [[byte]] = [...freq.entries()];
+      const compressed = Buffer.concat([
         originalLength,
         Buffer.from(JSON.stringify([[byte, data.length]])),
-        Buffer.from([0xFF, 0xFF]),
-        Buffer.alloc(0)
+        Buffer.from([0xFF, 0xFF])
       ]);
+      
+      // Only use compression if it saves space
+      if (compressed.length < data.length) {
+        logger.debug(`Single-byte data compressed: ${data.length} -> ${compressed.length} bytes (${((compressed.length/data.length)*100).toFixed(1)}%)`);
+        return compressed;
+      }
+      return data;
     }
 
-    // Build Huffman tree by combining lowest frequency nodes
-    while (nodes.length > 1) {
-      nodes.sort((a, b) => a.freq - b.freq);
-      const [left, right] = nodes.splice(0, 2);
-      nodes.push(new Node(null, left.freq + right.freq, left, right));
-    }
-
-    // Generate binary codes for each byte
+    // Build Huffman tree
+    const root = this.buildTree(freq);
+    
+    // Generate codes and encode data
     const codes = new Map<number, string>();
     const traverse = (node: Node, code: string) => {
       if (node.byte !== null) codes.set(node.byte, code);
       if (node.left) traverse(node.left, code + '0');
       if (node.right) traverse(node.right, code + '1');
     };
-    traverse(nodes[0], '');
+    traverse(root, '');
 
-    // Encode data to bits string
-    let bits = '';
-    for (const byte of data) {
-      bits += codes.get(byte) || '';
-    }
-
-    // Pad bits to full byte length
+    // Convert to bit string and pad
+    let bits = [...data].map(byte => codes.get(byte)).join('');
     const padding = 8 - (bits.length % 8 || 8);
     bits = bits.padEnd(bits.length + padding, '0');
 
-    // Convert bits to bytes buffer
+    // Convert bits to bytes
     const encoded = Buffer.alloc(Math.ceil(bits.length / 8));
-    for (let i = 0; i < bits.length; i += 8)
-      encoded[i / 8] = parseInt(bits.substring(i, i + 8), 2);
+    for (let i = 0; i < bits.length; i += 8) {
+      encoded[i / 8] = parseInt(bits.slice(i, i + 8), 2);
+    }
 
-    // Compose output: original length + freq table + separator + encoded data
-    return Buffer.concat([
+    const compressed = Buffer.concat([
       originalLength,
       Buffer.from(JSON.stringify([...freq])),
-      Buffer.from([0xFF, 0xFF]), // separator marker
+      Buffer.from([0xFF, 0xFF]),
       encoded
     ]);
+
+    // Only use compression if it actually saves space
+    if (compressed.length >= data.length) {
+      logger.debug(`Compression not beneficial: ${data.length} -> ${compressed.length} bytes. Using original.`);
+      return data;
+    }
+
+    const ratio = ((compressed.length/data.length)*100).toFixed(1);
+    logger.debug(`Compressed successfully: ${data.length} -> ${compressed.length} bytes (${ratio}%)`);
+    return compressed;
   },
 
   /**
    * Decompress a Huffman compressed Buffer.
-   * Reads original length and frequency table, rebuilds tree, decodes data.
-   * 
-   * @param data - Compressed data buffer with metadata
-   * @returns Decompressed raw data buffer
-   * @throws Error if format invalid or decompression fails
    */
   decompress(data: Buffer): Buffer {
     if (data.length === 0) return data;
 
-    // Read original uncompressed length
-    const originalLength = data.readUInt32BE(0);
-
-    // Find separator marker (0xFF, 0xFF) after freq table
-    const sep = data.indexOf(0xFF, 4);
-    if (sep === -1 || data[sep + 1] !== 0xFF)
-      throw new Error('Invalid compressed data format');
-
-    // Parse frequency table JSON string
-    const freqData = data.subarray(4, sep).toString();
-    const freq = new Map<number, number>(JSON.parse(freqData));
-
-    // Extract encoded data buffer after separator
-    const encoded = data.subarray(sep + 2);
-
-    // Single-byte edge case: repeated byte data
-    if (freq.size === 1 && encoded.length === 0) {
-      const [[byte, count]] = [...freq.entries()];
-      return Buffer.alloc(count, byte);
-    }
-
-    // Rebuild Huffman tree from freq map
-    const root = this.buildTree(freq);
-
-    // Convert bytes to bit string for decoding
-    let bits = '';
-    for (const byte of encoded)
-      bits += byte.toString(2).padStart(8, '0');
-
-    // Decode bits by traversing tree nodes
-    const result: number[] = [];
-    let node = root;
-
-    for (let i = 0; i < bits.length && result.length < originalLength; i++) {
-      node = bits[i] === '0' ? node.left! : node.right!;
-      if (node.byte !== null) {
-        result.push(node.byte);
-        node = root;
-        if (result.length >= originalLength) break;
+    try {
+      // Check if this is actually compressed data
+      const sep = data.indexOf(0xFF, 4);
+      if (sep === -1 || data[sep + 1] !== 0xFF) {
+        logger.debug('Not a compressed buffer, returning as is');
+        return data;
       }
-    }
 
-    return Buffer.from(result);
+      const originalLength = data.readUInt32BE(0);
+      const freqData = data.subarray(4, sep).toString();
+      const freq = new Map<number, number>(JSON.parse(freqData));
+      const encoded = data.subarray(sep + 2);
+
+      // Handle single byte case
+      if (freq.size === 1) {
+        const [[byte, count]] = [...freq.entries()];
+        return Buffer.alloc(count, byte);
+      }
+
+      // Rebuild tree and decode
+      const root = this.buildTree(freq);
+      let bits = [...encoded].map(byte => byte.toString(2).padStart(8, '0')).join('');
+      const result: number[] = [];
+      let node = root;
+
+      for (let i = 0; result.length < originalLength && i < bits.length; i++) {
+        node = bits[i] === '0' ? node.left! : node.right!;
+        if (node.byte !== null) {
+          result.push(node.byte);
+          node = root;
+        }
+      }
+
+      const decompressed = Buffer.from(result);
+      logger.debug(`Decompressed successfully: ${data.length} -> ${decompressed.length} bytes`);
+      return decompressed;
+
+    } catch (error) {
+      logger.debug('Decompression failed, returning original buffer');
+      return data;
+    }
   },
 
-  /**
-   * Build Huffman tree from byte frequencies.
-   * Combines lowest frequency nodes until one root node remains.
-   * 
-   * @param freq - Map of byte values to their frequencies
-   * @returns Root node of Huffman tree
-   */
+  // Build Huffman tree from frequency map
   buildTree(freq: Map<number, number>): Node {
     let nodes = [...freq.entries()].map(([byte, f]) => new Node(byte, f));
-
-    // Handle single unique byte by creating root with one child
-    if (nodes.length === 1) {
-      const root = new Node(null, nodes[0].freq);
-      root.left = nodes[0];
-      return root;
-    }
-
     while (nodes.length > 1) {
       nodes.sort((a, b) => a.freq - b.freq);
       const [left, right] = nodes.splice(0, 2);
       nodes.push(new Node(null, left.freq + right.freq, left, right));
     }
-
     return nodes[0];
   }
 };
 
 /**
- * Compress buffer with Huffman coding.
- * Returns compressed buffer or original if compression fails.
- * 
- * @param data - Input buffer to compress
- * @returns Compressed buffer
+ * Public compression interface with error handling
  */
 function compressBuffer(data: Buffer): Buffer {
-  if (data.length === 0) return data;
-
   try {
-    const result = huffman.compress(data);
-    logger.debug(`Compressed ${data.length} bytes to ${result.length} bytes`);
-    return result;
+    return huffman.compress(data);
   } catch (error) {
-    logger.error('Error during compression:', error);
-    return data; // fallback to original data
+    logger.error('Compression failed:', error);
+    return data;
   }
 }
 
 /**
- * Decompress buffer with Huffman coding.
- * Throws error if decompression fails.
- * 
- * @param data - Compressed buffer to decompress
- * @returns Decompressed buffer
+ * Public decompression interface with error handling
  */
 function decompressBuffer(data: Buffer): Buffer {
-  if (data.length === 0) return data;
-
   try {
     return huffman.decompress(data);
   } catch (error) {
-    logger.error('Error during decompression:', error);
-    throw new Error('Failed to decompress data');
+    logger.error('Decompression failed:', error);
+    return data;
   }
 }
 
