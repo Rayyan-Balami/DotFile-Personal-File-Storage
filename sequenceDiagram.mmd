@@ -1,0 +1,68 @@
+sequenceDiagram
+    actor User
+    participant Client
+    participant UserAPI
+    participant FolderAPI
+    participant FileAPI
+    participant DB
+    participant Storage
+
+    %% User Authentication
+    User->>Client: Login
+    activate Client
+    Client->>UserAPI: Submit Credentials
+    activate UserAPI
+    UserAPI->>DB: Verify Credentials
+    activate DB
+    DB-->>UserAPI: User Record
+    deactivate DB
+    UserAPI-->>Client: Auth Token
+    deactivate UserAPI
+    deactivate Client
+
+    %% Folder Navigation
+    User->>Client: Open Folder
+    activate Client
+    Client->>FolderAPI: Request Folder Contents
+    activate FolderAPI
+    FolderAPI->>DB: Fetch Folder and File Data
+    activate DB
+    DB-->>FolderAPI: Folder Contents
+    deactivate DB
+    FolderAPI-->>Client: Return Contents
+    deactivate FolderAPI
+    deactivate Client
+
+    %% File Upload
+    User->>Client: Upload File
+    activate Client
+    Client->>FileAPI: Send File
+    activate FileAPI
+    FileAPI->>Storage: Save File Content
+    activate Storage
+    deactivate Storage
+    FileAPI->>DB: Store File Metadata
+    activate DB
+    DB-->>FileAPI: Confirm Saved
+    deactivate DB
+    FileAPI-->>Client: Upload Successful
+    deactivate FileAPI
+    deactivate Client
+
+    %% File Download
+    User->>Client: Download File
+    activate Client
+    Client->>FileAPI: Request File
+    activate FileAPI
+    FileAPI->>DB: Retrieve File Metadata
+    activate DB
+    DB-->>FileAPI: File Location
+    deactivate DB
+    FileAPI->>Storage: Fetch File Content
+    activate Storage
+    Storage-->>FileAPI: File Data
+    deactivate Storage
+    FileAPI-->>Client: Deliver File
+    deactivate FileAPI
+    Client-->>User: Display File
+    deactivate Client

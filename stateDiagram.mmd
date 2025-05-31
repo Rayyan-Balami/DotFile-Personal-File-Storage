@@ -1,0 +1,19 @@
+stateDiagram-v2
+    [*] --> LoggedOut : Start
+
+    LoggedOut --> LoggingIn : Submit Credentials
+    LoggingIn --> Authenticated : Credentials Verified
+    LoggingIn --> LoggedOut : Login Failed (Retry or Exit)
+
+    Authenticated --> Browsing : Access Folders & Files
+
+    Browsing --> Uploading : Upload File
+    Browsing --> Downloading : Download File
+
+    Uploading --> Browsing : Upload Success
+    Uploading --> Error : Upload Failed
+
+    Downloading --> Browsing : Download Success
+    Downloading --> Error : Download Failed
+
+    Error --> Browsing : Retry or Back

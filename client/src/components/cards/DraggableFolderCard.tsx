@@ -279,7 +279,7 @@ export const DraggableFolderCard = memo(
           )}
         />
         {!isDragging && (isDraggingOver || (isOver && item.cardType === 'folder')) && (
-          <div className="absolute inset-0 bg-primary/10 pointer-events-none z-50 border-2 border-primary border-dashed rounded-md"/>
+          <div className="absolute inset-0 bg-primary/10 pointer-events-none z-40 border-2 border-primary border-dashed rounded-md"/>
         )}
       </div>
     );
