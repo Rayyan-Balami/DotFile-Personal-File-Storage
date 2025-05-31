@@ -183,7 +183,7 @@ class FileService {
     isDeleted?: boolean
   ): Promise<FileResponseDto[]> {
     const files = await fileDao.getUserFilesByFolders(userId, folderId, isDeleted);
-    logger.info("User files by folders:", files);
+    // logger.info("User files by folders:", files);
 
     // Return empty array instead of throwing error when no files are found
     return files.map(file => this.sanitizeFile(file));
