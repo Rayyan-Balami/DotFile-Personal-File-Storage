@@ -76,8 +76,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <Database className="size-4 text-primary-foreground" />
                 </section>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">.File</span>
-                  <span className="truncate text-xs">Enterprise</span>
+                  <span className="truncate font-medium">DOT FILE</span>
+                  <span className="truncate text-xs">Personal Storage</span>
                 </div>
               </Link>
             </SidebarMenuButton>
