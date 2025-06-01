@@ -15,7 +15,7 @@ function RouteComponent() {
             <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <GalleryVerticalEnd className="size-4" />
             </div>
-            Acme Inc.
+            .File.
           </Link>
         </div>
         <div className="flex flex-1 justify-center overflow-y-scroll no-scrollbar">
