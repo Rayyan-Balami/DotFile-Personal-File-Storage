@@ -2,7 +2,6 @@ import { DragOverlay as DndKitDragOverlay } from '@dnd-kit/core';
 import FolderDocumentCard from '../cards/FolderDocumentCard';
 import { useFileSystemDnd } from './FileSystemDndContext';
 import { FileSystemItem, FolderItem, DocumentItem } from '@/types/folderDocumnet';
-import { useEffect, useState } from 'react';
 import { File, Folder } from 'lucide-react';
 
 // Define a type for drag data
