@@ -13,7 +13,7 @@ interface DragData {
 }
 
 export function DragOverlay() {
-  const { activeId, draggedItems, active } = useFileSystemDnd();
+  const { activeId, draggedItems, active, isOutsideDirectory } = useFileSystemDnd();
   
   if (!activeId || !draggedItems.length || !active) {
     return null;
@@ -61,13 +61,16 @@ export function DragOverlay() {
   
   const variant = data.variant || "large";
   
+  // Scale down when outside directory, scale to 90% when inside
+  const scaleClass = isOutsideDirectory ? "scale-40" : "scale-90";
+  
   return (
     <DndKitDragOverlay>
       <div className="pointer-events-none">
         <FolderDocumentCard
           item={item}
           variant={variant}
-          className="shadow-lg ring-1 ring-primary/30 scale-90"
+          className={`shadow-lg ring-1 ring-primary/30 ${scaleClass}`}
         />
         
         {draggedItems.length > 1 && (

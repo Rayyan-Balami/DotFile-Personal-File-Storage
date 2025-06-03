@@ -141,16 +141,16 @@ export default function DirectoryView({
 
   return (
     <FileDropZone>
-      <ContextMenu modal={false}>
-        <ContextMenuTrigger asChild>
-          <section className="flex flex-1 flex-col gap-4 md:gap-6 p-4 md:p-6">
-            <div className="mb-2">
+            <div className="p-4 pb-0 md:p-6 md:pb-0">
               <h1 className="text-2xl font-bold">{directoryName}</h1>
               <p className="text-muted-foreground">
                 {sortedItems.length}{" "}
                 {sortedItems.length === 1 ? "item" : "items"}
               </p>
             </div>
+      <ContextMenu modal={false}>
+        <ContextMenuTrigger asChild>
+          <section className="flex flex-1 flex-col gap-4 md:gap-6 p-4 md:p-6 directory-view-container">
 
             {folderArrangement === "separated" ? (
               <>
