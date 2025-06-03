@@ -2,6 +2,8 @@ import { DragOverlay as DndKitDragOverlay } from '@dnd-kit/core';
 import FolderDocumentCard from '../cards/FolderDocumentCard';
 import { useFileSystemDnd } from './FileSystemDndContext';
 import { FileSystemItem, FolderItem, DocumentItem } from '@/types/folderDocumnet';
+import { useEffect, useState } from 'react';
+import { File, Folder } from 'lucide-react';
 
 // Define a type for drag data
 interface DragData {
@@ -13,7 +15,7 @@ interface DragData {
 }
 
 export function DragOverlay() {
-  const { activeId, draggedItems, active, isOutsideDirectory } = useFileSystemDnd();
+  const { activeId, draggedItems, active, isOutsideDirectory, position } = useFileSystemDnd();
   
   if (!activeId || !draggedItems.length || !active) {
     return null;
@@ -60,19 +62,62 @@ export function DragOverlay() {
   );
   
   const variant = data.variant || "large";
+
+  // Render minimal card when outside directory
+  if (isOutsideDirectory) {
+    return (
+      <div
+        className="pointer-events-none fixed bg-background/95 backdrop-blur-sm border rounded-lg shadow-lg px-3 py-2 flex items-center gap-2 z-[9999]"
+        style={{
+          left: position.x,
+          top: position.y,
+          position: 'fixed',
+          maxWidth: '150px',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}
+      >
+        {item.cardType === 'folder' ? (
+          <Folder className="w-4 h-4 shrink-0" />
+        ) : (
+          <File className="w-4 h-4 shrink-0" />
+        )}
+        <span className="text-sm font-medium truncate">{item.name}</span>
+        {draggedItems.length > 1 && (
+          <div className="bg-primary text-primary-foreground text-xs font-medium px-2 py-0.5 rounded-full shadow-sm">
+            +{draggedItems.length - 1}
+          </div>
+        )}
+      </div>
+    );
+  }
   
-  // Scale down when outside directory, scale to 90% when inside
-  const scaleClass = isOutsideDirectory ? "scale-40" : "scale-90";
-  
+  // Render normal card when inside directory with manual transform
   return (
-    <DndKitDragOverlay>
-      <div className="pointer-events-none">
+    <DndKitDragOverlay
+      dropAnimation={null}
+      style={{
+        transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        margin: 0,
+        pointerEvents: 'none',
+        zIndex: 9999,
+      }}
+    >
+      <div 
+        className="relative"
+        style={{
+          // transform: 'translate(-50%, -50%)',
+        }}
+      >
         <FolderDocumentCard
           item={item}
           variant={variant}
-          className={`shadow-lg ring-1 ring-primary/30 ${scaleClass}`}
+          className="shadow-lg ring-1 ring-primary/30 scale-90"
         />
-        
         {draggedItems.length > 1 && (
           <div className="absolute top-1 right-0 bg-primary text-primary-foreground text-xs font-medium px-2 py-0.5 rounded-full shadow-sm">
             +{draggedItems.length - 1}
