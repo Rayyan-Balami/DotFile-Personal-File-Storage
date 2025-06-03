@@ -28,7 +28,7 @@ export function NavUpload() {
 
   const getCurrentFolderId = () => params.id || null;
   const currentFolderId = getCurrentFolderId();
-  console.log("Current Folder ID:", currentFolderId);
+  // console.log("Current Folder ID:", currentFolderId);
 
   const isInTrashContext = matches.some(match => match.routeId.includes('/(user)/trash'));
   const isInRecentContext = matches.some(match => match.routeId.includes('/(user)/recent'));
@@ -39,8 +39,8 @@ export function NavUpload() {
 
   // Logging for debugging
   useEffect(() => {
-    console.log("NavUpload: currentFolderId changed to", currentFolderId);
-    console.log("NavUpload: isReadOnlyContext", isReadOnlyContext);
+    // console.log("NavUpload: currentFolderId changed to", currentFolderId);
+    // console.log("NavUpload: isReadOnlyContext", isReadOnlyContext);
   }, [currentFolderId, isReadOnlyContext]);
 
   const handleUpload = () => {
