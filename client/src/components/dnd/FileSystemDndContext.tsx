@@ -434,10 +434,20 @@ export function FileSystemDndProvider({ children }: FileSystemDndProviderProps) 
     if (overItem?.cardType === 'folder') {
       // Log the drop operation for monitoring
       console.log('📦 Drop completed:', {
-        items: draggedItems.map(item => item.name),
-        target: overItem.name,
-        targetId: overItem.id,
-        dropType: overId.startsWith('breadcrumb-dropdown-') ? 'breadcrumb' : 'folder'
+        movedItems: draggedItems.map(item => ({
+          id: item.id,
+          name: item.name,
+          type: item.cardType,
+          originalParent: item.cardType === 'folder' ? item.parent : item.folder?.id || null
+        })),
+        target: {
+          id: overItem.id,
+          name: overItem.name,
+          type: overItem.cardType,
+          parent: overItem.parent
+        },
+        dropType: overId.startsWith('breadcrumb-dropdown-') ? 'breadcrumb' : 'folder',
+        dropTargetId: overId
       });
       
       // Move all dragged items to the target folder
