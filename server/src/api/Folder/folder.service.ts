@@ -437,14 +437,10 @@ class FolderService {
     folderId: string | null, 
     userId: string
   ): Promise<PathSegment[]> {
-    // Always start with root
-    const pathSegments: PathSegment[] = [
-      { id: null, name: "Root" }
-    ];
-    
+    // If we're getting trash contents, use a different path
     if (!folderId) {
-      // If we're at root, just return the root segment
-      return pathSegments;
+      // If we're at root, return the root segment
+      return [{ id: null, name: "Root" }];
     }
     
     let currentFolder = await folderDao.getFolderById(folderId, true); // Include deleted folders
@@ -452,8 +448,88 @@ class FolderService {
     
     if (!currentFolder) {
       logger.info("Initial folder not found");
-      return pathSegments;
+      return [{ id: null, name: "Root" }];
     }
+
+    // Check if the current folder is deleted or has deleted ancestors
+    const isDeleted = currentFolder.deletedAt !== null;
+    const hasDeletedAncestor = isDeleted || await this.hasDeletedAncestor(folderId);
+    
+    // If the folder or any of its ancestors is in trash, we should show Trash in the breadcrumb path
+    if (isDeleted || hasDeletedAncestor) {
+      const pathSegments: PathSegment[] = [
+        { id: null, name: "Trash" }
+      ];
+      
+      // For deleted folders, only show the folder itself without ancestors
+      if (isDeleted) {
+        pathSegments.push({
+          id: currentFolder._id.toString(),
+          name: currentFolder.name
+        });
+        
+        logger.info("Folder is in trash, path segments:", pathSegments);
+        return pathSegments;
+      }
+
+      // For folders with deleted ancestors, create path starting from the Trash
+      const folderSegments: PathSegment[] = [];
+      
+      // Add the current folder
+      folderSegments.unshift({
+        id: currentFolder._id.toString(),
+        name: currentFolder.name
+      });
+      
+      // Find the first deleted ancestor to represent the trash root
+      let trashRootFolder = null;
+      let tempFolder = currentFolder;
+      
+      while (tempFolder && tempFolder.parent) {
+        // Get parent folder
+        const parentId = typeof tempFolder.parent === 'string' ? 
+          tempFolder.parent : 
+          (tempFolder.parent._id ? tempFolder.parent._id.toString() : tempFolder.parent.toString());
+        
+        const parentFolder = await folderDao.getFolderById(parentId, true);
+        
+        if (!parentFolder) {
+          break;
+        }
+
+        // If we found a deleted parent, this is our trash root
+        if (parentFolder.deletedAt !== null) {
+          trashRootFolder = parentFolder;
+          break;
+        }
+        
+        // Add this ancestor to the path and continue up
+        folderSegments.unshift({
+          id: parentFolder._id.toString(),
+          name: parentFolder.name
+        });
+        
+        tempFolder = parentFolder;
+      }
+      
+      // Add the trash root folder if found
+      if (trashRootFolder) {
+        pathSegments.push({
+          id: trashRootFolder._id.toString(),
+          name: trashRootFolder.name
+        });
+      }
+      
+      // Add the rest of the folders
+      const finalPath = [...pathSegments, ...folderSegments];
+      logger.info("Final trash path segments:", finalPath);
+      return finalPath;
+    }
+    
+    // Regular case: folder is not in trash
+    const pathSegments: PathSegment[] = [
+      { id: null, name: "Root" }
+    ];
     
     const folderSegments: PathSegment[] = [];
     
