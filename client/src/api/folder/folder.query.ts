@@ -104,9 +104,12 @@ export const useUpdateFolder = () => {
     mutationFn: ({ folderId, data }: { folderId: string, data: UpdateFolderDto }) => 
       folderApi.updateFolder(folderId, data).then((res) => res.data),
     onSuccess: (_, variables) => {
+      // Invalidate the specific folder's details
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.detail(variables.folderId),
       });
+      
+      // Invalidate the folder's contents
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.contents(variables.folderId),
       });
@@ -118,9 +121,24 @@ export const useUpdateFolder = () => {
         });
       }
       
-      // Always invalidate all folder contents to update the UI cards
+      // Always invalidate all folder-related queries to ensure UI updates everywhere
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.all,
+      });
+      
+      // Invalidate root contents specifically
+      queryClient.invalidateQueries({
+        queryKey: FOLDER_KEYS.contents(),
+      });
+      
+      // Invalidate any parent folder contents that might contain this folder
+      queryClient.invalidateQueries({
+        queryKey: ["folders", "contents"],
+      });
+      
+      // Also invalidate pins queries in case this folder is pinned
+      queryClient.invalidateQueries({
+        queryKey: ["folders", "pins"],
       });
     },
   });

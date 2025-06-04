@@ -206,7 +206,8 @@ const FileOrFolderIcon = React.memo(
       prevProps.cardType === nextProps.cardType &&
       prevProps.variant === nextProps.variant &&
       prevProps.fileId === nextProps.fileId &&
-      prevProps.fileExtension === nextProps.fileExtension
+      prevProps.fileExtension === nextProps.fileExtension &&
+      prevProps.color === nextProps.color
     );
   }
 );
@@ -638,6 +639,9 @@ const FolderDocumentCard = React.memo(
   },
   (prevProps, nextProps) => {
     // Deep comparison for critical props
+    const prevFolder = prevProps.item.cardType === 'folder' ? prevProps.item as FolderItem : null;
+    const nextFolder = nextProps.item.cardType === 'folder' ? nextProps.item as FolderItem : null;
+    
     return (
       prevProps.item.id === nextProps.item.id &&
       prevProps.variant === nextProps.variant &&
@@ -648,7 +652,9 @@ const FolderDocumentCard = React.memo(
       prevProps.item.deletedAt === nextProps.item.deletedAt &&
       prevProps.className === nextProps.className &&
       prevProps.alternateBg === nextProps.alternateBg &&
-      prevProps.onOpen === nextProps.onOpen
+      prevProps.onOpen === nextProps.onOpen &&
+      // Check folder color if it's a folder
+      (prevFolder && nextFolder ? prevFolder.color === nextFolder.color : true)
     );
   }
 );

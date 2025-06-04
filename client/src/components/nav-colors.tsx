@@ -54,12 +54,12 @@ const ColorGrid = ({ colors }: { colors: ColorOption[] }) => (
 export function NavColors() {
   const colors = Object.keys(colorMap) as ColorOption[];
   const letterColors = [
-    "cyan",
-    "orange",
+    "fire",
+    "tealWave",
     "default",
-    "ocean",
-    "coral",
-    "rose",
+    "deepSea",
+    "coralPop",
+    "rosebud",
   ] as ColorOption[];
   const [isOpen, setIsOpen] = useLocalStorage("nav-colors-open", true);
   const { state, isMobile } = useSidebar();
