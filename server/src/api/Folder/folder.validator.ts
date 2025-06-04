@@ -23,7 +23,7 @@ const folderParentSchema = z.string().nullable().optional();
 export const createFolderSchema = z.object({
   name: folderNameSchema,
   parent: folderParentSchema,
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format").optional(),
+  color: z.string().optional(),
   duplicateAction: z.enum(["replace", "keepBoth"]).optional(),
 });
 
@@ -31,7 +31,7 @@ export const createFolderSchema = z.object({
  * Optional folder property updates
  */
 export const updateFolderSchema = z.object({
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color format").optional(),
+  color: z.string().optional(),
   isPinned: z.boolean().optional(),
 });
 

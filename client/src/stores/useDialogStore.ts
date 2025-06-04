@@ -41,6 +41,14 @@ interface DialogState {
   openUploadChoiceDialog: (callback: (choice: "files" | "folder") => void) => void;
   closeUploadChoiceDialog: () => void;
 
+  // Folder Color Dialog
+  folderColorDialogOpen: boolean;
+  folderColorItemId: string | null;
+  folderColorItemName: string | null;
+  folderColorCurrentColor: string | null;
+  openFolderColorDialog: (id: string, name: string, currentColor?: string) => void;
+  closeFolderColorDialog: () => void;
+
   // Helper to close all dialogs
   closeAllDialogs: () => void;
 }
@@ -162,6 +170,31 @@ export const useDialogStore = create<DialogState>((set) => ({
     uploadChoiceCallback: null
   })),
 
+  // Folder Color Dialog
+  folderColorDialogOpen: false,
+  folderColorItemId: null,
+  folderColorItemName: null,
+  folderColorCurrentColor: null,
+  openFolderColorDialog: (id: string, name: string, currentColor = "default") => set((state) => ({
+    ...state,
+    folderColorDialogOpen: true,
+    folderColorItemId: id,
+    folderColorItemName: name,
+    folderColorCurrentColor: currentColor,
+    createFolderOpen: false,
+    renameDialogOpen: false,
+    duplicateDialogOpen: false,
+    deleteDialogOpen: false,
+    uploadChoiceDialogOpen: false
+  })),
+  closeFolderColorDialog: () => set((state) => ({
+    ...state,
+    folderColorDialogOpen: false,
+    folderColorItemId: null,
+    folderColorItemName: null,
+    folderColorCurrentColor: null
+  })),
+
   closeAllDialogs: () => set((state) => ({
     ...state,
     createFolderOpen: false,
@@ -169,6 +202,7 @@ export const useDialogStore = create<DialogState>((set) => ({
     duplicateDialogOpen: false,
     deleteDialogOpen: false,
     uploadChoiceDialogOpen: false,
+    folderColorDialogOpen: false,
     createFolderParentId: null,
     renameItemId: null,
     renameItemCardType: null,
@@ -177,6 +211,9 @@ export const useDialogStore = create<DialogState>((set) => ({
     duplicateItemType: null,
     duplicateItemAction: null,
     uploadChoiceCallback: null,
+    folderColorItemId: null,
+    folderColorItemName: null,
+    folderColorCurrentColor: null,
     deleteItemId: null,
     deleteItemType: null,
     deleteItemName: null,

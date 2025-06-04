@@ -272,6 +272,7 @@ const CardContent = React.memo(
     deletedAt,
     createdAt,
     hasDeletedAncestor,
+    color,
   }: {
     id: string;
     title: string;
@@ -285,6 +286,7 @@ const CardContent = React.memo(
     deletedAt?: Date | null;
     createdAt?: string | Date;
     hasDeletedAncestor?: boolean;
+    color?: string;
   }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const isMobile = useIsMobile();
@@ -321,6 +323,7 @@ const CardContent = React.memo(
                     : deletedAt
                 }
                 hasDeletedAncestor={hasDeletedAncestor}
+                color={color}
               />
             </Suspense>
           </DropdownMenuContent>
@@ -404,7 +407,8 @@ const CardContent = React.memo(
       prevProps.extension === nextProps.extension &&
       prevProps.deletedAt === nextProps.deletedAt &&
       prevProps.createdAt === nextProps.createdAt &&
-      prevProps.hasDeletedAncestor === nextProps.hasDeletedAncestor
+      prevProps.hasDeletedAncestor === nextProps.hasDeletedAncestor &&
+      prevProps.color === nextProps.color
     );
   }
 );
@@ -604,6 +608,7 @@ const FolderDocumentCard = React.memo(
                   : String(createdAt)
               }
               hasDeletedAncestor={item.hasDeletedAncestor ?? false}
+              color={color}
             />
           </div>
         </ContextMenuTrigger>
@@ -624,6 +629,7 @@ const FolderDocumentCard = React.memo(
                 deletedAt instanceof Date ? deletedAt.toISOString() : deletedAt
               }
               hasDeletedAncestor={item.hasDeletedAncestor ?? false}
+              color={color}
             />
           </Suspense>
         </ContextMenuContent>

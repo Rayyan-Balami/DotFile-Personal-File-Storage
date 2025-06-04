@@ -6,6 +6,7 @@ import { RenameDialog } from "./RenameDialog";
 import { DuplicateItemDialog } from "./DuplicateItemDialog";
 import { DeleteDialog } from "./DeleteDialog";
 import { UploadChoiceDialog } from "./UploadChoiceDialog";
+import FolderColorDialog from "./FolderColorDialog";
 
 export function DialogProvider() {
   const { 
@@ -17,7 +18,8 @@ export function DialogProvider() {
     duplicateItemAction,
     closeDuplicateDialog,
     deleteDialogOpen,
-    uploadChoiceDialogOpen
+    uploadChoiceDialogOpen,
+    folderColorDialogOpen
   } = useDialogStore();
 
   return (
@@ -37,6 +39,7 @@ export function DialogProvider() {
       )}
       {deleteDialogOpen && <DeleteDialog />}
       {uploadChoiceDialogOpen && <UploadChoiceDialog />}
+      {folderColorDialogOpen && <FolderColorDialog />}
     </>
   );
 }

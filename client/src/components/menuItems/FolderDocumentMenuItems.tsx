@@ -22,6 +22,7 @@ interface MenuProps {
   isPinned?: boolean;
   deletedAt?: string | null;
   hasDeletedAncestor?: boolean;
+  color?: string;
 }
 
 const useMenuActions = ({
@@ -30,8 +31,9 @@ const useMenuActions = ({
   id,
   deletedAt,
   hasDeletedAncestor,
-}: Pick<MenuProps, "cardType" | "title" | "id" | "deletedAt" | "hasDeletedAncestor">) => {
-  const { openCreateFolderDialog, openRenameDialog, openDeleteDialog } =
+  color,
+}: Pick<MenuProps, "cardType" | "title" | "id" | "deletedAt" | "hasDeletedAncestor" | "color">) => {
+  const { openCreateFolderDialog, openRenameDialog, openDeleteDialog, openFolderColorDialog } =
     useDialogStore();
   const queryClient = useQueryClient();
   const restoreFolder = useRestoreFolder();
@@ -193,6 +195,9 @@ const useMenuActions = ({
       },
       pin: () => handlePin(true),
       unpin: () => handlePin(false),
+      color: () => {
+        if (cardType === "folder") openFolderColorDialog(id, title, color);
+      },
       open: () =>
         navigate({ to: `/${cardType === "folder" ? "folder" : "file"}/${id}` }),
       "open-new-tab": () => {
@@ -238,8 +243,9 @@ const MenuItems = React.memo(
       isPinned = false,
       deletedAt = null,
       hasDeletedAncestor = false,
+      color = "default",
     } = props;
-    const handleAction = useMenuActions({ cardType, title, id, deletedAt, hasDeletedAncestor });
+    const handleAction = useMenuActions({ cardType, title, id, deletedAt, hasDeletedAncestor, color });
     const isDeleted = deletedAt || hasDeletedAncestor;
 
     if (isDeleted) {
@@ -247,7 +253,7 @@ const MenuItems = React.memo(
         <>
           <Item onClick={() => handleAction("open")}>Open</Item>
           <Item onClick={() => handleAction("open-new-tab")}>
-            Open in new tab
+            Open in New Tab
           </Item>
           <Separator />
           <Item
@@ -263,7 +269,7 @@ const MenuItems = React.memo(
                 onClick={() => handleAction("restore")}
                 className="text-green-600 focus:text-green-600 focus:bg-green-700/20"
               >
-                Put back
+                Put Back
               </Item>
               <Separator />
             </>
@@ -282,13 +288,18 @@ const MenuItems = React.memo(
       <>
         <Item onClick={() => handleAction("open")}>Open</Item>
         <Item onClick={() => handleAction("open-new-tab")}>
-          Open in new tab
+          Open in New Tab
         </Item>
         <Item onClick={() => handleAction("rename")}>Rename</Item>
         <Separator />
         <Item onClick={() => handleAction(isPinned ? "unpin" : "pin")}>
           {isPinned ? "Unpin" : "Pin"}
         </Item>
+        {cardType === "folder" && (
+          <Item onClick={() => handleAction("color")}>
+            Color
+          </Item>
+        )}
         <Separator />
         <Item
           onClick={() => handleAction("info")}
@@ -310,11 +321,11 @@ const MenuItems = React.memo(
       return (
         <>
           <Item onClick={() => handleAction("create-folder")}>
-            Create new folder
+            New Folder
           </Item>
-          <Item onClick={() => handleAction("upload-file")}>Upload file</Item>
+          <Item onClick={() => handleAction("upload-file")}>Upload File</Item>
           <Item onClick={() => handleAction("upload-folder")}>
-            Upload folder
+            Upload Folder
           </Item>
           <Separator />
           {commonItems}
