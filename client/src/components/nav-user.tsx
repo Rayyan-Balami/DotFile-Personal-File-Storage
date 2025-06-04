@@ -68,7 +68,7 @@ export function NavUser() {
         <DropdownMenuTrigger asChild>
           <SidebarMenuButton
             size="lg"
-            tooltip={"Your Account"}
+            tooltip={"You"}
             className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground [&>svg]:size-4"
           >
             <Avatar className="h-8 w-8 rounded-lg">

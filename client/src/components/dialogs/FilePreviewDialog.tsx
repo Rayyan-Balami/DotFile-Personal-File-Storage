@@ -287,12 +287,12 @@ export default function FilePreviewDialog() {
 
     if (mimeType.startsWith("audio/")) {
       return (
-        <div className="flex flex-col items-center justify-center h-64 bg-purple-50 rounded-lg p-8">
-          <Music className="w-16 h-16 text-purple-500 mb-4" />
-          <h3 className="text-lg font-medium text-purple-700 mb-4">
+        <div className="flex flex-col items-center justify-center size-full bg-primary/80 rounded-lg p-8 gap-12">
+          <Music className="w-16 h-16 text-primary-foreground" />
+          <h3 className="text-lg font-medium text-primary-foreground">
             {name}.{extension}
           </h3>
-          <audio controls className="w-full max-w-md">
+          <audio controls className="w-full max-w-lg">
             <source src={fileUrl} type={mimeType} />
             Your browser does not support the audio element.
           </audio>

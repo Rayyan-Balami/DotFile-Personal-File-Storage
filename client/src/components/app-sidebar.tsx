@@ -25,8 +25,9 @@ import { Link } from "@tanstack/react-router";
 import { NavColors } from "./nav-colors";
 import { NavPins } from "./nav-pins";
 import { Button } from "./ui/button";
-import { VITE_APP_NAME, VITE_APP_VERSION } from "@/config/constants";
+import { VITE_APP_DESCRIPTION, VITE_APP_NAME, VITE_APP_VERSION } from "@/config/constants";
 import { NavUpload } from "./nav-upload";
+import { Logo } from "./logo";
 
 const data = {
   navMain: [
@@ -70,14 +71,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           className={state === "collapsed" && !isMobile ? "gap-2" : ""}
         >
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild tooltip=".File">
+            <SidebarMenuButton size="lg" asChild tooltip={VITE_APP_NAME}>
               <Link to="/">
-                <section className="bg-primary text-white flex aspect-square size-8 items-center justify-center rounded-lg font-serif text-lg">
-                  <Database className="size-4 text-primary-foreground" />
+                <section className="bg-primary/80 flex aspect-square size-8 items-center justify-center rounded-lg">
+                  <Logo />
                 </section>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">DOT FILE</span>
-                  <span className="truncate text-xs">Personal Storage</span>
+                  <span className="truncate font-medium uppercase">{VITE_APP_NAME}</span>
+                  <span className="truncate text-xs">{VITE_APP_DESCRIPTION}</span>
                 </div>
               </Link>
             </SidebarMenuButton>
