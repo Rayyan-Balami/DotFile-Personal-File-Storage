@@ -1,5 +1,5 @@
 import * as React from "react"
-import { useIsMobile } from "@/hooks/use-mobile"
+import { useBreakpoint } from "@/hooks/use-breakpoint"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -57,7 +57,7 @@ export function ResponsiveDialog({
   const dialogOpen = isControlled ? open : isOpen
   const setDialogOpen = isControlled ? onOpenChange : setIsOpen
 
-  const isMobile = useIsMobile()
+  const {isMobile} = useBreakpoint()
   
   if ( ! isMobile) {
     return (

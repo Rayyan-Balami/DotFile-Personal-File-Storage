@@ -38,7 +38,7 @@ function RouteComponent() {
             <SiteFooter />
           </SidebarInset>
       </FileSystemDndProvider>
-      {process.env.NODE_ENV === 'development' && <TanStackRouterDevtools position="bottom-right" />}
+      {process.env.NODE_ENV === 'development' && <TanStackRouterDevtools position="top-right" />}
       <DialogProvider />
     </SidebarProvider>
   );

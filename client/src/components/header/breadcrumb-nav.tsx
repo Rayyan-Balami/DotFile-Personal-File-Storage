@@ -165,15 +165,15 @@ function DroppableBreadcrumbItem({
       className={`relative px-2 py-1 ${showDropIndicator ? "after:absolute after:inset-0 after:bg-primary/10 after:border-2 after:border-primary after:border-dashed after:rounded-md after:z-10" : ""}`}
     >
       {isLast ? (
-        <BreadcrumbPage className="flex items-center gap-2">
+        <BreadcrumbPage className="flex-grow flex items-center gap-2">
           <Icon className="size-4" />
-          {name}
+         <span className="max-w-[60px] sm:max-w-[200px] truncate">{name}</span>
         </BreadcrumbPage>
       ) : (
         <BreadcrumbLink asChild>
           <Link to={linkPath} className="flex items-center gap-2">
             <Icon className="size-4" />
-            {name}
+            <span className="max-w-[60px] sm:max-w-[200px] truncate">{name}</span>
           </Link>
         </BreadcrumbLink>
       )}

@@ -10,15 +10,20 @@ export function SiteFooter() {
   return (
     <footer className="mt-auto bg-background/80 backdrop-blur-md sticky bottom-0 z-50 border-t transition-[height]">
       <Uploads />
-      <nav className="flex h-(--footer-height) items-center gap-3.5 px-4">
+      <nav className="flex h-(--footer-height) items-center gap-8 px-4 justify-between">
         <ViewOptions />
-        <SearchForm />
-          <ButtonGroup orientation="horizontal" className="*:border">
-            <SortOptions />
-            <GlobalDelete />
-            <GlobalMove />
-          </ButtonGroup>
+        <span className="hidden sm:flex flex-grow">
+          <SearchForm />
+        </span>
+        <ButtonGroup orientation="horizontal" className="*:border">
+          <SortOptions />
+          <GlobalDelete />
+          <GlobalMove />
+        </ButtonGroup>
       </nav>
+      <div className="sm:hidden px-4">
+        <SearchForm />
+      </div>
     </footer>
   );
 }

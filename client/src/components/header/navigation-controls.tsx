@@ -14,6 +14,7 @@ export function NavigationControls() {
   const { toggleSidebar, open, state, isMobile } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
+  console.log("NavigationControls rendered isMobile:", isMobile, "state:", state, "open:", open);
   
   // Get current folder ID from URL if we're in a folder
   const currentPath = location.pathname;

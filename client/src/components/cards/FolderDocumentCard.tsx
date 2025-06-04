@@ -42,7 +42,7 @@ import {
 } from "../ui/dropdown-menu";
 import { FolderIcon } from "../ui/folder-icon";
 import { ColorOption } from "@/config/colors";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useBreakpoint } from "@/hooks/use-breakpoint";
 
 // Types remain the same
 export type CardVariant = "large" | "compact" | "list";
@@ -290,7 +290,7 @@ const CardContent = React.memo(
     color?: string;
   }) => {
     const [menuOpen, setMenuOpen] = useState(false);
-    const isMobile = useIsMobile();
+    const {isMobile} = useBreakpoint();
 
     // Only render dropdown content when menu is open
     const dropdownMenu = (
