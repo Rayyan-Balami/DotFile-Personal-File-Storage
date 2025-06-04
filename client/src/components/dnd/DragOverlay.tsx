@@ -35,7 +35,7 @@ export function DragOverlay() {
           cardType: "folder",
           name: primaryItem.name || "Untitled",
           owner: "",
-          color: "blue", // Valid ColorOption
+          color: "default", // Valid ColorOption
           parent: null,
           items: 0,
           isPinned: false,
@@ -99,8 +99,8 @@ export function DragOverlay() {
       style={{
         transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
         position: 'fixed',
-        top: 0,
-        left: 0,
+        top: -10,
+        left: -10,
         margin: 0,
         pointerEvents: 'none',
         zIndex: 9999,
@@ -108,9 +108,6 @@ export function DragOverlay() {
     >
       <div 
         className="relative"
-        style={{
-          // transform: 'translate(-50%, -50%)',
-        }}
       >
         <FolderDocumentCard
           item={item}

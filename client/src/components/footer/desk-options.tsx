@@ -15,8 +15,8 @@ export function DeskOptions() {
   const [selectedDesk, setSelectedDesk] = useLocalStorage<string | null>("selected-desk", null);
 
   const desks = [
-    { id: "desk1", name: "Work", color: "blue" },
-    { id: "desk2", name: "School", color: "blue" },
+    { id: "desk1", name: "Work", color: "default" },
+    { id: "desk2", name: "School", color: "default" },
     { id: "desk3", name: "Personal", color: "green" },
     { id: "desk4", name: "Projects", color: "yellow" },
   ];
