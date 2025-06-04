@@ -28,61 +28,71 @@ export default function FilePreviewDialog() {
     setFilePreviewIndex,
   } = useDialogStore();
 
-  const currentFile = filePreviewItems[filePreviewCurrentIndex] as
-    | DocumentItem
-    | undefined;
+  const currentFile = filePreviewItems[filePreviewCurrentIndex] as DocumentItem | undefined;
+  const previewRef = useRef<HTMLDivElement>(null);
+  const mediaRef = useRef<HTMLImageElement | HTMLVideoElement>(null);
 
-  // Zoom and pan state
+  // View state
   const [zoom, setZoom] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const previewRef = useRef<HTMLDivElement>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
 
-  // Calculate initial zoom scale when image loads
-  const calculateInitialZoom = useCallback(() => {
-    if (
-      !imgRef.current ||
-      !previewRef.current ||
-      !currentFile?.type.startsWith("image/")
-    )
-      return;
+  // Calculate the maximum zoom out scale to fit the media in the container
+  const calculateFitScale = useCallback(() => {
+    if (!mediaRef.current || !previewRef.current || !currentFile) return 1;
 
-    const img = imgRef.current;
     const container = previewRef.current;
-
-    const naturalWidth = img.naturalWidth;
-    const naturalHeight = img.naturalHeight;
+    const media = mediaRef.current;
+    
     const containerWidth = container.clientWidth;
     const containerHeight = container.clientHeight;
+    
+    let mediaWidth, mediaHeight;
+    
+    if (currentFile.type.startsWith("image/")) {
+      mediaWidth = (media as HTMLImageElement).naturalWidth;
+      mediaHeight = (media as HTMLImageElement).naturalHeight;
+    } else if (currentFile.type.startsWith("video/")) {
+      const videoElement = media as HTMLVideoElement;
+      mediaWidth = videoElement.videoWidth || containerWidth;
+      mediaHeight = videoElement.videoHeight || containerHeight;
+    } else {
+      return 1;
+    }
 
-    const scaleX = containerWidth / naturalWidth;
-    const scaleY = containerHeight / naturalHeight;
-    const fitScale = Math.min(scaleX, scaleY, 1); // Never scale up > 1 initially
-
-    setZoom(fitScale);
-    setPosition({ x: 0, y: 0 });
+    const scaleX = containerWidth / mediaWidth;
+    const scaleY = containerHeight / mediaHeight;
+    
+    return Math.min(scaleX, scaleY, 1); // Never scale up beyond 100% initially
   }, [currentFile]);
 
-  const handleImageLoad = useCallback(() => {
-    calculateInitialZoom();
-  }, [calculateInitialZoom]);
+  // Reset view to initial state
+  const resetView = useCallback(() => {
+    const fitScale = calculateFitScale();
+    setZoom(fitScale);
+    setPosition({ x: 0, y: 0 });
+  }, [calculateFitScale]);
 
+  // Handle media load events
+  const handleMediaLoad = useCallback(() => {
+    resetView();
+  }, [resetView]);
+
+  // Navigation handlers
   const handlePrevious = useCallback(() => {
     if (filePreviewCurrentIndex > 0) {
       setFilePreviewIndex(filePreviewCurrentIndex - 1);
-      resetView();
     }
   }, [filePreviewCurrentIndex, setFilePreviewIndex]);
 
   const handleNext = useCallback(() => {
     if (filePreviewCurrentIndex < filePreviewItems.length - 1) {
       setFilePreviewIndex(filePreviewCurrentIndex + 1);
-      resetView();
     }
   }, [filePreviewCurrentIndex, filePreviewItems.length, setFilePreviewIndex]);
 
+  // File actions
   const handleDownload = async () => {
     if (!currentFile) return;
     try {
@@ -104,16 +114,17 @@ export default function FilePreviewDialog() {
   };
 
   // Zoom functions
-  const zoomIn = () => setZoom((prev) => Math.min(prev * 1.2, 5));
-  const zoomOut = () => setZoom((prev) => Math.max(prev / 1.2, 0.1));
-  const resetView = () => {
-    setZoom(1);
-    setPosition({ x: 0, y: 0 });
-  };
+  const zoomIn = useCallback(() => {
+    setZoom(prev => Math.min(prev * 1.2, 5));
+  }, []);
+
+  const zoomOut = useCallback(() => {
+    setZoom(prev => Math.max(prev / 1.2, 0.1));
+  }, []);
 
   // Pan/drag functions
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (zoom <= 1) return; // Only allow dragging when zoomed
+    if (zoom <= 1) return;
     setIsDragging(true);
     setDragStart({
       x: e.clientX - position.x,
@@ -136,30 +147,27 @@ export default function FilePreviewDialog() {
     setIsDragging(false);
   }, []);
 
-  // Trackpad/wheel zoom
+  // Handle wheel events for zoom
   const handleWheel = useCallback(
     (e: WheelEvent) => {
       if (!currentFile) return;
-
-      // Check if it's a zoomable file type
-      const canZoomFile =
-        currentFile.type.startsWith("image/") ||
-        currentFile.type === "application/pdf" ||
-        currentFile.type.startsWith("text/");
-
-      if (!canZoomFile) return;
-
+      
+      const canZoom = currentFile.type.startsWith("image/") || 
+                     currentFile.type.startsWith("video/");
+      
+      if (!canZoom) return;
+      
       e.preventDefault();
-
-      // Detect if it's a pinch gesture (ctrl key is held during trackpad pinch)
+      
       if (e.ctrlKey) {
         const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1;
-        setZoom((prevZoom) => Math.min(Math.max(prevZoom * zoomDelta, 0.1), 5));
+        setZoom(prev => Math.min(Math.max(prev * zoomDelta, 0.1), 5));
       }
     },
     [currentFile]
   );
 
+  // Event listeners
   useEffect(() => {
     if (isDragging) {
       document.addEventListener("mousemove", handleMouseMove);
@@ -171,7 +179,6 @@ export default function FilePreviewDialog() {
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
-  // Add wheel event listener for trackpad zoom
   useEffect(() => {
     const previewElement = previewRef.current;
     if (previewElement) {
@@ -182,6 +189,7 @@ export default function FilePreviewDialog() {
     }
   }, [handleWheel]);
 
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!filePreviewDialogOpen) return;
@@ -221,16 +229,15 @@ export default function FilePreviewDialog() {
     closeFilePreviewDialog,
     handlePrevious,
     handleNext,
+    zoomIn,
+    zoomOut,
+    resetView,
   ]);
 
-  // Calculate initial zoom when file changes
+  // Reset view when file changes
   useEffect(() => {
-    if (currentFile?.type.startsWith("image/")) {
-      calculateInitialZoom();
-    } else {
-      resetView();
-    }
-  }, [currentFile?.id, calculateInitialZoom]);
+    resetView();
+  }, [currentFile?.id, resetView]);
 
   const renderPreview = () => {
     if (!currentFile) return null;
@@ -238,21 +245,24 @@ export default function FilePreviewDialog() {
     const { id, type: mimeType, name, extension } = currentFile;
     const fileUrl = fileApi.getFileUrl(id);
 
+    const mediaStyle = {
+      transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
+      cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "default",
+      maxWidth: "100%",
+      maxHeight: "100%",
+      objectFit: "contain" as const,
+    };
+
     if (mimeType.startsWith("image/")) {
       return (
         <img
-          ref={imgRef}
+          ref={mediaRef as React.RefObject<HTMLImageElement>}
           src={fileUrl}
           alt={name}
-          className="max-w-full max-h-full select-none object-contain"
-          style={{
-            transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
-            cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "default",
-            width: "auto",
-            height: "auto",
-          }}
+          className="select-none"
+          style={mediaStyle}
           onMouseDown={handleMouseDown}
-          onLoad={handleImageLoad}
+          onLoad={handleMediaLoad}
           draggable={false}
         />
       );
@@ -261,13 +271,9 @@ export default function FilePreviewDialog() {
     if (mimeType === "application/pdf") {
       return (
         <iframe
-          src={`${fileUrl}#zoom=${Math.round(zoom * 100)}&toolbar=1&navpanes=1&scrollbar=1&page=1&view=FitH&pagemode=thumbs`}
+          src={`${fileUrl}#zoom=${Math.round(zoom * 100)}`}
           title={name}
-          className="min-w-full min-h-full border-none"
-          style={{
-            cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "default",
-          }}
-          onMouseDown={handleMouseDown}
+          className="w-full h-full border-none"
         />
       );
     }
@@ -275,12 +281,13 @@ export default function FilePreviewDialog() {
     if (mimeType.startsWith("video/")) {
       return (
         <video
+          ref={mediaRef as React.RefObject<HTMLVideoElement>}
           src={fileUrl}
           controls
-          className="max-w-full max-h-full"
-          style={{
-            transform: `scale(${zoom})`,
-          }}
+          className="select-none"
+          style={mediaStyle}
+          onMouseDown={handleMouseDown}
+          onLoadedMetadata={handleMediaLoad}
         />
       );
     }
@@ -294,7 +301,6 @@ export default function FilePreviewDialog() {
           </h3>
           <audio controls className="w-full max-w-lg">
             <source src={fileUrl} type={mimeType} />
-            Your browser does not support the audio element.
           </audio>
         </div>
       );
@@ -306,16 +312,11 @@ export default function FilePreviewDialog() {
           src={fileUrl}
           title={name}
           className="w-full h-full border-none"
-          style={{
-            transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
-            cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "default",
-          }}
-          onMouseDown={handleMouseDown}
         />
       );
     }
 
-    // Fallback for unsupported file types
+    // Fallback for unsupported types
     return (
       <div className="flex flex-col items-center justify-center h-64 rounded-lg p-8 gap-4">
         <Telescope className="size-12" />
@@ -335,16 +336,15 @@ export default function FilePreviewDialog() {
 
   if (!currentFile) return null;
 
-  const canZoom =
-    currentFile.type.startsWith("image/") ||
-    currentFile.type.startsWith("text/");
+  const canZoomPan = currentFile.type.startsWith("image/") || 
+                    currentFile.type.startsWith("video/");
 
   return (
     <Dialog open={filePreviewDialogOpen} onOpenChange={closeFilePreviewDialog}>
       <DialogContent className="min-w-full min-h-full max-w-screen max-h-screen bg-background/80 rounded-none flex flex-col px-2 py-4 gap-4 focus:outline-none">
-        {/* sticky Header */}
+        {/* Header */}
         <div className="sticky top-0 z-50 flex items-center justify-center flex-wrap backdrop-blur-sm">
-          <h2 className="text-sm truncate">
+          <h2 className="text-sm truncate max-w-[80vw]">
             {currentFile.name}.{currentFile.extension}
           </h2>
         </div>
@@ -352,19 +352,20 @@ export default function FilePreviewDialog() {
         {/* Preview Area */}
         <div
           ref={previewRef}
-          className={`flex-1 grid overflow-hidden rounded-md relative ${currentFile.type.startsWith("image/") ? "place-content-center" : "place-items-center"}`}
+          className={`flex-1 grid overflow-hidden rounded-md relative ${currentFile.type.startsWith("image/") || currentFile.type.startsWith("video/") ? "place-content-center" : "place-items-center"} relative`}
         >
           {renderPreview()}
         </div>
 
-        {/* sticky footer */}
+        {/* Footer Controls */}
         <div className="sticky bottom-0 z-50 flex items-center justify-center gap-4 flex-wrap backdrop-blur-sm">
           {filePreviewItems.length > 1 && (
             <span className="text-sm">
               {filePreviewCurrentIndex + 1} of {filePreviewItems.length}
             </span>
           )}
-          {canZoom && (
+          
+          {canZoomPan && (
             <>
               <Button
                 variant="ghost"

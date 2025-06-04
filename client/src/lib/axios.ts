@@ -63,41 +63,34 @@ API.interceptors.response.use(
       if (!isRefreshing) {
         isRefreshing = true;
         try {
-            // Get the refresh token from cookies if possible
-            const refreshToken = document.cookie
-              .split('; ')
-              .find(row => row.startsWith('refreshToken='))
-              ?.split('=')[1];
-              
             // Use axios directly instead of userApi to avoid circular dependency
             const response = await axios.post(
               `${VITE_API_BASE_URL}/auth/refresh-token`, 
-              { refreshToken }, 
-              { withCredentials: true }
+              {}, 
+              { 
+                withCredentials: true,
+                headers: {
+                  'Authorization': `Bearer ${useAuthStore.getState().accessToken}`
+                }
+              }
             );
             
             // Extract data based on server controller response structure
-            console.log("Token refresh response:", response.data);
-            const { user, accessToken } = response.data.data;
+            const { accessToken } = response.data.data;
             
             if (!accessToken) {
-              console.error("No access token received in refresh response");
-              throw new Error("Invalid token refresh response");
-            }
-            
-            const authStore = useAuthStore.getState();
-            if (user) {
-              console.log("Setting new auth with user and token");
-              authStore.setAuth(user, accessToken);
-            } else {
-              console.log("Setting new access token only");
-              authStore.setAccessToken(accessToken);
+              throw new Error("No access token received in refresh response");
             }
 
+            // Update auth store with new token
+            useAuthStore.getState().setAccessToken(accessToken);
+
+            // Update the failed request with new token and retry
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
             onRefreshed(accessToken);
             isRefreshing = false;
 
+            // Retry the original request
             return API(originalRequest);
         } catch (refreshError) {
           console.error("Token refresh failed:", refreshError);
@@ -115,12 +108,18 @@ API.interceptors.response.use(
       }
     }
 
-    // If still failing OR first response is a fatal auth-related 403/404
+    // Handle authentication failures
     if (
+      // If token refresh failed
       (status === 401 && originalRequest._retry) ||
-      ((status === 403 && originalRequest.url?.includes('/users/me')))
+      // If accessing protected route fails after token refresh
+      (status === 403 && originalRequest.url?.includes('/users/me')) ||
+      // If refresh token endpoint fails
+      (status === 401 && originalRequest.url?.includes('/auth/refresh-token'))
     ) {
+      console.log('Authentication failed, redirecting to login...');
       handleAuthFailure();
+      return Promise.reject(new Error('Authentication failed'));
     }
 
     return Promise.reject(error);
