@@ -261,9 +261,9 @@ export default function FilePreviewDialog() {
     if (mimeType === "application/pdf") {
       return (
         <iframe
-          src={`${fileUrl}#view=FitH&toolbar=0&navpanes=0&scrollbar=0`}
+          src={`${fileUrl}#zoom=${Math.round(zoom * 100)}&toolbar=1&navpanes=1&scrollbar=1&page=1&view=FitH&pagemode=thumbs`}
           title={name}
-          className="flex-1 min-h-full border-none"
+          className="min-w-full min-h-full border-none"
           style={{
             cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "default",
           }}
@@ -352,7 +352,7 @@ export default function FilePreviewDialog() {
         {/* Preview Area */}
         <div
           ref={previewRef}
-          className="flex-1 flex items-center justify-center overflow-hidden rounded-md relative"
+          className={`flex-1 grid overflow-hidden rounded-md relative ${currentFile.type.startsWith("image/") ? "place-content-center" : "place-items-center"}`}
         >
           {renderPreview()}
         </div>
