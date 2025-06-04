@@ -74,10 +74,36 @@ export default function FilePreviewDialog() {
     setPosition({ x: 0, y: 0 });
   }, [calculateFitScale]);
 
+  // Handle wheel events for zoom
+  const handleWheel = useCallback(
+    (e: WheelEvent) => {
+      if (!currentFile) return;
+      
+      const canZoom = currentFile.type.startsWith("image/") || 
+                     currentFile.type.startsWith("video/");
+      
+      if (!canZoom) return;
+      
+      e.preventDefault();
+      
+      if (e.ctrlKey) {
+        const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1;
+        setZoom(prev => Math.min(Math.max(prev * zoomDelta, 0.1), 5));
+      }
+    },
+    [currentFile]
+  );
+
   // Handle media load events
   const handleMediaLoad = useCallback(() => {
     resetView();
-  }, [resetView]);
+    // Re-attach wheel event listener after media loads
+    const previewElement = previewRef.current;
+    if (previewElement && filePreviewDialogOpen) {
+      previewElement.removeEventListener("wheel", handleWheel); // Remove any existing listener
+      previewElement.addEventListener("wheel", handleWheel, { passive: false });
+    }
+  }, [resetView, filePreviewDialogOpen, handleWheel]);
 
   // Navigation handlers
   const handlePrevious = useCallback(() => {
@@ -147,26 +173,6 @@ export default function FilePreviewDialog() {
     setIsDragging(false);
   }, []);
 
-  // Handle wheel events for zoom
-  const handleWheel = useCallback(
-    (e: WheelEvent) => {
-      if (!currentFile) return;
-      
-      const canZoom = currentFile.type.startsWith("image/") || 
-                     currentFile.type.startsWith("video/");
-      
-      if (!canZoom) return;
-      
-      e.preventDefault();
-      
-      if (e.ctrlKey) {
-        const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1;
-        setZoom(prev => Math.min(Math.max(prev * zoomDelta, 0.1), 5));
-      }
-    },
-    [currentFile]
-  );
-
   // Event listeners
   useEffect(() => {
     if (isDragging) {
@@ -181,13 +187,16 @@ export default function FilePreviewDialog() {
 
   useEffect(() => {
     const previewElement = previewRef.current;
-    if (previewElement) {
+    if (previewElement && filePreviewDialogOpen) {
+      // Clean up any existing listeners first
+      previewElement.removeEventListener("wheel", handleWheel);
       previewElement.addEventListener("wheel", handleWheel, { passive: false });
+      
       return () => {
         previewElement.removeEventListener("wheel", handleWheel);
       };
     }
-  }, [handleWheel]);
+  }, [handleWheel, filePreviewDialogOpen, currentFile]);
 
   // Keyboard shortcuts
   useEffect(() => {
