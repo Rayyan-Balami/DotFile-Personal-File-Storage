@@ -38,6 +38,36 @@ export default function FilePreviewDialog() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const previewRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // Calculate initial zoom scale when image loads
+  const calculateInitialZoom = useCallback(() => {
+    if (
+      !imgRef.current ||
+      !previewRef.current ||
+      !currentFile?.type.startsWith("image/")
+    )
+      return;
+
+    const img = imgRef.current;
+    const container = previewRef.current;
+
+    const naturalWidth = img.naturalWidth;
+    const naturalHeight = img.naturalHeight;
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+
+    const scaleX = containerWidth / naturalWidth;
+    const scaleY = containerHeight / naturalHeight;
+    const fitScale = Math.min(scaleX, scaleY, 1); // Never scale up > 1 initially
+
+    setZoom(fitScale);
+    setPosition({ x: 0, y: 0 });
+  }, [currentFile]);
+
+  const handleImageLoad = useCallback(() => {
+    calculateInitialZoom();
+  }, [calculateInitialZoom]);
 
   const handlePrevious = useCallback(() => {
     if (filePreviewCurrentIndex > 0) {
@@ -107,24 +137,28 @@ export default function FilePreviewDialog() {
   }, []);
 
   // Trackpad/wheel zoom
-  const handleWheel = useCallback((e: WheelEvent) => {
-    if (!currentFile) return;
-    
-    // Check if it's a zoomable file type
-    const canZoomFile = currentFile.type.startsWith("image/") ||
-      currentFile.type === "application/pdf" ||
-      currentFile.type.startsWith("text/");
-    
-    if (!canZoomFile) return;
+  const handleWheel = useCallback(
+    (e: WheelEvent) => {
+      if (!currentFile) return;
 
-    e.preventDefault();
-    
-    // Detect if it's a pinch gesture (ctrl key is held during trackpad pinch)
-    if (e.ctrlKey) {
-      const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1;
-      setZoom((prevZoom) => Math.min(Math.max(prevZoom * zoomDelta, 0.1), 5));
-    }
-  }, [currentFile]);
+      // Check if it's a zoomable file type
+      const canZoomFile =
+        currentFile.type.startsWith("image/") ||
+        currentFile.type === "application/pdf" ||
+        currentFile.type.startsWith("text/");
+
+      if (!canZoomFile) return;
+
+      e.preventDefault();
+
+      // Detect if it's a pinch gesture (ctrl key is held during trackpad pinch)
+      if (e.ctrlKey) {
+        const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1;
+        setZoom((prevZoom) => Math.min(Math.max(prevZoom * zoomDelta, 0.1), 5));
+      }
+    },
+    [currentFile]
+  );
 
   useEffect(() => {
     if (isDragging) {
@@ -189,10 +223,14 @@ export default function FilePreviewDialog() {
     handleNext,
   ]);
 
-  // Reset view when file changes
+  // Calculate initial zoom when file changes
   useEffect(() => {
-    resetView();
-  }, [currentFile?.id]);
+    if (currentFile?.type.startsWith("image/")) {
+      calculateInitialZoom();
+    } else {
+      resetView();
+    }
+  }, [currentFile?.id, calculateInitialZoom]);
 
   const renderPreview = () => {
     if (!currentFile) return null;
@@ -203,14 +241,18 @@ export default function FilePreviewDialog() {
     if (mimeType.startsWith("image/")) {
       return (
         <img
+          ref={imgRef}
           src={fileUrl}
           alt={name}
           className="max-w-full max-h-full select-none object-contain"
           style={{
             transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
             cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "default",
+            width: "auto",
+            height: "auto",
           }}
           onMouseDown={handleMouseDown}
+          onLoad={handleImageLoad}
           draggable={false}
         />
       );
@@ -218,32 +260,15 @@ export default function FilePreviewDialog() {
 
     if (mimeType === "application/pdf") {
       return (
-        <div
-          className="w-full h-full"
+        <iframe
+          src={`${fileUrl}#view=FitH&toolbar=0&navpanes=0&scrollbar=0`}
+          title={name}
+          className="flex-1 min-h-full border-none"
           style={{
-            transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
+            cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "default",
           }}
-        >
-          <object
-            data={fileUrl}
-            type="application/pdf"
-            className="w-full h-full border-none"
-            style={{
-              cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "default",
-            }}
-            onMouseDown={handleMouseDown}
-          >
-            <iframe
-              src={`${fileUrl}#view=FitH&toolbar=0&navpanes=0&scrollbar=0`}
-              title={name}
-              className="w-full h-full border-none"
-              style={{
-                cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "default",
-              }}
-              onMouseDown={handleMouseDown}
-            />
-          </object>
-        </div>
+          onMouseDown={handleMouseDown}
+        />
       );
     }
 
@@ -312,7 +337,6 @@ export default function FilePreviewDialog() {
 
   const canZoom =
     currentFile.type.startsWith("image/") ||
-    currentFile.type === "application/pdf" ||
     currentFile.type.startsWith("text/");
 
   return (
@@ -328,76 +352,72 @@ export default function FilePreviewDialog() {
         {/* Preview Area */}
         <div
           ref={previewRef}
-          className="flex-1 grid place-items-center overflow-hidden rounded-md relative"
+          className="flex-1 flex items-center justify-center overflow-hidden rounded-md relative"
         >
           {renderPreview()}
         </div>
 
-                {/* sticky footer */}
+        {/* sticky footer */}
         <div className="sticky bottom-0 z-50 flex items-center justify-center gap-4 flex-wrap backdrop-blur-sm">
+          {filePreviewItems.length > 1 && (
+            <span className="text-sm">
+              {filePreviewCurrentIndex + 1} of {filePreviewItems.length}
+            </span>
+          )}
+          {canZoom && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={zoomOut}
+                title="Zoom out (-)"
+              >
+                <ZoomOut className="w-4 h-4" />
+              </Button>
+              <span className="text-sm">{Math.round(zoom * 100)}%</span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={zoomIn}
+                title="Zoom in (+)"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={resetView}
+                title="Reset view (0)"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </Button>
+            </>
+          )}
 
-
-            {filePreviewItems.length > 1 && (
-              <span className="text-sm">
-                {filePreviewCurrentIndex + 1} of {filePreviewItems.length}
-              </span>
-            )}
-            {canZoom && (
-              <>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={zoomOut}
-                  title="Zoom out (-)"
-                >
-                  <ZoomOut className="w-4 h-4" />
-                </Button>
-                <span className="text-sm">
-                  {Math.round(zoom * 100)}%
-                </span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={zoomIn}
-                  title="Zoom in (+)"
-                >
-                  <ZoomIn className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={resetView}
-                  title="Reset view (0)"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </Button>
-              </>
-            )}
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleDownload}
-              title="Download"
-            >
-              <Download className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handlePrint}
-              title="Print"
-            >
-              <Printer className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={closeFilePreviewDialog}
-              title="Close (Esc)"
-            >
-              <X className="w-4 h-4" />
-            </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleDownload}
+            title="Download"
+          >
+            <Download className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handlePrint}
+            title="Print"
+          >
+            <Printer className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={closeFilePreviewDialog}
+            title="Close (Esc)"
+          >
+            <X className="w-4 h-4" />
+          </Button>
         </div>
 
         {/* Navigation Arrows */}
