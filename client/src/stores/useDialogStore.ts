@@ -49,6 +49,14 @@ interface DialogState {
   openFolderColorDialog: (id: string, name: string, currentColor?: string) => void;
   closeFolderColorDialog: () => void;
 
+  // File Preview Dialog
+  filePreviewDialogOpen: boolean;
+  filePreviewItems: any[];
+  filePreviewCurrentIndex: number;
+  openFilePreviewDialog: (items: any[], currentIndex: number) => void;
+  closeFilePreviewDialog: () => void;
+  setFilePreviewIndex: (index: number) => void;
+
   // Helper to close all dialogs
   closeAllDialogs: () => void;
 }
@@ -195,6 +203,33 @@ export const useDialogStore = create<DialogState>((set) => ({
     folderColorCurrentColor: null
   })),
 
+  // File Preview Dialog
+  filePreviewDialogOpen: false,
+  filePreviewItems: [],
+  filePreviewCurrentIndex: 0,
+  openFilePreviewDialog: (items: any[], currentIndex: number) => set((state) => ({
+    ...state,
+    filePreviewDialogOpen: true,
+    filePreviewItems: items,
+    filePreviewCurrentIndex: currentIndex,
+    createFolderOpen: false,
+    renameDialogOpen: false,
+    duplicateDialogOpen: false,
+    deleteDialogOpen: false,
+    uploadChoiceDialogOpen: false,
+    folderColorDialogOpen: false
+  })),
+  closeFilePreviewDialog: () => set((state) => ({
+    ...state,
+    filePreviewDialogOpen: false,
+    filePreviewItems: [],
+    filePreviewCurrentIndex: 0
+  })),
+  setFilePreviewIndex: (index: number) => set((state) => ({
+    ...state,
+    filePreviewCurrentIndex: index
+  })),
+
   closeAllDialogs: () => set((state) => ({
     ...state,
     createFolderOpen: false,
@@ -203,6 +238,7 @@ export const useDialogStore = create<DialogState>((set) => ({
     deleteDialogOpen: false,
     uploadChoiceDialogOpen: false,
     folderColorDialogOpen: false,
+    filePreviewDialogOpen: false,
     createFolderParentId: null,
     renameItemId: null,
     renameItemCardType: null,
@@ -214,6 +250,8 @@ export const useDialogStore = create<DialogState>((set) => ({
     folderColorItemId: null,
     folderColorItemName: null,
     folderColorCurrentColor: null,
+    filePreviewItems: [],
+    filePreviewCurrentIndex: 0,
     deleteItemId: null,
     deleteItemType: null,
     deleteItemName: null,

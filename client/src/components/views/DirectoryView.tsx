@@ -6,6 +6,7 @@ import {
 } from "@/stores/useSelectionStore";
 import { useSortPreferencesStore } from "@/stores/useSortPreferencesStore";
 import { useViewPreferencesStore } from "@/stores/useViewPreferencesStore";
+import { useDialogStore } from "@/stores/useDialogStore";
 import { useSortedItems, getMimeCategory, groupItemsByDate } from "@/utils/sortUtils";
 import {
   ContextMenu,
@@ -16,7 +17,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { FileDropZone } from "../dnd/FileDropZone";
 import { CardGrid } from "./CardGrid";
-import { FileSystemItem } from "@/types/folderDocumnet";
+import { FileSystemItem, DocumentItem } from "@/types/folderDocumnet";
 import { mapToFileSystemItem } from "@/utils/itemMapper";
 import { useFileSystemStore } from "@/stores/useFileSystemStore";
 
@@ -46,6 +47,7 @@ export default function DirectoryView({
   const sortBy = useSortPreferencesStore((state) => state.sortBy);
   const folderArrangement = useSortPreferencesStore((state) => state.folderArrangement);
   const viewType = useViewPreferencesStore((state) => state.viewType);
+  const { openFilePreviewDialog } = useDialogStore();
 
   // Map the items to ensure they have cardType
   const mappedItems = useMemo(() => items.map(mapToFileSystemItem), [items]);
@@ -108,9 +110,13 @@ export default function DirectoryView({
     if (item.cardType === "folder") {
       navigate({ to: `/folder/${item.id}` });
     } else {
-      // Handle document opening - for now just log it
-      // TODO: Implement document opening logic (preview/download)
-      console.log(`Opening document: ${item.name}`);
+      // Handle document opening - open preview dialog
+      const documentItems = sortedItems.filter((item) => item.cardType === "document") as DocumentItem[];
+      const currentIndex = documentItems.findIndex((doc) => doc.id === id);
+      
+      if (currentIndex !== -1) {
+        openFilePreviewDialog(documentItems, currentIndex);
+      }
     }
   };
 

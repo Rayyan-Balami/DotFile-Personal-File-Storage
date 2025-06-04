@@ -7,6 +7,7 @@ import { DuplicateItemDialog } from "./DuplicateItemDialog";
 import { DeleteDialog } from "./DeleteDialog";
 import { UploadChoiceDialog } from "./UploadChoiceDialog";
 import FolderColorDialog from "./FolderColorDialog";
+import FilePreviewDialog from "./FilePreviewDialog";
 
 export function DialogProvider() {
   const { 
@@ -19,7 +20,8 @@ export function DialogProvider() {
     closeDuplicateDialog,
     deleteDialogOpen,
     uploadChoiceDialogOpen,
-    folderColorDialogOpen
+    folderColorDialogOpen,
+    filePreviewDialogOpen
   } = useDialogStore();
 
   return (
@@ -40,6 +42,7 @@ export function DialogProvider() {
       {deleteDialogOpen && <DeleteDialog />}
       {uploadChoiceDialogOpen && <UploadChoiceDialog />}
       {folderColorDialogOpen && <FolderColorDialog />}
+      {filePreviewDialogOpen && <FilePreviewDialog />}
     </>
   );
 }
