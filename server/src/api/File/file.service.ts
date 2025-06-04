@@ -791,10 +791,8 @@ class FileService {
         }
       });
       
-      // Determine mime type from file extension
-      const mimeType = file.type ? 
-        `application/${file.type}` : 
-        'application/octet-stream';
+      // Determine mime type from file extension  
+      const mimeType = file.type || 'application/octet-stream';
       
       return {
         stream,

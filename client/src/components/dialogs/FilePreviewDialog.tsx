@@ -106,6 +106,26 @@ export default function FilePreviewDialog() {
     setIsDragging(false);
   }, []);
 
+  // Trackpad/wheel zoom
+  const handleWheel = useCallback((e: WheelEvent) => {
+    if (!currentFile) return;
+    
+    // Check if it's a zoomable file type
+    const canZoomFile = currentFile.type.startsWith("image/") ||
+      currentFile.type === "application/pdf" ||
+      currentFile.type.startsWith("text/");
+    
+    if (!canZoomFile) return;
+
+    e.preventDefault();
+    
+    // Detect if it's a pinch gesture (ctrl key is held during trackpad pinch)
+    if (e.ctrlKey) {
+      const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1;
+      setZoom((prevZoom) => Math.min(Math.max(prevZoom * zoomDelta, 0.1), 5));
+    }
+  }, [currentFile]);
+
   useEffect(() => {
     if (isDragging) {
       document.addEventListener("mousemove", handleMouseMove);
@@ -116,6 +136,17 @@ export default function FilePreviewDialog() {
       };
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
+
+  // Add wheel event listener for trackpad zoom
+  useEffect(() => {
+    const previewElement = previewRef.current;
+    if (previewElement) {
+      previewElement.addEventListener("wheel", handleWheel, { passive: false });
+      return () => {
+        previewElement.removeEventListener("wheel", handleWheel);
+      };
+    }
+  }, [handleWheel]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -174,7 +205,7 @@ export default function FilePreviewDialog() {
         <img
           src={fileUrl}
           alt={name}
-          className="max-w-none select-none object-contain object-center"
+          className="max-w-full max-h-full select-none object-contain"
           style={{
             transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
             cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "default",
@@ -193,15 +224,25 @@ export default function FilePreviewDialog() {
             transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
           }}
         >
-          <iframe
-            src={`${fileUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-            title={name}
+          <object
+            data={fileUrl}
+            type="application/pdf"
             className="w-full h-full border-none"
             style={{
               cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "default",
             }}
             onMouseDown={handleMouseDown}
-          />
+          >
+            <iframe
+              src={`${fileUrl}#view=FitH&toolbar=0&navpanes=0&scrollbar=0`}
+              title={name}
+              className="w-full h-full border-none"
+              style={{
+                cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "default",
+              }}
+              onMouseDown={handleMouseDown}
+            />
+          </object>
         </div>
       );
     }
@@ -276,7 +317,7 @@ export default function FilePreviewDialog() {
 
   return (
     <Dialog open={filePreviewDialogOpen} onOpenChange={closeFilePreviewDialog}>
-      <DialogContent className="min-w-full min-h-full max-w-screen max-h-screen bg-background/80 rounded-none flex flex-col p-4 gap-4 focus:outline-none">
+      <DialogContent className="min-w-full min-h-full max-w-screen max-h-screen bg-background/80 rounded-none flex flex-col px-2 py-4 gap-4 focus:outline-none">
         {/* sticky Header */}
         <div className="sticky top-0 z-50 flex items-center justify-center flex-wrap backdrop-blur-sm">
           <h2 className="text-sm truncate">
@@ -364,24 +405,24 @@ export default function FilePreviewDialog() {
           <>
             {filePreviewCurrentIndex > 0 && (
               <Button
-                variant="ghost"
+                variant="secondary"
                 size="icon"
-                className="fixed left-4 top-1/2 -translate-y-1/2 z-40 rounded-full transition-colors"
+                className="fixed left-4 top-1/2 -translate-y-1/2 z-40 rounded-full bg-background/90 backdrop-blur-sm hover:bg-background hover:shadow-xl"
                 onClick={handlePrevious}
                 title="Previous (←)"
               >
-                <ChevronLeft className="size-8" />
+                <ChevronLeft className="size-5" />
               </Button>
             )}
             {filePreviewCurrentIndex < filePreviewItems.length - 1 && (
               <Button
-                variant="ghost"
+                variant="secondary"
                 size="icon"
-                className="fixed right-4 top-1/2 -translate-y-1/2 z-40 rounded-full transition-colors"
+                className="fixed right-4 top-1/2 -translate-y-1/2 z-40 rounded-full bg-background/90 backdrop-blur-sm hover:bg-background hover:shadow-xl"
                 onClick={handleNext}
                 title="Next (→)"
               >
-                <ChevronRight className="size-8" />
+                <ChevronRight className="size-5" />
               </Button>
             )}
           </>
