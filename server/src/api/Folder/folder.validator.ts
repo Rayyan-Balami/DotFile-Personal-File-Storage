@@ -48,4 +48,6 @@ export const renameFolderSchema = z.object({
  */
 export const moveFolderSchema = z.object({
   parent: z.string().nullable(),
+  name: z.string().optional(), // Name is optional - only used for duplicate handling
+  duplicateAction: z.enum(["replace", "keepBoth"]).optional(),
 });

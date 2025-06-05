@@ -318,9 +318,10 @@ class FileService {
    * @param fileId - File ID to move
    * @param newFolderId - New parent folder ID or null for root
    * @param userId - User ID for ownership verification
+   * @param duplicateAction - Action to take if a file with the same name exists
    * @returns Updated file document
    */
-  async moveFile(fileId: string, newFolderId: string | null, userId: string): Promise<FileResponseDto> {
+  async moveFile(fileId: string, newFolderId: string | null, userId: string, duplicateAction?: "replace" | "keepBoth"): Promise<FileResponseDto> {
     // Verify file ownership
     const existingFile = await this.getFileById(fileId, userId);
     if (!existingFile) {
@@ -340,17 +341,52 @@ class FileService {
       }
     }
     
-    // Ensure name is unique within the new parent folder
-    const uniqueName = await this.ensureUniqueNameAtLevel(
+    // Check if a file with the same name already exists in the target folder
+    const existingFileInTarget = await fileDao.checkFileExists(
       existingFile.name,
       existingFile.extension,
       userId,
       newFolderId
     );
+
+    if (existingFileInTarget) {
+      if (!duplicateAction) {
+        throw new ApiError(409, [{ 
+          name: `A file with the name "${existingFile.name}" already exists in this location`,
+          type: "file",
+          fileName: existingFile.name
+        }]);
+      }
+
+      if (duplicateAction === "replace") {
+        // Delete the existing file
+        await fileDao.permanentDeleteFile(existingFileInTarget._id.toString());
+      } else if (duplicateAction === "keepBoth") {
+        // Generate a unique name for the file being moved
+        const uniqueName = await this.ensureUniqueNameAtLevel(
+          existingFile.name,
+          existingFile.extension,
+          userId,
+          newFolderId
+        );
+        
+        // Update the file with the unique name
+        const updatedFile = await fileDao.moveFile(fileId, {
+          name: uniqueName,
+          folder: newFolderId
+        });
+        
+        if (!updatedFile) {
+          throw new ApiError(500, [{ move: "Failed to move file" }]);
+        }
+        
+        return this.sanitizeFile(updatedFile);
+      }
+    }
     
-    // Update the file
+    // Update the file with original name (no conflict or replace action)
     const updatedFile = await fileDao.moveFile(fileId, {
-      name: uniqueName,
+      name: existingFile.name,
       folder: newFolderId
     });
     

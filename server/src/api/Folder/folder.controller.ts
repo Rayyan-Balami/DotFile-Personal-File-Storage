@@ -98,7 +98,7 @@ class FolderController {
     const folderId = req.params.id;
     const moveData = {
       parent: req.body.parent,
-      name: req.body.name || '', // Provide a default name to satisfy the DTO
+      name: req.body.name, // Name should come from the request body
       duplicateAction: req.body.duplicateAction
     };
     

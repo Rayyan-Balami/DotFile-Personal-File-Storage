@@ -494,7 +494,7 @@ export function FileSystemDndProvider({
                 const fileName = item.name;
                 const fileType = item.cardType === "document" ? "file" : "folder";
 
-                // Important: Set all the required state for the duplicate dialog
+                // Create the dialog action callback
                 const dialogAction = async (action: "replace" | "keepBoth") => {
                   try {
                     if (item.cardType === "folder") {
@@ -511,29 +511,20 @@ export function FileSystemDndProvider({
                       });
                     }
                     resolve();
-                  } catch (retryError) {
-                    const errorInfo = getDetailedErrorInfo(retryError);
-                    toast.error(errorInfo.message);
-                    reject(retryError);
+                  } catch (error) {
+                    reject(error);
                   } finally {
+                    // Always close the duplicate dialog
                     useDialogStore.getState().closeDuplicateDialog();
                   }
                 };
 
-                // Use setState to ensure all state updates happen together
-                useDialogStore.setState((state) => ({
-                  ...state,
-                  duplicateDialogOpen: true,
-                  duplicateItemName: fileName,
-                  duplicateItemType: fileType,
-                  duplicateItemAction: dialogAction,
-                  // Close other dialogs
-                  createFolderOpen: false,
-                  renameDialogOpen: false,
-                  deleteDialogOpen: false,
-                  uploadChoiceDialogOpen: false,
-                  folderColorDialogOpen: false,
-                }));
+                // Show the duplicate dialog with the correct parameters
+                useDialogStore.getState().openDuplicateDialog(
+                  fileName,
+                  fileType,
+                  dialogAction
+                );
               });
             } else {
               // For non-duplicate errors, show error message and stop processing remaining items

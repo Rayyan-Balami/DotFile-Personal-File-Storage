@@ -355,16 +355,51 @@ class FolderService {
       }
     }
 
-    // Ensure name is unique in the target location
-    const uniqueName = await this.ensureUniqueNameAtLevel(
+    // Check if a folder with the same name already exists in the target location
+    const existingFolder = await folderDao.findFolderByName(
       folder.name,
       userId,
       moveData.parent
     );
 
+    if (existingFolder) {
+      if (!moveData.duplicateAction) {
+        throw new ApiError(409, [{ 
+          name: `A folder with the name "${folder.name}" already exists in this location`,
+          type: "folder",
+          folderName: folder.name
+        }]);
+      }
+
+      if (moveData.duplicateAction === "replace") {
+        // Delete the existing folder and all its contents
+        await this.permanentDeleteFolder(existingFolder._id.toString(), userId);
+      } else if (moveData.duplicateAction === "keepBoth") {
+        // Generate a unique name for the folder being moved
+        const uniqueName = await this.ensureUniqueNameAtLevel(
+          folder.name,
+          userId,
+          moveData.parent
+        );
+        
+        // Move the folder with the unique name
+        const updatedFolder = await folderDao.moveFolder(folderId, {
+          ...moveData,
+          name: uniqueName,
+        });
+        
+        if (!updatedFolder) {
+          throw new ApiError(404, [{ folder: "Folder not found" }]);
+        }
+        
+        return this.sanitizeFolder(updatedFolder);
+      }
+    }
+
+    // Update the folder with original name (no conflict or replace action)
     const updatedFolder = await folderDao.moveFolder(folderId, {
       ...moveData,
-      name: uniqueName,
+      name: folder.name,
     });
 
     if (!updatedFolder) {

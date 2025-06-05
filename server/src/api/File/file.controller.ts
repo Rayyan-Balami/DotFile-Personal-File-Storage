@@ -194,7 +194,7 @@ class FileController {
     const fileId = req.params.id;
     const { folder, name, duplicateAction } = req.body;
 
-    const updatedFile = await fileService.moveFile(fileId, folder, userId);
+    const updatedFile = await fileService.moveFile(fileId, folder, userId, duplicateAction);
 
     res.json(
       new ApiResponse(200, { file: updatedFile }, "File moved successfully")

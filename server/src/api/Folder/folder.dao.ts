@@ -125,7 +125,7 @@ class FolderDao {
   /**
    * Move folder to new parent
    * @param folderId - Folder ID
-   * @param moveData - New parent ID
+   * @param moveData - New parent ID and optionally new name
    * @returns Updated doc or null
    */
   async moveFolder(
@@ -133,9 +133,18 @@ class FolderDao {
     moveData: MoveFolderDto
   ): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
+    
+    // Prepare update data
+    const updateData: any = { parent: moveData.parent };
+    
+    // Only update name if it's provided (for duplicate handling)
+    if (moveData.name) {
+      updateData.name = moveData.name;
+    }
+    
     return await Folder.findByIdAndUpdate(
       folderId,
-      { parent: moveData.parent },
+      updateData,
       { new: true }
     )
       .populate("owner")

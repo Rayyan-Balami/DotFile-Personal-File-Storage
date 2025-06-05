@@ -35,6 +35,7 @@ export interface RenameFileDto {
 export interface MoveFileDto {
   folder: string | null;
   name: string;
+  duplicateAction?: "replace" | "keepBoth";
 }
 
 /**
