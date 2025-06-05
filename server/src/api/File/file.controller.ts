@@ -181,7 +181,7 @@ class FileController {
   /**
    * Moves file to a different folder
    * @param id - File identifier from route params
-   * @param destinationFolderId - Target folder ID from request body
+   * @param folder - Target folder ID from request body
    * @returns Updated file with new folder reference
    */
   moveFile = asyncHandler(async (req: Request, res: Response) => {
@@ -192,9 +192,9 @@ class FileController {
     }
 
     const fileId = req.params.id;
-    const { destinationFolderId } = req.body;
+    const { folder, name, duplicateAction } = req.body;
 
-    const updatedFile = await fileService.moveFile(fileId, destinationFolderId, userId);
+    const updatedFile = await fileService.moveFile(fileId, folder, userId);
 
     res.json(
       new ApiResponse(200, { file: updatedFile }, "File moved successfully")

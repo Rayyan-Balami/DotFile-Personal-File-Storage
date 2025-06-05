@@ -23,7 +23,8 @@ export interface RenameFileDto {
 }
 
 export interface MoveFileDto {
-  destinationFolderId: string;
+  folder: string | null;
+  name: string;
   duplicateAction?: "replace" | "keepBoth";
 }
 

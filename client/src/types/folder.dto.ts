@@ -13,7 +13,7 @@ export interface UpdateFolderDto {
 }
 
 export interface MoveFolderDto {
-  parent: string;
+  parent: string | null;
   name: string;
   duplicateAction?: "replace" | "keepBoth";
 }

@@ -28,7 +28,9 @@ export const renameFileSchema = z.object({
  * @validates Target folder ID (null allowed for root folder)
  */
 export const moveFileSchema = z.object({
-  destinationFolderId: z.string().nullable(),
+  folder: z.string().nullable(),
+  name: z.string(),
+  duplicateAction: z.enum(["replace", "keepBoth"]).optional(),
 });
 
 /**
