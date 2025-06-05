@@ -1,8 +1,6 @@
 import { useFileSystemStore } from "@/stores/useFileSystemStore";
 import { useSelectionStore } from "@/stores/useSelectionStore";
 import { FileSystemItem } from "@/types/folderDocumnet";
-import { MoveFolderDto } from "@/types/folder.dto";
-import { MoveFileDto } from "@/types/file.dto";
 import {
   Active,
   CollisionDetection,
@@ -22,8 +20,8 @@ import { toast } from "sonner";
 import { getDetailedErrorInfo } from "@/utils/apiErrorHandler";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { DragOverlay } from "./DragOverlay";
-import fileApi from "@/api/file/file.api";
-import folderApi from "@/api/folder/folder.api";
+import { useMoveFile } from "@/api/file/file.query";
+import { useMoveFolder } from "@/api/folder/folder.query";
 
 // Context to provide drag-related state throughout the app
 interface FileSystemDndContextType {
@@ -245,6 +243,10 @@ interface FileSystemDndProviderProps {
 export function FileSystemDndProvider({
   children,
 }: FileSystemDndProviderProps) {
+  // React Query mutation hooks
+  const moveFolderMutation = useMoveFolder();
+  const moveFileMutation = useMoveFile();
+  
   // Local state for drag and drop
   const [activeId, setActiveId] = useState<string | null>(null);
   const [active, setActive] = useState<Active | null>(null);
@@ -254,7 +256,6 @@ export function FileSystemDndProvider({
   const [position, setPosition] = useState({ x: 0, y: 0 });
 
   // Store hooks
-  const moveItem = useFileSystemStore((state) => state.moveItem);
   const items = useFileSystemStore((state) => state.items);
   const selectedIds = useSelectionStore((state) => state.selectedIds);
   const clearSelection = useSelectionStore((state) => state.clear);
@@ -477,14 +478,20 @@ export function FileSystemDndProvider({
         for (const item of draggedItems) {
           try {
             if (item.cardType === "folder") {
-              await folderApi.moveFolder(item.id, {
-                parent: targetFolderId,
-                name: item.name,
+              await moveFolderMutation.mutateAsync({
+                folderId: item.id,
+                data: {
+                  parent: targetFolderId,
+                  name: item.name,
+                }
               });
             } else if (item.cardType === "document") {
-              await fileApi.moveFile(item.id, {
-                folder: targetFolderId,
-                name: item.name,
+              await moveFileMutation.mutateAsync({
+                fileId: item.id,
+                data: {
+                  folder: targetFolderId,
+                  name: item.name,
+                }
               });
             }
           } catch (error: any) {
@@ -498,16 +505,22 @@ export function FileSystemDndProvider({
                 const dialogAction = async (action: "replace" | "keepBoth") => {
                   try {
                     if (item.cardType === "folder") {
-                      await folderApi.moveFolder(item.id, {
-                        parent: targetFolderId,
-                        name: item.name,
-                        duplicateAction: action,
+                      await moveFolderMutation.mutateAsync({
+                        folderId: item.id,
+                        data: {
+                          parent: targetFolderId,
+                          name: item.name,
+                          duplicateAction: action,
+                        }
                       });
                     } else if (item.cardType === "document") {
-                      await fileApi.moveFile(item.id, {
-                        folder: targetFolderId,
-                        name: item.name,
-                        duplicateAction: action,
+                      await moveFileMutation.mutateAsync({
+                        fileId: item.id,
+                        data: {
+                          folder: targetFolderId,
+                          name: item.name,
+                          duplicateAction: action,
+                        }
                       });
                     }
                     resolve();
