@@ -42,8 +42,8 @@ export const $dirname = dirname($filename);
 export const ROOT_DIR = join($dirname, '..', '..');
 export const UPLOADS_DIR = join(ROOT_DIR, 'uploads');
 export const PUBLIC_DIR = join(ROOT_DIR, 'public');
-export const DEFAULT_USER_AVATAR_PATH = join(PUBLIC_DIR, 'images/default-user-avatar.png'); // Server-side
-export const DEFAULT_USER_AVATAR_URL = '/images/default-user-avatar.png';                   // Public URL
+export const USER_AVATAR_PATH = join(PUBLIC_DIR, 'images/default-user-avatar.png'); // Server-side
+export const DEFAULT_USER_AVATAR_URL = '/avatars/default-user-avatar.png';                   // Public URL
 
 //==============================
 // LIMITS
