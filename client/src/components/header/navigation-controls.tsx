@@ -1,27 +1,21 @@
-import {
-  ArrowLeft,
-  ArrowRight,
-  ArrowUp,
-  PanelRightClose,
-} from "lucide-react";
+import { useFolderContents } from "@/api/folder/folder.query";
 import { Button } from "@/components/ui/button";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { useSidebar } from "@/components/ui/sidebar";
-import { useNavigate, useLocation } from "@tanstack/react-router";
-import { useFolderContents } from "@/api/folder/folder.query";
+import { useLocation, useNavigate } from "@tanstack/react-router";
+import { ArrowLeft, ArrowRight, ArrowUp, PanelRightOpen } from "lucide-react";
 
 export function NavigationControls() {
-  const { toggleSidebar, open, state, isTablet } = useSidebar();
+  const { toggleSidebar, state, isTablet } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
-  console.log("NavigationControls rendered isTablet:", isTablet, "state:", state, "open:", open);
-  
+
   // Get current folder ID from URL if we're in a folder
   const currentPath = location.pathname;
-  const folderId = currentPath.startsWith('/folder/') 
-    ? currentPath.split('/folder/')[1] 
+  const folderId = currentPath.startsWith("/folder/")
+    ? currentPath.split("/folder/")[1]
     : undefined;
-  
+
   // Get folder contents to access path segments
   const { data } = useFolderContents(folderId);
   const pathSegments = data?.data?.folderContents?.pathSegments || [];
@@ -39,10 +33,10 @@ export function NavigationControls() {
   // Handle going up one level in the folder structure
   const handleGoUp = () => {
     // Handle different contexts
-    if (currentPath === '/') {
+    if (currentPath === "/") {
       // Already at root, do nothing
       return;
-    } else if (currentPath === '/trash' || currentPath === '/recent') {
+    } else if (currentPath === "/trash" || currentPath === "/recent") {
       // From trash or recent, go to root
       navigate({ to: "/" });
       return;
@@ -53,7 +47,11 @@ export function NavigationControls() {
       // Get parent folder's ID from path segments (second to last item)
       // If parent is Root or Trash, go to root, otherwise go to parent folder
       const parentSegment = pathSegments[pathSegments.length - 2];
-      if (parentSegment.id === null || parentSegment.name === "Root" || parentSegment.name === "Trash") {
+      if (
+        parentSegment.id === null ||
+        parentSegment.name === "Root" ||
+        parentSegment.name === "Trash"
+      ) {
         navigate({ to: "/" });
       } else {
         navigate({ to: `/folder/${parentSegment.id}` });
@@ -66,19 +64,17 @@ export function NavigationControls() {
 
   return (
     <>
-      {/* {(state !== "collapsed" || isTablet) && ( */}
+      {(state !== "collapsed" || isTablet) && (
         <Button
           className="group shadow-none rounded-md text-sidebar-foreground hover:text-primary border border-transparent hover:border-border"
           variant="secondary"
           onClick={toggleSidebar}
         >
-          <PanelRightClose
-            className={`size-4.25 ${
-              open ? "rotate-180" : ""
-            } group-hover:scale-105 transition-transform`}
+          <PanelRightOpen
+            className={`size-4.25 group-hover:scale-105 transition-transform`}
           />
         </Button>
-      {/* )} */}
+      )}
       <ButtonGroup orientation="horizontal" className="max-lg:hidden">
         <Button
           className="group shadow-none text-sidebar-foreground hover:text-primary border border-transparent hover:border-border"

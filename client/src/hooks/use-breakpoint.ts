@@ -1,4 +1,6 @@
-import * as React from "react";
+"use client";
+
+import { useEffect, useState } from "react";
 
 // Tailwind's default breakpoints
 const breakpoints = {
@@ -18,14 +20,14 @@ type BreakpointState = {
 };
 
 export function useBreakpoint(): BreakpointState {
-  const [breakpoint, setBreakpoint] = React.useState<BreakpointState>(() => {
+  const [state, setState] = useState<BreakpointState>(() => {
     const width = typeof window !== "undefined" ? window.innerWidth : 0;
     return getBreakpointState(width);
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
     const update = () => {
-      setBreakpoint(getBreakpointState(window.innerWidth));
+      setState(getBreakpointState(window.innerWidth));
     };
 
     window.addEventListener("resize", update);
@@ -34,15 +36,15 @@ export function useBreakpoint(): BreakpointState {
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  return breakpoint;
+  return state;
 }
 
 function getBreakpointState(width: number): BreakpointState {
   return {
-    isMobile: width < breakpoints.md,
-    isTablet: width >= breakpoints.md && width < breakpoints.lg,
-    isDesktop: width >= breakpoints.lg && width < breakpoints["2xl"],
-    isLargeDesktop: width >= breakpoints["2xl"],
+    isMobile: width < breakpoints.md, // < 768
+    isTablet: width < breakpoints.lg, // < 1024
+    isDesktop: width < breakpoints["2xl"], // < 1536
+    isLargeDesktop: width >= breakpoints["2xl"], // ≥ 1536
     width,
   };
 }

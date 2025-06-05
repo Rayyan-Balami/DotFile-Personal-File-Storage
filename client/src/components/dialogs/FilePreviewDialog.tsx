@@ -303,7 +303,7 @@ export default function FilePreviewDialog() {
 
     if (mimeType.startsWith("audio/")) {
       return (
-        <div className="flex flex-col items-center justify-center size-full bg-primary/80 rounded-lg p-8 gap-12">
+        <div className="flex flex-col items-center justify-center size-full bg-primary/80 rounded-lg p-4 gap-12">
           <Music className="w-16 h-16 text-primary-foreground" />
           <h3 className="text-lg font-medium text-primary-foreground">
             {name}.{extension}
@@ -317,11 +317,13 @@ export default function FilePreviewDialog() {
 
     if (mimeType.startsWith("text/")) {
       return (
-        <iframe
-          src={fileUrl}
-          title={name}
-          className="w-full h-full border-none"
-        />
+        <div className="w-full h-full p-4 bg-white/80">
+          <iframe
+            src={fileUrl}
+            title={name}
+            className="w-full h-full border-none"
+          />
+        </div>
       );
     }
 
