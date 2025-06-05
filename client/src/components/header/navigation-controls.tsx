@@ -11,10 +11,10 @@ import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useFolderContents } from "@/api/folder/folder.query";
 
 export function NavigationControls() {
-  const { toggleSidebar, open, state, isMobile } = useSidebar();
+  const { toggleSidebar, open, state, isTablet } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
-  console.log("NavigationControls rendered isMobile:", isMobile, "state:", state, "open:", open);
+  console.log("NavigationControls rendered isTablet:", isTablet, "state:", state, "open:", open);
   
   // Get current folder ID from URL if we're in a folder
   const currentPath = location.pathname;
@@ -66,7 +66,7 @@ export function NavigationControls() {
 
   return (
     <>
-      {(state !== "collapsed" || isMobile) && (
+      {/* {(state !== "collapsed" || isTablet) && ( */}
         <Button
           className="group shadow-none rounded-md text-sidebar-foreground hover:text-primary border border-transparent hover:border-border"
           variant="secondary"
@@ -78,7 +78,7 @@ export function NavigationControls() {
             } group-hover:scale-105 transition-transform`}
           />
         </Button>
-      )}
+      {/* )} */}
       <ButtonGroup orientation="horizontal" className="max-lg:hidden">
         <Button
           className="group shadow-none text-sidebar-foreground hover:text-primary border border-transparent hover:border-border"

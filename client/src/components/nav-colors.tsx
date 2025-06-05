@@ -62,10 +62,10 @@ export function NavColors() {
     "rosebud",
   ] as ColorOption[];
   const [isOpen, setIsOpen] = useLocalStorage("nav-colors-open", true);
-  const { state, isMobile } = useSidebar();
+  const { state, isTablet } = useSidebar();
 
   // Collapsed view (icon trigger with dropdown)
-  if (state === "collapsed" && !isMobile) {
+  if (state === "collapsed" && !isTablet) {
     return (
       <SidebarGroup>
         <DropdownMenu>
@@ -79,9 +79,9 @@ export function NavColors() {
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className={`w-48 ${isMobile ? "" : "mb-4"}`}
-            side={isMobile ? "bottom" : "right"}
-            align={isMobile ? "end" : "start"}
+            className={`w-48 ${isTablet ? "" : "mb-4"}`}
+            side={isTablet ? "bottom" : "right"}
+            align={isTablet ? "end" : "start"}
           >
             <DropdownMenuLabel className="text-muted-foreground text-xs">
               Colors

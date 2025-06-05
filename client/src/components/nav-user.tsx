@@ -36,7 +36,7 @@ import { Progress } from "./ui/progress"
 
 export function NavUser() {
   const { user, clearAuth } = useAuthStore();
-  const { isMobile } = useSidebar();
+  const { isTablet } = useSidebar();
   const navigate = useNavigate();
   const logout = useLogout();
 
@@ -84,8 +84,8 @@ export function NavUser() {
           </SidebarMenuButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          className={`w-(--radix-dropdown-menu-trigger-width) min-w-64 rounded-lg ${isMobile ? "" : "mt-4"}`}
-          side={isMobile ? "bottom" : "right"}
+          className={`w-(--radix-dropdown-menu-trigger-width) min-w-64 rounded-lg ${isTablet ? "" : "mt-4"}`}
+          side={isTablet ? "bottom" : "right"}
           align="end"
           sideOffset={4}
         >

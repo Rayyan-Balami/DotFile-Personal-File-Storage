@@ -39,7 +39,6 @@ type SidebarContextProps = {
   setOpenMobile: (open: boolean) => void
   isTablet: boolean
   toggleSidebar: () => void
-  isMobile: boolean
 }
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null)
@@ -66,7 +65,7 @@ function SidebarProvider({
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }) {
-  const {isMobile,isTablet} = useBreakpoint()
+  const {isTablet } = useBreakpoint()
   const [openMobile, setOpenMobile] = React.useState(false)
 
   // This is the internal state of the sidebar.
@@ -119,12 +118,11 @@ function SidebarProvider({
       open,
       setOpen,
       isTablet,
-      isMobile,
       openMobile,
       setOpenMobile,
       toggleSidebar,
     }),
-    [state, open, setOpen, isTablet, isMobile, openMobile, setOpenMobile, toggleSidebar]
+    [state, open, setOpen, isTablet, openMobile, setOpenMobile, toggleSidebar]
   )
 
   return (

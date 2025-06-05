@@ -171,7 +171,7 @@ const DropdownMenuOptions = ({ item }: PinItemProps) => {
 }
 
 export function NavPins() {
-  const { isMobile } = useSidebar()
+  const { isTablet } = useSidebar()
   const [currentOffset, setCurrentOffset] = useState(0)
   const [allItems, setAllItems] = useState<any[]>([])
   const [isExpanded, setIsExpanded] = useState(false)
@@ -291,8 +291,8 @@ export function NavPins() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     className="w-min-48"
-                    side={isMobile ? "bottom" : "right"}
-                    align={isMobile ? "end" : "start"}
+                    side={isTablet ? "bottom" : "right"}
+                    align={isTablet ? "end" : "start"}
                   >
                     <DropdownMenuOptions item={item} />
                   </DropdownMenuContent>
