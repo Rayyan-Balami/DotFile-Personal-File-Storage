@@ -24,7 +24,7 @@ const FolderSchema = new Schema<IFolder>(
     name: { type: String, required: true },
     type: { type: String, enum: ["folder"], default: "folder" },
     owner: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    color: { type: String, default: "#4f46e5" },
+    color: { type: String, default: "default" },
     parent: { type: Schema.Types.ObjectId, ref: "Folder", default: null },
     isPinned: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },

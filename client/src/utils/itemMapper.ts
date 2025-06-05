@@ -31,7 +31,7 @@ export function mapToFileSystemItem(item: FolderResponseDto | FileResponseDto): 
       ...baseItem,
       type: 'folder',
       cardType: 'folder' as const,
-      color: item.color ?? '#4f46e5',
+      color: item.color ?? 'default',
       parent: item.parent,
       items: item.items ?? 0,
     } as FolderItem;
