@@ -11,10 +11,11 @@ import {
   UserResponseDTO,
 } from "@api/user/user.dto.js";
 import { IUser } from "@api/user/user.model.js";
-import { REFRESH_TOKEN_SECRET } from "@config/constants.js";
+import { REFRESH_TOKEN_SECRET, DEFAULT_USER_AVATAR_URL } from "@config/constants.js";
 import { ApiError } from "@utils/apiError.utils.js";
 import { createUserDirectory } from "@utils/mkdir.utils.js";
 import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
+import logger from "@utils/logger.utils.js";
 import jwt from "jsonwebtoken";
 
 /**
@@ -208,6 +209,39 @@ class UserService {
     const updatedUser = await userDAO.updateUser(id, data);
     if (!updatedUser) {
       throw new ApiError(404, [{ id: "User not found" }]);
+    }
+
+    return this.sanitizeUser(updatedUser);
+  }
+
+  /**
+   * Update user avatar with old avatar cleanup
+   * @param id - Target user ID
+   * @param avatarUrl - New avatar URL
+   * @throws User not found
+   */
+  async updateUserAvatar(id: string, avatarUrl: string): Promise<UserResponseDTO> {
+    // Get current user to check existing avatar
+    const currentUser = await userDAO.getUserById(id);
+    if (!currentUser) {
+      throw new ApiError(404, [{ id: "User not found" }]);
+    }
+
+    // Clean up old avatar if it's not the default
+    if (currentUser.avatar && currentUser.avatar !== DEFAULT_USER_AVATAR_URL) {
+      try {
+        const { deleteAvatarFile } = await import("@middleware/avatar.middleware.js");
+        await deleteAvatarFile(currentUser.avatar);
+      } catch (error) {
+        logger.warn("Failed to delete old avatar file:", error);
+        // Continue with update even if cleanup fails
+      }
+    }
+
+    // Update user with new avatar
+    const updatedUser = await userDAO.updateUser(id, { avatar: avatarUrl });
+    if (!updatedUser) {
+      throw new ApiError(500, [{ avatar: "Failed to update user avatar" }]);
     }
 
     return this.sanitizeUser(updatedUser);

@@ -4,6 +4,7 @@ import { ApiError } from "@utils/apiError.utils.js";
 import { ApiResponse } from "@utils/apiResponse.utils.js";
 import asyncHandler from "@utils/asyncHandler.utils.js";
 import { jwtTimeToMs } from "@utils/jwtTimeToMs.utils.js";
+import logger from "@utils/logger.utils.js";
 import { Request, Response } from "express";
 
 /**
@@ -273,6 +274,44 @@ class UserController {
         "User restored successfully"
       )
     );
+  });
+
+  /**
+   * Update current user avatar
+   */
+  updateCurrentUserAvatar = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+
+    if (!req.file) {
+      throw new ApiError(400, [{ avatar: "No avatar file uploaded" }]);
+    }
+
+    try {
+      // Generate the avatar URL that will be stored in the database
+      const avatarUrl = `/avatars/${req.file.filename}`;
+      
+      // Update user avatar in the database
+      const updatedUser = await userService.updateUserAvatar(req.user.id, avatarUrl);
+      
+      res.json(
+        new ApiResponse(
+          200,
+          { user: updatedUser },
+          "Avatar updated successfully"
+        )
+      );
+    } catch (error) {
+      // Clean up uploaded file if database update fails
+      try {
+        const { rollbackAvatarUpload } = await import("@middleware/avatar.middleware.js");
+        await rollbackAvatarUpload(req);
+      } catch (cleanupError) {
+        logger.error("Failed to clean up avatar upload:", cleanupError);
+      }
+      throw error;
+    }
   });
 }
 
