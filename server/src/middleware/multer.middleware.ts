@@ -405,7 +405,59 @@ export const processZipFiles = async (
 
     const fileToFolderMap: Record<string, string> = {};
     const allVirtualFolders: Record<string, string> = {};
+    let totalExtractedSizeAllZips = 0;
 
+    // First pass: Calculate total extracted size from all ZIP files for storage validation
+    // CRITICAL FIX: Validate storage BEFORE extraction to prevent storage overflow
+    // The fileFilter only checks compressed ZIP size, but extracted content can be much larger
+    const currentUser = await userService.getUserById(userId);
+    const actualAvailableStorage = currentUser.maxStorageLimit - currentUser.storageUsed;
+
+    for (const zipFile of zipFiles) {
+      const zip = new AdmZip(zipFile.path);
+      const entries = zip.getEntries();
+
+      // Calculate extracted size for this ZIP
+      entries.forEach((entry) => {
+        if (entry.isDirectory) return;
+        
+        const entryName = entry.entryName;
+        const baseName = path.basename(entryName);
+        if (
+          entryName.startsWith("__") ||
+          baseName.startsWith(".") ||
+          baseName === "Thumbs.db" ||
+          entryName.includes("/.") ||
+          entry.header.size === 0
+        ) {
+          return;
+        }
+        
+        totalExtractedSizeAllZips += entry.header.size;
+      });
+    }
+
+    logger.info(`📁 Total ZIP Batch Storage Validation:
+      Number of ZIP files: ${zipFiles.length}
+      Total Compressed Size: ${formatBytes(zipFiles.reduce((sum, f) => sum + f.size, 0))}
+      Total Extracted Size: ${formatBytes(totalExtractedSizeAllZips)}
+      Available Storage: ${formatBytes(actualAvailableStorage)}
+      User Storage Used: ${formatBytes(currentUser.storageUsed)}
+      User Storage Limit: ${formatBytes(currentUser.maxStorageLimit)}
+      Fits in Storage: ${totalExtractedSizeAllZips <= actualAvailableStorage ? "✅ Yes" : "❌ No"}
+    `);
+
+    // Check if all extracted files will fit in available storage
+    if (totalExtractedSizeAllZips > actualAvailableStorage) {
+      logger.warn(`❌ ZIP batch rejected - Total extracted content exceeds available storage`);
+      throw new ApiError(400, [
+        {
+          file: `ZIP files contain ${formatBytes(totalExtractedSizeAllZips)} of content, which exceeds available storage space (${formatBytes(actualAvailableStorage)}). Upload cancelled.`,
+        },
+      ]);
+    }
+
+    // Second pass: Process each ZIP file
     for (const zipFile of zipFiles) {
       const zip = new AdmZip(zipFile.path);
       const entries = zip.getEntries();

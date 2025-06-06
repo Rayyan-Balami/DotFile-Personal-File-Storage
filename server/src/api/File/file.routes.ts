@@ -28,14 +28,14 @@ authRoutes.use(verifyAuth); // Require authentication
 authRoutes
   // CRUD operations
   .post("/upload", 
-    handleAbortedUploads,
-    upload,
-    validateFileSize,
-    processZipFiles,
-    encryptFiles,
-    updateUserStorageUsage,
+    handleAbortedUploads,    // Handle client abort scenarios
+    upload,                  // Multer file upload (validates compressed size only)
+    validateFileSize,        // Validates total batch size after upload
+    processZipFiles,         // Extract ZIP files & validate extracted content size
+    encryptFiles,            // Encrypt all files before storage
+    updateUserStorageUsage,  // Update user's storage usage in DB
     FileController.uploadFiles
-  )                            // Upload file
+  )                          // Upload file
   .get("/", FileController.getUserFiles)                                  // List user files
   .get("/recent", FileController.getRecentFiles)                         // Get recent files
   .get("/:id", FileController.getFileById)                                // Get file by ID
