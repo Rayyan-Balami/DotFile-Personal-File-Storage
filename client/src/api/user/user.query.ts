@@ -6,6 +6,7 @@ import {
   RefreshTokenInput,
   UpdateUserInput,
   UpdateUserPasswordInput,
+  DeleteUserAccountInput,
 } from "@/validation/authForm";
 import { useAuthStore } from "@/stores/authStore";
 import { User } from "@/types/user";
@@ -94,6 +95,20 @@ export const useLogout = () =>
   useMutation({
     mutationFn: () => userApi.logout(),
   });
+
+export const useDeleteAccount = () => {
+  const clearAuth = useAuthStore((state) => state.clearAuth);
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (data: DeleteUserAccountInput) => userApi.deleteAccount(data),
+    onSuccess: () => {
+      // Clear auth state and all cached data
+      clearAuth();
+      queryClient.clear();
+    },
+  });
+};
 
 // ==========================
 // ADMIN USER HOOKS

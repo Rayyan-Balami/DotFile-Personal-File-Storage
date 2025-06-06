@@ -284,6 +284,25 @@ export class UserDAO {
       { new: true }
     );
   }
+
+  /**
+   * Permanently delete user from database
+   * @param userId - User's MongoDB ID
+   * @returns Deletion result with acknowledged and deletedCount properties
+   */
+  async permanentDeleteUser(
+    userId: string
+  ): Promise<{ acknowledged: boolean; deletedCount: number }> {
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return { acknowledged: false, deletedCount: 0 };
+    }
+
+    const result = await User.deleteOne({ _id: userId });
+    return {
+      acknowledged: result.acknowledged,
+      deletedCount: result.deletedCount,
+    };
+  }
 }
 
 export default new UserDAO();

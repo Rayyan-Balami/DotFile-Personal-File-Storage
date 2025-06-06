@@ -3,6 +3,7 @@ import userController from "@api/user/user.controller.js";
 import { UserRole } from "@api/user/user.dto.js";
 import {
   adminSetPasswordSchema,
+  deleteUserAccountSchema,
   loginUserSchema,
   refreshTokenSchema,
   registerUserSchema,
@@ -39,6 +40,7 @@ authRoutes
   .put("/me", validateData(updateUserSchema), userController.updateCurrentUser)     // Update profile
   .patch("/me/password", validateData(updateUserPasswordSchema), userController.updateCurrentUserPassword) // Update password
   .patch("/me/avatar", avatarUpload, userController.updateCurrentUserAvatar) // Update avatar
+  .delete("/me", validateData(deleteUserAccountSchema), userController.deleteUserAccount) // Delete account
   .post("/logout", userController.logout);                                          // Logout
 
 //=========================//

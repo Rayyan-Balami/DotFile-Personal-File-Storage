@@ -50,6 +50,13 @@ export interface UpdateUserRoleDTO {
 }
 
 /**
+ * User account deletion with password confirmation
+ */
+export interface DeleteUserAccountDTO {
+  password: string;
+}
+
+/**
  * Session token update
  */
 export interface UpdateUserRefreshTokenDTO {

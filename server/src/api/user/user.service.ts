@@ -3,6 +3,7 @@ import {
   AdminSetPasswordDTO,
   AdminUpdateStorageDTO,
   CreateUserDTO,
+  DeleteUserAccountDTO,
   JwtUserPayload,
   LoginUserDTO,
   UpdateUserDTO,
@@ -13,10 +14,12 @@ import {
 import { IUser } from "@api/user/user.model.js";
 import { REFRESH_TOKEN_SECRET, DEFAULT_USER_AVATAR_URL } from "@config/constants.js";
 import { ApiError } from "@utils/apiError.utils.js";
-import { createUserDirectory } from "@utils/mkdir.utils.js";
+import { createUserDirectory, getUserDirectoryPath, removeDirectory } from "@utils/mkdir.utils.js";
 import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
 import logger from "@utils/logger.utils.js";
 import jwt from "jsonwebtoken";
+import fileService from "@api/file/file.service.js";
+import folderService from "@api/folder/folder.service.js";
 
 /**
  * Business logic layer for user operations
@@ -471,6 +474,94 @@ class UserService {
     }
 
     return this.sanitizeUser(restoredUser);
+  }
+
+  /**
+   * Permanently delete user account and all associated data
+   * @param userId - Target user ID
+   * @param deleteData - Password confirmation for security
+   * @throws Invalid password or user not found
+   */
+  async deleteUserAccount(userId: string, deleteData: DeleteUserAccountDTO): Promise<void> {
+    // Get user with password for verification
+    const user = await userDAO.getUserById(userId, { includeRefreshToken: true });
+    if (!user) {
+      throw new ApiError(404, [{ id: "User not found" }]);
+    }
+
+    // Get user with password to verify the password
+    const userWithPassword = await userDAO.getUserByEmail(user.email, { includePassword: true });
+    if (!userWithPassword) {
+      throw new ApiError(404, [{ id: "User not found" }]);
+    }
+
+    // Verify password
+    const validPassword = await userWithPassword.checkPassword(deleteData.password);
+    if (!validPassword) {
+      throw new ApiError(401, [{ password: "Invalid password" }]);
+    }
+
+    try {
+      logger.info(`Starting account deletion for user: ${userId}`);
+
+      // 1. Delete all user files (both active and trashed) from database and storage
+      await fileService.permanentDeleteAllDeletedFiles(userId);
+      
+      // Get and delete all active files
+      const activeFiles = await fileService.getUserFilesByFolders(userId, undefined, false);
+      for (const file of activeFiles) {
+        await fileService.permanentDeleteFile(file.id, userId);
+      }
+
+      // 2. Delete all user folders (both active and trashed) from database
+      await folderService.permanentDeleteAllDeletedFolders(userId);
+      
+      // Get and delete all active folders
+      const activeFolders = await folderService.getUserFolders(userId, undefined, false);
+      for (const folder of activeFolders) {
+        await folderService.permanentDeleteFolder(folder.id, userId);
+      }
+
+      // 3. Remove user's upload directory entirely from server filesystem
+      try {
+        const userDirPath = getUserDirectoryPath(userId);
+        const removed = removeDirectory(userDirPath);
+        if (removed) {
+          logger.info(`Removed user directory: ${userDirPath}`);
+        } else {
+          logger.warn(`Failed to remove user directory: ${userDirPath}`);
+        }
+      } catch (error) {
+        logger.error(`Error removing user directory:`, error);
+        // Continue with deletion even if directory removal fails
+      }
+
+      // 4. Delete user avatar file if not default
+      if (user.avatar && user.avatar !== DEFAULT_USER_AVATAR_URL) {
+        try {
+          const { deleteAvatarFile } = await import("@middleware/avatar.middleware.js");
+          await deleteAvatarFile(user.avatar);
+          logger.info(`Deleted user avatar: ${user.avatar}`);
+        } catch (error) {
+          logger.warn("Failed to delete user avatar file:", error);
+          // Continue with deletion even if avatar cleanup fails
+        }
+      }
+
+      // 5. Permanently delete user record from database
+      const deletionResult = await userDAO.permanentDeleteUser(userId);
+      if (!deletionResult.acknowledged || deletionResult.deletedCount === 0) {
+        throw new ApiError(500, [{ delete: "Failed to delete user account" }]);
+      }
+
+      logger.info(`Successfully deleted user account: ${userId}`);
+    } catch (error) {
+      logger.error(`Error during user account deletion for ${userId}:`, error);
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      throw new ApiError(500, [{ delete: "Failed to delete user account" }]);
+    }
   }
 
   /**

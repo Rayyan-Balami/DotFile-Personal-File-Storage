@@ -122,6 +122,13 @@ const updateStorageLimitSchema = z.object({
   maxStorageLimit: z.number().min(0, { message: "Storage limit cannot be negative" }),
 });
 
+/**
+ * Delete user account validation - requires password confirmation
+ */
+const deleteUserAccountSchema = z.object({
+  password: z.string().min(1, { message: "Password is required to delete your account" }),
+});
+
 // Fix type exports using proper syntax
 type LoginUserInput = z.infer<typeof loginUserSchema>;
 type RegisterUserInput = z.infer<typeof registerUserSchema>;
@@ -132,6 +139,7 @@ type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>;
 type AdminSetPasswordInput = z.infer<typeof adminSetPasswordSchema>;
 type UpdateStorageLimitInput = z.infer<typeof updateStorageLimitSchema>;
 type AvatarFileInput = z.infer<typeof avatarFileSchema>;
+type DeleteUserAccountInput = z.infer<typeof deleteUserAccountSchema>;
 
 export {
   loginUserSchema,
@@ -143,6 +151,7 @@ export {
   adminSetPasswordSchema,
   updateStorageLimitSchema,
   avatarFileSchema,
+  deleteUserAccountSchema,
 };
 
 export type {
@@ -155,4 +164,5 @@ export type {
   AdminSetPasswordInput,
   UpdateStorageLimitInput,
   AvatarFileInput,
+  DeleteUserAccountInput,
 };

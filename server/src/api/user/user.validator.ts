@@ -126,10 +126,21 @@ const updateStorageLimitSchema = z.object({
   maxStorageLimit: z.number().min(0, { message: "Storage limit cannot be negative" }),
 });
 
+/**
+ * Account deletion: Require password confirmation for security
+ */
+const deleteUserAccountSchema = z.object({
+  password: z.string().min(1, { message: "Password is required to delete account" }),
+});
+
 export {
-  adminSetPasswordSchema, loginUserSchema,
+  adminSetPasswordSchema,
+  deleteUserAccountSchema,
+  loginUserSchema,
   refreshTokenSchema,
-  registerUserSchema, updateStorageLimitSchema, updateUserPasswordSchema,
+  registerUserSchema,
+  updateStorageLimitSchema,
+  updateUserPasswordSchema,
   updateUserRoleSchema,
   updateUserSchema
 };

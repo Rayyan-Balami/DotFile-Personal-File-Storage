@@ -32,6 +32,7 @@ import { useRef, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { VITE_API_URL } from "@/config/constants";
+import DeleteAccountDialog from "@/components/dialogs/DeleteAccountDialog";
 
 export const Route = createFileRoute("/(user)/setting/profile")({
   component: Component,
@@ -42,6 +43,7 @@ export default function Component() {
   const updateUser = useAuthStore((state) => state.updateUser);
 
   const [avatarPreview, setAvatarPreview] = useState<string>("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const updateProfileMutation = useUpdateProfile();
@@ -170,8 +172,7 @@ export default function Component() {
 
   // Handle delete account
   function handleDeleteAccount() {
-    // TODO: Implement delete account functionality
-    toast.error("Delete account functionality not implemented yet");
+    setDeleteDialogOpen(true);
   }
 
   const initials = getInitials(user?.name || "");
@@ -437,6 +438,12 @@ export default function Component() {
           </Button>
         </div>
       </div>
+      
+      {/* Delete Account Dialog */}
+      <DeleteAccountDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+      />
     </section>
   );
 }

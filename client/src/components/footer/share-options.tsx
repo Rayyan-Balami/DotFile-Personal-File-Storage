@@ -138,7 +138,7 @@ export function ShareOptions() {
       open={shareDialogOpen}
       onOpenChange={setShareDialogOpen}
       // showCancel={true}
-      contentClassName="max-h-[80svh] max-md:-mt-8.5 overflow-y-auto gap-0"
+      contentClassName="max-h-[80svh] max-md:-mt-8.5 gap-0"
       headerClassName="p-6 max-md:pt-8 pb-4 md:p-8 md:pb-6 bg-primary-foreground border-b border-primary/10"
       bodyClassName="pb-6 md:pb-8 gap-8"
     >

@@ -24,7 +24,7 @@ export function UploadChoiceDialog() {
       onOpenChange={(open) => {
         if (!open) closeUploadChoiceDialog();
       }}
-      contentClassName="max-h-[80svh] max-md:-mt-8.5 overflow-y-auto gap-0"
+      contentClassName="max-h-[80svh] max-md:-mt-8.5 gap-0"
       headerClassName="p-6 max-md:pt-8 pb-4 md:p-8 md:pb-6 border-b bg-muted"
       bodyClassName="p-6 md:p-8 gap-8"
     >

@@ -64,7 +64,7 @@ function DrawerContent({
         {...props}
       >
         <div className="bg-muted-foreground/25 mx-auto mt-4 hidden h-1 w-12 shrink-0 rounded-full group-data-[vaul-drawer-direction=bottom]/drawer-content:block mb-2.5 z-50" />
-        <div className={cn("overflow-auto flex flex-col gap-4 bg-background",className)}>{children}</div>
+        <div className={cn("flex flex-col gap-4 bg-background",className)}>{children}</div>
       </DrawerPrimitive.Content>
     </DrawerPortal>
   )

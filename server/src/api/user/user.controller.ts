@@ -265,8 +265,7 @@ class UserController {
    * Admin: Restore user from trash
    */
   restoreUser = asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const restoredUser = await userService.restoreUser(id);
+    const restoredUser = await userService.restoreUser(req.params.id);
     res.json(
       new ApiResponse(
         200,
@@ -274,6 +273,36 @@ class UserController {
         "User restored successfully"
       )
     );
+  });
+
+  /**
+   * Permanently delete current user account
+   */
+  deleteUserAccount = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+
+    await userService.deleteUserAccount(req.user.id, req.body);
+    
+    // Clear session cookies after successful deletion
+    res
+      .status(200)
+      .clearCookie("accessToken", {
+        httpOnly: true,
+        secure: IS_PRODUCTION,
+      })
+      .clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: IS_PRODUCTION,
+      })
+      .json(
+        new ApiResponse(
+          200,
+          null,
+          "Account deleted successfully"
+        )
+      );
   });
 
   /**
