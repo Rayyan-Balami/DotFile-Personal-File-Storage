@@ -1,6 +1,10 @@
 uploads
 uploads/*
 
+# Avatar files - ignore all except default
+public/avatars/*
+!public/avatars/default-user-avatar.png
+
 # Logs
 logs
 *.log
