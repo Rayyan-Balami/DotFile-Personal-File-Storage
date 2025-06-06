@@ -73,7 +73,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild tooltip={VITE_APP_NAME}>
               <Link to="/">
-                <section className="bg-primary/80 flex aspect-square size-8 items-center justify-center rounded-lg">
+                <section className="bg-primary flex aspect-square size-8 items-center justify-center rounded-lg">
                   <Logo />
                 </section>
                 <div className="grid flex-1 text-left text-sm leading-tight">
