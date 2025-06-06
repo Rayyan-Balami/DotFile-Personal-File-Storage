@@ -62,14 +62,30 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
   },
 
   selectAll: () => {
-    const { visibleItems } = get();
+    const { visibleItems, selectedIds } = get();
     if (!visibleItems.length) return;
+    
     const allIds = new Set(visibleItems.map(item => item.id));
-    set({
-      selectedIds: allIds,
-      lastSelectedId: visibleItems.at(-1)?.id ?? null,
-      selectionAnchor: visibleItems[0].id
-    });
+    
+    // Check if all items are already selected (toggle behavior)
+    const allSelected = visibleItems.length === selectedIds.size && 
+                       visibleItems.every(item => selectedIds.has(item.id));
+    
+    if (allSelected) {
+      // If all are selected, clear selection
+      set({
+        selectedIds: new Set(),
+        lastSelectedId: null,
+        selectionAnchor: null
+      });
+    } else {
+      // If not all are selected, select all
+      set({
+        selectedIds: allIds,
+        lastSelectedId: visibleItems.at(-1)?.id ?? null,
+        selectionAnchor: visibleItems[0].id
+      });
+    }
   },
 
   getSelectedItems: () => {

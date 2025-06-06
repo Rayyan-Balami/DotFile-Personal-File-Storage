@@ -6,16 +6,23 @@ import { processDirectoryInput } from "@/utils/uploadUtils";
 import { getDetailedErrorInfo } from "@/utils/apiErrorHandler";
 import { toast } from "sonner";
 import { ContextMenuItem, ContextMenuSeparator } from "../ui/context-menu";
+import { DropdownMenuItem, DropdownMenuSeparator, DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { useMatches } from "@tanstack/react-router";
 import { useFileSystemStore } from "@/stores/useFileSystemStore";
+import { useSelectionStore } from "@/stores/useSelectionStore";
 
-export const ContextMenuItems = React.memo(({ parentId }: { parentId?: string | null } = {}) => {
+interface GlobalMenuProps {
+  parentId?: string | null;
+}
+
+const useGlobalMenuActions = ({ parentId }: { parentId?: string | null }) => {
   const { openCreateFolderDialog, openDeleteDialog } = useDialogStore();
   const uploadFiles = useUploadFiles();
   const { addUpload, updateUploadProgress, setUploadStatus } = useUploadStore();
   const matches = useMatches();
   const items = useFileSystemStore(state => state.items);
   const isFolderReadOnly = useFileSystemStore(state => state.isFolderReadOnly);
+  const selectAll = useSelectionStore(state => state.selectAll);
 
   const isInTrashContext = matches.some(m => m.routeId.includes('/(user)/trash'));
   const isInRecentContext = matches.some(m => m.routeId.includes('/(user)/recent'));
@@ -79,55 +86,125 @@ export const ContextMenuItems = React.memo(({ parentId }: { parentId?: string | 
     input.click();
   };
 
-  const handleAction = (action: string) => {
-    switch(action) {
-      case "createFolder":
-        openCreateFolderDialog(parentId);
-        break;
-      case "emptyTrash":
-        openDeleteDialog("empty-trash", "folder", "all items in trash", new Date().toISOString(), true);
-        break;
-      case "selectAll":
-        console.log("Select all action");
-        break;
-      case "refresh":
-        window.location.reload();
-        break;
-      case "uploadFile":
-        triggerFileInput(false);
-        break;
-      case "uploadFolder":
-        triggerFileInput(true);
-        break;
+  return {
+    isReadOnlyContext,
+    isInTrashContext,
+    handleAction: (action: string) => {
+      switch(action) {
+        case "createFolder":
+          openCreateFolderDialog(parentId);
+          break;
+        case "emptyTrash":
+          openDeleteDialog("empty-trash", "folder", "all items in trash", new Date().toISOString(), true);
+          break;
+        case "selectAll":
+          selectAll();
+          break;
+        case "refresh":
+          window.location.reload();
+          break;
+        case "uploadFile":
+          triggerFileInput(false);
+          break;
+        case "uploadFolder":
+          triggerFileInput(true);
+          break;
+      }
     }
   };
+};
 
-  return (
-    <>
-      {!isReadOnlyContext && (
-        <>
-          <ContextMenuItem onClick={() => handleAction("createFolder")}>Create New Folder</ContextMenuItem>
-          <ContextMenuItem onClick={() => handleAction("uploadFile")}>Upload File</ContextMenuItem>
-          <ContextMenuItem onClick={() => handleAction("uploadFolder")}>Upload Folder</ContextMenuItem>
-          <ContextMenuSeparator />
-        </>
-      )}
+const MenuItems = React.memo(
+  ({
+    props,
+    itemComponent: Item,
+    separatorComponent: Separator,
+  }: {
+    props: GlobalMenuProps;
+    itemComponent: typeof ContextMenuItem | typeof DropdownMenuItem;
+    separatorComponent:
+      | typeof ContextMenuSeparator
+      | typeof DropdownMenuSeparator;
+  }) => {
+    const { parentId } = props;
+    const { isReadOnlyContext, isInTrashContext, handleAction } = useGlobalMenuActions({ parentId });
 
-      {isInTrashContext && (
-        <>
-          <ContextMenuItem onClick={() => handleAction("emptyTrash")} className="text-red-600 focus:text-red-600 focus:bg-red-700/20">
-            Empty Trash
-          </ContextMenuItem>
-          <ContextMenuSeparator />
-        </>
-      )}
+    return (
+      <>
+        {!isReadOnlyContext && (
+          <>
+            <Item onClick={() => handleAction("createFolder")}>New Folder</Item>
+            <Item onClick={() => handleAction("uploadFile")}>Upload File</Item>
+            <Item onClick={() => handleAction("uploadFolder")}>Upload Folder</Item>
+            <Separator />
+          </>
+        )}
 
-      <ContextMenuItem onClick={() => handleAction("selectAll")}>Select All</ContextMenuItem>
-      <ContextMenuSeparator />
-      <ContextMenuItem onClick={() => handleAction("refresh")}>Refresh</ContextMenuItem>
-    </>
-  );
-});
+        {isInTrashContext && (
+          <>
+            <Item onClick={() => handleAction("emptyTrash")} className="text-red-600 focus:text-red-600 focus:bg-red-700/20">
+              Empty Trash
+            </Item>
+            <Separator />
+          </>
+        )}
+
+        <Item onClick={() => handleAction("selectAll")}>Select All</Item>
+        <Separator />
+        <Item onClick={() => handleAction("refresh")}>Refresh</Item>
+      </>
+    );
+  }
+);
+
+export const ContextMenuItems = React.memo((props: GlobalMenuProps = {}) => (
+  <MenuItems
+    props={props}
+    itemComponent={ContextMenuItem}
+    separatorComponent={ContextMenuSeparator}
+  />
+));
+
+export const DropdownMenuItems = React.memo((props: GlobalMenuProps = {}) => (
+  <MenuItems
+    props={props}
+    itemComponent={DropdownMenuItem}
+    separatorComponent={DropdownMenuSeparator}
+  />
+));
+
+// Global Dropdown Menu Component (similar to FolderDocumentMenuItems pattern)
+
+interface GlobalDropdownMenuProps extends GlobalMenuProps {
+  trigger: React.ReactNode;
+  align?: "start" | "center" | "end";
+  sideOffset?: number;
+  className?: string;
+}
+
+export const GlobalDropdownMenu = React.memo(({ 
+  trigger, 
+  align = "end", 
+  sideOffset = 8, 
+  className = "w-48",
+  ...props 
+}: GlobalDropdownMenuProps) => (
+  <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+      {trigger}
+    </DropdownMenuTrigger>
+    <DropdownMenuContent 
+      align={align}
+      className={className}
+      sideOffset={sideOffset}
+    >
+      <DropdownMenuItems {...props} />
+    </DropdownMenuContent>
+  </DropdownMenu>
+));
 
 ContextMenuItems.displayName = "ContextMenuItems";
+DropdownMenuItems.displayName = "DropdownMenuItems";
+GlobalDropdownMenu.displayName = "GlobalDropdownMenu";
+
 export default ContextMenuItems;
