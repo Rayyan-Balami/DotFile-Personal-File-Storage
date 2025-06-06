@@ -3,7 +3,7 @@ import { Uploads } from "@/components/footer/uploads";
 import { ViewOptions } from "@/components/footer/view-options";
 import { SearchForm } from "@/components/search-form";
 import { ButtonGroup } from "@/components/ui/button-group";
-import GlobalMove from "./global-move";
+import GlobalMenu from "./global-menu";
 import { GlobalDelete } from "./global-delete";
 
 export function SiteFooter() {
@@ -18,7 +18,7 @@ export function SiteFooter() {
         <ButtonGroup orientation="horizontal" className="*:border">
           <SortOptions />
           <GlobalDelete />
-          <GlobalMove />
+          <GlobalMenu />
         </ButtonGroup>
       </nav>
       <div className="sm:hidden px-4">

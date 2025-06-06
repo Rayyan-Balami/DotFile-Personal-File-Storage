@@ -114,7 +114,7 @@
   /* rayyan defined variables */
   :root {
     --header-height: 3.5rem; /* Equivalent to theme(spacing.14) */
-    --footer-height: 4rem; /* Equivalent to theme(spacing.14) */
+    --footer-height: 3.5rem; /* Equivalent to theme(spacing.14) */
   }
   * {
     @apply border-border outline-ring/50;

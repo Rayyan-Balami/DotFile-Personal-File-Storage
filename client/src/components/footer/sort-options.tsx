@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSortPreferencesStore } from "@/stores/useSortPreferencesStore";
-import { AlignVerticalSpaceAround, SeparatorHorizontal, Shapes, SortAsc, SortDesc } from "lucide-react";
+import { ListFilter, SeparatorHorizontal, Shapes, SortAsc, SortDesc } from "lucide-react";
 import { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
@@ -39,7 +39,7 @@ export function SortOptions(props: ComponentProps<typeof Button>) {
           )}
           variant="secondary"
         >
-          <AlignVerticalSpaceAround className="size-4 group-hover:scale-105 transition-transform" />
+          <ListFilter className="size-4 group-hover:scale-105 transition-transform" />
           <span className="sr-only">Sort Document or Folder</span>
         </Button>
       </DropdownMenuTrigger>

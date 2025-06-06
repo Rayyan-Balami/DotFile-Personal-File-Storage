@@ -1,9 +1,9 @@
-import { FolderInput } from "lucide-react";
+import { Ellipsis } from "lucide-react";
 import { Button } from "../ui/button";
 import { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
-function GlobalMove(props: ComponentProps<typeof Button>) {
+function GlobalMenu(props: ComponentProps<typeof Button>) {
   return (
     <Button
       {...props}
@@ -13,10 +13,10 @@ function GlobalMove(props: ComponentProps<typeof Button>) {
       )}
       variant="secondary"
     >
-      <FolderInput className="size-4 group-hover:scale-105 transition-transform" />
+      <Ellipsis className="size-4 group-hover:scale-105 transition-transform" />
       <span className="sr-only">Move selected</span>
     </Button>
   );
 }
 
-export default GlobalMove;
+export default GlobalMenu;
