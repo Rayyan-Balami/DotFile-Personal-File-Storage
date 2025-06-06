@@ -193,19 +193,9 @@ class UserService {
    * Update user profile data
    * @param id - Target user ID
    * @param data - New user data
-   * @throws User not found or email taken
+   * @throws User not found
    */
   async updateUser(id: string, data: UpdateUserDTO): Promise<UserResponseDTO> {
-    // Check if email is being changed and if it's already in use by another user
-    if (data.email) {
-      const existingUser = await userDAO.getUserByEmail(data.email);
-      if (existingUser && existingUser.id.toString() !== id) {
-        throw new ApiError(409, [
-          { email: "Email is already linked to an account by another account" },
-        ]);
-      }
-    }
-
     const updatedUser = await userDAO.updateUser(id, data);
     if (!updatedUser) {
       throw new ApiError(404, [{ id: "User not found" }]);
@@ -239,7 +229,7 @@ class UserService {
     }
 
     // Update user with new avatar
-    const updatedUser = await userDAO.updateUser(id, { avatar: avatarUrl });
+    const updatedUser = await userDAO.updateUserAvatar(id, avatarUrl);
     if (!updatedUser) {
       throw new ApiError(500, [{ avatar: "Failed to update user avatar" }]);
     }

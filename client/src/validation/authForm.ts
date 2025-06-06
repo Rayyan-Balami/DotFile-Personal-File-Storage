@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+/**
+ * Available user role types (matching server-side enum)
+ */
+export enum UserRole {
+  USER = "user",
+  ADMIN = "admin",
+}
+
 // Extract common validations
 const passwordSchema = z
   .string()
@@ -45,11 +53,25 @@ const registerUserSchema = z
 
 const updateUserSchema = z.object({
   name: nameSchema.optional(),
-  email: emailSchema.optional(),
-  avatar: z.string().url({ message: "Invalid URL" }).optional(),
-  plan: z.string().optional(),
-  storageUsed: z.number().optional(),
+  // Email updates removed for security - handle through separate verification process
+  maxStorageLimit: z.number().min(0).optional(),
+  storageUsed: z.number().min(0).optional(),
   deletedAt: z.date().nullable().optional(),
+});
+
+// Avatar file validation schema
+const avatarFileSchema = z.object({
+  file: z
+    .instanceof(File)
+    .refine((file) => file.size <= 2 * 1024 * 1024, {
+      message: "File size must be less than 2MB",
+    })
+    .refine(
+      (file) => ["image/jpeg", "image/png", "image/gif", "image/webp", "image/bmp", "image/tiff"].includes(file.type),
+      {
+        message: "File must be an image (JPEG, PNG, GIF, WebP, BMP, or TIFF)",
+      }
+    ),
 });
 
 const updateUserPasswordSchema = z
@@ -69,18 +91,58 @@ const refreshTokenSchema = z.object({
   refreshToken: z.string().optional(),
 });
 
+/**
+ * Admin: Role update between user/admin
+ */
+const updateUserRoleSchema = z.object({
+  role: z.nativeEnum(UserRole, {
+    errorMap: () => ({ message: "Role must be either 'user' or 'admin'" }),
+  }),
+});
+
+/**
+ * Admin: Set user password with confirm
+ */
+const adminSetPasswordSchema = z
+  .object({
+    newPassword: passwordSchema,
+    confirmNewPassword: z
+      .string()
+      .min(1, { message: "Please confirm the new password" }),
+  })
+  .refine((data) => data.newPassword === data.confirmNewPassword, {
+    message: "Passwords do not match",
+    path: ["confirmNewPassword"],
+  });
+
+/**
+ * Admin: Set user storage quota (bytes)
+ */
+const updateStorageLimitSchema = z.object({
+  maxStorageLimit: z.number().min(0, { message: "Storage limit cannot be negative" }),
+});
+
 // Fix type exports using proper syntax
 type LoginUserInput = z.infer<typeof loginUserSchema>;
 type RegisterUserInput = z.infer<typeof registerUserSchema>;
 type UpdateUserInput = z.infer<typeof updateUserSchema>;
 type UpdateUserPasswordInput = z.infer<typeof updateUserPasswordSchema>;
 type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
+type UpdateUserRoleInput = z.infer<typeof updateUserRoleSchema>;
+type AdminSetPasswordInput = z.infer<typeof adminSetPasswordSchema>;
+type UpdateStorageLimitInput = z.infer<typeof updateStorageLimitSchema>;
+type AvatarFileInput = z.infer<typeof avatarFileSchema>;
+
 export {
   loginUserSchema,
   registerUserSchema,
   updateUserPasswordSchema,
   updateUserSchema,
   refreshTokenSchema,
+  updateUserRoleSchema,
+  adminSetPasswordSchema,
+  updateStorageLimitSchema,
+  avatarFileSchema,
 };
 
 export type {
@@ -89,4 +151,8 @@ export type {
   UpdateUserInput,
   UpdateUserPasswordInput,
   RefreshTokenInput,
+  UpdateUserRoleInput,
+  AdminSetPasswordInput,
+  UpdateStorageLimitInput,
+  AvatarFileInput,
 };

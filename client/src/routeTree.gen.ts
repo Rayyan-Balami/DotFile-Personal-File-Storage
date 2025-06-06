@@ -18,6 +18,7 @@ import { Route as userTrashImport } from './routes/(user)/trash'
 import { Route as userRecentImport } from './routes/(user)/recent'
 import { Route as authRegisterImport } from './routes/(auth)/register'
 import { Route as authLoginImport } from './routes/(auth)/login'
+import { Route as userSettingProfileImport } from './routes/(user)/setting.profile'
 import { Route as userFolderIdImport } from './routes/(user)/folder.$id'
 
 // Create/Update Routes
@@ -60,6 +61,12 @@ const authLoginRoute = authLoginImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => authRouteRoute,
+} as any)
+
+const userSettingProfileRoute = userSettingProfileImport.update({
+  id: '/setting/profile',
+  path: '/setting/profile',
+  getParentRoute: () => userRouteRoute,
 } as any)
 
 const userFolderIdRoute = userFolderIdImport.update({
@@ -128,6 +135,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof userFolderIdImport
       parentRoute: typeof userRouteImport
     }
+    '/(user)/setting/profile': {
+      id: '/(user)/setting/profile'
+      path: '/setting/profile'
+      fullPath: '/setting/profile'
+      preLoaderRoute: typeof userSettingProfileImport
+      parentRoute: typeof userRouteImport
+    }
   }
 }
 
@@ -152,6 +166,7 @@ interface userRouteRouteChildren {
   userTrashRoute: typeof userTrashRoute
   userIndexRoute: typeof userIndexRoute
   userFolderIdRoute: typeof userFolderIdRoute
+  userSettingProfileRoute: typeof userSettingProfileRoute
 }
 
 const userRouteRouteChildren: userRouteRouteChildren = {
@@ -159,6 +174,7 @@ const userRouteRouteChildren: userRouteRouteChildren = {
   userTrashRoute: userTrashRoute,
   userIndexRoute: userIndexRoute,
   userFolderIdRoute: userFolderIdRoute,
+  userSettingProfileRoute: userSettingProfileRoute,
 }
 
 const userRouteRouteWithChildren = userRouteRoute._addFileChildren(
@@ -172,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/recent': typeof userRecentRoute
   '/trash': typeof userTrashRoute
   '/folder/$id': typeof userFolderIdRoute
+  '/setting/profile': typeof userSettingProfileRoute
 }
 
 export interface FileRoutesByTo {
@@ -181,6 +198,7 @@ export interface FileRoutesByTo {
   '/recent': typeof userRecentRoute
   '/trash': typeof userTrashRoute
   '/folder/$id': typeof userFolderIdRoute
+  '/setting/profile': typeof userSettingProfileRoute
 }
 
 export interface FileRoutesById {
@@ -193,13 +211,28 @@ export interface FileRoutesById {
   '/(user)/trash': typeof userTrashRoute
   '/(user)/': typeof userIndexRoute
   '/(user)/folder/$id': typeof userFolderIdRoute
+  '/(user)/setting/profile': typeof userSettingProfileRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/register' | '/recent' | '/trash' | '/folder/$id'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/register'
+    | '/recent'
+    | '/trash'
+    | '/folder/$id'
+    | '/setting/profile'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/register' | '/recent' | '/trash' | '/folder/$id'
+  to:
+    | '/'
+    | '/login'
+    | '/register'
+    | '/recent'
+    | '/trash'
+    | '/folder/$id'
+    | '/setting/profile'
   id:
     | '__root__'
     | '/(auth)'
@@ -210,6 +243,7 @@ export interface FileRouteTypes {
     | '/(user)/trash'
     | '/(user)/'
     | '/(user)/folder/$id'
+    | '/(user)/setting/profile'
   fileRoutesById: FileRoutesById
 }
 
@@ -250,7 +284,8 @@ export const routeTree = rootRoute
         "/(user)/recent",
         "/(user)/trash",
         "/(user)/",
-        "/(user)/folder/$id"
+        "/(user)/folder/$id",
+        "/(user)/setting/profile"
       ]
     },
     "/(auth)/login": {
@@ -275,6 +310,10 @@ export const routeTree = rootRoute
     },
     "/(user)/folder/$id": {
       "filePath": "(user)/folder.$id.tsx",
+      "parent": "/(user)"
+    },
+    "/(user)/setting/profile": {
+      "filePath": "(user)/setting.profile.tsx",
       "parent": "/(user)"
     }
   }

@@ -62,11 +62,11 @@ const registerUserSchema = z
 
 /**
  * Profile update: Optional user fields
+ * Note: Email updates removed for security - handle through separate verification process
+ * Note: Avatar updates removed - use separate avatar upload endpoint for security
  */
 const updateUserSchema = z.object({
   name: nameSchema.optional(),
-  email: emailSchema.optional(),
-  avatar: z.string().url({ message: "Invalid URL" }).optional(),
   maxStorageLimit: z.number().min(0).optional(),
   storageUsed: z.number().min(0).optional(),
   deletedAt: z.date().nullable().optional(),

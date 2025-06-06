@@ -81,6 +81,15 @@ export const useUpdatePassword = () =>
     mutationFn: (data: UpdateUserPasswordInput) => userApi.updatePassword(data),
   });
 
+export const useUpdateAvatar = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => userApi.updateAvatar(file),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] }),
+  });
+};
+
 export const useLogout = () =>
   useMutation({
     mutationFn: () => userApi.logout(),

@@ -94,6 +94,24 @@ export class UserDAO {
   }
 
   /**
+   * Update user avatar directly (separate from profile updates for security)
+   * @param userId - User's MongoDB ID
+   * @param avatarUrl - New avatar URL
+   * @returns Updated user or null
+   */
+  async updateUserAvatar(
+    userId: string,
+    avatarUrl: string
+  ): Promise<IUser | null> {
+    if (!mongoose.Types.ObjectId.isValid(userId)) return null;
+    return await User.findOneAndUpdate(
+      { _id: userId, deletedAt: null },
+      { avatar: avatarUrl },
+      { new: true }
+    );
+  }
+
+  /**
    * Change user password with old password verification
    * @param userId - User's MongoDB ID
    * @param password - Old and new password pair

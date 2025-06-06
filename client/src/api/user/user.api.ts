@@ -27,6 +27,16 @@ export const userApi = {
   updatePassword: (data: UpdateUserPasswordInput) =>
     API.patch("/users/me/password", data),
 
+  updateAvatar: (file: File) => {
+    const formData = new FormData();
+    formData.append("avatar", file);
+    return API.patch("/users/me/avatar", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+
   logout: () => API.post("/users/logout"),
 
   // ADMIN ENDPOINTS - Requires admin privileges

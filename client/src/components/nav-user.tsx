@@ -28,7 +28,7 @@ import {
 import { VITE_API_URL } from "@/config/constants"
 import { formatBytes, getInitials } from "@/lib/utils"
 import { useAuthStore } from "@/stores/authStore"
-import { useNavigate } from "@tanstack/react-router"
+import { Link, useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
 import { ModeToggle } from "./mode-toggle"
 import { Badge } from "./ui/badge"
@@ -124,9 +124,11 @@ export function NavUser() {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem>
-              <Settings2 className="mr-1 h-4 w-4" />
-              Settings
+            <DropdownMenuItem asChild>
+              <Link to="/setting/profile" className="flex items-center gap-2">
+                <Settings2 className="mr-1 h-4 w-4" />
+                Settings
+              </Link>
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />

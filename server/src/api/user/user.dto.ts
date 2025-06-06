@@ -17,11 +17,11 @@ export interface LoginUserDTO {
 
 /**
  * Optional user profile updates
+ * Note: Email updates removed for security - handle through separate verification process
+ * Note: Avatar updates removed - use separate avatar upload endpoint for security
  */
 export interface UpdateUserDTO {
   name?: string;
-  email?: string;
-  avatar?: string;
   storageUsed?: number;
   deletedAt?: Date | null;
 }
