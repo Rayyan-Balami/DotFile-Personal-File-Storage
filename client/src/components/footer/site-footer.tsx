@@ -13,7 +13,7 @@ export function SiteFooter() {
       <nav className="flex h-(--footer-height) items-center gap-8 px-4 justify-between">
         <ViewOptions />
         <span className="hidden sm:flex flex-grow">
-          <SearchForm />
+          <SearchForm id="search-desktop" />
         </span>
         <ButtonGroup orientation="horizontal" className="*:border">
           <SortOptions />
@@ -22,7 +22,7 @@ export function SiteFooter() {
         </ButtonGroup>
       </nav>
       <div className="sm:hidden px-4">
-        <SearchForm />
+        <SearchForm id="search-mobile" />
       </div>
     </footer>
   );

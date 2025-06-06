@@ -3,17 +3,17 @@ import { Search } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Input } from "./ui/input"
 
-export function SearchForm({ ...props }: React.ComponentProps<"form">) {
+export function SearchForm({ id = "search", ...props }: React.ComponentProps<"form"> & { id?: string }) {
   return (
     <form {...props} className="relative flex-grow h-11 max-h-full group">
       <div className="relative h-full flex items-center">
-        <Label htmlFor="search" className="sr-only">
+        <Label htmlFor={id} className="sr-only">
           Search
         </Label>
         <Search className="pointer-events-none size-5 opacity-50 select-none gap-4
         group-focus-within:opacity-100 group-focus-within:text-primary transition-all duration-200 ease-in-out" />
         <Input
-          id="search"
+          id={id}
           placeholder="Type to search..."
           className="flex-1 py-2 rounded-none border-none border-transparent shadow-none focus-visible:ring-0 bg-transparent dark:bg-transparent md:text-base caret-primary"
           autoComplete="off"

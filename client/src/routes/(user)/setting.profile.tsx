@@ -1,55 +1,49 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState, useRef } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
+  useUpdateAvatar,
+  useUpdatePassword,
+  useUpdateProfile,
+} from "@/api/user/user.query";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
   Form,
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Sun, Moon, Airplay, Upload, User } from "lucide-react";
-import { useTheme } from "@/components/theme-provider";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { formatBytes, getInitials } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
-import { useUpdateProfile, useUpdatePassword, useUpdateAvatar } from "@/api/user/user.query";
-import { 
-  updateUserSchema, 
-  updateUserPasswordSchema, 
+import { extractFieldError, getErrorMessage } from "@/utils/apiErrorHandler";
+import {
   avatarFileSchema,
-  UpdateUserInput, 
-  UpdateUserPasswordInput
+  UpdateUserInput,
+  UpdateUserPasswordInput,
+  updateUserPasswordSchema,
+  updateUserSchema,
 } from "@/validation/authForm";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { createFileRoute } from "@tanstack/react-router";
+import { useRef, useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { getErrorMessage, extractFieldError } from "@/utils/apiErrorHandler";
+import { VITE_API_URL } from "@/config/constants";
 
 export const Route = createFileRoute("/(user)/setting/profile")({
   component: Component,
 });
 
 export default function Component() {
-  const { theme, setTheme } = useTheme();
   const user = useAuthStore((state) => state.user);
   const updateUser = useAuthStore((state) => state.updateUser);
-  const [deleteConfirmName, setDeleteConfirmName] = useState("");
-  const [selectedAvatar, setSelectedAvatar] = useState<File | null>(null);
+
   const [avatarPreview, setAvatarPreview] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const updateProfileMutation = useUpdateProfile();
   const updatePasswordMutation = useUpdatePassword();
   const updateAvatarMutation = useUpdateAvatar();
@@ -71,6 +65,20 @@ export default function Component() {
       confirmNewPassword: "",
     },
   });
+
+  // Update form when user data changes
+  useEffect(() => {
+    if (user) {
+      profileForm.reset({
+        name: user.name || "",
+      });
+    }
+  }, [user, profileForm]);
+
+  // Return early if no user - after all hooks
+  if (!user) {
+    return null;
+  }
 
   // Profile update handler (name only)
   async function onProfileSubmit(values: UpdateUserInput) {
@@ -101,11 +109,19 @@ export default function Component() {
       passwordForm.reset();
     } catch (error: any) {
       const fieldError = extractFieldError(error);
-      if (fieldError && ["oldPassword", "newPassword", "confirmNewPassword"].includes(fieldError.field)) {
-        passwordForm.setError(fieldError.field as keyof UpdateUserPasswordInput, {
-          type: "manual",
-          message: fieldError.message,
-        });
+      if (
+        fieldError &&
+        ["oldPassword", "newPassword", "confirmNewPassword"].includes(
+          fieldError.field
+        )
+      ) {
+        passwordForm.setError(
+          fieldError.field as keyof UpdateUserPasswordInput,
+          {
+            type: "manual",
+            message: fieldError.message,
+          }
+        );
       } else {
         toast.error(getErrorMessage(error));
       }
@@ -124,8 +140,6 @@ export default function Component() {
       return;
     }
 
-    setSelectedAvatar(file);
-    
     // Create preview
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -136,14 +150,14 @@ export default function Component() {
 
   // Upload avatar
   async function handleAvatarUpload() {
-    if (!selectedAvatar) return;
+    const file = fileInputRef.current?.files?.[0];
+    if (!file) return;
 
     try {
-      const response = await updateAvatarMutation.mutateAsync(selectedAvatar);
+      const response = await updateAvatarMutation.mutateAsync(file);
       if (response.data?.data?.user) {
         updateUser(response.data.data.user);
         toast.success("Avatar updated successfully!");
-        setSelectedAvatar(null);
         setAvatarPreview("");
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
@@ -154,417 +168,275 @@ export default function Component() {
     }
   }
 
-  // Cancel avatar selection
-  function handleAvatarCancel() {
-    setSelectedAvatar(null);
-    setAvatarPreview("");
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+  // Handle delete account
+  function handleDeleteAccount() {
+    // TODO: Implement delete account functionality
+    toast.error("Delete account functionality not implemented yet");
   }
 
-  // Format storage display
-  const formatStorage = (bytes: number) => {
-    const mb = bytes / (1024 * 1024);
-    if (mb >= 1024) {
-      return `${(mb / 1024).toFixed(1)} GB`;
-    }
-    return `${mb.toFixed(1)} MB`;
-  };
-
-  const storageUsed = user?.storageUsed || 0;
-  const storageLimit = user?.maxStorageLimit || 0;
-  const storagePercentage = storageLimit > 0 ? (storageUsed / storageLimit) * 100 : 0;
+  const initials = getInitials(user?.name || "");
 
   return (
     <section className="flex flex-1 flex-col gap-4 md:gap-6 p-4 md:p-6">
-      {/* Header */}
-      <div className="">
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your profile and account settings
+      {/* Top Profile Header Section */}
+      <div className="flex items-center gap-6">
+        <Avatar className="size-32 border rounded-md">
+          <AvatarImage src={user?.avatar ? `${VITE_API_URL}${user.avatar}` : undefined} alt={user?.name} />
+          <AvatarFallback className="rounded-md">{initials}</AvatarFallback>
+        </Avatar>
+
+        <div className="flex-1 space-y-2">
+          <h3 className="text-2xl md:text-3xl font-semibold capitalize">
+            {user?.name}
+          </h3>
+          <p className="text-muted-foreground text-lg">{user?.email}</p>
+        </div>
+      </div>
+
+      <div>
+        <h4 className="text-xl font-medium">Profile Settings</h4>
+        <p className="text-sm text-muted-foreground">
+          Update your personal information
         </p>
       </div>
 
-      {/* Tabs Component */}
-      <Tabs defaultValue="profile" className="space-y-4 md:space-y-6">
-        <TabsList className="h-10 p-1">
-          <TabsTrigger value="profile" className="px-4">
-            Profile
-          </TabsTrigger>
-          <TabsTrigger value="password" className="px-4">
-            Password
-          </TabsTrigger>
-          <TabsTrigger value="appearance" className="px-4">
-            Appearance
-          </TabsTrigger>
-        </TabsList>
+      <Separator />
 
-        {/* Profile Tab */}
-        <TabsContent
-          value="profile"
-          className="max-w-screen-md space-y-4 md:space-y-6"
-        >
-          {/* Personal Information */}
-          <Card className="shadow-none border-4 border-muted bg-sidebar">
-            <CardHeader className="pb-4 md:pb-6">
-              <CardTitle className="text-lg md:text-xl">Personal Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Avatar Section */}
-              <div className="flex items-start gap-4">
-                <div className="flex flex-col items-center gap-3">
-                  <Avatar className="size-20">
-                    <AvatarImage 
-                      src={avatarPreview || user?.avatar} 
-                      alt={user?.name}
+      {/* name and email section */}
+      <div className="flex flex-col md:flex-row items-start flex-wrap gap-6">
+        <div className="w-xs">
+          <h5 className="font-medium">My Information</h5>
+          <p className="text-sm text-muted-foreground">
+            Update your profile picture
+          </p>
+        </div>
+        <Form {...profileForm}>
+          <form
+            onSubmit={profileForm.handleSubmit(onProfileSubmit)}
+            className="flex-1 w-full max-w-lg space-y-4"
+          >
+            <FormField
+              control={profileForm.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input
+                      id="name"
+                      disabled={profileForm.formState.isSubmitting}
+                      {...field}
                     />
-                    <AvatarFallback className="text-lg">
-                      <User className="size-8" />
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  <div className="flex flex-col gap-2 items-center">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarSelect}
-                      className="hidden"
-                    />
-                    
-                    {!selectedAvatar ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="text-xs"
-                      >
-                        <Upload className="size-3 mr-1" />
-                        Change
-                      </Button>
-                    ) : (
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={handleAvatarUpload}
-                          loading={updateAvatarMutation.isPending}
-                          className="text-xs"
-                        >
-                          Upload
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={handleAvatarCancel}
-                          className="text-xs"
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="flex-1 space-y-1">
-                  <p className="text-sm text-muted-foreground">
-                    Upload a new avatar. Must be an image file under 2MB.
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Supported formats: JPEG, PNG, GIF, WebP, BMP, TIFF
-                  </p>
-                </div>
-              </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-              <Separator />
-
-              {/* Name and Email Form */}
-              <Form {...profileForm}>
-                <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={profileForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel htmlFor="name" className="text-sm font-medium">
-                            Name
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              id="name"
-                              disabled={profileForm.formState.isSubmitting}
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormItem>
-                      <FormLabel htmlFor="email" className="text-sm font-medium">
-                        Email
-                      </FormLabel>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={user?.email || ""}
-                        disabled
-                        className="bg-muted"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Email cannot be changed for security reasons
-                      </p>
-                    </FormItem>
-                  </div>
-
-                  <Button 
-                    type="submit"
-                    loading={profileForm.formState.isSubmitting}
-                    className="bg-foreground/90 text-background hover:bg-foreground hover:text-background"
-                  >
-                    Save Profile
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-
-          {/* Storage Information */}
-          <Card className="shadow-none border-4 border-muted bg-sidebar">
-            <CardHeader className="pb-4 md:pb-6">
-              <CardTitle className="text-lg md:text-xl">Storage Usage</CardTitle>
-              <CardDescription className="text-sm md:text-base">
-                Monitor your file storage usage
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between text-sm">
-                  <span>Used: {formatStorage(storageUsed)}</span>
-                  <span>Limit: {formatStorage(storageLimit)}</span>
-                </div>
-                <div className="w-full bg-secondary rounded-full h-2">
-                  <div 
-                    className={`h-2 rounded-full transition-all ${
-                      storagePercentage > 90 ? 'bg-destructive' :
-                      storagePercentage > 70 ? 'bg-yellow-500' : 'bg-primary'
-                    }`}
-                    style={{ width: `${Math.min(storagePercentage, 100)}%` }}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {storagePercentage.toFixed(1)}% of storage used
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Separator className="my-4 md:my-6" />
-          
-          {/* Delete Account */}
-          <div className="p-4 rounded-md border-4 border-destructive/5 bg-destructive/5">
-            <div className="space-y-4 md:space-y-6">
-              <div>
-                <h3 className="text-lg md:text-xl text-destructive">
-                  Delete account
-                </h3>
-                <p className="text-sm text-destructive/70">
-                  Once you delete your account, all of your data will be
-                  permanently removed. This action cannot be undone.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label
-                  htmlFor="deleteConfirm"
-                  className="text-sm font-medium text-destructive"
-                >
-                  Type <span className="font-bold">"{user?.name}"</span> to confirm
-                </Label>
-                <Input
-                  id="deleteConfirm"
-                  value={deleteConfirmName}
-                  onChange={(e) => setDeleteConfirmName(e.target.value)}
-                  className="w-full md:max-w-md bg-destructive/10 text-destructive placeholder:text-destructive/50 border-destructive/20 focus-visible:border-destructive focus-visible:ring-destructive/50"
-                />
-              </div>
-              <Button
-                variant="destructive"
-                disabled={deleteConfirmName !== user?.name}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                Delete account
-              </Button>
+            <div className="space-y-2">
+              <Input
+                id="email"
+                type="email"
+                value={user?.email || ""}
+                disabled
+                readOnly
+                className="bg-muted"
+              />
+              <p className="text-xs text-muted-foreground">
+                Email cannot be changed for security reasons
+              </p>
             </div>
+
+            <Button
+              type="submit"
+              loading={profileForm.formState.isSubmitting}
+              disabled={!profileForm.formState.isDirty}
+              className="bg-foreground/90 text-background hover:bg-foreground hover:text-background"
+            >
+              Save Changes
+            </Button>
+          </form>
+        </Form>
+      </div>
+
+      <Separator />
+
+      {/* Avatar section */}
+      <div className="flex flex-col md:flex-row items-start flex-wrap gap-6">
+        <div className="w-xs">
+          <h5 className="font-medium">Avatar</h5>
+          <p className="text-sm text-muted-foreground">
+            Update your profile picture
+          </p>
+        </div>
+        <div className="flex flex-1 w-full max-w-lg gap-4">
+          <Avatar className="size-22.5 border rounded-md">
+            <AvatarImage src={avatarPreview || (user?.avatar ? `${VITE_API_URL}${user.avatar}` : undefined)} alt={user?.name} />
+            <AvatarFallback className="rounded-md">{initials}</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col gap-4">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarSelect}
+              className="hidden"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              className="border-dashed"
+            >
+              Choose Avatar
+            </Button>
+            <Button
+              type="button"
+              onClick={handleAvatarUpload}
+              loading={updateAvatarMutation.isPending}
+              disabled={updateAvatarMutation.isPending || !avatarPreview}
+              className="bg-foreground/90 text-background hover:bg-foreground hover:text-background"
+            >
+              Save Changes
+            </Button>
           </div>
-        </TabsContent>
+        </div>
+      </div>
 
-        {/* Password Tab */}
-        <TabsContent
-          value="password"
-          className="max-w-screen-md space-y-4 md:space-y-6"
-        >
-          <Card className="shadow-none border-4 border-muted bg-sidebar">
-            <CardHeader className="pb-4 md:pb-6">
-              <CardTitle className="text-lg md:text-xl">Change Password</CardTitle>
-              <CardDescription className="text-sm md:text-base">
-                Update your account password
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...passwordForm}>
-                <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4 md:space-y-6">
-                  <FormField
-                    control={passwordForm.control}
-                    name="oldPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel htmlFor="oldPassword" className="text-sm font-medium">
-                          Current Password
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            id="oldPassword"
-                            type="password"
-                            disabled={passwordForm.formState.isSubmitting}
-                            className="w-full md:max-w-md"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+      <Separator />
 
-                  <FormField
-                    control={passwordForm.control}
-                    name="newPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel htmlFor="newPassword" className="text-sm font-medium">
-                          New Password
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            id="newPassword"
-                            type="password"
-                            disabled={passwordForm.formState.isSubmitting}
-                            className="w-full md:max-w-md"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+      {/* Password section */}
+      <div className="flex flex-col md:flex-row items-start flex-wrap gap-6">
+        <div className="w-xs">
+          <h5 className="font-medium">Password</h5>
+          <p className="text-sm text-muted-foreground">
+            Update your account password
+          </p>
+        </div>
+        <Form {...passwordForm}>
+          <form
+            onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
+            className="flex-1 w-full max-w-lg space-y-4"
+          >
+            <FormField
+              control={passwordForm.control}
+              name="oldPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input
+                      id="oldPassword"
+                      type="password"
+                      placeholder="Current Password"
+                      disabled={passwordForm.formState.isSubmitting}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                  <FormField
-                    control={passwordForm.control}
-                    name="confirmNewPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel htmlFor="confirmNewPassword" className="text-sm font-medium">
-                          Confirm New Password
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            id="confirmNewPassword"
-                            type="password"
-                            disabled={passwordForm.formState.isSubmitting}
-                            className="w-full md:max-w-md"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+            <FormField
+              control={passwordForm.control}
+              name="newPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      placeholder="New Password"
+                      disabled={passwordForm.formState.isSubmitting}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                  <Button 
-                    type="submit"
-                    loading={passwordForm.formState.isSubmitting}
-                    className="bg-foreground/90 text-background hover:bg-foreground hover:text-background"
-                  >
-                    Update Password
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            <FormField
+              control={passwordForm.control}
+              name="confirmNewPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input
+                      id="confirmNewPassword"
+                      type="password"
+                      placeholder="Confirm New Password"
+                      disabled={passwordForm.formState.isSubmitting}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        {/* Appearance Tab */}
-        <TabsContent
-          value="appearance"
-          className="max-w-screen-md space-y-4 md:space-y-6"
-        >
-          <Card className="shadow-none border-4 border-muted bg-sidebar">
-            <CardHeader className="pb-4 md:pb-6">
-              <CardTitle className="text-lg md:text-xl">Appearance</CardTitle>
-              <CardDescription className="text-sm md:text-base">
-                Customize the appearance of the application
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-sm font-medium">Theme</Label>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Select your preferred theme or sync with your system
-                  </p>
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button
-                    variant={theme === "light" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setTheme("light")}
-                    className="flex items-center gap-2"
-                  >
-                    <Sun className="size-4" />
-                    Light
-                  </Button>
-                  
-                  <Button
-                    variant={theme === "dark" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setTheme("dark")}
-                    className="flex items-center gap-2"
-                  >
-                    <Moon className="size-4" />
-                    Dark
-                  </Button>
-                  
-                  <Button
-                    variant={theme === "system" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setTheme("system")}
-                    className="flex items-center gap-2"
-                  >
-                    <Airplay className="size-4" />
-                    System
-                  </Button>
-                </div>
+            <Button
+              type="submit"
+              loading={passwordForm.formState.isSubmitting}
+              disabled={!passwordForm.formState.isDirty}
+              className="bg-foreground/90 text-background hover:bg-foreground hover:text-background"
+            >
+              Update Password
+            </Button>
+          </form>
+        </Form>
+      </div>
 
-                <div className="mt-4 p-4 border rounded-lg bg-muted/50">
-                  <p className="text-sm text-muted-foreground">
-                    Current theme: <span className="font-medium">{theme}</span>
-                  </p>
-                  {theme === "system" && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Following your system preference
-                    </p>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <Separator />
+
+      {/* Storage section */}
+      <div className="flex flex-col md:flex-row items-start flex-wrap gap-6">
+        <div className="w-xs">
+          <h5 className="font-medium">Storage</h5>
+          <p className="text-sm text-muted-foreground">
+            View your storage usage and limits
+          </p>
+        </div>
+        <div className="flex-1 space-y-4 max-w-lg">
+          <Badge
+            variant="secondary"
+            className="truncate h-6 rounded-full text-xs font-normal"
+          >
+            {user && user.maxStorageLimit > 0 
+              ? ((user.storageUsed / user.maxStorageLimit) * 100).toFixed(0)
+              : 0}%
+            used
+          </Badge>
+          <Progress
+            value={user && user.maxStorageLimit > 0 
+              ? Math.round((user.storageUsed / user.maxStorageLimit) * 100)
+              : 0}
+          />
+          <span className="font-light text-xs">
+            {user ? formatBytes(user.storageUsed) : '0 B'} of{" "}
+            {user ? formatBytes(user.maxStorageLimit) : '0 B'}
+          </span>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Delete Account Section */}
+      <div className="flex flex-col md:flex-row items-start flex-wrap gap-6">
+        <div className="w-xs">
+          <h5 className="font-medium text-destructive">Delete Account</h5>
+          <p className="text-sm text-destructive/80">
+            Permanently delete your account
+          </p>
+        </div>
+        <div className="flex-1">
+          <Button
+            variant="destructive"
+            onClick={handleDeleteAccount}
+          >
+            Delete Account
+          </Button>
+        </div>
+      </div>
     </section>
   );
 }

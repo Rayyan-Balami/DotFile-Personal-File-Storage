@@ -75,7 +75,6 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
   getSelectedItems: () => {
     const { selectedIds, visibleItems } = get();
     const items = visibleItems.filter(item => selectedIds.has(item.id));
-    console.log(`[SELECTED] ${items.length} item(s)`, [...selectedIds]);
     return items;
   },
 

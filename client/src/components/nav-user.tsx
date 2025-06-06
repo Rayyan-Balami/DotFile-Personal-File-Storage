@@ -71,7 +71,7 @@ export function NavUser() {
             tooltip={"You"}
             className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground [&>svg]:size-4"
           >
-            <Avatar className="h-8 w-8 rounded-lg">
+            <Avatar className="h-8 w-8 rounded-lg border">
               <AvatarImage src={`${VITE_API_URL}${user.avatar}`}
                alt={user.name} />
               <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
