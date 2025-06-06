@@ -178,7 +178,7 @@ export default function Component() {
   const initials = getInitials(user?.name || "");
 
   return (
-    <section className="flex flex-1 flex-col gap-4 md:gap-6 p-4 md:p-6">
+    <section className="flex flex-1 flex-col gap-6 md:gap-8 p-4 md:p-6">
       {/* Top Profile Header Section */}
       <div className="flex items-center gap-6">
         <Avatar className="size-32 border rounded-md">
@@ -197,7 +197,7 @@ export default function Component() {
       <div>
         <h4 className="text-xl font-medium">Profile Settings</h4>
         <p className="text-sm text-muted-foreground">
-          Update your personal information
+          Manage your profile information, avatar, password, and storage here.
         </p>
       </div>
 
@@ -208,7 +208,7 @@ export default function Component() {
         <div className="w-xs">
           <h5 className="font-medium">My Information</h5>
           <p className="text-sm text-muted-foreground">
-            Update your profile picture
+            Update your profile information.
           </p>
         </div>
         <Form {...profileForm}>

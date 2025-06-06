@@ -1,3 +1,4 @@
+import { useFolderContents, useRootContents, useTrashContents } from "@/api/folder/folder.query";
 import {
   Breadcrumb,
   BreadcrumbEllipsis,
@@ -12,13 +13,12 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Folder, FolderOpen, Home, Clock, Trash2 } from "lucide-react";
-import { useRootContents, useFolderContents, useTrashContents } from "@/api/folder/folder.query";
-import { useMatches, Link } from "@tanstack/react-router";
-import React, { useEffect, useState, useMemo } from "react";
-import { useDroppable, useDndMonitor } from "@dnd-kit/core";
 import { useFileSystemStore } from "@/stores/useFileSystemStore";
 import { FolderItem } from "@/types/folderDocumnet";
+import { useDndMonitor, useDroppable } from "@dnd-kit/core";
+import { Link, useMatches } from "@tanstack/react-router";
+import { Clock, Folder, FolderOpen, Home, Settings2, Trash2, UserRound } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
 
 // Droppable component for dropdown menu items
 function DroppableDropdownItem({
@@ -226,6 +226,7 @@ export function BreadcrumbNav() {
   const folderMatch = matches.find(match => match.routeId.includes('/(user)/folder/'));
   const trashMatch = matches.find(match => match.routeId.includes('/(user)/trash'));
   const recentMatch = matches.find(match => match.routeId.includes('/(user)/recent'));
+  const settingsMatch = matches.find(match => match.routeId.includes('/(user)/setting'));
 
   const folderId = folderMatch?.params ? (folderMatch.params as { id: string }).id : "";
 
@@ -241,7 +242,20 @@ export function BreadcrumbNav() {
   let rootPath = "/";
 
   // Determine current view
-  if (recentMatch) {
+  if (settingsMatch) {
+    // Handle settings routes
+    const routeId = settingsMatch.routeId;
+    pathSegments = [{ id: null, name: "Settings" }];
+    
+    if (routeId.includes('/setting/profile')) {
+      pathSegments.push({ id: "profile", name: "Profile" });
+    }
+    // Add more settings sub-routes here as needed
+    
+    icon = Settings2;
+    rootName = "Settings";
+    rootPath = "/setting/profile"; // Default settings path
+  } else if (recentMatch) {
     pathSegments = [];
     icon = Clock;
     rootName = "Recent";
@@ -270,7 +284,8 @@ export function BreadcrumbNav() {
 
   const isInTrashContext = Boolean(trashMatch) || pathSegments[0]?.name === "Trash";
   const isInRecentContext = Boolean(recentMatch);
-  const isReadOnlyContext = isInTrashContext || isInRecentContext;
+  const isInSettingsContext = Boolean(settingsMatch);
+  const isReadOnlyContext = isInTrashContext || isInRecentContext || isInSettingsContext;
 
   // Create array of all breadcrumb items for dropdown logic
   const allItems = [
@@ -283,15 +298,29 @@ export function BreadcrumbNav() {
     },
     ...pathSegments.slice(1).map((segment, index) => {
       const base = pathSegments[0]?.name;
-      const linkPath = base === "Trash" 
-        ? `/trash/folder/${segment.id}` 
-        : `/folder/${segment.id}`;
+      let linkPath = "";
+      let itemIcon = Folder;
+      
+      if (base === "Trash") {
+        linkPath = `/trash/folder/${segment.id}`;
+        itemIcon = index === pathSegments.length - 2 ? FolderOpen : Folder;
+      } else if (base === "Settings") {
+        // Handle settings sub-routes
+        if (segment.name === "Profile") {
+          linkPath = `/setting/profile`;
+          itemIcon = UserRound;
+        }
+        // Add more settings sub-routes here as needed
+      } else {
+        linkPath = `/folder/${segment.id}`;
+        itemIcon = index === pathSegments.length - 2 ? FolderOpen : Folder;
+      }
       
       return {
         id: segment.id,
         name: segment.name,
         isRoot: false,
-        icon: index === pathSegments.length - 2 ? FolderOpen : Folder,
+        icon: itemIcon,
         linkPath
       };
     })
