@@ -15,7 +15,7 @@ import { verifyGuest } from "@middleware/guest.middleware.js";
 import { verifyAuth } from "@middleware/auth.middleware.js";
 import { restrictTo } from "@middleware/accessControl.middleware.js";
 import { validateData } from "@middleware/validate.middleware.js";
-import { avatarUpload, cleanupOldAvatar } from "@middleware/avatar.middleware.js";
+import { avatarUpload } from "@middleware/avatar.middleware.js";
 
 //=========================//
 // Guest routes (/auth)
@@ -38,7 +38,7 @@ authRoutes
   .get("/me", userController.getCurrentUser)                                        // Get current user profile
   .put("/me", validateData(updateUserSchema), userController.updateCurrentUser)     // Update profile
   .patch("/me/password", validateData(updateUserPasswordSchema), userController.updateCurrentUserPassword) // Update password
-  .patch("/me/avatar", avatarUpload, cleanupOldAvatar, userController.updateCurrentUserAvatar) // Update avatar
+  .patch("/me/avatar", avatarUpload, userController.updateCurrentUserAvatar) // Update avatar
   .post("/logout", userController.logout);                                          // Logout
 
 //=========================//

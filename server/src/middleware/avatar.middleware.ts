@@ -4,10 +4,8 @@ import { AVATARS_DIR, MAX_AVATAR_SIZE, DEFAULT_USER_AVATAR_URL } from "@config/c
 import { ApiError } from "@utils/apiError.utils.js";
 import logger from "@utils/logger.utils.js";
 import { formatBytes } from "@utils/formatBytes.utils.js";
-import crypto from "crypto";
-import { NextFunction, Request, Response } from "express";
+import { Request, Response } from "express";
 import fs from "fs";
-import mime from "mime-types";
 import multer, { FileFilterCallback, StorageEngine } from "multer";
 import path from "path";
 
@@ -143,32 +141,11 @@ export const avatarUpload = multer({
   },
 }).single('avatar'); // Field name should be 'avatar'
 
-// --------------------- Middleware: Delete Old Avatar ---------------------
-
-// Clean up old avatar file when updating (but preserve default avatar)
-export const cleanupOldAvatar = async (
-  req: Request,
-  _res: Response,
-  next: NextFunction
-) => {
-  try {
-    const userId = req.user?.id;
-    if (!userId || !req.file) return next();
-
-    // Get current user to check existing avatar
-    // Note: This assumes you have a user service to get user data
-    // We'll skip this for now and let the service handle it
-    next();
-  } catch (error) {
-    logger.error("❌ Error in cleanupOldAvatar middleware:", error);
-    next(error);
-  }
-};
-
 // --------------------- Helper: Delete Avatar File ---------------------
 
 // Helper function to delete an avatar file (exported for use in services)
 export const deleteAvatarFile = async (avatarUrl: string): Promise<void> => {
+  console.log(`🗑️ Attempting to delete avatar file: ${avatarUrl}`);
   try {
     // Don't delete the default avatar
     if (avatarUrl === DEFAULT_USER_AVATAR_URL || !avatarUrl) {
