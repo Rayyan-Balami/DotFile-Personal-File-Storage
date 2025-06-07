@@ -34,9 +34,10 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useDialogStore } from "@/stores/useDialogStore";
 import type { FileResponseDto } from "@/types/file.dto";
 import type { FolderResponseDto } from "@/types/folder.dto";
-import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate, useMatchRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -177,10 +178,29 @@ export function NavPins() {
   const [isExpanded, setIsExpanded] = useState(false);
   const limit = 10;
   const location = useLocation();
+  const matchRoute = useMatchRoute();
+  const { openFilePreviewDialog } = useDialogStore();
 
   const { data, isLoading, error } = usePinContents(currentOffset, limit);
   const pinContents = data?.data?.folderContents;
   const pagination = data?.data?.pagination;
+
+  // Handle file click to show preview
+  const handleFileClick = (e: React.MouseEvent, file: FileResponseDto) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Get all files from the pinned items
+    const allFiles = allItems
+      .filter(item => item.type === "file")
+      .map(item => item.data);
+    
+    // Find the current file index
+    const currentIndex = allFiles.findIndex(f => f.id === file.id);
+    
+    // Open file preview dialog with all pinned files
+    openFilePreviewDialog(allFiles, currentIndex !== -1 ? currentIndex : 0);
+  };
 
   // Process new items when data changes
   useEffect(() => {
@@ -195,6 +215,7 @@ export function NavPins() {
             url: `/folder/${folder.id}`,
             icon: isCurrentFolder ? FolderOpen : Folder,
             parentId: folder.parent,
+            data: folder,
           };
         }),
         ...(pinContents.files || []).map((file: FileResponseDto) => ({
@@ -204,6 +225,7 @@ export function NavPins() {
           url: `/file/${file.id}`,
           icon: File,
           parentId: file.folder,
+          data: file,
         })),
       ];
 
@@ -224,19 +246,18 @@ export function NavPins() {
   }, [pinContents, location.pathname]);
 
   // Update folder icons when location changes
-  useEffect(() => {
-    setAllItems((prev) =>
-      prev.map((item) => {
-        if (item.type === "folder") {
-          const isCurrentFolder = location.pathname === `/folder/${item.id}`;
-          return {
-            ...item,
-            icon: isCurrentFolder ? FolderOpen : Folder,
-          };
-        }
-        return item;
-      })
-    );
+  useEffect(() => {      setAllItems((prev) =>
+        prev.map((item) => {
+          if (item.type === "folder") {
+            const isCurrentFolder = location.pathname === `/folder/${item.id}`;
+            return {
+              ...item,
+              icon: isCurrentFolder ? FolderOpen : Folder,
+            };
+          }
+          return item;
+        })
+      );
   }, [location.pathname]);
 
   // Show only first 10 items unless expanded
@@ -278,40 +299,56 @@ export function NavPins() {
           </SidebarMenuItem>
         )}
 
-        {displayItems.map((item) => (
-          <ContextMenu key={item.id}>
-            <ContextMenuTrigger asChild>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip={item.name}>
-                  <Link to={item.url}>
-                    <item.icon />
-                    <span className="truncate overflow-hidden selection:bg-transparent">
-                      {item.name}
-                    </span>
-                  </Link>
-                </SidebarMenuButton>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <SidebarMenuAction showOnHover>
-                      <MoreHorizontal />
-                      <span className="sr-only">More</span>
-                    </SidebarMenuAction>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    className="w-min-48"
-                    side={isTablet ? "bottom" : "right"}
-                    align={isTablet ? "end" : "start"}
-                  >
-                    <DropdownMenuOptions item={item} />
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </SidebarMenuItem>
-            </ContextMenuTrigger>
-            <ContextMenuContent className="min-w-48">
-              <MenuItems item={item} />
-            </ContextMenuContent>
-          </ContextMenu>
-        ))}
+        {displayItems.map((item) => {
+          const isActive = !!matchRoute({ to: item.url, fuzzy: true });
+          
+          return (
+            <ContextMenu key={item.id}>
+              <ContextMenuTrigger asChild>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip={item.name} isActive={isActive}>
+                    {item.type === "file" ? (
+                      <button
+                        onClick={(e) => handleFileClick(e, item.data)}
+                        className="w-full flex items-center gap-2 text-left"
+                      >
+                        <item.icon />
+                        <span className="truncate overflow-hidden selection:bg-transparent">
+                          {item.name}
+                        </span>
+                      </button>
+                    ) : (
+                      <Link to={item.url}>
+                        <item.icon />
+                        <span className="truncate overflow-hidden selection:bg-transparent">
+                          {item.name}
+                        </span>
+                      </Link>
+                    )}
+                  </SidebarMenuButton>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <SidebarMenuAction showOnHover>
+                        <MoreHorizontal />
+                        <span className="sr-only">More</span>
+                      </SidebarMenuAction>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent
+                      className="w-min-48"
+                      side={isTablet ? "bottom" : "right"}
+                      align={isTablet ? "end" : "start"}
+                    >
+                      <DropdownMenuOptions item={item} />
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </SidebarMenuItem>
+              </ContextMenuTrigger>
+              <ContextMenuContent className="min-w-48">
+                <MenuItems item={item} />
+              </ContextMenuContent>
+            </ContextMenu>
+          );
+        })}
 
         {/* Show Load More button if there are more items and not expanded beyond initial load */}
         {pagination?.hasMore && !isExpanded && (
