@@ -4,14 +4,24 @@ import { FileSystemDndProvider } from "@/components/dnd/FileSystemDndContext";
 import { SiteFooter } from "@/components/footer/site-footer";
 import { SiteHeader } from "@/components/header/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { useEffect } from "react";
 import { useUserSync } from "@/hooks/useUserSync";
+import { useAuthStore } from "@/stores/authStore";
 
-export const Route = createFileRoute('/(user)')({
+export const Route = createFileRoute("/(user)")({
+  beforeLoad: () => {
+    const { isAuthenticated } = useAuthStore.getState();
+    if (!isAuthenticated) {
+      throw redirect({
+        to: "/login",
+        replace: true,
+      });
+    }
+  },
   component: RouteComponent,
-})
+});
 
 function RouteComponent() {
   // Keep user data in sync
@@ -29,16 +39,18 @@ function RouteComponent() {
   return (
     <SidebarProvider>
       <FileSystemDndProvider>
-          <AppSidebar />
-          <SidebarInset className="h-screen overflow-y-auto">
-            <SiteHeader />
-            <section className="flex-1 flex flex-col">
-              <Outlet />
-            </section>
-            <SiteFooter />
-          </SidebarInset>
+        <AppSidebar />
+        <SidebarInset className="h-screen overflow-y-auto">
+          <SiteHeader />
+          <section className="flex-1 flex flex-col">
+            <Outlet />
+          </section>
+          <SiteFooter />
+        </SidebarInset>
       </FileSystemDndProvider>
-      {process.env.NODE_ENV === 'development' && <TanStackRouterDevtools position="top-right" />}
+      {process.env.NODE_ENV === "development" && (
+        <TanStackRouterDevtools position="top-right" />
+      )}
       <DialogProvider />
     </SidebarProvider>
   );
