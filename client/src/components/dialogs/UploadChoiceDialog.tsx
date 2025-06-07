@@ -36,10 +36,7 @@ export function UploadChoiceDialog() {
         >
           Cancel
         </Button>
-        <Button
-          type="button"
-          onClick={() => handleChoice("files")}
-        >
+        <Button type="button" onClick={() => handleChoice("files")}>
           Upload Files
         </Button>
         <Button type="button" onClick={() => handleChoice("folder")}>

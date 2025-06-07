@@ -1,7 +1,7 @@
 import { User } from "@/types/user";
+import { useQueryClient } from "@tanstack/react-query";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { useQueryClient } from "@tanstack/react-query";
 
 interface AuthState {
   user: User | null;
@@ -41,6 +41,6 @@ export const useRefreshUserData = () => {
   return {
     refreshUser: () => {
       queryClient.invalidateQueries({ queryKey: ["currentUser"] });
-    }
+    },
   };
 };

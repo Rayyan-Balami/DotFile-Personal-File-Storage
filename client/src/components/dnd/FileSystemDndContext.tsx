@@ -1,6 +1,11 @@
+import { useMoveFile } from "@/api/file/file.query";
+import { useMoveFolder } from "@/api/folder/folder.query";
+import { DragOverlay } from "@/components/dnd/DragOverlay";
+import { useDialogStore } from "@/stores/useDialogStore";
 import { useFileSystemStore } from "@/stores/useFileSystemStore";
 import { useSelectionStore } from "@/stores/useSelectionStore";
 import { FileSystemItem } from "@/types/folderDocumnet";
+import { getDetailedErrorInfo } from "@/utils/apiErrorHandler";
 import {
   Active,
   CollisionDetection,
@@ -15,13 +20,8 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { restrictToWindowEdges } from "@dnd-kit/modifiers";
-import { useDialogStore } from "@/stores/useDialogStore";
-import { toast } from "sonner";
-import { getDetailedErrorInfo } from "@/utils/apiErrorHandler";
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { DragOverlay } from "./DragOverlay";
-import { useMoveFile } from "@/api/file/file.query";
-import { useMoveFolder } from "@/api/folder/folder.query";
+import { toast } from "sonner";
 
 // Context to provide drag-related state throughout the app
 interface FileSystemDndContextType {
@@ -246,7 +246,7 @@ export function FileSystemDndProvider({
   // React Query mutation hooks
   const moveFolderMutation = useMoveFolder();
   const moveFileMutation = useMoveFile();
-  
+
   // Local state for drag and drop
   const [activeId, setActiveId] = useState<string | null>(null);
   const [active, setActive] = useState<Active | null>(null);
@@ -483,7 +483,7 @@ export function FileSystemDndProvider({
                 data: {
                   parent: targetFolderId,
                   name: item.name,
-                }
+                },
               });
             } else if (item.cardType === "document") {
               await moveFileMutation.mutateAsync({
@@ -491,7 +491,7 @@ export function FileSystemDndProvider({
                 data: {
                   folder: targetFolderId,
                   name: item.name,
-                }
+                },
               });
             }
           } catch (error: any) {
@@ -499,7 +499,8 @@ export function FileSystemDndProvider({
               // Show the duplicate dialog and await the user's choice
               await new Promise<void>((resolve, reject) => {
                 const fileName = item.name;
-                const fileType = item.cardType === "document" ? "file" : "folder";
+                const fileType =
+                  item.cardType === "document" ? "file" : "folder";
 
                 // Create the dialog action callback
                 const dialogAction = async (action: "replace" | "keepBoth") => {
@@ -511,7 +512,7 @@ export function FileSystemDndProvider({
                           parent: targetFolderId,
                           name: item.name,
                           duplicateAction: action,
-                        }
+                        },
                       });
                     } else if (item.cardType === "document") {
                       await moveFileMutation.mutateAsync({
@@ -520,7 +521,7 @@ export function FileSystemDndProvider({
                           folder: targetFolderId,
                           name: item.name,
                           duplicateAction: action,
-                        }
+                        },
                       });
                     }
                     resolve();
@@ -533,11 +534,9 @@ export function FileSystemDndProvider({
                 };
 
                 // Show the duplicate dialog with the correct parameters
-                useDialogStore.getState().openDuplicateDialog(
-                  fileName,
-                  fileType,
-                  dialogAction
-                );
+                useDialogStore
+                  .getState()
+                  .openDuplicateDialog(fileName, fileType, dialogAction);
               });
             } else {
               // For non-duplicate errors, show error message and stop processing remaining items

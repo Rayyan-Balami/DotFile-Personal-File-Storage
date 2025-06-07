@@ -118,10 +118,9 @@
   }
   * {
     @apply border-border outline-ring/50;
-  }
+  }Ø
   body {
     @apply bg-background text-foreground;
-
   }
   img {
     -webkit-user-drag: none;

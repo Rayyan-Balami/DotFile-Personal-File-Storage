@@ -1,7 +1,7 @@
-import { create } from 'zustand';
-import { useEffect } from 'react';
-import type { FileSystemItem } from '@/types/folderDocumnet';
-import { useDialogStore } from '@/stores/useDialogStore';
+import { useDialogStore } from "@/stores/useDialogStore";
+import type { FileSystemItem } from "@/types/folderDocumnet";
+import { useEffect } from "react";
+import { create } from "zustand";
 
 export type SelectableItem = FileSystemItem;
 
@@ -23,7 +23,11 @@ interface SelectionActions {
   selectRange: (startId: string, endId: string) => void;
   isSelected: (id: string) => boolean;
   updateItemPositions: (items: SelectableItem[]) => void;
-  handleItemClick: (id: string, event: React.MouseEvent, onOpen?: () => void) => void;
+  handleItemClick: (
+    id: string,
+    event: React.MouseEvent,
+    onOpen?: () => void
+  ) => void;
   selectAll: () => void;
   setVisibleItems: (items: SelectableItem[]) => void;
   deleteSelected: (onDelete?: (id: string) => void) => void;
@@ -64,53 +68,54 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
   selectAll: () => {
     const { visibleItems, selectedIds } = get();
     if (!visibleItems.length) return;
-    
-    const allIds = new Set(visibleItems.map(item => item.id));
-    
+
+    const allIds = new Set(visibleItems.map((item) => item.id));
+
     // Check if all items are already selected (toggle behavior)
-    const allSelected = visibleItems.length === selectedIds.size && 
-                       visibleItems.every(item => selectedIds.has(item.id));
-    
+    const allSelected =
+      visibleItems.length === selectedIds.size &&
+      visibleItems.every((item) => selectedIds.has(item.id));
+
     if (allSelected) {
       // If all are selected, clear selection
       set({
         selectedIds: new Set(),
         lastSelectedId: null,
-        selectionAnchor: null
+        selectionAnchor: null,
       });
     } else {
       // If not all are selected, select all
       set({
         selectedIds: allIds,
         lastSelectedId: visibleItems.at(-1)?.id ?? null,
-        selectionAnchor: visibleItems[0].id
+        selectionAnchor: visibleItems[0].id,
       });
     }
   },
 
   getSelectedItems: () => {
     const { selectedIds, visibleItems } = get();
-    const items = visibleItems.filter(item => selectedIds.has(item.id));
+    const items = visibleItems.filter((item) => selectedIds.has(item.id));
     return items;
   },
 
   logSelection: () => {
     const selected = get().getSelectedItems();
-    if (!selected.length) return console.log('[LOG] No items selected');
+    if (!selected.length) return console.log("[LOG] No items selected");
 
     console.group(`[LOG] ${selected.length} selected`);
-    const folders = selected.filter(i => i.cardType === 'folder');
-    const documents = selected.filter(i => i.cardType === 'document');
+    const folders = selected.filter((i) => i.cardType === "folder");
+    const documents = selected.filter((i) => i.cardType === "document");
 
     if (folders.length) {
       console.group(`Folders (${folders.length})`);
-      folders.forEach(f => console.log(`- ${f.name}`));
+      folders.forEach((f) => console.log(`- ${f.name}`));
       console.groupEnd();
     }
 
     if (documents.length) {
       console.group(`Documents (${documents.length})`);
-      documents.forEach(d => console.log(`- ${d.name}`));
+      documents.forEach((d) => console.log(`- ${d.name}`));
       console.groupEnd();
     }
 
@@ -126,45 +131,49 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
     set({ isDeleting: true });
 
     onDelete
-      ? selectedIds.forEach(id => onDelete(id))
-      : console.log('[DELETE] No callback');
+      ? selectedIds.forEach((id) => onDelete(id))
+      : console.log("[DELETE] No callback");
 
     set({
       selectedIds: new Set(),
       lastSelectedId: null,
       selectionAnchor: null,
-      isDeleting: false
+      isDeleting: false,
     });
   },
 
   handleKeyDown: (e) => {
     const target = e.target as HTMLElement;
-    if (['INPUT', 'TEXTAREA'].includes(target.tagName) || target.isContentEditable) return;
+    if (
+      ["INPUT", "TEXTAREA"].includes(target.tagName) ||
+      target.isContentEditable
+    )
+      return;
 
     const store = get();
 
-    if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
+    if ((e.metaKey || e.ctrlKey) && e.key === "a") {
       e.preventDefault();
       store.selectAll();
     }
 
-    if (e.key === 'Escape') {
+    if (e.key === "Escape") {
       store.clear();
     }
 
-    if ((e.metaKey || e.ctrlKey) && e.key === 'Delete') {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Delete") {
       e.preventDefault();
       const items = store.getSelectedItems();
       if (!items.length) return;
 
-      const folders = items.filter(i => i.cardType === 'folder');
-      const docs = items.filter(i => i.cardType === 'document');
+      const folders = items.filter((i) => i.cardType === "folder");
+      const docs = items.filter((i) => i.cardType === "document");
       const { openDeleteDialog } = useDialogStore.getState();
 
       openDeleteDialog(
-        [...folders, ...docs].map(i => i.id),
-        folders.length ? 'folder' : 'document',
-        [...folders, ...docs].map(i => i.name),
+        [...folders, ...docs].map((i) => i.id),
+        folders.length ? "folder" : "document",
+        [...folders, ...docs].map((i) => i.name),
         null,
         e.shiftKey
       );
@@ -173,12 +182,12 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
 
   select: (id, event) => {
     if (event.metaKey || event.ctrlKey) {
-      set(state => ({
+      set((state) => ({
         selectedIds: state.selectedIds.has(id)
           ? removeFromSet(state.selectedIds, id)
           : addToSet(state.selectedIds, id),
         lastSelectedId: id,
-        selectionAnchor: id
+        selectionAnchor: id,
       }));
     } else if (event.shiftKey && get().selectionAnchor) {
       get().selectRange(get().selectionAnchor!, id);
@@ -186,29 +195,29 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
       set({
         selectedIds: new Set([id]),
         lastSelectedId: id,
-        selectionAnchor: id
+        selectionAnchor: id,
       });
     }
   },
 
   toggle: (id) => {
-    set(state => ({
+    set((state) => ({
       selectedIds: state.selectedIds.has(id)
         ? removeFromSet(state.selectedIds, id)
         : addToSet(state.selectedIds, id),
       lastSelectedId: id,
-      selectionAnchor: id
+      selectionAnchor: id,
     }));
   },
 
   clear: () => {
     const { selectedIds } = get();
     if (!selectedIds.size) return;
-    console.log('[CLEAR] Selection cleared');
+    console.log("[CLEAR] Selection cleared");
     set({
       selectedIds: new Set(),
       lastSelectedId: null,
-      selectionAnchor: null
+      selectionAnchor: null,
     });
   },
 
@@ -224,8 +233,11 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
     const end = itemPositions.get(endId);
     if (start === undefined || end === undefined) return;
 
-    const range = visibleItems.slice(Math.min(start, end), Math.max(start, end) + 1);
-    const rangeIds = new Set(range.map(item => item.id));
+    const range = visibleItems.slice(
+      Math.min(start, end),
+      Math.max(start, end) + 1
+    );
+    const rangeIds = new Set(range.map((item) => item.id));
     set({ selectedIds: rangeIds, lastSelectedId: endId });
   },
 
@@ -244,7 +256,7 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
     }
 
     set({ lastClickTime: now, lastClickId: id });
-  }
+  },
 }));
 
 export function useKeyboardShortcuts(onDelete?: (id: string) => void) {
@@ -252,16 +264,16 @@ export function useKeyboardShortcuts(onDelete?: (id: string) => void) {
     const handleKeyDown = (e: KeyboardEvent) =>
       useSelectionStore.getState().handleKeyDown(e);
 
-    window.addEventListener('keydown', handleKeyDown, true);
-    return () => window.removeEventListener('keydown', handleKeyDown, true);
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [onDelete]);
 }
 
 export const useSelectedIds = () =>
-  useSelectionStore(state => state.selectedIds);
+  useSelectionStore((state) => state.selectedIds);
 
 export const useSelectionCount = () =>
-  useSelectionStore(state => state.selectedIds.size);
+  useSelectionStore((state) => state.selectedIds.size);
 
 export const selectedIdsEqual = (prev: Set<string>, next: Set<string>) => {
   if (prev.size !== next.size) return false;

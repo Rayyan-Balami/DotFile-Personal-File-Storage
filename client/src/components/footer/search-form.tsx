@@ -1,7 +1,6 @@
 import { Search } from "lucide-react"
-
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Input } from "./ui/input"
 
 export function SearchForm({ id = "search", ...props }: React.ComponentProps<"form"> & { id?: string }) {
   return (

@@ -1,3 +1,5 @@
+import { useDeleteAccount } from "@/api/user/user.query";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -7,18 +9,16 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
-import { useDeleteAccount } from "@/api/user/user.query";
+import { extractFieldError, getErrorMessage } from "@/utils/apiErrorHandler";
 import {
-  deleteUserAccountSchema,
   DeleteUserAccountInput,
+  deleteUserAccountSchema,
 } from "@/validation/authForm";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { extractFieldError, getErrorMessage } from "@/utils/apiErrorHandler";
-import { useRouter } from "@tanstack/react-router";
 
 interface DeleteAccountDialogProps {
   open: boolean;
@@ -74,50 +74,50 @@ export default function DeleteAccountDialog({
       headerClassName="p-6 max-md:pt-8 pb-4 md:p-8 md:pb-6 border-b bg-muted *:text-destructive"
       bodyClassName="p-6 md:p-8 gap-8"
     >
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(handleDeleteAccount)}
-            className="space-y-4"
-          >
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Enter your password to confirm deletion</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="Your current password"
-                      disabled={form.formState.isSubmitting}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+      <Form {...form}>
+        <form
+          onSubmit={form.handleSubmit(handleDeleteAccount)}
+          className="space-y-4"
+        >
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Enter your password to confirm deletion</FormLabel>
+                <FormControl>
+                  <Input
+                    type="password"
+                    placeholder="Your current password"
+                    disabled={form.formState.isSubmitting}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-            <div className="flex gap-2 justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancel}
-                disabled={form.formState.isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="destructive"
-                loading={form.formState.isSubmitting}
-                disabled={!form.watch("password")}
-              >
-                Delete Account
-              </Button>
-            </div>
-          </form>
-        </Form>
+          <div className="flex gap-2 justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancel}
+              disabled={form.formState.isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="destructive"
+              loading={form.formState.isSubmitting}
+              disabled={!form.watch("password")}
+            >
+              Delete Account
+            </Button>
+          </div>
+        </form>
+      </Form>
     </ResponsiveDialog>
   );
 }

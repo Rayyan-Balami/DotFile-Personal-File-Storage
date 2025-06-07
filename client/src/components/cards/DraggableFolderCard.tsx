@@ -1,16 +1,23 @@
 import { useUploadFiles } from "@/api/file/file.query";
+import FolderDocumentCard, { CardVariant } from "@/components/cards/FolderDocumentCard";
 import { cn } from "@/lib/utils";
 import { useFileSystemStore } from "@/stores/useFileSystemStore";
 import { useUploadStore } from "@/stores/useUploadStore";
-import { DocumentItem, FileSystemItem, FolderItem } from "@/types/folderDocumnet";
-import { useMatches } from "@tanstack/react-router";
+import {
+  DocumentItem,
+  FileSystemItem,
+  FolderItem,
+} from "@/types/folderDocumnet";
 import { getDetailedErrorInfo } from "@/utils/apiErrorHandler";
-import { collectFilesFromDirectory, createZipFromFiles } from "@/utils/uploadUtils";
+import {
+  collectFilesFromDirectory,
+  createZipFromFiles,
+} from "@/utils/uploadUtils";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { useMatches } from "@tanstack/react-router";
 import { nanoid } from "nanoid";
 import React, { memo, useCallback, useState } from "react";
 import { toast } from "sonner";
-import FolderDocumentCard, { CardVariant } from "./FolderDocumentCard";
-import { useDraggable, useDroppable } from "@dnd-kit/core";
 
 interface DraggableFolderCardProps {
   item: FileSystemItem;
@@ -31,24 +38,34 @@ export const DraggableFolderCard = memo(
     onOpen,
   }: DraggableFolderCardProps) => {
     const { id, name, owner } = item;
-    const color = item.cardType === 'folder' ? item.color : undefined;
-    const addItem = useFileSystemStore(state => state.addItem);
-    const { addUpload, updateUploadProgress, setUploadStatus } = useUploadStore();
+    const color = item.cardType === "folder" ? item.color : undefined;
+    const addItem = useFileSystemStore((state) => state.addItem);
+    const { addUpload, updateUploadProgress, setUploadStatus } =
+      useUploadStore();
     const uploadFiles = useUploadFiles();
     const matches = useMatches();
 
-    const isInTrashContext = matches.some(match => match.routeId.includes('/(user)/trash'));
-    const isInRecentContext = matches.some(match => match.routeId.includes('/(user)/recent'));
+    const isInTrashContext = matches.some((match) =>
+      match.routeId.includes("/(user)/trash")
+    );
+    const isInRecentContext = matches.some((match) =>
+      match.routeId.includes("/(user)/recent")
+    );
     const isReadOnlyContext = isInTrashContext || isInRecentContext;
 
     // Set up draggable functionality
-    const { attributes, listeners, setNodeRef: setDraggableRef, isDragging } = useDraggable({
+    const {
+      attributes,
+      listeners,
+      setNodeRef: setDraggableRef,
+      isDragging,
+    } = useDraggable({
       id: id,
       data: {
         type: item.cardType,
         item: item,
-        variant: variant
-      }
+        variant: variant,
+      },
     });
 
     // Set up droppable functionality for folders
@@ -56,54 +73,60 @@ export const DraggableFolderCard = memo(
       id: id,
       data: {
         type: item.cardType,
-        item: item
+        item: item,
       },
-      disabled: item.cardType !== 'folder' || isReadOnlyContext
+      disabled: item.cardType !== "folder" || isReadOnlyContext,
     });
 
     // Combine the refs
-    const setRefs = useCallback((element: HTMLDivElement | null) => {
-      setDraggableRef(element);
-      setDroppableRef(element);
-    }, [setDraggableRef, setDroppableRef]);
+    const setRefs = useCallback(
+      (element: HTMLDivElement | null) => {
+        setDraggableRef(element);
+        setDroppableRef(element);
+      },
+      [setDraggableRef, setDroppableRef]
+    );
 
     const [isDraggingOver, setIsDraggingOver] = useState(false);
 
-    const handleDragOver = useCallback((e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      // Only allow drops on folder cards
-      if (item.cardType !== 'folder') {
-        e.dataTransfer.dropEffect = 'none';
-        return;
-      }
+    const handleDragOver = useCallback(
+      (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
 
-      if (isReadOnlyContext) {
-        e.dataTransfer.dropEffect = 'none';
-        return;
-      }
+        // Only allow drops on folder cards
+        if (item.cardType !== "folder") {
+          e.dataTransfer.dropEffect = "none";
+          return;
+        }
 
-      // Don't allow drops on deleted items or items with deleted ancestors
-      if (item.deletedAt !== null || item.hasDeletedAncestor === true) {
-        e.dataTransfer.dropEffect = 'none';
-        return;
-      }
+        if (isReadOnlyContext) {
+          e.dataTransfer.dropEffect = "none";
+          return;
+        }
 
-      // Handle OS file drops
-      if (e.dataTransfer.types.includes('Files')) {
-        setIsDraggingOver(true);
-        e.dataTransfer.dropEffect = 'copy';
-        return;
-      }
+        // Don't allow drops on deleted items or items with deleted ancestors
+        if (item.deletedAt !== null || item.hasDeletedAncestor === true) {
+          e.dataTransfer.dropEffect = "none";
+          return;
+        }
 
-      // Handle internal drag and drop
-      const draggedIds = e.dataTransfer.getData('text/plain');
-      if (draggedIds) {
-        setIsDraggingOver(true);
-        e.dataTransfer.dropEffect = 'move';
-      }
-    }, [isReadOnlyContext, item.cardType]);
+        // Handle OS file drops
+        if (e.dataTransfer.types.includes("Files")) {
+          setIsDraggingOver(true);
+          e.dataTransfer.dropEffect = "copy";
+          return;
+        }
+
+        // Handle internal drag and drop
+        const draggedIds = e.dataTransfer.getData("text/plain");
+        if (draggedIds) {
+          setIsDraggingOver(true);
+          e.dataTransfer.dropEffect = "move";
+        }
+      },
+      [isReadOnlyContext, item.cardType]
+    );
 
     const handleDragLeave = useCallback((e: React.DragEvent) => {
       e.preventDefault();
@@ -111,104 +134,130 @@ export const DraggableFolderCard = memo(
       setIsDraggingOver(false);
     }, []);
 
-    const handleDrop = useCallback(async (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDraggingOver(false);
+    const handleDrop = useCallback(
+      async (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDraggingOver(false);
 
-      // Don't allow drops in read-only contexts
-      if (isReadOnlyContext) {
-        toast.error("Cannot modify files in this view");
-        return;
-      }
-
-      // Don't allow drops on non-folder items
-      if (item.cardType !== 'folder') {
-        return;
-      }
-
-      // Don't allow drops on deleted items or items with deleted ancestors
-      if (item.deletedAt !== null || item.hasDeletedAncestor === true) {
-        toast.error("Cannot upload files to a deleted folder");
-        return;
-      }
-
-      const items = Array.from(e.dataTransfer.items || []);
-      const directories: FileSystemDirectoryEntry[] = [];
-      const individualFiles: File[] = [];
-
-      for (const item of items) {
-        if (item.kind !== "file") continue;
-        const entry = item.webkitGetAsEntry();
-        if (!entry) continue;
-        if (entry.isDirectory) directories.push(entry as FileSystemDirectoryEntry);
-        else {
-          const file = item.getAsFile();
-          if (file) individualFiles.push(file);
+        // Don't allow drops in read-only contexts
+        if (isReadOnlyContext) {
+          toast.error("Cannot modify files in this view");
+          return;
         }
-      }
 
-      for (const dirEntry of directories) {
-        const dirFiles = await collectFilesFromDirectory(dirEntry);
-        if (dirFiles.length === 0) continue;
-
-        const folderName = dirEntry.name;
-        const totalSize = dirFiles.reduce((sum, entry) => sum + entry.file.size, 0);
-        const uploadId = addUpload({ name: `${folderName}.zip`, size: totalSize, isFolder: true }, id);
-
-        try {
-          const progressCallback = (progress: number) => {
-            updateUploadProgress(uploadId, progress);
-            if (progress === 100) setUploadStatus(uploadId, 'uploading');
-          };
-
-          const filesWithRootFolder = dirFiles.map(entry => ({
-            file: entry.file,
-            path: `${folderName}/${entry.path}`
-          }));
-
-          const zipFile = await createZipFromFiles(filesWithRootFolder, folderName, progressCallback);
-
-          await uploadFiles.mutateAsync({
-            files: [zipFile],
-            folderData: { folderId: id },
-            onProgress: progress => updateUploadProgress(uploadId, progress),
-            uploadId
-          });
-
-          setUploadStatus(uploadId, 'success');
-          toast.success(`Successfully uploaded folder "${folderName}"`);
-        } catch (error) {
-          if (error instanceof Error && error.message === 'Upload cancelled') continue;
-          console.error('Folder upload failed:', error);
-          toast.error(getDetailedErrorInfo(error).message);
-          setUploadStatus(uploadId, 'error');
+        // Don't allow drops on non-folder items
+        if (item.cardType !== "folder") {
+          return;
         }
-      }
 
-      for (const file of individualFiles) {
-        const uploadId = addUpload(file, id);
-        await handleFileUpload(file, uploadId);
-      }
+        // Don't allow drops on deleted items or items with deleted ancestors
+        if (item.deletedAt !== null || item.hasDeletedAncestor === true) {
+          toast.error("Cannot upload files to a deleted folder");
+          return;
+        }
 
-      if (!items.length && e.dataTransfer.files?.length > 0) {
-        for (const file of Array.from(e.dataTransfer.files)) {
+        const items = Array.from(e.dataTransfer.items || []);
+        const directories: FileSystemDirectoryEntry[] = [];
+        const individualFiles: File[] = [];
+
+        for (const item of items) {
+          if (item.kind !== "file") continue;
+          const entry = item.webkitGetAsEntry();
+          if (!entry) continue;
+          if (entry.isDirectory)
+            directories.push(entry as FileSystemDirectoryEntry);
+          else {
+            const file = item.getAsFile();
+            if (file) individualFiles.push(file);
+          }
+        }
+
+        for (const dirEntry of directories) {
+          const dirFiles = await collectFilesFromDirectory(dirEntry);
+          if (dirFiles.length === 0) continue;
+
+          const folderName = dirEntry.name;
+          const totalSize = dirFiles.reduce(
+            (sum, entry) => sum + entry.file.size,
+            0
+          );
+          const uploadId = addUpload(
+            { name: `${folderName}.zip`, size: totalSize, isFolder: true },
+            id
+          );
+
+          try {
+            const progressCallback = (progress: number) => {
+              updateUploadProgress(uploadId, progress);
+              if (progress === 100) setUploadStatus(uploadId, "uploading");
+            };
+
+            const filesWithRootFolder = dirFiles.map((entry) => ({
+              file: entry.file,
+              path: `${folderName}/${entry.path}`,
+            }));
+
+            const zipFile = await createZipFromFiles(
+              filesWithRootFolder,
+              folderName,
+              progressCallback
+            );
+
+            await uploadFiles.mutateAsync({
+              files: [zipFile],
+              folderData: { folderId: id },
+              onProgress: (progress) =>
+                updateUploadProgress(uploadId, progress),
+              uploadId,
+            });
+
+            setUploadStatus(uploadId, "success");
+            toast.success(`Successfully uploaded folder "${folderName}"`);
+          } catch (error) {
+            if (error instanceof Error && error.message === "Upload cancelled")
+              continue;
+            console.error("Folder upload failed:", error);
+            toast.error(getDetailedErrorInfo(error).message);
+            setUploadStatus(uploadId, "error");
+          }
+        }
+
+        for (const file of individualFiles) {
           const uploadId = addUpload(file, id);
           await handleFileUpload(file, uploadId);
         }
-      }
-    }, [id, name, owner, color, addItem, addUpload, updateUploadProgress, setUploadStatus, uploadFiles]);
+
+        if (!items.length && e.dataTransfer.files?.length > 0) {
+          for (const file of Array.from(e.dataTransfer.files)) {
+            const uploadId = addUpload(file, id);
+            await handleFileUpload(file, uploadId);
+          }
+        }
+      },
+      [
+        id,
+        name,
+        owner,
+        color,
+        addItem,
+        addUpload,
+        updateUploadProgress,
+        setUploadStatus,
+        uploadFiles,
+      ]
+    );
 
     const handleFileUpload = async (file: File, uploadId: string) => {
       try {
         await uploadFiles.mutateAsync({
           files: [file],
           folderData: { folderId: id },
-          onProgress: progress => updateUploadProgress(uploadId, progress),
-          uploadId
+          onProgress: (progress) => updateUploadProgress(uploadId, progress),
+          uploadId,
         });
 
-        setUploadStatus(uploadId, 'success');
+        setUploadStatus(uploadId, "success");
 
         const newFile: DocumentItem = {
           id: `doc-${nanoid(6)}`,
@@ -242,10 +291,11 @@ export const DraggableFolderCard = memo(
         addItem(newFile);
         toast.success(`Successfully uploaded file "${file.name}"`);
       } catch (error) {
-        if (error instanceof Error && error.message === 'Upload cancelled') return;
-        console.error('File upload failed:', error);
+        if (error instanceof Error && error.message === "Upload cancelled")
+          return;
+        console.error("File upload failed:", error);
         toast.error(getDetailedErrorInfo(error).message);
-        setUploadStatus(uploadId, 'error');
+        setUploadStatus(uploadId, "error");
       }
     };
 
@@ -256,7 +306,8 @@ export const DraggableFolderCard = memo(
     return (
       <div
         ref={setRefs}
-        className={cn("transition-all duration-500 relative", 
+        className={cn(
+          "transition-all duration-500 relative",
           isDragging && "opacity-30 grayscale blur-[0.3px]"
         )}
         onClick={handleClick}
@@ -274,13 +325,16 @@ export const DraggableFolderCard = memo(
           onOpen={onOpen}
           className={cn(
             className,
-            !isDragging && (isDraggingOver || isOver) && item.cardType === 'folder' &&
+            !isDragging &&
+              (isDraggingOver || isOver) &&
+              item.cardType === "folder" &&
               "opacity-50"
           )}
         />
-        {!isDragging && (isDraggingOver || (isOver && item.cardType === 'folder')) && (
-          <div className="absolute inset-0 bg-primary/10 pointer-events-none z-40 border-2 border-primary border-dashed rounded-md"/>
-        )}
+        {!isDragging &&
+          (isDraggingOver || (isOver && item.cardType === "folder")) && (
+            <div className="absolute inset-0 bg-primary/10 pointer-events-none z-40 border-2 border-primary border-dashed rounded-md" />
+          )}
       </div>
     );
   }

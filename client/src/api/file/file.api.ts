@@ -6,14 +6,20 @@ import { MoveFileDto, RenameFileDto, UpdateFileDto } from "@/types/file.dto";
  */
 const fileApi = {
   // Upload files to the server
-  uploadFiles: (files: File[], folderData?: { folderId?: string }, onProgress?: (progress: number) => void, abortSignal?: AbortSignal, duplicateAction?: "replace" | "keepBoth") => {
+  uploadFiles: (
+    files: File[],
+    folderData?: { folderId?: string },
+    onProgress?: (progress: number) => void,
+    abortSignal?: AbortSignal,
+    duplicateAction?: "replace" | "keepBoth"
+  ) => {
     const formData = new FormData();
-    
+
     // Append each file to the form data
     files.forEach((file) => {
       formData.append("files", file);
     });
-    
+
     // Add folder information if provided
     if (folderData?.folderId) {
       formData.append("folderId", folderData.folderId);
@@ -23,7 +29,7 @@ const fileApi = {
     if (duplicateAction) {
       formData.append("duplicateAction", duplicateAction);
     }
-    
+
     return API.post("/files/upload", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
@@ -31,7 +37,9 @@ const fileApi = {
       signal: abortSignal,
       onUploadProgress: (progressEvent) => {
         if (progressEvent.total) {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
           onProgress?.(percentCompleted);
         }
       },
@@ -39,56 +47,54 @@ const fileApi = {
   },
 
   // Get all user files
-  getUserFiles: (params?: { folderId?: string, includeDeleted?: boolean }) =>
+  getUserFiles: (params?: { folderId?: string; includeDeleted?: boolean }) =>
     API.get("/files", { params }),
-  
+
   // Get a file by ID
-  getFileById: (fileId: string) => 
-    API.get(`/files/${fileId}`),
+  getFileById: (fileId: string) => API.get(`/files/${fileId}`),
 
   // View file content
-  viewFile: (fileId: string, responseType: 'arraybuffer' | 'blob' | 'stream' = 'arraybuffer') =>
-    API.get(`/files/${fileId}/view`, { 
+  viewFile: (
+    fileId: string,
+    responseType: "arraybuffer" | "blob" | "stream" = "arraybuffer"
+  ) =>
+    API.get(`/files/${fileId}/view`, {
       responseType,
       headers: {
-        'Accept': '*/*'  // Accept any content type
-      }
+        Accept: "*/*", // Accept any content type
+      },
     }),
-    
+
   // Get direct URL for streaming content like videos or PDFs
-  getFileUrl: (fileId: string) => `${API.defaults.baseURL}/files/${fileId}/view`,
-  
+  getFileUrl: (fileId: string) =>
+    `${API.defaults.baseURL}/files/${fileId}/view`,
+
   // Download file
-  downloadFile: (fileId: string) =>
-    API.get(`/files/${fileId}/download`),
-  
+  downloadFile: (fileId: string) => API.get(`/files/${fileId}/download`),
+
   // Update a file's properties
-  updateFile: (fileId: string, data: UpdateFileDto) => 
+  updateFile: (fileId: string, data: UpdateFileDto) =>
     API.patch(`/files/${fileId}`, data),
-  
+
   // Move to trash (soft delete)
-  moveToTrash: (fileId: string) => 
-    API.delete(`/files/${fileId}`),
+  moveToTrash: (fileId: string) => API.delete(`/files/${fileId}`),
 
   // Permanently delete file
-  permanentDelete: (fileId: string) =>
-    API.delete(`/files/${fileId}/permanent`),
+  permanentDelete: (fileId: string) => API.delete(`/files/${fileId}/permanent`),
 
   // Restore file from trash
-  restoreFile: (fileId: string) =>
-    API.post(`/files/${fileId}/restore`),
+  restoreFile: (fileId: string) => API.post(`/files/${fileId}/restore`),
 
   // Rename a file
-  renameFile: (fileId: string, data: RenameFileDto) => 
+  renameFile: (fileId: string, data: RenameFileDto) =>
     API.post(`/files/${fileId}/rename`, data),
 
   // Move a file to a different folder
-  moveFile: (fileId: string, data: MoveFileDto) => 
+  moveFile: (fileId: string, data: MoveFileDto) =>
     API.post(`/files/${fileId}/move`, data),
 
   // Get recent files
-  getRecentFiles: () =>
-    API.get("/files/recent"),
+  getRecentFiles: () => API.get("/files/recent"),
 };
 
 export default fileApi;

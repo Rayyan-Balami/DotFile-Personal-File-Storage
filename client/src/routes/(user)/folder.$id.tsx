@@ -1,9 +1,8 @@
+import { useFolderById, useFolderContents } from '@/api/folder/folder.query';
 import DirectoryView from '@/components/views/DirectoryView';
-import { useFolderContents } from '@/api/folder/folder.query';
+import { useFileSystemStore } from '@/stores/useFileSystemStore';
 import { createFileRoute } from '@tanstack/react-router';
 import { Loader2 } from 'lucide-react';
-import { useFolderById } from '@/api/folder/folder.query';
-import { useFileSystemStore } from '@/stores/useFileSystemStore';
 import { useEffect } from 'react';
 
 // When we go inside a folder we use a dynamic route

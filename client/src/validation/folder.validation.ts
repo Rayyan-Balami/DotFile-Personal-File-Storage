@@ -57,5 +57,5 @@ export const moveFolderSchema = z.object({
 export const renameItemSchema = z.object({
   name: folderNameSchema,
   id: z.string(),
-  cardType: z.enum(['folder', 'document'])
+  cardType: z.enum(["folder", "document"]),
 });

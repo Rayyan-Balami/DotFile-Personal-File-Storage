@@ -67,7 +67,15 @@ const avatarFileSchema = z.object({
       message: "File size must be less than 2MB",
     })
     .refine(
-      (file) => ["image/jpeg", "image/png", "image/gif", "image/webp", "image/bmp", "image/tiff"].includes(file.type),
+      (file) =>
+        [
+          "image/jpeg",
+          "image/png",
+          "image/gif",
+          "image/webp",
+          "image/bmp",
+          "image/tiff",
+        ].includes(file.type),
       {
         message: "File must be an image (JPEG, PNG, GIF, WebP, BMP, or TIFF)",
       }
@@ -119,14 +127,18 @@ const adminSetPasswordSchema = z
  * Admin: Set user storage quota (bytes)
  */
 const updateStorageLimitSchema = z.object({
-  maxStorageLimit: z.number().min(0, { message: "Storage limit cannot be negative" }),
+  maxStorageLimit: z
+    .number()
+    .min(0, { message: "Storage limit cannot be negative" }),
 });
 
 /**
  * Delete user account validation - requires password confirmation
  */
 const deleteUserAccountSchema = z.object({
-  password: z.string().min(1, { message: "Password is required to delete your account" }),
+  password: z
+    .string()
+    .min(1, { message: "Password is required to delete your account" }),
 });
 
 // Fix type exports using proper syntax
@@ -142,27 +154,27 @@ type AvatarFileInput = z.infer<typeof avatarFileSchema>;
 type DeleteUserAccountInput = z.infer<typeof deleteUserAccountSchema>;
 
 export {
-  loginUserSchema,
-  registerUserSchema,
-  updateUserPasswordSchema,
-  updateUserSchema,
-  refreshTokenSchema,
-  updateUserRoleSchema,
   adminSetPasswordSchema,
-  updateStorageLimitSchema,
   avatarFileSchema,
   deleteUserAccountSchema,
+  loginUserSchema,
+  refreshTokenSchema,
+  registerUserSchema,
+  updateStorageLimitSchema,
+  updateUserPasswordSchema,
+  updateUserRoleSchema,
+  updateUserSchema,
 };
 
 export type {
-  LoginUserInput,
-  RegisterUserInput,
-  UpdateUserInput,
-  UpdateUserPasswordInput,
-  RefreshTokenInput,
-  UpdateUserRoleInput,
   AdminSetPasswordInput,
-  UpdateStorageLimitInput,
   AvatarFileInput,
   DeleteUserAccountInput,
+  LoginUserInput,
+  RefreshTokenInput,
+  RegisterUserInput,
+  UpdateStorageLimitInput,
+  UpdateUserInput,
+  UpdateUserPasswordInput,
+  UpdateUserRoleInput,
 };

@@ -1,10 +1,10 @@
-"use client";
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { useRenameFile } from "@/api/file/file.query";
+import { useRenameFolder } from "@/api/folder/folder.query";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -16,21 +16,19 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
-import { toast } from "sonner";
-import { useDialogStore } from "@/stores/useDialogStore";
-import { renameItemSchema } from "@/validation/folder.validation";
 import { logger } from "@/lib/utils";
+import { useDialogStore } from "@/stores/useDialogStore";
 import { extractFieldError, getErrorMessage } from "@/utils/apiErrorHandler";
-import { useRenameFile } from "@/api/file/file.query";
-import { useRenameFolder } from "@/api/folder/folder.query";
+import { renameItemSchema } from "@/validation/folder.validation";
+import { toast } from "sonner";
 
 export function RenameDialog() {
-  const { 
-    renameDialogOpen, 
-    renameItemId, 
-    renameItemCardType, 
+  const {
+    renameDialogOpen,
+    renameItemId,
+    renameItemCardType,
     renameItemName,
-    closeRenameDialog 
+    closeRenameDialog,
   } = useDialogStore();
 
   const renameFile = useRenameFile();
@@ -47,60 +45,75 @@ export function RenameDialog() {
 
   // Update form values when the dialog opens or item changes
   useEffect(() => {
-    if (renameDialogOpen && renameItemId && renameItemCardType && renameItemName) {
+    if (
+      renameDialogOpen &&
+      renameItemId &&
+      renameItemCardType &&
+      renameItemName
+    ) {
       form.reset({
         name: renameItemName,
         id: renameItemId,
         cardType: renameItemCardType,
       });
     }
-  }, [renameDialogOpen, renameItemId, renameItemCardType, renameItemName, form]);
+  }, [
+    renameDialogOpen,
+    renameItemId,
+    renameItemCardType,
+    renameItemName,
+    form,
+  ]);
 
   async function onSubmit(values: z.infer<typeof renameItemSchema>) {
     try {
-      if (values.cardType === 'folder') {
+      if (values.cardType === "folder") {
         await renameFolder.mutateAsync({
           folderId: values.id,
-          data: { name: values.name }
+          data: { name: values.name },
         });
       } else {
         await renameFile.mutateAsync({
           fileId: values.id,
-          data: { name: values.name }
+          data: { name: values.name },
         });
       }
-      
+
       toast.success("Item renamed successfully!");
       closeRenameDialog();
       form.reset();
     } catch (error: any) {
       logger.error("Rename error:", error);
-      
+
       const fieldError = extractFieldError(error);
-      
-      if (fieldError && fieldError.field === "name" && error.response?.status === 409) {
+
+      if (
+        fieldError &&
+        fieldError.field === "name" &&
+        error.response?.status === 409
+      ) {
         // Handle duplicate item
         const { openDuplicateDialog } = useDialogStore.getState();
         openDuplicateDialog(
           values.name,
-          values.cardType === 'folder' ? 'folder' : 'file',
+          values.cardType === "folder" ? "folder" : "file",
           async (action) => {
             try {
-              if (values.cardType === 'folder') {
+              if (values.cardType === "folder") {
                 await renameFolder.mutateAsync({
                   folderId: values.id,
-                  data: { 
+                  data: {
                     name: values.name,
-                    duplicateAction: action
-                  }
+                    duplicateAction: action,
+                  },
                 });
               } else {
                 await renameFile.mutateAsync({
                   fileId: values.id,
-                  data: { 
+                  data: {
                     name: values.name,
-                    duplicateAction: action
-                  }
+                    duplicateAction: action,
+                  },
                 });
               }
               toast.success("Item renamed successfully!");
@@ -118,7 +131,7 @@ export function RenameDialog() {
       } else if (fieldError && fieldError.field === "name") {
         form.setError("name", {
           type: "manual",
-          message: fieldError.message
+          message: fieldError.message,
         });
       } else {
         toast.error(fieldError?.message || getErrorMessage(error));
@@ -171,8 +184,8 @@ export function RenameDialog() {
             >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               loading={form.formState.isSubmitting}
               disabled={form.formState.isSubmitting}
             >

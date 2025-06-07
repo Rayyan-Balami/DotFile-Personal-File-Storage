@@ -1,14 +1,14 @@
-import { AppSidebar } from "@/components/app-sidebar";
 import { DialogProvider } from "@/components/dialogs/DialogProvider";
 import { FileSystemDndProvider } from "@/components/dnd/FileSystemDndContext";
 import { SiteFooter } from "@/components/footer/site-footer";
 import { SiteHeader } from "@/components/header/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/user-nav/app-sidebar";
+import { useUserSync } from "@/hooks/useUserSync";
+import { useAuthStore } from "@/stores/authStore";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { useEffect } from "react";
-import { useUserSync } from "@/hooks/useUserSync";
-import { useAuthStore } from "@/stores/authStore";
 
 export const Route = createFileRoute("/(user)")({
   beforeLoad: () => {

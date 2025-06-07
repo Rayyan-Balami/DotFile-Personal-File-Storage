@@ -1,7 +1,7 @@
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { NotFound } from "@/components/NotFound";
+import { Toaster } from "@/components/ui/sonner";
 import { createRootRoute, Outlet } from "@tanstack/react-router";
-import ErrorBoundary from "../components/ErrorBoundary";
-import { NotFound } from "../components/NotFound";
-import { Toaster } from "@/components/ui/sonner"
 
 
 export const Route = createRootRoute({

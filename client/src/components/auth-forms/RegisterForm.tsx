@@ -1,3 +1,4 @@
+import { useRegister } from "@/api/user/user.query";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -9,13 +10,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { registerUserSchema, RegisterUserInput } from "@/validation/authForm";
+import { extractFieldError, getErrorMessage } from "@/utils/apiErrorHandler";
+import { RegisterUserInput, registerUserSchema } from "@/validation/authForm";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
-import { useRegister } from "@/api/user/user.query";
 import { toast } from "sonner";
-import { extractFieldError, getErrorMessage } from "@/utils/apiErrorHandler";
 
 export function RegisterForm({
   className,
@@ -42,11 +42,16 @@ export function RegisterForm({
     } catch (error: any) {
       const fieldError = extractFieldError(error);
 
-      if (fieldError && ["email", "password", "name", "confirmPassword"].includes(fieldError.field)) {
+      if (
+        fieldError &&
+        ["email", "password", "name", "confirmPassword"].includes(
+          fieldError.field
+        )
+      ) {
         // Set field-specific error
-        form.setError(fieldError.field as any, { 
-          type: "manual", 
-          message: fieldError.message 
+        form.setError(fieldError.field as any, {
+          type: "manual",
+          message: fieldError.message,
         });
       } else {
         // Show general error toast
@@ -137,7 +142,9 @@ export function RegisterForm({
             name="confirmPassword"
             render={({ field }) => (
               <FormItem className="gap-3">
-                <FormLabel htmlFor="confirmPassword">Confirm Password</FormLabel>
+                <FormLabel htmlFor="confirmPassword">
+                  Confirm Password
+                </FormLabel>
                 <FormControl>
                   <Input
                     id="confirmPassword"
@@ -165,7 +172,10 @@ export function RegisterForm({
       </Form>
       <div className="text-center text-base text-muted-foreground">
         Already have an account?{" "}
-        <Link to="/login" className="underline underline-offset-4 hover:text-primary">
+        <Link
+          to="/login"
+          className="underline underline-offset-4 hover:text-primary"
+        >
           Log in
         </Link>
       </div>

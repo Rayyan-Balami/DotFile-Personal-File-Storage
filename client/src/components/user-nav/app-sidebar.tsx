@@ -1,14 +1,5 @@
-import {
-  Clock,
-  Database,
-  FolderClosed,
-  PanelRightClose,
-  Trash2,
-} from "lucide-react";
-import * as React from "react";
-
-import { NavMain } from "@/components/nav-main";
-import { NavUser } from "@/components/nav-user";
+import { Logo } from "@/components/logo";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -21,33 +12,16 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Link } from "@tanstack/react-router";
-import { NavColors } from "./nav-colors";
-import { NavPins } from "./nav-pins";
-import { Button } from "./ui/button";
+import { NavColors } from "@/components/user-nav/nav-colors";
+import { NavMain } from "@/components/user-nav/nav-main";
+import { NavPins } from "@/components/user-nav/nav-pins";
+import { NavUpload } from "@/components/user-nav/nav-upload";
+import { NavUser } from "@/components/user-nav/nav-user";
 import { VITE_APP_DESCRIPTION, VITE_APP_NAME, VITE_APP_VERSION } from "@/config/constants";
-import { NavUpload } from "./nav-upload";
-import { Logo } from "./logo";
-
-const data = {
-  navMain: [
-    {
-      title: "Recent",
-      url: "/recent",
-      icon: Clock,
-    },
-    {
-      title: "My Drive",
-      url: "/",
-      icon: FolderClosed,
-    },
-    {
-      title: "Trash",
-      url: "/trash",
-      icon: Trash2,
-    },
-  ],
-};
+import { Link } from "@tanstack/react-router";
+import {
+  PanelRightClose
+} from "lucide-react";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { toggleSidebar, state, isTablet } = useSidebar();
@@ -89,7 +63,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavUpload />
-        <NavMain items={data.navMain} />
+        <NavMain />
         <NavPins />
       </SidebarContent>
       <SidebarFooter className="min-h-(--footer-height)">

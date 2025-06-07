@@ -1,5 +1,5 @@
-import DirectoryView from '@/components/views/DirectoryView';
 import { useRootContents } from '@/api/folder/folder.query';
+import DirectoryView from '@/components/views/DirectoryView';
 import { createFileRoute } from '@tanstack/react-router';
 import { Loader2 } from 'lucide-react';
 

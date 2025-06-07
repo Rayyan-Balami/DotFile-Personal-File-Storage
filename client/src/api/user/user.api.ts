@@ -1,11 +1,11 @@
 import API from "@/lib/axios";
 import {
-  RegisterUserInput,
+  DeleteUserAccountInput,
   LoginUserInput,
+  RefreshTokenInput,
+  RegisterUserInput,
   UpdateUserInput,
   UpdateUserPasswordInput,
-  RefreshTokenInput,
-  DeleteUserAccountInput,
 } from "@/validation/authForm";
 
 /**
@@ -40,7 +40,8 @@ export const userApi = {
 
   logout: () => API.post("/users/logout"),
 
-  deleteAccount: (data: DeleteUserAccountInput) => API.delete("/users/me", { data }),
+  deleteAccount: (data: DeleteUserAccountInput) =>
+    API.delete("/users/me", { data }),
 
   // ADMIN ENDPOINTS - Requires admin privileges
   getAllUsers: (params?: { page?: number; limit?: number; search?: string }) =>

@@ -1,9 +1,17 @@
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useUploadStore } from "@/stores/useUploadStore";
 import { formatFileSize } from "@/utils/formatUtils";
 import { getFolderNameFromZip, isZipFile } from "@/utils/uploadUtils";
-import { TriangleAlert, File, Folder, Loader2, X, Ban, ChevronDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {
+  Ban,
+  ChevronDown,
+  File,
+  Folder,
+  Loader2,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 import React from "react";
 
 interface UploadItemProps {
@@ -26,17 +34,21 @@ function UploadCard({
   onCancel,
 }: UploadItemProps) {
   const icon = isFolder ? (
-    <Folder className={cn(
-      "text-muted-foreground",
-      status === "error" && "text-destructive",
-      status === "cancelled" && "text-yellow-600"
-    )} />
+    <Folder
+      className={cn(
+        "text-muted-foreground",
+        status === "error" && "text-destructive",
+        status === "cancelled" && "text-yellow-600"
+      )}
+    />
   ) : (
-    <File className={cn(
-      "text-muted-foreground",
-      status === "error" && "text-destructive",
-      status === "cancelled" && "text-yellow-600"
-    )} />
+    <File
+      className={cn(
+        "text-muted-foreground",
+        status === "error" && "text-destructive",
+        status === "cancelled" && "text-yellow-600"
+      )}
+    />
   );
 
   const handleCancel = () => {
@@ -47,30 +59,40 @@ function UploadCard({
     isFolder && isZipFile(fileName) ? getFolderNameFromZip(fileName) : fileName;
 
   return (
-    <div className={cn(
-      "group flex items-center h-12 p-1.5 gap-2 rounded-md bg-sidebar hover:bg-muted border hover:shadow-xs min-w-48 shrink-0 transition-colors ease-out duration-100 focus:outline-none focus:ring-1 focus:ring-primary/40 select-none whitespace-nowrap",
-      status === "error" && "border-destructive/50",
-      status === "cancelled" && "border-yellow-400"
-    )}>
-      <div className={cn(
-        "h-full grid place-items-center aspect-square bg-sidebar rounded-[0.5rem] *:scale-65",
-        status === "error" && "bg-destructive/10",
-        status === "cancelled" && "bg-yellow-400/10"
-      )}>
+    <div
+      className={cn(
+        "group flex items-center h-12 p-1.5 gap-2 rounded-md bg-sidebar hover:bg-muted border hover:shadow-xs min-w-48 shrink-0 transition-colors ease-out duration-100 focus:outline-none focus:ring-1 focus:ring-primary/40 select-none whitespace-nowrap",
+        status === "error" && "border-destructive/50",
+        status === "cancelled" && "border-yellow-400"
+      )}
+    >
+      <div
+        className={cn(
+          "h-full grid place-items-center aspect-square bg-sidebar rounded-[0.5rem] *:scale-65",
+          status === "error" && "bg-destructive/10",
+          status === "cancelled" && "bg-yellow-400/10"
+        )}
+      >
         {icon}
       </div>
       <div className="flex-1 flex flex-col justify-between text-xs text-muted-foreground mx-1 pr-1">
-        <span className={cn(
-          "font-medium",
-          status === "error" && "text-destructive",
-          status === "cancelled" && "text-yellow-600"
-        )}>{displayName}</span>
-        <div className="flex items-center gap-2 w-full">
-          <span className={cn(
-            "text-xs font-light text-muted-foreground",
+        <span
+          className={cn(
+            "font-medium",
             status === "error" && "text-destructive",
             status === "cancelled" && "text-yellow-600"
-          )}>
+          )}
+        >
+          {displayName}
+        </span>
+        <div className="flex items-center gap-2 w-full">
+          <span
+            className={cn(
+              "text-xs font-light text-muted-foreground",
+              status === "error" && "text-destructive",
+              status === "cancelled" && "text-yellow-600"
+            )}
+          >
             {fileSize}
           </span>
           {(status === "uploading" || status === "creating-zip") &&
@@ -95,17 +117,17 @@ function UploadCard({
       </div>
       {(status === "uploading" || status === "creating-zip") && (
         <>
-        <div className="h-full grid place-items-center aspect-square rounded-[0.5rem] *:scale-65">
-          <Loader2 className="animate-spin text-muted-foreground" />
-        </div>
-      <Button
-        variant="ghost"
-        onClick={handleCancel}
-        className="h-full bg-sidebar grid place-items-center aspect-square rounded-[0.5rem] *:scale-65 shadow-none hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground"
-      >
-        <X className="size-auto animate-pulse" />
-      </Button>
-      </>
+          <div className="h-full grid place-items-center aspect-square rounded-[0.5rem] *:scale-65">
+            <Loader2 className="animate-spin text-muted-foreground" />
+          </div>
+          <Button
+            variant="ghost"
+            onClick={handleCancel}
+            className="h-full bg-sidebar grid place-items-center aspect-square rounded-[0.5rem] *:scale-65 shadow-none hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground"
+          >
+            <X className="size-auto animate-pulse" />
+          </Button>
+        </>
       )}
     </div>
   );
@@ -117,7 +139,8 @@ export function Uploads() {
 
   // Check if any upload is in progress
   const hasActiveUploads = uploads.some(
-    upload => upload.status === "uploading" || upload.status === "creating-zip"
+    (upload) =>
+      upload.status === "uploading" || upload.status === "creating-zip"
   );
 
   // Show section when new uploads start
@@ -146,7 +169,11 @@ export function Uploads() {
         variant="secondary"
         onClick={handleClose}
         disabled={hasActiveUploads}
-        title={hasActiveUploads ? "Cannot close while uploads are in progress" : "Close uploads"}
+        title={
+          hasActiveUploads
+            ? "Cannot close while uploads are in progress"
+            : "Close uploads"
+        }
       >
         <ChevronDown className="size-5 group-hover:scale-105 transition-transform" />
         <span className="sr-only">Close uploads section</span>

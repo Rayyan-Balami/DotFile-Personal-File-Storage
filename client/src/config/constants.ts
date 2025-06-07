@@ -5,7 +5,7 @@ export const IS_PRODUCTION = VITE_ENV === "production";
 
 // App Information (static values, not env-based)
 export const VITE_APP_NAME = "Dot File";
-export const VITE_APP_VERSION = "1.9.2";
+export const VITE_APP_VERSION = "2.14.9";
 export const VITE_APP_DESCRIPTION = "Personal File Storage";
 export const VITE_APP_AUTHOR = "Rayyan Balami";
 export const VITE_APP_AUTHOR_URL = "https://rayyanbalami.com";

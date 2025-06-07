@@ -1,11 +1,9 @@
 import API from "@/lib/axios";
-import { 
-  CreateFolderDto, 
-  FolderResponseDto, 
-  FolderResponseWithFilesDto, 
+import {
+  CreateFolderDto,
   MoveFolderDto,
   RenameFolderDto,
-  UpdateFolderDto 
+  UpdateFolderDto,
 } from "@/types/folder.dto";
 
 /**
@@ -13,56 +11,51 @@ import {
  */
 const folderApi = {
   // Create a new folder
-  createFolder: (data: CreateFolderDto) => 
-    API.post("/folders", data),
+  createFolder: (data: CreateFolderDto) => API.post("/folders", data),
 
   // Get root folder contents
-  getRootContents: () => 
-    API.get("/folders/contents"),
+  getRootContents: () => API.get("/folders/contents"),
 
   // Get contents of a specific folder by ID
-  getFolderContents: (folderId: string, options?: { includeDeleted?: boolean }) => 
-    API.get(`/folders/contents/${folderId}`, { params: options }),
+  getFolderContents: (
+    folderId: string,
+    options?: { includeDeleted?: boolean }
+  ) => API.get(`/folders/contents/${folderId}`, { params: options }),
 
   // Get folder by ID
-  getFolderById: (folderId: string) => 
-    API.get(`/folders/${folderId}`),
+  getFolderById: (folderId: string) => API.get(`/folders/${folderId}`),
 
   // Update a folder's properties
-  updateFolder: (folderId: string, data: UpdateFolderDto) => 
+  updateFolder: (folderId: string, data: UpdateFolderDto) =>
     API.patch(`/folders/${folderId}`, data),
 
   // Rename a folder
-  renameFolder: (folderId: string, data: RenameFolderDto) => 
+  renameFolder: (folderId: string, data: RenameFolderDto) =>
     API.patch(`/folders/${folderId}/rename`, data),
 
   // Move a folder to a different parent
-  moveFolder: (folderId: string, data: MoveFolderDto) => 
+  moveFolder: (folderId: string, data: MoveFolderDto) =>
     API.patch(`/folders/${folderId}/move`, data),
 
-  // Move to trash (soft delete)  
-  moveToTrash: (folderId: string) => 
-    API.delete(`/folders/${folderId}`),
+  // Move to trash (soft delete)
+  moveToTrash: (folderId: string) => API.delete(`/folders/${folderId}`),
 
   // Permanently delete folder
-  permanentDelete: (folderId: string) => 
+  permanentDelete: (folderId: string) =>
     API.delete(`/folders/${folderId}/permanent`),
 
-  // Restore folder from trash  
-  restoreFolder: (folderId: string) => 
-    API.post(`/folders/${folderId}/restore`),
+  // Restore folder from trash
+  restoreFolder: (folderId: string) => API.post(`/folders/${folderId}/restore`),
 
   // Get trash contents
-  getTrashContents: () => 
-    API.get("/folders/trash/contents"),
+  getTrashContents: () => API.get("/folders/trash/contents"),
 
   // Get pinned contents with pagination
-  getPinContents: (offset: number = 0, limit: number = 10) => 
+  getPinContents: (offset: number = 0, limit: number = 10) =>
     API.get("/folders/pins/contents", { params: { offset, limit } }),
 
-  // Empty trash (delete all trashed folders)  
-  emptyTrash: () => 
-    API.post("/folders/trash/empty")
+  // Empty trash (delete all trashed folders)
+  emptyTrash: () => API.post("/folders/trash/empty"),
 };
 
 export default folderApi;

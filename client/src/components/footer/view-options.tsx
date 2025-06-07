@@ -7,7 +7,7 @@ export function ViewOptions() {
   // Use primitive selectors to avoid unnecessary re-renders
   const viewType = useViewPreferencesStore((state) => state.viewType);
   const setViewType = useViewPreferencesStore((state) => state.setViewType);
-  
+
   return (
     <ButtonGroup orientation="horizontal">
       <Button

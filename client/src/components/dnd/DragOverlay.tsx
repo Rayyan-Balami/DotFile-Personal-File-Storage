@@ -1,8 +1,12 @@
-import { DragOverlay as DndKitDragOverlay } from '@dnd-kit/core';
-import FolderDocumentCard from '../cards/FolderDocumentCard';
-import { useFileSystemDnd } from './FileSystemDndContext';
-import { FileSystemItem, FolderItem, DocumentItem } from '@/types/folderDocumnet';
-import { File, Folder } from 'lucide-react';
+import FolderDocumentCard from "@/components/cards/FolderDocumentCard";
+import { useFileSystemDnd } from "@/components/dnd/FileSystemDndContext";
+import {
+  DocumentItem,
+  FileSystemItem,
+  FolderItem,
+} from "@/types/folderDocumnet";
+import { DragOverlay as DndKitDragOverlay } from "@dnd-kit/core";
+import { File, Folder } from "lucide-react";
 
 // Define a type for drag data
 interface DragData {
@@ -14,22 +18,24 @@ interface DragData {
 }
 
 export function DragOverlay() {
-  const { activeId, draggedItems, active, isOutsideDirectory, position } = useFileSystemDnd();
-  
+  const { activeId, draggedItems, active, isOutsideDirectory, position } =
+    useFileSystemDnd();
+
   if (!activeId || !draggedItems.length || !active) {
     return null;
   }
-  
+
   // Get the primary dragged item
   const primaryItem = draggedItems[0];
-  
+
   // Extract data from the active drag element with proper typing
   const data = active.data.current as DragData;
-  
+
   // Use the item from drag data or create a fallback item based on type
-  const item: FileSystemItem = data.item || (
-    primaryItem.cardType === "folder" 
-      ? {
+  const item: FileSystemItem =
+    data.item ||
+    (primaryItem.cardType === "folder"
+      ? ({
           id: primaryItem.id,
           type: "folder",
           cardType: "folder",
@@ -41,9 +47,9 @@ export function DragOverlay() {
           isPinned: false,
           createdAt: new Date(),
           updatedAt: new Date(),
-          deletedAt: null
-        } as FolderItem
-      : {
+          deletedAt: null,
+        } as FolderItem)
+      : ({
           id: primaryItem.id,
           type: "application/octet-stream", // Default MIME type
           cardType: "document",
@@ -56,10 +62,9 @@ export function DragOverlay() {
           storageKey: "",
           createdAt: new Date(),
           updatedAt: new Date(),
-          deletedAt: null
-        } as DocumentItem
-  );
-  
+          deletedAt: null,
+        } as DocumentItem));
+
   const variant = data.variant || "large";
 
   // Render minimal card when outside directory
@@ -70,14 +75,14 @@ export function DragOverlay() {
         style={{
           left: position.x,
           top: position.y,
-          position: 'fixed',
-          maxWidth: '150px',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis'
+          position: "fixed",
+          maxWidth: "150px",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
         }}
       >
-        {item.cardType === 'folder' ? (
+        {item.cardType === "folder" ? (
           <Folder className="w-4 h-4 shrink-0" />
         ) : (
           <File className="w-4 h-4 shrink-0" />
@@ -91,24 +96,22 @@ export function DragOverlay() {
       </div>
     );
   }
-  
+
   // Render normal card when inside directory with manual transform
   return (
     <DndKitDragOverlay
       dropAnimation={null}
       style={{
         transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
-        position: 'fixed',
+        position: "fixed",
         top: -10,
         left: -10,
         margin: 0,
-        pointerEvents: 'none',
+        pointerEvents: "none",
         zIndex: 9999,
       }}
     >
-      <div 
-        className="relative"
-      >
+      <div className="relative">
         <FolderDocumentCard
           item={item}
           variant={variant}

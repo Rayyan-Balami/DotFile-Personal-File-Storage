@@ -1,15 +1,15 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import userApi from "./user.api";
-import {
-  LoginUserInput,
-  RegisterUserInput,
-  RefreshTokenInput,
-  UpdateUserInput,
-  UpdateUserPasswordInput,
-  DeleteUserAccountInput,
-} from "@/validation/authForm";
+import userApi from "@/api/user/user.api";
 import { useAuthStore } from "@/stores/authStore";
 import { User } from "@/types/user";
+import {
+  DeleteUserAccountInput,
+  LoginUserInput,
+  RefreshTokenInput,
+  RegisterUserInput,
+  UpdateUserInput,
+  UpdateUserPasswordInput,
+} from "@/validation/authForm";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 
 // ==========================
@@ -50,7 +50,7 @@ interface CurrentUserResponse {
 
 export const useGetCurrentUser = () => {
   const updateUser = useAuthStore((state) => state.updateUser);
-  
+
   const query = useQuery<CurrentUserResponse>({
     queryKey: ["currentUser"],
     queryFn: async () => {
@@ -99,7 +99,7 @@ export const useLogout = () =>
 export const useDeleteAccount = () => {
   const clearAuth = useAuthStore((state) => state.clearAuth);
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: (data: DeleteUserAccountInput) => userApi.deleteAccount(data),
     onSuccess: () => {

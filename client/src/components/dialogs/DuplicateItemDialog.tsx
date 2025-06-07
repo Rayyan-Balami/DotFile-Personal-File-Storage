@@ -33,32 +33,22 @@ export function DuplicateItemDialog({
       headerClassName="p-6 max-md:pt-8 pb-4 md:p-8 md:pb-6 border-b bg-muted"
       bodyClassName="p-6 md:p-8 gap-8"
     >
-
-
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            className="border border-border"
-            onClick={onKeepBoth}
-          >
-            Keep Both
-          </Button>
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={onReplace}
-          >
-            Replace Existing {itemType === "folder" ? "Folder" : "File"}
-          </Button>
-        </div>
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          className="border border-border"
+          onClick={onKeepBoth}
+        >
+          Keep Both
+        </Button>
+        <Button type="button" variant="destructive" onClick={onReplace}>
+          Replace Existing {itemType === "folder" ? "Folder" : "File"}
+        </Button>
+      </div>
     </ResponsiveDialog>
   );
 }

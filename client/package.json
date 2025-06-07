@@ -1,7 +1,9 @@
 {
-  "name": "try",
+  "name": "dot file",
+  "description": "A modern, minimal, and customizable file manager for your personal cloud.",
+  "author": "Rayyan Balami <rayyanbalami.com.np>",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.14.9",
   "type": "module",
   "scripts": {
     "dev": "vite",

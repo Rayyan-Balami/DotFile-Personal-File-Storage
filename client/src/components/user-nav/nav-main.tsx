@@ -1,5 +1,5 @@
 
-import { ChevronRight, type LucideIcon } from "lucide-react"
+import { ChevronRight, type LucideIcon, Clock, FolderClosed, Trash2 } from "lucide-react"
 
 import {
   Collapsible,
@@ -19,10 +19,28 @@ import {
 } from "@/components/ui/sidebar"
 import { Link } from "@tanstack/react-router"
 
+const navMainItems = [
+  {
+    title: "Recent",
+    url: "/recent",
+    icon: Clock,
+  },
+  {
+    title: "My Drive",
+    url: "/",
+    icon: FolderClosed,
+  },
+  {
+    title: "Trash",
+    url: "/trash",
+    icon: Trash2,
+  },
+]
+
 export function NavMain({
-  items,
+  items = navMainItems,
 }: {
-  items: {
+  items?: {
     title: string
     url: string
     icon: LucideIcon
@@ -32,7 +50,7 @@ export function NavMain({
       url: string
     }[]
   }[]
-}) {
+} = {}) {
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Navigation</SidebarGroupLabel>

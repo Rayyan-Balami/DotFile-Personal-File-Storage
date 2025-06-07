@@ -1,15 +1,15 @@
+import fileApi from "@/api/file/file.api";
+import { FOLDER_KEYS } from "@/api/folder/folder.query";
+import { useDialogStore } from "@/stores/useDialogStore";
+import { useUploadStore } from "@/stores/useUploadStore";
 import { MoveFileDto, RenameFileDto, UpdateFileDto } from "@/types/file.dto";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FOLDER_KEYS } from "../folder/folder.query";
-import fileApi from "./file.api";
-import { useUploadStore } from "@/stores/useUploadStore";
-import { useDialogStore } from "@/stores/useDialogStore";
 
 // Query keys
 export const FILE_KEYS = {
   all: ["files"] as const,
   detail: (id: string) => [...FILE_KEYS.all, id] as const,
-  list: (params?: { folderId?: string, includeDeleted?: boolean }) => 
+  list: (params?: { folderId?: string; includeDeleted?: boolean }) =>
     [...FILE_KEYS.all, params] as const,
   recent: ["files", "recent"] as const,
 };
@@ -17,7 +17,10 @@ export const FILE_KEYS = {
 /**
  * Hook to list user files, optionally filtered by folder
  */
-export const useFiles = (params?: { folderId?: string, includeDeleted?: boolean }) =>
+export const useFiles = (params?: {
+  folderId?: string;
+  includeDeleted?: boolean;
+}) =>
   useQuery({
     queryKey: FILE_KEYS.list(params),
     queryFn: () => fileApi.getUserFiles(params).then((res) => res.data),
@@ -40,51 +43,67 @@ export const useUploadFiles = () => {
   const queryClient = useQueryClient();
   const { setUploadController, setUploadStatus } = useUploadStore();
   const { openDuplicateDialog } = useDialogStore();
-  
+
   return useMutation({
-    mutationFn: async ({ 
-      files, 
-      folderData, 
-      onProgress, 
+    mutationFn: async ({
+      files,
+      folderData,
+      onProgress,
       uploadId,
-      duplicateAction 
-    }: { 
-      files: File[], 
-      folderData?: { folderId?: string },
-      onProgress?: (progress: number) => void,
-      uploadId: string,
-      duplicateAction?: "replace" | "keepBoth"
+      duplicateAction,
+    }: {
+      files: File[];
+      folderData?: { folderId?: string };
+      onProgress?: (progress: number) => void;
+      uploadId: string;
+      duplicateAction?: "replace" | "keepBoth";
     }) => {
       // Create abort controller for this upload
       const controller = new AbortController();
-      
+
       // Store the controller in the upload store
       setUploadController(uploadId, controller);
-      
+
       try {
-        const response = await fileApi.uploadFiles(files, folderData, onProgress, controller.signal, duplicateAction);
+        const response = await fileApi.uploadFiles(
+          files,
+          folderData,
+          onProgress,
+          controller.signal,
+          duplicateAction
+        );
         return response.data;
       } catch (error: any) {
-        console.log('🚨 Upload error:', error);
+        console.log("🚨 Upload error:", error);
         // Check if this was an abort error
-        if (error instanceof Error && (error.name === 'AbortError' || error.name === 'CanceledError')) {
-          console.log('🛑 Upload was cancelled');
+        if (
+          error instanceof Error &&
+          (error.name === "AbortError" || error.name === "CanceledError")
+        ) {
+          console.log("🛑 Upload was cancelled");
           // Set status to cancelled
-          setUploadStatus(uploadId, 'cancelled');
+          setUploadStatus(uploadId, "cancelled");
           // Re-throw as cancelled error
-          throw new Error('Upload cancelled');
+          throw new Error("Upload cancelled");
         }
 
         // Handle duplicate file conflict
         if (error.response?.status === 409) {
           // Convert to promise to handle dialog action
           return new Promise((resolve, reject) => {
-            const fileName = files[0]?.name || 'file';
-            const fileType = fileName.endsWith('.zip') ? 'folder' : 'file';
+            const fileName = files[0]?.name || "file";
+            const fileType = fileName.endsWith(".zip") ? "folder" : "file";
 
             openDuplicateDialog(fileName, fileType, (action) => {
               // Retry upload with duplicate action
-              fileApi.uploadFiles(files, folderData, onProgress, controller.signal, action)
+              fileApi
+                .uploadFiles(
+                  files,
+                  folderData,
+                  onProgress,
+                  controller.signal,
+                  action
+                )
                 .then((response) => {
                   resolve(response.data);
                 })
@@ -96,48 +115,48 @@ export const useUploadFiles = () => {
             });
           });
         }
-        
+
         // For other errors, set error status
-        console.log('❌ Setting error status');
-        setUploadStatus(uploadId, 'error');
+        console.log("❌ Setting error status");
+        setUploadStatus(uploadId, "error");
         throw error;
       }
     },
     onSuccess: (data, variables) => {
-      console.log('🚀 File Upload Success - Starting cache invalidation');
-      
+      console.log("🚀 File Upload Success - Starting cache invalidation");
+
       // Invalidate all folder queries to ensure UI updates with new folders/files
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.all,
       });
-      console.log('📂 Invalidated folder queries');
-      
+      console.log("📂 Invalidated folder queries");
+
       // If files were uploaded to a specific folder, also invalidate that folder's contents
       if (variables.folderData?.folderId) {
         queryClient.invalidateQueries({
           queryKey: FOLDER_KEYS.contents(variables.folderData.folderId),
         });
-        console.log('📁 Invalidated specific folder contents');
+        console.log("📁 Invalidated specific folder contents");
       } else {
         // Otherwise invalidate root contents
         queryClient.invalidateQueries({
           queryKey: FOLDER_KEYS.contents(),
         });
-        console.log('📁 Invalidated root folder contents');
+        console.log("📁 Invalidated root folder contents");
       }
-      
+
       // Refresh user data to update storage usage
-      console.log('🔄 Invalidating currentUser query');
+      console.log("🔄 Invalidating currentUser query");
       queryClient.invalidateQueries({
         queryKey: ["currentUser"],
       });
-      
+
       // Force an immediate refetch of current user data
-      console.log('🔄 Forcing currentUser refetch');
+      console.log("🔄 Forcing currentUser refetch");
       queryClient.refetchQueries({
         queryKey: ["currentUser"],
       });
-      
+
       // If folders were created during upload, force a refetch
       if (data?.folders && Object.keys(data.folders).length > 0) {
         setTimeout(() => {
@@ -155,29 +174,29 @@ export const useUploadFiles = () => {
  */
 export const useUpdateFile = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ fileId, data }: { fileId: string, data: UpdateFileDto }) => 
+    mutationFn: ({ fileId, data }: { fileId: string; data: UpdateFileDto }) =>
       fileApi.updateFile(fileId, data).then((res) => res.data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: FILE_KEYS.detail(variables.fileId),
       });
-      
+
       // If folder changed, invalidate folder contents
       if (variables.data.folder !== undefined) {
         queryClient.invalidateQueries({
           queryKey: FOLDER_KEYS.all,
         });
       }
-      
+
       // If isPinned property was updated, invalidate pins cache
       if (variables.data.isPinned !== undefined) {
         queryClient.invalidateQueries({
           queryKey: ["folders", "pins"],
         });
       }
-      
+
       // Always invalidate folder contents to update the UI cards
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.all,
@@ -191,9 +210,9 @@ export const useUpdateFile = () => {
  */
 export const useMoveFileToTrash = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (fileId: string) => 
+    mutationFn: (fileId: string) =>
       fileApi.moveToTrash(fileId).then((res) => res.data),
     onSuccess: () => {
       // Invalidate folder contents as files structure has changed
@@ -213,9 +232,9 @@ export const useMoveFileToTrash = () => {
  */
 export const usePermanentDeleteFile = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (fileId: string) => 
+    mutationFn: (fileId: string) =>
       fileApi.permanentDelete(fileId).then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -234,9 +253,9 @@ export const usePermanentDeleteFile = () => {
  */
 export const useRestoreFile = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (fileId: string) => 
+    mutationFn: (fileId: string) =>
       fileApi.restoreFile(fileId).then((res) => res.data),
     onSuccess: () => {
       // Invalidate both normal and trash queries
@@ -255,9 +274,9 @@ export const useRestoreFile = () => {
  */
 export const useRenameFile = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ fileId, data }: { fileId: string, data: RenameFileDto }) => 
+    mutationFn: ({ fileId, data }: { fileId: string; data: RenameFileDto }) =>
       fileApi.renameFile(fileId, data).then((res) => res.data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
@@ -275,9 +294,9 @@ export const useRenameFile = () => {
  */
 export const useMoveFile = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ fileId, data }: { fileId: string, data: MoveFileDto }) => 
+    mutationFn: ({ fileId, data }: { fileId: string; data: MoveFileDto }) =>
       fileApi.moveFile(fileId, data).then((res) => res.data),
     onSuccess: () => {
       // Since folder structure changed, invalidate all folder queries
@@ -293,7 +312,7 @@ export const useMoveFile = () => {
  */
 export const useViewFile = (fileId: string) =>
   useQuery({
-    queryKey: [...FILE_KEYS.detail(fileId), 'view'],
+    queryKey: [...FILE_KEYS.detail(fileId), "view"],
     queryFn: async () => {
       const response = await fileApi.viewFile(fileId);
       // Get the raw blob data from the response
@@ -307,7 +326,7 @@ export const useViewFile = (fileId: string) =>
  */
 export const useDownloadFile = () => {
   return useMutation({
-    mutationFn: (fileId: string) => 
+    mutationFn: (fileId: string) =>
       fileApi.downloadFile(fileId).then((res) => res.data),
   });
 };

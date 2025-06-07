@@ -1,5 +1,5 @@
-import JSZip from 'jszip';
-import { VITE_ZIP_NAME_PREFIX } from '@/config/constants';
+import { VITE_ZIP_NAME_PREFIX } from "@/config/constants";
+import JSZip from "jszip";
 
 /**
  * Options for folder upload
@@ -25,40 +25,43 @@ export interface FileEntry {
  * @returns Promise<File> - The created zip file
  */
 export async function createZipFromFiles(
-  files: FileEntry[], 
-  folderName: string, 
+  files: FileEntry[],
+  folderName: string,
   onProgress?: (progress: number) => void
 ): Promise<File> {
   const zip = new JSZip();
-  
+
   // Add all files to the zip
   for (let i = 0; i < files.length; i++) {
     const { file, path } = files[i];
     zip.file(path, file);
-    
+
     // Report progress
     if (onProgress) {
       const progress = Math.round(((i + 1) / files.length) * 50); // 50% for adding files
       onProgress(progress);
     }
   }
-  
+
   // Generate the zip blob
-  const blob = await zip.generateAsync({
-    type: 'blob',
-    compression: 'DEFLATE',
-    compressionOptions: { level: 6 }
-  }, (metadata) => {
-    // Report progress for zip generation (50-100%)
-    if (onProgress) {
-      const progress = 50 + Math.round(metadata.percent / 2);
-      onProgress(progress);
+  const blob = await zip.generateAsync(
+    {
+      type: "blob",
+      compression: "DEFLATE",
+      compressionOptions: { level: 6 },
+    },
+    (metadata) => {
+      // Report progress for zip generation (50-100%)
+      if (onProgress) {
+        const progress = 50 + Math.round(metadata.percent / 2);
+        onProgress(progress);
+      }
     }
-  });
-  
+  );
+
   // Create a File object with the zip prefix
   const zipFileName = `${VITE_ZIP_NAME_PREFIX}${folderName}.zip`;
-  return new File([blob], zipFileName, { type: 'application/zip' });
+  return new File([blob], zipFileName, { type: "application/zip" });
 }
 
 /**
@@ -82,12 +85,16 @@ export async function processFileSystemEntry(
   } else {
     const dirEntry = entry as FileSystemDirectoryEntry;
     const files = await collectFilesFromDirectory(dirEntry);
-    
+
     if (files.length === 0) {
       return [];
     }
-    
-    const zipFile = await createZipFromFiles(files, dirEntry.name, options.onProgress);
+
+    const zipFile = await createZipFromFiles(
+      files,
+      dirEntry.name,
+      options.onProgress
+    );
     return [zipFile];
   }
 }
@@ -100,14 +107,14 @@ export async function processFileSystemEntry(
  */
 export async function collectFilesFromDirectory(
   dirEntry: FileSystemDirectoryEntry,
-  basePath: string = ''
+  basePath: string = ""
 ): Promise<FileEntry[]> {
   const files: FileEntry[] = [];
   const entries = await readDirectoryEntries(dirEntry);
-  
+
   for (const entry of entries) {
     const entryPath = basePath ? `${basePath}/${entry.name}` : entry.name;
-    
+
     if (entry.isFile) {
       const fileEntry = entry as FileSystemFileEntry;
       const file = await getFileFromEntry(fileEntry);
@@ -118,7 +125,7 @@ export async function collectFilesFromDirectory(
       files.push(...subFiles);
     }
   }
-  
+
   return files;
 }
 
@@ -127,11 +134,13 @@ export async function collectFilesFromDirectory(
  * @param dirEntry FileSystemDirectoryEntry
  * @returns Promise<FileSystemEntry[]>
  */
-function readDirectoryEntries(dirEntry: FileSystemDirectoryEntry): Promise<FileSystemEntry[]> {
+function readDirectoryEntries(
+  dirEntry: FileSystemDirectoryEntry
+): Promise<FileSystemEntry[]> {
   return new Promise((resolve, reject) => {
     const reader = dirEntry.createReader();
     const entries: FileSystemEntry[] = [];
-    
+
     function readEntries() {
       reader.readEntries((results) => {
         if (results.length) {
@@ -142,7 +151,7 @@ function readDirectoryEntries(dirEntry: FileSystemDirectoryEntry): Promise<FileS
         }
       }, reject);
     }
-    
+
     readEntries();
   });
 }
@@ -165,43 +174,49 @@ function getFileFromEntry(fileEntry: FileSystemFileEntry): Promise<File> {
  * @returns Promise<File[]> - Array of files to upload (zip for folders)
  */
 export async function processDirectoryInput(
-  input: HTMLInputElement, 
+  input: HTMLInputElement,
   onProgress?: (folderName: string, progress: number) => void
 ): Promise<File[]> {
   const files = input.files;
   if (!files || files.length === 0) {
     return [];
   }
-  
+
   // Group files by their root directory
   const folderMap = new Map<string, FileEntry[]>();
-  
+
   for (const file of Array.from(files)) {
-    const pathParts = file.webkitRelativePath.split('/');
+    const pathParts = file.webkitRelativePath.split("/");
     const rootFolder = pathParts[0];
     // Keep the full path including the root folder to preserve directory structure
     const fullPath = file.webkitRelativePath;
-    
+
     if (!folderMap.has(rootFolder)) {
       folderMap.set(rootFolder, []);
     }
-    
+
     folderMap.get(rootFolder)!.push({
       file,
-      path: fullPath
+      path: fullPath,
     });
   }
-  
+
   // Create zip files for each root folder
   const zipFiles: File[] = [];
   for (const [folderName, files] of folderMap) {
     if (files.length > 0) {
-      const progressCallback = onProgress ? (progress: number) => onProgress(folderName, progress) : undefined;
-      const zipFile = await createZipFromFiles(files, folderName, progressCallback);
+      const progressCallback = onProgress
+        ? (progress: number) => onProgress(folderName, progress)
+        : undefined;
+      const zipFile = await createZipFromFiles(
+        files,
+        folderName,
+        progressCallback
+      );
       zipFiles.push(zipFile);
     }
   }
-  
+
   return zipFiles;
 }
 
@@ -223,7 +238,7 @@ export function getFolderNameFromZip(zipFileName: string): string {
   if (!isZipFile(zipFileName)) {
     return zipFileName;
   }
-  
+
   const nameWithoutPrefix = zipFileName.substring(VITE_ZIP_NAME_PREFIX.length);
-  return nameWithoutPrefix.replace(/\.zip$/i, '');
+  return nameWithoutPrefix.replace(/\.zip$/i, "");
 }

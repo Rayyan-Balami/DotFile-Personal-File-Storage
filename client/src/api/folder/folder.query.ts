@@ -1,20 +1,27 @@
-import { CreateFolderDto, MoveFolderDto, RenameFolderDto, UpdateFolderDto } from "@/types/folder.dto";
+import folderApi from "@/api/folder/folder.api";
+import {
+  CreateFolderDto,
+  MoveFolderDto,
+  RenameFolderDto,
+  UpdateFolderDto,
+} from "@/types/folder.dto";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import folderApi from "./folder.api";
 
 // Query keys
 export const FOLDER_KEYS = {
   all: ["folders"] as const,
   trash: ["folders", "trash"] as const,
-  pins: (offset?: number, limit?: number) => 
+  pins: (offset?: number, limit?: number) =>
     ["folders", "pins", { offset, limit }] as const,
-  contents: (folderId?: string) => 
-    folderId ? [...FOLDER_KEYS.all, "contents", folderId] : [...FOLDER_KEYS.all, "root-contents"],
+  contents: (folderId?: string) =>
+    folderId
+      ? [...FOLDER_KEYS.all, "contents", folderId]
+      : [...FOLDER_KEYS.all, "root-contents"],
   detail: (id: string) => [...FOLDER_KEYS.all, id] as const,
 };
 
 // Raw query function for use in loaders
-export const getFolderContents = (folderId: string) => 
+export const getFolderContents = (folderId: string) =>
   folderApi.getFolderContents(folderId).then((res) => res.data);
 
 /**
@@ -29,11 +36,16 @@ export const useRootContents = () =>
 /**
  * Hook to get folder contents
  */
-export const useFolderContents = (folderId?: string, options?: { includeDeleted?: boolean }) =>
+export const useFolderContents = (
+  folderId?: string,
+  options?: { includeDeleted?: boolean }
+) =>
   useQuery({
-    queryKey: folderId ? FOLDER_KEYS.contents(folderId) : FOLDER_KEYS.contents(),
-    queryFn: () => 
-      folderId 
+    queryKey: folderId
+      ? FOLDER_KEYS.contents(folderId)
+      : FOLDER_KEYS.contents(),
+    queryFn: () =>
+      folderId
         ? folderApi.getFolderContents(folderId, options).then((res) => res.data)
         : folderApi.getRootContents().then((res) => res.data),
   });
@@ -62,7 +74,8 @@ export const useTrashContents = () =>
 export const usePinContents = (offset: number = 0, limit: number = 10) =>
   useQuery({
     queryKey: FOLDER_KEYS.pins(offset, limit),
-    queryFn: () => folderApi.getPinContents(offset, limit).then((res) => res.data),
+    queryFn: () =>
+      folderApi.getPinContents(offset, limit).then((res) => res.data),
   });
 
 /**
@@ -70,9 +83,9 @@ export const usePinContents = (offset: number = 0, limit: number = 10) =>
  */
 export const useCreateFolder = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (data: CreateFolderDto) => 
+    mutationFn: (data: CreateFolderDto) =>
       folderApi.createFolder(data).then((res) => res.data),
     onSuccess: (_, variables) => {
       // Invalidate all folder queries to ensure complete UI update
@@ -99,43 +112,48 @@ export const useCreateFolder = () => {
  */
 export const useUpdateFolder = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ folderId, data }: { folderId: string, data: UpdateFolderDto }) => 
-      folderApi.updateFolder(folderId, data).then((res) => res.data),
+    mutationFn: ({
+      folderId,
+      data,
+    }: {
+      folderId: string;
+      data: UpdateFolderDto;
+    }) => folderApi.updateFolder(folderId, data).then((res) => res.data),
     onSuccess: (_, variables) => {
       // Invalidate the specific folder's details
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.detail(variables.folderId),
       });
-      
+
       // Invalidate the folder's contents
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.contents(variables.folderId),
       });
-      
+
       // If isPinned property was updated, invalidate pins cache
       if (variables.data.isPinned !== undefined) {
         queryClient.invalidateQueries({
           queryKey: ["folders", "pins"],
         });
       }
-      
+
       // Always invalidate all folder-related queries to ensure UI updates everywhere
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.all,
       });
-      
+
       // Invalidate root contents specifically
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.contents(),
       });
-      
+
       // Invalidate any parent folder contents that might contain this folder
       queryClient.invalidateQueries({
         queryKey: ["folders", "contents"],
       });
-      
+
       // Also invalidate pins queries in case this folder is pinned
       queryClient.invalidateQueries({
         queryKey: ["folders", "pins"],
@@ -149,16 +167,21 @@ export const useUpdateFolder = () => {
  */
 export const useRenameFolder = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ folderId, data }: { folderId: string, data: RenameFolderDto }) => 
-      folderApi.renameFolder(folderId, data).then((res) => res.data),
+    mutationFn: ({
+      folderId,
+      data,
+    }: {
+      folderId: string;
+      data: RenameFolderDto;
+    }) => folderApi.renameFolder(folderId, data).then((res) => res.data),
     onSuccess: (_, variables) => {
       // Invalidate the specific folder's details
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.detail(variables.folderId),
       });
-      
+
       // Invalidate the folder's contents
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.contents(variables.folderId),
@@ -182,10 +205,15 @@ export const useRenameFolder = () => {
  */
 export const useMoveFolder = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: ({ folderId, data }: { folderId: string, data: MoveFolderDto }) => 
-      folderApi.moveFolder(folderId, data).then((res) => res.data),
+    mutationFn: ({
+      folderId,
+      data,
+    }: {
+      folderId: string;
+      data: MoveFolderDto;
+    }) => folderApi.moveFolder(folderId, data).then((res) => res.data),
     onSuccess: () => {
       // Since folder structure changed, invalidate all folder queries
       queryClient.invalidateQueries({
@@ -200,9 +228,9 @@ export const useMoveFolder = () => {
  */
 export const useMoveToTrash = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (folderId: string) => 
+    mutationFn: (folderId: string) =>
       folderApi.moveToTrash(folderId).then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -220,9 +248,9 @@ export const useMoveToTrash = () => {
  */
 export const usePermanentDelete = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (folderId: string) => 
+    mutationFn: (folderId: string) =>
       folderApi.permanentDelete(folderId).then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -241,9 +269,9 @@ export const usePermanentDelete = () => {
  */
 export const useRestoreFolder = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: (folderId: string) => 
+    mutationFn: (folderId: string) =>
       folderApi.restoreFolder(folderId).then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -261,10 +289,9 @@ export const useRestoreFolder = () => {
  */
 export const useEmptyTrash = () => {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
-    mutationFn: () => 
-      folderApi.emptyTrash().then((res) => res.data),
+    mutationFn: () => folderApi.emptyTrash().then((res) => res.data),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.trash,

@@ -10,7 +10,7 @@ interface GlobalMenuProps extends ComponentProps<typeof Button> {
   parentId?: string | null;
 }
 
-function GlobalMenu({ parentId: externalParentId, ...props }: GlobalMenuProps) {
+export function GlobalMenu({ parentId: externalParentId, ...props }: GlobalMenuProps) {
   // Determine current folder context internally
   const params = useParams({ strict: false });
   const currentFolderId = params.id || null;
@@ -37,5 +37,3 @@ function GlobalMenu({ parentId: externalParentId, ...props }: GlobalMenuProps) {
     />
   );
 }
-
-export default GlobalMenu;

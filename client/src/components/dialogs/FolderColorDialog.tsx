@@ -1,7 +1,6 @@
-"use client";
-
-import { useState, useEffect } from "react";
+import { useUpdateFolder } from "@/api/folder/folder.query";
 import { Button } from "@/components/ui/button";
+import { FolderIcon } from "@/components/ui/folder-icon";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import {
   Tooltip,
@@ -9,13 +8,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useDialogStore } from "@/stores/useDialogStore";
-import { useUpdateFolder } from "@/api/folder/folder.query";
 import { colorMap, type ColorOption } from "@/config/colors";
-import { FolderIcon } from "@/components/ui/folder-icon";
-import { toast } from "sonner";
+import { useDialogStore } from "@/stores/useDialogStore";
 import { getErrorMessage } from "@/utils/apiErrorHandler";
 import { Squircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function FolderColorDialog() {
   const {

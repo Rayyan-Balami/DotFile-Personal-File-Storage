@@ -1,9 +1,9 @@
-import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useDialogStore } from "@/stores/useDialogStore";
 import { useSelectionStore } from "@/stores/useSelectionStore";
+import { Trash2 } from "lucide-react";
 import { ComponentProps } from "react";
-import { cn } from "@/lib/utils";
 
 export function GlobalDelete(props: ComponentProps<typeof Button>) {
   const { openDeleteDialog } = useDialogStore();

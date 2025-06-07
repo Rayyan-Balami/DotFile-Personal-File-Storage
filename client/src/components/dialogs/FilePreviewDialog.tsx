@@ -1,23 +1,22 @@
-// FilePreviewDialog.tsx
-import { useCallback, useEffect, useState, useRef } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import fileApi from "@/api/file/file.api";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useDialogStore } from "@/stores/useDialogStore";
+import { DocumentItem } from "@/types/folderDocumnet";
 import {
   ChevronLeft,
   ChevronRight,
   Download,
+  Music,
   Printer,
+  RotateCcw,
+  Telescope,
   X,
   ZoomIn,
   ZoomOut,
-  RotateCcw,
-  Music,
-  Telescope,
 } from "lucide-react";
-import { useDialogStore } from "@/stores/useDialogStore";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import fileApi from "@/api/file/file.api";
-import { DocumentItem } from "@/types/folderDocumnet";
 
 export default function FilePreviewDialog() {
   const {
@@ -28,7 +27,9 @@ export default function FilePreviewDialog() {
     setFilePreviewIndex,
   } = useDialogStore();
 
-  const currentFile = filePreviewItems[filePreviewCurrentIndex] as DocumentItem | undefined;
+  const currentFile = filePreviewItems[filePreviewCurrentIndex] as
+    | DocumentItem
+    | undefined;
   const previewRef = useRef<HTMLDivElement>(null);
   const mediaRef = useRef<HTMLImageElement | HTMLVideoElement>(null);
 
@@ -44,12 +45,12 @@ export default function FilePreviewDialog() {
 
     const container = previewRef.current;
     const media = mediaRef.current;
-    
+
     const containerWidth = container.clientWidth;
     const containerHeight = container.clientHeight;
-    
+
     let mediaWidth, mediaHeight;
-    
+
     if (currentFile.type.startsWith("image/")) {
       mediaWidth = (media as HTMLImageElement).naturalWidth;
       mediaHeight = (media as HTMLImageElement).naturalHeight;
@@ -63,7 +64,7 @@ export default function FilePreviewDialog() {
 
     const scaleX = containerWidth / mediaWidth;
     const scaleY = containerHeight / mediaHeight;
-    
+
     return Math.min(scaleX, scaleY, 1); // Never scale up beyond 100% initially
   }, [currentFile]);
 
@@ -78,17 +79,18 @@ export default function FilePreviewDialog() {
   const handleWheel = useCallback(
     (e: WheelEvent) => {
       if (!currentFile) return;
-      
-      const canZoom = currentFile.type.startsWith("image/") || 
-                     currentFile.type.startsWith("video/");
-      
+
+      const canZoom =
+        currentFile.type.startsWith("image/") ||
+        currentFile.type.startsWith("video/");
+
       if (!canZoom) return;
-      
+
       e.preventDefault();
-      
+
       if (e.ctrlKey) {
         const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1;
-        setZoom(prev => Math.min(Math.max(prev * zoomDelta, 0.1), 5));
+        setZoom((prev) => Math.min(Math.max(prev * zoomDelta, 0.1), 5));
       }
     },
     [currentFile]
@@ -141,11 +143,11 @@ export default function FilePreviewDialog() {
 
   // Zoom functions
   const zoomIn = useCallback(() => {
-    setZoom(prev => Math.min(prev * 1.2, 5));
+    setZoom((prev) => Math.min(prev * 1.2, 5));
   }, []);
 
   const zoomOut = useCallback(() => {
-    setZoom(prev => Math.max(prev / 1.2, 0.1));
+    setZoom((prev) => Math.max(prev / 1.2, 0.1));
   }, []);
 
   // Pan/drag functions
@@ -191,7 +193,7 @@ export default function FilePreviewDialog() {
       // Clean up any existing listeners first
       previewElement.removeEventListener("wheel", handleWheel);
       previewElement.addEventListener("wheel", handleWheel, { passive: false });
-      
+
       return () => {
         previewElement.removeEventListener("wheel", handleWheel);
       };
@@ -347,8 +349,9 @@ export default function FilePreviewDialog() {
 
   if (!currentFile) return null;
 
-  const canZoomPan = currentFile.type.startsWith("image/") || 
-                    currentFile.type.startsWith("video/");
+  const canZoomPan =
+    currentFile.type.startsWith("image/") ||
+    currentFile.type.startsWith("video/");
 
   return (
     <Dialog open={filePreviewDialogOpen} onOpenChange={closeFilePreviewDialog}>
@@ -375,7 +378,7 @@ export default function FilePreviewDialog() {
               {filePreviewCurrentIndex + 1} of {filePreviewItems.length}
             </span>
           )}
-          
+
           {canZoomPan && (
             <>
               <Button

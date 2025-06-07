@@ -35,10 +35,10 @@ import { VITE_API_URL } from "@/config/constants";
 import DeleteAccountDialog from "@/components/dialogs/DeleteAccountDialog";
 
 export const Route = createFileRoute("/(user)/setting/profile")({
-  component: Component,
+  component: RouteComponent,
 });
 
-export default function Component() {
+export default function RouteComponent() {
   const user = useAuthStore((state) => state.user);
   const updateUser = useAuthStore((state) => state.updateUser);
 
@@ -182,7 +182,10 @@ export default function Component() {
       {/* Top Profile Header Section */}
       <div className="flex items-center gap-6">
         <Avatar className="size-32 border rounded-md">
-          <AvatarImage src={user?.avatar ? `${VITE_API_URL}${user.avatar}` : undefined} alt={user?.name} />
+          <AvatarImage
+            src={user?.avatar ? `${VITE_API_URL}${user.avatar}` : undefined}
+            alt={user?.name}
+          />
           <AvatarFallback className="rounded-md">{initials}</AvatarFallback>
         </Avatar>
 
@@ -271,7 +274,13 @@ export default function Component() {
         </div>
         <div className="flex flex-1 w-full max-w-lg gap-4">
           <Avatar className="size-22.5 border rounded-md">
-            <AvatarImage src={avatarPreview || (user?.avatar ? `${VITE_API_URL}${user.avatar}` : undefined)} alt={user?.name} />
+            <AvatarImage
+              src={
+                avatarPreview ||
+                (user?.avatar ? `${VITE_API_URL}${user.avatar}` : undefined)
+              }
+              alt={user?.name}
+            />
             <AvatarFallback className="rounded-md">{initials}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col gap-4">
@@ -402,19 +411,21 @@ export default function Component() {
             variant="secondary"
             className="truncate h-6 rounded-full text-xs font-normal"
           >
-            {user && user.maxStorageLimit > 0 
+            {user && user.maxStorageLimit > 0
               ? ((user.storageUsed / user.maxStorageLimit) * 100).toFixed(0)
-              : 0}%
-            used
+              : 0}
+            % used
           </Badge>
           <Progress
-            value={user && user.maxStorageLimit > 0 
-              ? Math.round((user.storageUsed / user.maxStorageLimit) * 100)
-              : 0}
+            value={
+              user && user.maxStorageLimit > 0
+                ? Math.round((user.storageUsed / user.maxStorageLimit) * 100)
+                : 0
+            }
           />
           <span className="font-light text-xs">
-            {user ? formatBytes(user.storageUsed) : '0 B'} of{" "}
-            {user ? formatBytes(user.maxStorageLimit) : '0 B'}
+            {user ? formatBytes(user.storageUsed) : "0 B"} of{" "}
+            {user ? formatBytes(user.maxStorageLimit) : "0 B"}
           </span>
         </div>
       </div>
@@ -430,15 +441,12 @@ export default function Component() {
           </p>
         </div>
         <div className="flex-1">
-          <Button
-            variant="destructive"
-            onClick={handleDeleteAccount}
-          >
+          <Button variant="destructive" onClick={handleDeleteAccount}>
             Delete Account
           </Button>
         </div>
       </div>
-      
+
       {/* Delete Account Dialog */}
       <DeleteAccountDialog
         open={deleteDialogOpen}

@@ -1,8 +1,19 @@
-/**
- * FolderDocumentCard Component - Extreme performance optimization
- * Designed for infinite scroll with thousands of items
- */
-
+import { Button } from "@/components/ui/button";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { FolderIcon } from "@/components/ui/folder-icon";
+import { ColorOption } from "@/config/colors";
+import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { useFilePreview } from "@/hooks/useFilePreview";
 import { cn } from "@/lib/utils";
 import { useSelectionStore } from "@/stores/useSelectionStore";
@@ -13,8 +24,8 @@ import {
 } from "@/types/folderDocumnet";
 import {
   formatChildCount,
-  formatFileSize,
   formatDate,
+  formatFileSize,
 } from "@/utils/formatUtils";
 import { EllipsisVertical, Loader2, Pin } from "lucide-react";
 import React, {
@@ -27,22 +38,6 @@ import React, {
   useState,
 } from "react";
 import { defaultStyles, FileIcon } from "react-file-icon";
-import { Button } from "../ui/button";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "../ui/context-menu";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
-import { FolderIcon } from "../ui/folder-icon";
-import { ColorOption } from "@/config/colors";
-import { useBreakpoint } from "@/hooks/use-breakpoint";
 
 // Types remain the same
 export type CardVariant = "large" | "compact" | "list";
@@ -290,7 +285,7 @@ const CardContent = React.memo(
     color?: string;
   }) => {
     const [menuOpen, setMenuOpen] = useState(false);
-    const {isMobile} = useBreakpoint();
+    const { isMobile } = useBreakpoint();
 
     // Only render dropdown content when menu is open
     const dropdownMenu = (
@@ -546,7 +541,7 @@ const FolderDocumentCard = React.memo(
         window.__cardSelectionHandler = (e: MouseEvent) => {
           const target = e.target as Element;
           // Don't clear selection if clicking on UI controls
-          if (target.closest('button') || target.closest('[role="button"]')) {
+          if (target.closest("button") || target.closest('[role="button"]')) {
             return;
           }
           if (!target.closest("[data-folder-card]")) {
@@ -639,9 +634,15 @@ const FolderDocumentCard = React.memo(
   },
   (prevProps, nextProps) => {
     // Deep comparison for critical props
-    const prevFolder = prevProps.item.cardType === 'folder' ? prevProps.item as FolderItem : null;
-    const nextFolder = nextProps.item.cardType === 'folder' ? nextProps.item as FolderItem : null;
-    
+    const prevFolder =
+      prevProps.item.cardType === "folder"
+        ? (prevProps.item as FolderItem)
+        : null;
+    const nextFolder =
+      nextProps.item.cardType === "folder"
+        ? (nextProps.item as FolderItem)
+        : null;
+
     return (
       prevProps.item.id === nextProps.item.id &&
       prevProps.variant === nextProps.variant &&

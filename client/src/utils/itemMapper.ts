@@ -1,12 +1,18 @@
-import { FileSystemItem, FolderItem, DocumentItem } from "@/types/folderDocumnet";
-import { FolderResponseDto } from "@/types/folder.dto";
 import { FileResponseDto } from "@/types/file.dto";
+import { FolderResponseDto } from "@/types/folder.dto";
+import {
+  DocumentItem,
+  FileSystemItem,
+  FolderItem,
+} from "@/types/folderDocumnet";
 
 /**
  * Type guard to check if an item is a folder
  */
-function isFolder(item: FolderResponseDto | FileResponseDto): item is FolderResponseDto {
-  return 'type' in item && item.type === 'folder';
+function isFolder(
+  item: FolderResponseDto | FileResponseDto
+): item is FolderResponseDto {
+  return "type" in item && item.type === "folder";
 }
 
 /**
@@ -14,7 +20,9 @@ function isFolder(item: FolderResponseDto | FileResponseDto): item is FolderResp
  * This ensures consistent data structure for the UI components
  * by adding cardType and handling optional fields
  */
-export function mapToFileSystemItem(item: FolderResponseDto | FileResponseDto): FileSystemItem {
+export function mapToFileSystemItem(
+  item: FolderResponseDto | FileResponseDto
+): FileSystemItem {
   const baseItem = {
     id: item.id,
     name: item.name,
@@ -29,21 +37,21 @@ export function mapToFileSystemItem(item: FolderResponseDto | FileResponseDto): 
   if (isFolder(item)) {
     return {
       ...baseItem,
-      type: 'folder',
-      cardType: 'folder' as const,
-      color: item.color ?? 'default',
+      type: "folder",
+      cardType: "folder" as const,
+      color: item.color ?? "default",
       parent: item.parent,
       items: item.items ?? 0,
     } as FolderItem;
   } else {
     return {
       ...baseItem,
-      type: item.type ?? 'application/octet-stream',
-      cardType: 'document' as const,
+      type: item.type ?? "application/octet-stream",
+      cardType: "document" as const,
       size: item.size ?? 0,
       folder: item.folder,
-      storageKey: item.storageKey ?? '',
-      extension: item.extension ?? '',
+      storageKey: item.storageKey ?? "",
+      extension: item.extension ?? "",
     } as DocumentItem;
   }
 }

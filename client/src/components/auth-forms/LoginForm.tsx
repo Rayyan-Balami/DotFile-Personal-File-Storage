@@ -1,3 +1,4 @@
+import { useLogin } from "@/api/user/user.query";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -9,14 +10,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { cn, logger } from "@/lib/utils";
-import { loginUserSchema, LoginUserInput } from "@/validation/authForm";
+import { useAuthStore } from "@/stores/authStore";
+import { extractFieldError, getErrorMessage } from "@/utils/apiErrorHandler";
+import { LoginUserInput, loginUserSchema } from "@/validation/authForm";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
-import { useLogin } from "@/api/user/user.query";
 import { toast } from "sonner";
-import { useAuthStore } from "@/stores/authStore";
-import { extractFieldError, getErrorMessage } from "@/utils/apiErrorHandler";
 
 export function LoginForm({
   className,
@@ -126,7 +126,10 @@ export function LoginForm({
       </Form>
       <div className="text-center text-base text-muted-foreground">
         Don&apos;t have an account?{" "}
-        <Link to="/register" className="underline underline-offset-4 hover:text-primary">
+        <Link
+          to="/register"
+          className="underline underline-offset-4 hover:text-primary"
+        >
           Sign Up
         </Link>
       </div>

@@ -1,17 +1,17 @@
-import { FolderResponseDto } from "./folder.dto";
-import { FileResponseDto } from "./file.dto";
-import { ColorOption } from '@/config/colors';
+import { ColorOption } from "@/config/colors";
+import { FileResponseDto } from "@/types/file.dto";
+import { FolderResponseDto } from "@/types/folder.dto";
 
 // Folder item based on FolderResponseDto with UI properties
 export interface FolderItem extends FolderResponseDto {
-  cardType: 'folder';
+  cardType: "folder";
   color: ColorOption; // Override string with ColorOption type
   hasDeletedAncestor?: boolean;
 }
 
 // Document item based on FileResponseDto with UI properties
 export interface DocumentItem extends FileResponseDto {
-  cardType: 'document';
+  cardType: "document";
   hasDeletedAncestor?: boolean;
 }
 

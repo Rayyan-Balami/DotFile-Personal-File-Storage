@@ -1,10 +1,10 @@
 import { SortOptions } from "@/components/footer/sort-options";
 import { Uploads } from "@/components/footer/uploads";
 import { ViewOptions } from "@/components/footer/view-options";
-import { SearchForm } from "@/components/search-form";
+import { SearchForm } from "@/components/footer/search-form";
 import { ButtonGroup } from "@/components/ui/button-group";
-import GlobalMenu from "./global-menu";
-import { GlobalDelete } from "./global-delete";
+import { GlobalMenu } from "@/components/footer/global-menu";
+import { GlobalDelete } from "@/components/footer/global-delete";
 
 export function SiteFooter() {
   return (
