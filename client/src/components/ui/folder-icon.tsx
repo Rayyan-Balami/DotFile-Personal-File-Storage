@@ -1,20 +1,17 @@
-import { cn } from "@/lib/utils";
 import { colorMap, ColorOption } from "@/config/colors";
+import { cn } from "@/lib/utils";
 
 interface FolderIconProps {
   className?: string;
   color?: ColorOption;
 }
 
-export function FolderIcon({
-  className,
-  color = "default"
-}: FolderIconProps) {
+export function FolderIcon({ className, color = "default" }: FolderIconProps) {
   // Get colors from the color map with fallback to default
   const primary = colorMap[color]?.primary || colorMap.default.primary;
   const secondary = colorMap[color]?.secondary || colorMap.default.secondary;
 
-  const cornerRadius = 4; 
+  const cornerRadius = 4;
 
   return (
     <svg
@@ -33,16 +30,16 @@ export function FolderIcon({
                   L25,10.195 
                   L${58 - cornerRadius},10.195
                   A${cornerRadius},${cornerRadius} 0 0 1 58,${
-                10.195 + cornerRadius
-              }
+                    10.195 + cornerRadius
+                  }
                   L58,${54.195 - cornerRadius}
                   A${cornerRadius},${cornerRadius} 0 0 1 ${
-                58 - cornerRadius
-              },54.195
+                    58 - cornerRadius
+                  },54.195
                   L${cornerRadius},54.195
                   A${cornerRadius},${cornerRadius} 0 0 1 0,${
-                54.195 - cornerRadius
-              }
+                    54.195 - cornerRadius
+                  }
                   L0,${3.195 + cornerRadius}
                   A${cornerRadius},${cornerRadius} 0 0 1 ${cornerRadius},3.195
                   Z`}
@@ -56,8 +53,8 @@ export function FolderIcon({
                   A${cornerRadius},${cornerRadius} 0 0 0 58,${17.195}
                   L58,${10.195 + cornerRadius}
                   A${cornerRadius},${cornerRadius} 0 0 0 ${
-                58 - cornerRadius
-              },10.195
+                    58 - cornerRadius
+                  },10.195
                   L25,10.195
                   Z`}
               fill={primary}
@@ -68,4 +65,3 @@ export function FolderIcon({
     </svg>
   );
 }
-

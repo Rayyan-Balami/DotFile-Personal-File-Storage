@@ -1,20 +1,20 @@
+import { useUploadFiles } from "@/api/file/file.query";
 import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarMenu,
   SidebarMenuButton,
-  SidebarMenuItem
+  SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Upload } from "lucide-react";
-import { useMatches, useParams } from "@tanstack/react-router";
-import { useUploadFiles } from "@/api/file/file.query";
-import { useUploadStore } from "@/stores/useUploadStore";
-import { useFileSystemStore } from "@/stores/useFileSystemStore";
-import { createZipFromFiles } from "@/utils/uploadUtils";
-import { getDetailedErrorInfo } from "@/utils/apiErrorHandler";
-import { toast } from "sonner";
 import { useDialogStore } from "@/stores/useDialogStore";
+import { useFileSystemStore } from "@/stores/useFileSystemStore";
+import { useUploadStore } from "@/stores/useUploadStore";
+import { getDetailedErrorInfo } from "@/utils/apiErrorHandler";
+import { createZipFromFiles } from "@/utils/uploadUtils";
+import { useMatches, useParams } from "@tanstack/react-router";
+import { Upload } from "lucide-react";
 import { useEffect } from "react";
+import { toast } from "sonner";
 
 export function NavUpload() {
   const params = useParams({ strict: false });
@@ -22,20 +22,27 @@ export function NavUpload() {
   const uploadFiles = useUploadFiles();
   const { addUpload, updateUploadProgress, setUploadStatus } = useUploadStore();
   const { openUploadChoiceDialog, openDuplicateDialog } = useDialogStore();
-  
+
   // Get the raw state to ensure reactivity when any folder's read-only state changes
-  const readOnlyStates = useFileSystemStore(state => state.forceReadOnly);
+  const readOnlyStates = useFileSystemStore((state) => state.forceReadOnly);
 
   const getCurrentFolderId = () => params.id || null;
   const currentFolderId = getCurrentFolderId();
   // console.log("Current Folder ID:", currentFolderId);
 
-  const isInTrashContext = matches.some(match => match.routeId.includes('/(user)/trash'));
-  const isInRecentContext = matches.some(match => match.routeId.includes('/(user)/recent'));
-  
+  const isInTrashContext = matches.some((match) =>
+    match.routeId.includes("/(user)/trash")
+  );
+  const isInRecentContext = matches.some((match) =>
+    match.routeId.includes("/(user)/recent")
+  );
+
   // Using readOnlyStates in our calculation ensures the component re-renders
   // when any folder's read-only state changes
-  const isReadOnlyContext = (currentFolderId ? readOnlyStates[currentFolderId] || false : false) || isInTrashContext || isInRecentContext;
+  const isReadOnlyContext =
+    (currentFolderId ? readOnlyStates[currentFolderId] || false : false) ||
+    isInTrashContext ||
+    isInRecentContext;
 
   // Logging for debugging
   useEffect(() => {
@@ -44,14 +51,15 @@ export function NavUpload() {
   }, [currentFolderId, isReadOnlyContext]);
 
   const handleUpload = () => {
-    if (isReadOnlyContext) return toast.error("Cannot upload files in this view");
+    if (isReadOnlyContext)
+      return toast.error("Cannot upload files in this view");
 
     const handleFileInput = async (choice: "files" | "folder") => {
       const input = document.createElement("input");
       Object.assign(input, {
         type: "file",
         multiple: true,
-        style: "display: none"
+        style: "display: none",
       });
 
       if (choice === "folder") {
@@ -71,13 +79,14 @@ export function NavUpload() {
         const individualFiles: File[] = [];
 
         // Group files by directory
-        Array.from(files).forEach(file => {
+        Array.from(files).forEach((file) => {
           const relativePath = file.webkitRelativePath;
           const pathParts = relativePath.split("/");
 
           if (pathParts.length > 1) {
             const rootDir = pathParts[0];
-            if (!filesByDirectory.has(rootDir)) filesByDirectory.set(rootDir, []);
+            if (!filesByDirectory.has(rootDir))
+              filesByDirectory.set(rootDir, []);
             filesByDirectory.get(rootDir)!.push(file);
           } else {
             individualFiles.push(file);
@@ -87,18 +96,25 @@ export function NavUpload() {
         const uploadIds: string[] = [];
         let retryWithDuplicateAction: "replace" | "keepBoth" | undefined;
 
-        const handleDuplicateError = async (fileName: string, fileType: "file" | "folder") => {
+        const handleDuplicateError = async (
+          fileName: string,
+          fileType: "file" | "folder"
+        ) => {
           return new Promise<void>((resolve, reject) => {
-            openDuplicateDialog(fileName, fileType, async (action: "replace" | "keepBoth") => {
-              retryWithDuplicateAction = action;
-              try {
-                // Retry the upload with the chosen action
-                await processUploads();
-                resolve();
-              } catch (retryError) {
-                reject(retryError);
+            openDuplicateDialog(
+              fileName,
+              fileType,
+              async (action: "replace" | "keepBoth") => {
+                retryWithDuplicateAction = action;
+                try {
+                  // Retry the upload with the chosen action
+                  await processUploads();
+                  resolve();
+                } catch (retryError) {
+                  reject(retryError);
+                }
               }
-            });
+            );
           });
         };
 
@@ -107,14 +123,20 @@ export function NavUpload() {
           for (const [dirName, dirFiles] of filesByDirectory) {
             if (dirFiles.length === 0) continue;
 
-            const totalSize = dirFiles.reduce((sum, file) => sum + file.size, 0);
-            const uploadId = addUpload({ name: `${dirName}.zip`, size: totalSize, isFolder: true }, folderId);
+            const totalSize = dirFiles.reduce(
+              (sum, file) => sum + file.size,
+              0
+            );
+            const uploadId = addUpload(
+              { name: `${dirName}.zip`, size: totalSize, isFolder: true },
+              folderId
+            );
             uploadIds.push(uploadId);
 
             const zipFile = await createZipFromFiles(
-              dirFiles.map(file => ({ file, path: file.webkitRelativePath })),
+              dirFiles.map((file) => ({ file, path: file.webkitRelativePath })),
               dirName,
-              progress => {
+              (progress) => {
                 updateUploadProgress(uploadId, progress);
                 if (progress === 100) setUploadStatus(uploadId, "uploading");
               }
@@ -123,9 +145,10 @@ export function NavUpload() {
             await uploadFiles.mutateAsync({
               files: [zipFile],
               folderData: folderId ? { folderId } : undefined,
-              onProgress: progress => updateUploadProgress(uploadId, progress),
+              onProgress: (progress) =>
+                updateUploadProgress(uploadId, progress),
               uploadId,
-              duplicateAction: retryWithDuplicateAction
+              duplicateAction: retryWithDuplicateAction,
             });
 
             setUploadStatus(uploadId, "success");
@@ -133,18 +156,23 @@ export function NavUpload() {
 
           // Then handle individual files
           if (individualFiles.length > 0) {
-            const fileUploadIds = individualFiles.map(file => addUpload(file, folderId));
+            const fileUploadIds = individualFiles.map((file) =>
+              addUpload(file, folderId)
+            );
             uploadIds.push(...fileUploadIds);
 
             await uploadFiles.mutateAsync({
               files: individualFiles,
               folderData: folderId ? { folderId } : undefined,
-              onProgress: progress => fileUploadIds.forEach(id => updateUploadProgress(id, progress)),
+              onProgress: (progress) =>
+                fileUploadIds.forEach((id) =>
+                  updateUploadProgress(id, progress)
+                ),
               uploadId: fileUploadIds[0],
-              duplicateAction: retryWithDuplicateAction
+              duplicateAction: retryWithDuplicateAction,
             });
 
-            fileUploadIds.forEach(id => setUploadStatus(id, "success"));
+            fileUploadIds.forEach((id) => setUploadStatus(id, "success"));
           }
         };
 
@@ -152,18 +180,23 @@ export function NavUpload() {
           await processUploads();
           const folderCount = filesByDirectory.size;
           const fileCount = individualFiles.length;
-          toast.success(`Uploaded ${folderCount} folder(s) and ${fileCount} file(s)`);
+          toast.success(
+            `Uploaded ${folderCount} folder(s) and ${fileCount} file(s)`
+          );
         } catch (error: any) {
           if (error.response?.status === 409 && !retryWithDuplicateAction) {
-            const fileName = individualFiles[0]?.name || Array.from(filesByDirectory.keys())[0] || 'file';
-            const fileType = individualFiles.length > 0 ? 'file' : 'folder';
+            const fileName =
+              individualFiles[0]?.name ||
+              Array.from(filesByDirectory.keys())[0] ||
+              "file";
+            const fileType = individualFiles.length > 0 ? "file" : "folder";
             await handleDuplicateError(fileName, fileType);
             return;
           }
 
           const errorInfo = getDetailedErrorInfo(error);
           toast.error(errorInfo.message);
-          uploadIds.forEach(id => setUploadStatus(id, "error"));
+          uploadIds.forEach((id) => setUploadStatus(id, "error"));
         }
 
         document.body.removeChild(target);

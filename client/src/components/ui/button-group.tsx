@@ -1,30 +1,30 @@
-import { Children, ReactElement, cloneElement } from 'react';
+import { Children, ReactElement, cloneElement } from "react";
 
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface ButtonGroupProps {
   className?: string;
-  orientation?: 'horizontal' | 'vertical';
+  orientation?: "horizontal" | "vertical";
   children: ReactElement[];
 }
 
 export const ButtonGroup = ({
   className,
-  orientation = 'horizontal',
+  orientation = "horizontal",
   children,
 }: ButtonGroupProps) => {
   const totalButtons = Children.count(children);
-  const isHorizontal = orientation === 'horizontal';
-  const isVertical = orientation === 'vertical';
+  const isHorizontal = orientation === "horizontal";
+  const isVertical = orientation === "vertical";
 
   return (
     <div
       className={cn(
-        'flex',
+        "flex",
         {
-          'flex-col': isVertical,
-          'w-fit': isVertical,
+          "flex-col": isVertical,
+          "w-fit": isVertical,
         },
         className
       )}
@@ -37,13 +37,13 @@ export const ButtonGroup = ({
         const buttonProps = {
           className: cn(
             {
-              'rounded-l-none': isHorizontal && !isFirst,
-              'rounded-r-none': isHorizontal && !isLast,
-              'border-l-0': isHorizontal && !isFirst,
+              "rounded-l-none": isHorizontal && !isFirst,
+              "rounded-r-none": isHorizontal && !isLast,
+              "border-l-0": isHorizontal && !isFirst,
 
-              'rounded-t-none': isVertical && !isFirst,
-              'rounded-b-none': isVertical && !isLast,
-              'border-t-0': isVertical && !isFirst,
+              "rounded-t-none": isVertical && !isFirst,
+              "rounded-b-none": isVertical && !isLast,
+              "border-t-0": isVertical && !isFirst,
             },
             (child as ReactElement<{ className?: string }>).props.className
           ),

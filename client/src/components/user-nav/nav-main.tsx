@@ -1,11 +1,16 @@
-
-import { ChevronRight, type LucideIcon, Clock, FolderClosed, Trash2 } from "lucide-react"
+import {
+  ChevronRight,
+  Clock,
+  FolderClosed,
+  Trash2,
+  type LucideIcon,
+} from "lucide-react";
 
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+} from "@/components/ui/collapsible";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -16,8 +21,8 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-} from "@/components/ui/sidebar"
-import { Link } from "@tanstack/react-router"
+} from "@/components/ui/sidebar";
+import { Link } from "@tanstack/react-router";
 
 const navMainItems = [
   {
@@ -35,21 +40,21 @@ const navMainItems = [
     url: "/trash",
     icon: Trash2,
   },
-]
+];
 
 export function NavMain({
   items = navMainItems,
 }: {
   items?: {
-    title: string
-    url: string
-    icon: LucideIcon
-    isActive?: boolean
+    title: string;
+    url: string;
+    icon: LucideIcon;
+    isActive?: boolean;
     items?: {
-      title: string
-      url: string
-    }[]
-  }[]
+      title: string;
+      url: string;
+    }[];
+  }[];
 } = {}) {
   return (
     <SidebarGroup>
@@ -92,5 +97,5 @@ export function NavMain({
         ))}
       </SidebarMenu>
     </SidebarGroup>
-  )
+  );
 }

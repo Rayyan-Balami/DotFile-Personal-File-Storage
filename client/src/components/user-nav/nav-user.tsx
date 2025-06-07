@@ -1,16 +1,9 @@
-import {
-  ChevronsUpDown,
-  LogOut,
-  Settings2
-} from "lucide-react"
+import { ChevronsUpDown, LogOut, Settings2 } from "lucide-react";
 
-import { useLogout } from "@/api/user/user.query"
-import { getErrorMessage } from "@/utils/apiErrorHandler"
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar"
+import { useLogout } from "@/api/user/user.query";
+import { ModeToggle } from "@/components/mode-toggle";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,20 +12,19 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
+import { Progress } from "@/components/ui/progress";
 import {
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar
-} from "@/components/ui/sidebar"
-import { VITE_API_URL } from "@/config/constants"
-import { formatBytes, getInitials } from "@/lib/utils"
-import { useAuthStore } from "@/stores/authStore"
-import { Link, useNavigate } from "@tanstack/react-router"
-import { toast } from "sonner"
-import { ModeToggle } from "./mode-toggle"
-import { Badge } from "./ui/badge"
-import { Progress } from "./ui/progress"
+  useSidebar,
+} from "@/components/ui/sidebar";
+import { VITE_API_URL } from "@/config/constants";
+import { formatBytes, getInitials } from "@/lib/utils";
+import { useAuthStore } from "@/stores/authStore";
+import { getErrorMessage } from "@/utils/apiErrorHandler";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
 
 export function NavUser() {
   const { user, clearAuth } = useAuthStore();
@@ -72,12 +64,16 @@ export function NavUser() {
             className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground [&>svg]:size-4"
           >
             <Avatar className="h-8 w-8 rounded-lg border">
-              <AvatarImage src={`${VITE_API_URL}${user.avatar}`}
-               alt={user.name} />
+              <AvatarImage
+                src={`${VITE_API_URL}${user.avatar}`}
+                alt={user.name}
+              />
               <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium capitalize">{user.name}</span>
+              <span className="truncate font-medium capitalize">
+                {user.name}
+              </span>
               <span className="truncate text-xs">{user.email}</span>
             </div>
             <ChevronsUpDown className="ml-auto" />
@@ -93,11 +89,18 @@ export function NavUser() {
             <div className="flex items-center gap-2 py-1.5 text-left text-sm">
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
-                <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>
+                <span className="truncate text-xs font-normal text-muted-foreground">
+                  {user.email}
+                </span>
               </div>
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={`${VITE_API_URL}${user.avatar}`} alt={user.name} />
-                <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+                <AvatarImage
+                  src={`${VITE_API_URL}${user.avatar}`}
+                  alt={user.name}
+                />
+                <AvatarFallback className="rounded-lg">
+                  {initials}
+                </AvatarFallback>
               </Avatar>
             </div>
           </DropdownMenuLabel>
@@ -106,15 +109,24 @@ export function NavUser() {
           {/* Users storage usage */}
           <DropdownMenuLabel className="font-normal flex items-center justify-between gap-2">
             <span>Storage</span>
-            <Badge variant={"secondary"} className="truncate h-6 rounded-full text-xs font-normal">
-              {((user.storageUsed / user.maxStorageLimit) * 100).toFixed(0)}% used
+            <Badge
+              variant={"secondary"}
+              className="truncate h-6 rounded-full text-xs font-normal"
+            >
+              {((user.storageUsed / user.maxStorageLimit) * 100).toFixed(0)}%
+              used
             </Badge>
           </DropdownMenuLabel>
           <DropdownMenuLabel className="font-normal flex flex-col justify-between gap-2.5 ">
             {/* progress bar */}
-            <Progress value={Math.round((user.storageUsed / user.maxStorageLimit) * 100)} />
+            <Progress
+              value={Math.round(
+                (user.storageUsed / user.maxStorageLimit) * 100
+              )}
+            />
             <span className="font-light text-xs">
-              {formatBytes(user.storageUsed)} of {formatBytes(user.maxStorageLimit)}
+              {formatBytes(user.storageUsed)} of{" "}
+              {formatBytes(user.maxStorageLimit)}
             </span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
@@ -140,5 +152,5 @@ export function NavUser() {
         </DropdownMenuContent>
       </DropdownMenu>
     </SidebarMenuItem>
-  )
+  );
 }

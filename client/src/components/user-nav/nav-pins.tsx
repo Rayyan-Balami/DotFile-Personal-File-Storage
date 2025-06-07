@@ -1,28 +1,30 @@
 import {
-  Folder,
-  MoreHorizontal,
-  File,
-  Loader2,
   ExternalLink,
+  File,
+  Folder,
   FolderOpen,
-  PinOff,
+  Loader2,
+  MoreHorizontal,
   Pin,
-} from "lucide-react"
+  PinOff,
+} from "lucide-react";
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { useUpdateFile } from "@/api/file/file.query";
+import { usePinContents, useUpdateFolder } from "@/api/folder/folder.query";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
-} from "@/components/ui/context-menu"
+} from "@/components/ui/context-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -31,66 +33,64 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
-import { Link, useNavigate, useLocation } from "@tanstack/react-router"
-import { usePinContents, useUpdateFolder } from "@/api/folder/folder.query"
-import { useUpdateFile } from "@/api/file/file.query"
-import { useState, useEffect } from "react"
-import type { FolderResponseDto } from "@/types/folder.dto"
-import type { FileResponseDto } from "@/types/file.dto"
-import { toast } from "sonner"
+} from "@/components/ui/sidebar";
+import type { FileResponseDto } from "@/types/file.dto";
+import type { FolderResponseDto } from "@/types/folder.dto";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 interface PinItemProps {
   item: {
-    id: string
-    name: string
-    type: 'folder' | 'file'
-    url: string
-    icon: any
-    parentId?: string | null
-  }
+    id: string;
+    name: string;
+    type: "folder" | "file";
+    url: string;
+    icon: any;
+    parentId?: string | null;
+  };
 }
 
 // Helper function to keep menu options consistent between dropdown and context menu
 const MenuItems = ({ item }: PinItemProps) => {
-  const navigate = useNavigate()
-  const updateFolderMutation = useUpdateFolder()
-  const updateFileMutation = useUpdateFile()
+  const navigate = useNavigate();
+  const updateFolderMutation = useUpdateFolder();
+  const updateFileMutation = useUpdateFile();
 
   const handleOpenInNewTab = () => {
-    window.open(item.url, '_blank')
-  }
+    window.open(item.url, "_blank");
+  };
 
   const handleShowInEnclosingFolder = () => {
-    if (item.type === 'folder' && item.parentId) {
-      navigate({ to: `/folder/${item.parentId}` })
-    } else if (item.type === 'file' && item.parentId) {
-      navigate({ to: `/folder/${item.parentId}` })
+    if (item.type === "folder" && item.parentId) {
+      navigate({ to: `/folder/${item.parentId}` });
+    } else if (item.type === "file" && item.parentId) {
+      navigate({ to: `/folder/${item.parentId}` });
     } else {
       // Navigate to root if no parent
-      navigate({ to: '/' })
+      navigate({ to: "/" });
     }
-  }
+  };
 
   const handleUnpin = async () => {
     try {
-      if (item.type === 'folder') {
+      if (item.type === "folder") {
         await updateFolderMutation.mutateAsync({
           folderId: item.id,
-          data: { isPinned: false }
-        })
-        toast.success(`${item.name} unpinned successfully`)
+          data: { isPinned: false },
+        });
+        toast.success(`${item.name} unpinned successfully`);
       } else {
         await updateFileMutation.mutateAsync({
           fileId: item.id,
-          data: { isPinned: false }
-        })
-        toast.success(`${item.name} unpinned successfully`)
+          data: { isPinned: false },
+        });
+        toast.success(`${item.name} unpinned successfully`);
       }
     } catch (error) {
-      toast.error(`Failed to unpin ${item.name}`)
+      toast.error(`Failed to unpin ${item.name}`);
     }
-  }
+  };
 
   return (
     <>
@@ -108,48 +108,48 @@ const MenuItems = ({ item }: PinItemProps) => {
         <span>Unpin</span>
       </ContextMenuItem>
     </>
-  )
-}
+  );
+};
 
 const DropdownMenuOptions = ({ item }: PinItemProps) => {
-  const navigate = useNavigate()
-  const updateFolderMutation = useUpdateFolder()
-  const updateFileMutation = useUpdateFile()
+  const navigate = useNavigate();
+  const updateFolderMutation = useUpdateFolder();
+  const updateFileMutation = useUpdateFile();
 
   const handleOpenInNewTab = () => {
-    window.open(item.url, '_blank')
-  }
+    window.open(item.url, "_blank");
+  };
 
   const handleShowInEnclosingFolder = () => {
-    if (item.type === 'folder' && item.parentId) {
-      navigate({ to: `/folder/${item.parentId}` })
-    } else if (item.type === 'file' && item.parentId) {
-      navigate({ to: `/folder/${item.parentId}` })
+    if (item.type === "folder" && item.parentId) {
+      navigate({ to: `/folder/${item.parentId}` });
+    } else if (item.type === "file" && item.parentId) {
+      navigate({ to: `/folder/${item.parentId}` });
     } else {
       // Navigate to root if no parent
-      navigate({ to: '/' })
+      navigate({ to: "/" });
     }
-  }
+  };
 
   const handleUnpin = async () => {
     try {
-      if (item.type === 'folder') {
+      if (item.type === "folder") {
         await updateFolderMutation.mutateAsync({
           folderId: item.id,
-          data: { isPinned: false }
-        })
-        toast.success(`${item.name} unpinned successfully`)
+          data: { isPinned: false },
+        });
+        toast.success(`${item.name} unpinned successfully`);
       } else {
         await updateFileMutation.mutateAsync({
           fileId: item.id,
-          data: { isPinned: false }
-        })
-        toast.success(`${item.name} unpinned successfully`)
+          data: { isPinned: false },
+        });
+        toast.success(`${item.name} unpinned successfully`);
       }
     } catch (error) {
-      toast.error(`Failed to unpin ${item.name}`)
+      toast.error(`Failed to unpin ${item.name}`);
     }
-  }
+  };
 
   return (
     <>
@@ -167,95 +167,99 @@ const DropdownMenuOptions = ({ item }: PinItemProps) => {
         <span>Unpin</span>
       </DropdownMenuItem>
     </>
-  )
-}
+  );
+};
 
 export function NavPins() {
-  const { isTablet } = useSidebar()
-  const [currentOffset, setCurrentOffset] = useState(0)
-  const [allItems, setAllItems] = useState<any[]>([])
-  const [isExpanded, setIsExpanded] = useState(false)
-  const limit = 10
-  const location = useLocation()
-  
-  const { data, isLoading, error } = usePinContents(currentOffset, limit)
-  const pinContents = data?.data?.folderContents
-  const pagination = data?.data?.pagination
-  
+  const { isTablet } = useSidebar();
+  const [currentOffset, setCurrentOffset] = useState(0);
+  const [allItems, setAllItems] = useState<any[]>([]);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const limit = 10;
+  const location = useLocation();
+
+  const { data, isLoading, error } = usePinContents(currentOffset, limit);
+  const pinContents = data?.data?.folderContents;
+  const pagination = data?.data?.pagination;
+
   // Process new items when data changes
   useEffect(() => {
     if (pinContents) {
       const newItems = [
         ...(pinContents.folders || []).map((folder: FolderResponseDto) => {
-          const isCurrentFolder = location.pathname === `/folder/${folder.id}`
+          const isCurrentFolder = location.pathname === `/folder/${folder.id}`;
           return {
             id: folder.id,
             name: folder.name,
-            type: 'folder' as const,
+            type: "folder" as const,
             url: `/folder/${folder.id}`,
             icon: isCurrentFolder ? FolderOpen : Folder,
-            parentId: folder.parent
-          }
+            parentId: folder.parent,
+          };
         }),
         ...(pinContents.files || []).map((file: FileResponseDto) => ({
           id: file.id,
           name: file.extension ? `${file.name}.${file.extension}` : file.name,
-          type: 'file' as const,
+          type: "file" as const,
           url: `/file/${file.id}`,
           icon: File,
-          parentId: file.folder
-        }))
-      ]
-      
+          parentId: file.folder,
+        })),
+      ];
+
       if (currentOffset === 0) {
         // First load or reset
-        setAllItems(newItems)
+        setAllItems(newItems);
       } else {
         // Append new items, avoiding duplicates
-        setAllItems(prev => {
-          const existingIds = new Set(prev.map(item => item.id))
-          const uniqueNewItems = newItems.filter(item => !existingIds.has(item.id))
-          return [...prev, ...uniqueNewItems]
-        })
+        setAllItems((prev) => {
+          const existingIds = new Set(prev.map((item) => item.id));
+          const uniqueNewItems = newItems.filter(
+            (item) => !existingIds.has(item.id)
+          );
+          return [...prev, ...uniqueNewItems];
+        });
       }
     }
-  }, [pinContents, location.pathname])
-  
+  }, [pinContents, location.pathname]);
+
   // Update folder icons when location changes
   useEffect(() => {
-    setAllItems(prev => prev.map(item => {
-      if (item.type === 'folder') {
-        const isCurrentFolder = location.pathname === `/folder/${item.id}`
-        return {
-          ...item,
-          icon: isCurrentFolder ? FolderOpen : Folder
+    setAllItems((prev) =>
+      prev.map((item) => {
+        if (item.type === "folder") {
+          const isCurrentFolder = location.pathname === `/folder/${item.id}`;
+          return {
+            ...item,
+            icon: isCurrentFolder ? FolderOpen : Folder,
+          };
         }
-      }
-      return item
-    }))
-  }, [location.pathname])
-  
+        return item;
+      })
+    );
+  }, [location.pathname]);
+
   // Show only first 10 items unless expanded
-  const displayItems = isExpanded ? allItems : allItems.slice(0, limit)
+  const displayItems = isExpanded ? allItems : allItems.slice(0, limit);
 
   const handleLoadMore = () => {
     if (pagination?.hasMore) {
-      setCurrentOffset(prev => prev + limit)
-      setIsExpanded(true)
+      setCurrentOffset((prev) => prev + limit);
+      setIsExpanded(true);
     }
-  }
+  };
 
   const handleShowLess = () => {
-    setCurrentOffset(0)
-    setIsExpanded(false)
-    setAllItems(prev => prev.slice(0, limit))
-  }
+    setCurrentOffset(0);
+    setIsExpanded(false);
+    setAllItems((prev) => prev.slice(0, limit));
+  };
 
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Pinned</SidebarGroupLabel>
       <SidebarMenu>
-        { isLoading && currentOffset === 0 && (
+        {isLoading && currentOffset === 0 && (
           <SidebarMenuItem>
             <SidebarGroupLabel>
               <Loader2 className="h-4 w-4 animate-spin mx-auto text-primary" />
@@ -267,11 +271,13 @@ export function NavPins() {
         {error && (
           <SidebarMenuItem>
             <SidebarGroupLabel>
-              <span className="text-destructive font-light mx-auto">Error loading pins</span>
+              <span className="text-destructive font-light mx-auto">
+                Error loading pins
+              </span>
             </SidebarGroupLabel>
           </SidebarMenuItem>
         )}
-        
+
         {displayItems.map((item) => (
           <ContextMenu key={item.id}>
             <ContextMenuTrigger asChild>
@@ -279,7 +285,9 @@ export function NavPins() {
                 <SidebarMenuButton asChild tooltip={item.name}>
                   <Link to={item.url}>
                     <item.icon />
-                    <span className="truncate overflow-hidden selection:bg-transparent">{item.name}</span>
+                    <span className="truncate overflow-hidden selection:bg-transparent">
+                      {item.name}
+                    </span>
                   </Link>
                 </SidebarMenuButton>
                 <DropdownMenu>
@@ -304,11 +312,11 @@ export function NavPins() {
             </ContextMenuContent>
           </ContextMenu>
         ))}
-        
+
         {/* Show Load More button if there are more items and not expanded beyond initial load */}
         {pagination?.hasMore && !isExpanded && (
           <SidebarMenuItem>
-            <SidebarMenuButton 
+            <SidebarMenuButton
               onClick={handleLoadMore}
               disabled={isLoading}
               tooltip="More Pins"
@@ -322,14 +330,11 @@ export function NavPins() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         )}
-        
+
         {/* Show Show Less button if expanded and showing more than initial limit */}
         {isExpanded && allItems.length > limit && (
           <SidebarMenuItem>
-            <SidebarMenuButton 
-              onClick={handleShowLess}
-              tooltip="Less Pins"
-            >
+            <SidebarMenuButton onClick={handleShowLess} tooltip="Less Pins">
               <Pin className="rotate-20" />
               <span>Show Less</span>
             </SidebarMenuButton>
@@ -337,5 +342,5 @@ export function NavPins() {
         )}
       </SidebarMenu>
     </SidebarGroup>
-  )
+  );
 }

@@ -1,4 +1,8 @@
-import { useFolderContents, useRootContents, useTrashContents } from "@/api/folder/folder.query";
+import {
+  useFolderContents,
+  useRootContents,
+  useTrashContents,
+} from "@/api/folder/folder.query";
 import {
   Breadcrumb,
   BreadcrumbEllipsis,
@@ -17,7 +21,15 @@ import { useFileSystemStore } from "@/stores/useFileSystemStore";
 import { FolderItem } from "@/types/folderDocumnet";
 import { useDndMonitor, useDroppable } from "@dnd-kit/core";
 import { Link, useMatches } from "@tanstack/react-router";
-import { Clock, Folder, FolderOpen, Home, Settings2, Trash2, UserRound } from "lucide-react";
+import {
+  Clock,
+  Folder,
+  FolderOpen,
+  Home,
+  Settings2,
+  Trash2,
+  UserRound,
+} from "lucide-react";
 import React, { useEffect, useMemo, useState } from "react";
 
 // Droppable component for dropdown menu items
@@ -26,7 +38,7 @@ function DroppableDropdownItem({
   name,
   icon: Icon,
   linkPath,
-  isReadOnlyContext
+  isReadOnlyContext,
 }: {
   id: string | null;
   name: string;
@@ -34,9 +46,9 @@ function DroppableDropdownItem({
   linkPath: string;
   isReadOnlyContext: boolean;
 }) {
-  const items = useFileSystemStore(state => state.items);
-  const addItem = useFileSystemStore(state => state.addItem);
-  
+  const items = useFileSystemStore((state) => state.items);
+  const addItem = useFileSystemStore((state) => state.addItem);
+
   // Create a folder item for the dropdown item
   const existingItem = items[id || "root"];
   const folderItem: FolderItem = useMemo(() => {
@@ -55,7 +67,7 @@ function DroppableDropdownItem({
       isPinned: false,
       createdAt: new Date(),
       updatedAt: new Date(),
-      deletedAt: null
+      deletedAt: null,
     };
   }, [existingItem, id, name]);
 
@@ -65,29 +77,29 @@ function DroppableDropdownItem({
       addItem(folderItem);
     }
   }, [existingItem, addItem, folderItem]);
-   const { setNodeRef, isOver, active } = useDroppable({
+  const { setNodeRef, isOver, active } = useDroppable({
     id: `breadcrumb-dropdown-${id || "root"}`,
     data: {
       type: "folder",
       cardType: "folder",
       id: folderItem.id,
       name: folderItem.name,
-      item: folderItem
+      item: folderItem,
     },
-    disabled: isReadOnlyContext
+    disabled: isReadOnlyContext,
   });
-  
+
   const showDropIndicator = isOver && active;
 
   return (
-    <div 
+    <div
       ref={setNodeRef}
       data-breadcrumb="true"
       data-breadcrumb-dropdown="true"
       className={`relative w-full ${showDropIndicator ? "after:absolute after:inset-0 after:bg-primary/10 after:border-2 after:border-primary after:border-dashed after:rounded-md after:z-10" : ""}`}
     >
-      <Link 
-        to={linkPath} 
+      <Link
+        to={linkPath}
         className="flex items-center gap-2 px-2 py-1 w-full rounded-sm transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground text-muted-foreground text-sm"
       >
         <Icon className="size-4" />
@@ -98,14 +110,14 @@ function DroppableDropdownItem({
 }
 
 // Separate component for droppable breadcrumb items
-function DroppableBreadcrumbItem({ 
-  id, 
-  name, 
-  isLast, 
-  icon: Icon, 
-  linkPath, 
-  isReadOnlyContext 
-}: { 
+function DroppableBreadcrumbItem({
+  id,
+  name,
+  isLast,
+  icon: Icon,
+  linkPath,
+  isReadOnlyContext,
+}: {
   id: string | null;
   name: string;
   isLast: boolean;
@@ -113,9 +125,9 @@ function DroppableBreadcrumbItem({
   linkPath: string;
   isReadOnlyContext: boolean;
 }) {
-  const items = useFileSystemStore(state => state.items);
-  const addItem = useFileSystemStore(state => state.addItem);
-  
+  const items = useFileSystemStore((state) => state.items);
+  const addItem = useFileSystemStore((state) => state.addItem);
+
   // Create a folder item for the breadcrumb
   const existingItem = items[id || "root"];
   const folderItem: FolderItem = useMemo(() => {
@@ -134,7 +146,7 @@ function DroppableBreadcrumbItem({
       isPinned: false,
       createdAt: new Date(),
       updatedAt: new Date(),
-      deletedAt: null
+      deletedAt: null,
     };
   }, [existingItem, id, name]);
 
@@ -144,7 +156,7 @@ function DroppableBreadcrumbItem({
       addItem(folderItem);
     }
   }, [existingItem, addItem, folderItem]);
-  
+
   const { setNodeRef, isOver, active } = useDroppable({
     id: id || "root",
     data: {
@@ -152,28 +164,30 @@ function DroppableBreadcrumbItem({
       cardType: "folder",
       id: folderItem.id,
       name: folderItem.name,
-      item: folderItem
+      item: folderItem,
     },
-    disabled: isReadOnlyContext || isLast
+    disabled: isReadOnlyContext || isLast,
   });
 
   const showDropIndicator = !isLast && isOver && active;
 
   return (
-    <div 
+    <div
       ref={setNodeRef}
       className={`relative px-2 py-1 ${showDropIndicator ? "after:absolute after:inset-0 after:bg-primary/10 after:border-2 after:border-primary after:border-dashed after:rounded-md after:z-10" : ""}`}
     >
       {isLast ? (
         <BreadcrumbPage className="flex-grow flex items-center gap-2">
           <Icon className="size-4" />
-         <span className="max-w-[60px] sm:max-w-[200px] truncate">{name}</span>
+          <span className="max-w-[60px] sm:max-w-[200px] truncate">{name}</span>
         </BreadcrumbPage>
       ) : (
         <BreadcrumbLink asChild>
           <Link to={linkPath} className="flex items-center gap-2">
             <Icon className="size-4" />
-            <span className="max-w-[60px] sm:max-w-[200px] truncate">{name}</span>
+            <span className="max-w-[60px] sm:max-w-[200px] truncate">
+              {name}
+            </span>
           </Link>
         </BreadcrumbLink>
       )}
@@ -181,7 +195,7 @@ function DroppableBreadcrumbItem({
   );
 }
 
-export function BreadcrumbNav() {
+export function NavBreadcrumb() {
   const matches = useMatches();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
@@ -192,24 +206,28 @@ export function BreadcrumbNav() {
     },
     onDragOver(event) {
       const { over } = event;
-      
+
       // Auto-open dropdown when dragging over trigger
       if (over?.id === "breadcrumb-dropdown-trigger" && !dropdownOpen) {
         setDropdownOpen(true);
       }
-      
+
       // Keep dropdown open when over content or dropdown items
-      if (over?.id === "breadcrumb-dropdown-content" || 
-          String(over?.id).startsWith("breadcrumb-dropdown-")) {
+      if (
+        over?.id === "breadcrumb-dropdown-content" ||
+        String(over?.id).startsWith("breadcrumb-dropdown-")
+      ) {
         setDropdownOpen(true);
       }
-      
+
       // Close dropdown when dragging over other areas (with delay to prevent flickering)
-      if (over && 
-          over.id !== "breadcrumb-dropdown-trigger" && 
-          over.id !== "breadcrumb-dropdown-content" &&
-          !String(over.id).startsWith("breadcrumb-dropdown-") && 
-          dropdownOpen) {
+      if (
+        over &&
+        over.id !== "breadcrumb-dropdown-trigger" &&
+        over.id !== "breadcrumb-dropdown-content" &&
+        !String(over.id).startsWith("breadcrumb-dropdown-") &&
+        dropdownOpen
+      ) {
         setTimeout(() => {
           setDropdownOpen(false);
         }, 150);
@@ -220,15 +238,25 @@ export function BreadcrumbNav() {
       setTimeout(() => {
         setDropdownOpen(false);
       }, 200);
-    }
+    },
   });
 
-  const folderMatch = matches.find(match => match.routeId.includes('/(user)/folder/'));
-  const trashMatch = matches.find(match => match.routeId.includes('/(user)/trash'));
-  const recentMatch = matches.find(match => match.routeId.includes('/(user)/recent'));
-  const settingsMatch = matches.find(match => match.routeId.includes('/(user)/setting'));
+  const folderMatch = matches.find((match) =>
+    match.routeId.includes("/(user)/folder/")
+  );
+  const trashMatch = matches.find((match) =>
+    match.routeId.includes("/(user)/trash")
+  );
+  const recentMatch = matches.find((match) =>
+    match.routeId.includes("/(user)/recent")
+  );
+  const settingsMatch = matches.find((match) =>
+    match.routeId.includes("/(user)/setting")
+  );
 
-  const folderId = folderMatch?.params ? (folderMatch.params as { id: string }).id : "";
+  const folderId = folderMatch?.params
+    ? (folderMatch.params as { id: string }).id
+    : "";
 
   // Query data
   const { data: rootData } = useRootContents();
@@ -246,12 +274,12 @@ export function BreadcrumbNav() {
     // Handle settings routes
     const routeId = settingsMatch.routeId;
     pathSegments = [{ id: null, name: "Settings" }];
-    
-    if (routeId.includes('/setting/profile')) {
+
+    if (routeId.includes("/setting/profile")) {
       pathSegments.push({ id: "profile", name: "Profile" });
     }
     // Add more settings sub-routes here as needed
-    
+
     icon = Settings2;
     rootName = "Settings";
     rootPath = "/setting/profile"; // Default settings path
@@ -261,7 +289,9 @@ export function BreadcrumbNav() {
     rootName = "Recent";
     rootPath = "/recent";
   } else if (trashMatch && !folderMatch) {
-    pathSegments = trashData?.data?.folderContents?.pathSegments || [{ id: null, name: "Trash" }];
+    pathSegments = trashData?.data?.folderContents?.pathSegments || [
+      { id: null, name: "Trash" },
+    ];
     icon = Trash2;
     rootName = "Trash";
     rootPath = "/trash";
@@ -282,10 +312,12 @@ export function BreadcrumbNav() {
     pathSegments = rootData?.data?.folderContents?.pathSegments || [];
   }
 
-  const isInTrashContext = Boolean(trashMatch) || pathSegments[0]?.name === "Trash";
+  const isInTrashContext =
+    Boolean(trashMatch) || pathSegments[0]?.name === "Trash";
   const isInRecentContext = Boolean(recentMatch);
   const isInSettingsContext = Boolean(settingsMatch);
-  const isReadOnlyContext = isInTrashContext || isInRecentContext || isInSettingsContext;
+  const isReadOnlyContext =
+    isInTrashContext || isInRecentContext || isInSettingsContext;
 
   // Create array of all breadcrumb items for dropdown logic
   const allItems = [
@@ -294,13 +326,13 @@ export function BreadcrumbNav() {
       name: rootName,
       isRoot: true,
       icon: icon,
-      linkPath: rootPath
+      linkPath: rootPath,
     },
     ...pathSegments.slice(1).map((segment, index) => {
       const base = pathSegments[0]?.name;
       let linkPath = "";
       let itemIcon = Folder;
-      
+
       if (base === "Trash") {
         linkPath = `/trash/folder/${segment.id}`;
         itemIcon = index === pathSegments.length - 2 ? FolderOpen : Folder;
@@ -315,15 +347,15 @@ export function BreadcrumbNav() {
         linkPath = `/folder/${segment.id}`;
         itemIcon = index === pathSegments.length - 2 ? FolderOpen : Folder;
       }
-      
+
       return {
         id: segment.id,
         name: segment.name,
         isRoot: false,
         icon: itemIcon,
-        linkPath
+        linkPath,
       };
-    })
+    }),
   ];
 
   // Show last 2 items directly, rest in dropdown
@@ -338,13 +370,13 @@ export function BreadcrumbNav() {
       id: "breadcrumb-dropdown-trigger",
       data: {
         type: "dropdown-trigger",
-        action: "open-dropdown"
+        action: "open-dropdown",
       },
-      disabled: isReadOnlyContext
+      disabled: isReadOnlyContext,
     });
 
     return (
-      <DropdownMenuTrigger 
+      <DropdownMenuTrigger
         ref={setNodeRef}
         className="flex items-center gap-1 px-2"
         onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -355,28 +387,29 @@ export function BreadcrumbNav() {
   };
 
   // Droppable component for the dropdown content area
-  const DroppableDropdownContent = ({ children }: { children: React.ReactNode }) => {
+  const DroppableDropdownContent = ({
+    children,
+  }: {
+    children: React.ReactNode;
+  }) => {
     const { setNodeRef } = useDroppable({
       id: "breadcrumb-dropdown-content",
       data: {
         type: "dropdown-content",
-        action: "keep-open"
+        action: "keep-open",
       },
-      disabled: isReadOnlyContext
+      disabled: isReadOnlyContext,
     });
 
     return (
-      <DropdownMenuContent 
-        ref={setNodeRef} 
-        align="start"
-      >
+      <DropdownMenuContent ref={setNodeRef} align="start">
         {children}
       </DropdownMenuContent>
     );
   };
 
   return (
-    <Breadcrumb 
+    <Breadcrumb
       className="flex flex-grow shrink-0 bg-secondary h-9 px-2 py-0.5 rounded-md"
       data-breadcrumb="true"
     >

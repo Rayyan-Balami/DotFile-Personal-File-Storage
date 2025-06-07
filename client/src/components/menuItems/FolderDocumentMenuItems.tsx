@@ -1,18 +1,24 @@
-import React from "react";
-import { ContextMenuItem, ContextMenuSeparator } from "../ui/context-menu";
-import { DropdownMenuItem, DropdownMenuSeparator } from "../ui/dropdown-menu";
-import { useDialogStore } from "@/stores/useDialogStore";
-import { useRestoreFolder, useUpdateFolder } from "@/api/folder/folder.query";
 import {
   useRestoreFile,
   useUpdateFile,
   useUploadFiles,
 } from "@/api/file/file.query";
+import { useRestoreFolder, useUpdateFolder } from "@/api/folder/folder.query";
+import {
+  ContextMenuItem,
+  ContextMenuSeparator,
+} from "@/components/ui/context-menu";
+import {
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { useDialogStore } from "@/stores/useDialogStore";
 import { useUploadStore } from "@/stores/useUploadStore";
-import { processDirectoryInput } from "@/utils/uploadUtils";
 import { getDetailedErrorInfo, getErrorMessage } from "@/utils/apiErrorHandler";
+import { processDirectoryInput } from "@/utils/uploadUtils";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import React from "react";
 import { toast } from "sonner";
 
 interface MenuProps {
@@ -32,9 +38,16 @@ const useMenuActions = ({
   deletedAt,
   hasDeletedAncestor,
   color,
-}: Pick<MenuProps, "cardType" | "title" | "id" | "deletedAt" | "hasDeletedAncestor" | "color">) => {
-  const { openCreateFolderDialog, openRenameDialog, openDeleteDialog, openFolderColorDialog } =
-    useDialogStore();
+}: Pick<
+  MenuProps,
+  "cardType" | "title" | "id" | "deletedAt" | "hasDeletedAncestor" | "color"
+>) => {
+  const {
+    openCreateFolderDialog,
+    openRenameDialog,
+    openDeleteDialog,
+    openFolderColorDialog,
+  } = useDialogStore();
   const queryClient = useQueryClient();
   const restoreFolder = useRestoreFolder();
   const restoreFile = useRestoreFile();
@@ -181,7 +194,8 @@ const useMenuActions = ({
         if (cardType === "folder") openCreateFolderDialog(id);
       },
       rename: () => openRenameDialog(id, cardType, title),
-      delete: () => openDeleteDialog(id, cardType, title, deletedAt, hasDeletedAncestor),
+      delete: () =>
+        openDeleteDialog(id, cardType, title, deletedAt, hasDeletedAncestor),
       restore: async () => {
         const mutation = cardType === "folder" ? restoreFolder : restoreFile;
         await mutation.mutateAsync(id, {
@@ -245,7 +259,14 @@ const MenuItems = React.memo(
       hasDeletedAncestor = false,
       color = "default",
     } = props;
-    const handleAction = useMenuActions({ cardType, title, id, deletedAt, hasDeletedAncestor, color });
+    const handleAction = useMenuActions({
+      cardType,
+      title,
+      id,
+      deletedAt,
+      hasDeletedAncestor,
+      color,
+    });
     const isDeleted = deletedAt || hasDeletedAncestor;
 
     if (isDeleted) {
@@ -296,9 +317,7 @@ const MenuItems = React.memo(
           {isPinned ? "Unpin" : "Pin"}
         </Item>
         {cardType === "folder" && (
-          <Item onClick={() => handleAction("color")}>
-            Color
-          </Item>
+          <Item onClick={() => handleAction("color")}>Color</Item>
         )}
         <Separator />
         <Item
@@ -320,9 +339,7 @@ const MenuItems = React.memo(
     if (cardType === "folder") {
       return (
         <>
-          <Item onClick={() => handleAction("create-folder")}>
-            New Folder
-          </Item>
+          <Item onClick={() => handleAction("create-folder")}>New Folder</Item>
           <Item onClick={() => handleAction("upload-file")}>Upload File</Item>
           <Item onClick={() => handleAction("upload-folder")}>
             Upload Folder

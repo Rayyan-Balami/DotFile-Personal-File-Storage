@@ -17,11 +17,13 @@ import { NavMain } from "@/components/user-nav/nav-main";
 import { NavPins } from "@/components/user-nav/nav-pins";
 import { NavUpload } from "@/components/user-nav/nav-upload";
 import { NavUser } from "@/components/user-nav/nav-user";
-import { VITE_APP_DESCRIPTION, VITE_APP_NAME, VITE_APP_VERSION } from "@/config/constants";
-import { Link } from "@tanstack/react-router";
 import {
-  PanelRightClose
-} from "lucide-react";
+  VITE_APP_DESCRIPTION,
+  VITE_APP_NAME,
+  VITE_APP_VERSION,
+} from "@/config/constants";
+import { Link } from "@tanstack/react-router";
+import { PanelRightClose } from "lucide-react";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { toggleSidebar, state, isTablet } = useSidebar();
@@ -51,8 +53,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <Logo />
                 </section>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium uppercase">{VITE_APP_NAME}</span>
-                  <span className="truncate text-xs">{VITE_APP_DESCRIPTION}</span>
+                  <span className="truncate font-medium uppercase">
+                    {VITE_APP_NAME}
+                  </span>
+                  <span className="truncate text-xs">
+                    {VITE_APP_DESCRIPTION}
+                  </span>
                 </div>
               </Link>
             </SidebarMenuButton>

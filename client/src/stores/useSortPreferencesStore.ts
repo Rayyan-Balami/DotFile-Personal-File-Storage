@@ -22,7 +22,7 @@ export const useSortPreferencesStore = create<SortPreferencesState>()(
       setSortDirection: (sortDirection) => set({ sortDirection }),
       sortBy: "name", // Default sort by
       setSortBy: (sortBy) =>
-        set((state) => {
+        set(() => {
           // If sorting by kind, force separated arrangement
           if (sortBy === "kind") {
             return { sortBy, folderArrangement: "separated" };

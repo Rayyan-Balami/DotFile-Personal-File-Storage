@@ -1,13 +1,16 @@
-import * as React from 'react';
-import { useViewFile } from '@/api/file/file.query';
-import { LazyImage } from '@/components/ui/lazy-image';
+import { useViewFile } from "@/api/file/file.query";
+import { LazyImage } from "@/components/ui/lazy-image";
+import * as React from "react";
 
 interface ImagePreviewProps {
   fileId: string;
   className?: string;
 }
 
-export function ImagePreview({ fileId, className = "max-w-full" }: ImagePreviewProps) {
+export function ImagePreview({
+  fileId,
+  className = "max-w-full",
+}: ImagePreviewProps) {
   const { data: imageData } = useViewFile(fileId);
   const [imageUrl, setImageUrl] = React.useState<string | null>(null);
 
@@ -20,6 +23,6 @@ export function ImagePreview({ fileId, className = "max-w-full" }: ImagePreviewP
   }, [imageData]);
 
   if (!imageUrl) return null;
-  
+
   return <LazyImage src={imageUrl} alt="Preview" className={className} />;
 }

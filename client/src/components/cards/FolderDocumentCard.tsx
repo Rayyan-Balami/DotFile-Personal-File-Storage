@@ -143,7 +143,6 @@ const FileOrFolderIcon = React.memo(
     fileId,
     fileType,
     fileExtension = "pdf",
-    title,
     variant,
     color,
   }: {
@@ -152,7 +151,6 @@ const FileOrFolderIcon = React.memo(
     fileId?: string;
     fileType?: string;
     fileExtension?: string;
-    title: string;
     color?: string;
   }) => {
     const styles = VARIANT_STYLES[variant];
@@ -579,7 +577,6 @@ const FolderDocumentCard = React.memo(
               fileId={fileId}
               fileType={type}
               fileExtension={extension || ""}
-              title={name}
               variant={variant}
               color={color}
             />

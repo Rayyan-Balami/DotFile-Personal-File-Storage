@@ -1,6 +1,6 @@
 import { VITE_API_BASE_URL, VITE_API_TIMEOUT } from "@/config/constants";
 import { useAuthStore } from "@/stores/authStore";
-import axios, { AxiosInstance, InternalAxiosRequestConfig } from "axios";
+import axios, { InternalAxiosRequestConfig } from "axios";
 
 const API = axios.create({
   baseURL: VITE_API_BASE_URL,

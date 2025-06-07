@@ -11,38 +11,46 @@ export function GlobalDelete(props: ComponentProps<typeof Button>) {
 
   const handleDelete = () => {
     const selectedItems = getSelectedItems();
-    console.log('Global Delete - Selected Items:', {
+    console.log("Global Delete - Selected Items:", {
       count: selectedItems.length,
-      items: selectedItems.map(item => ({
+      items: selectedItems.map((item) => ({
         id: item.id,
         name: item.name,
-        type: item.cardType
-      }))
+        type: item.cardType,
+      })),
     });
 
     if (selectedItems.length === 0) return;
 
     // Group items by type
-    const folders = selectedItems.filter(item => item.cardType === 'folder');
-    const files = selectedItems.filter(item => item.cardType === 'document');
+    const folders = selectedItems.filter((item) => item.cardType === "folder");
+    const files = selectedItems.filter((item) => item.cardType === "document");
 
-    console.log('Global Delete - Grouped Items:', {
-      folders: folders.map(f => ({ id: f.id, name: f.name })),
-      files: files.map(f => ({ id: f.id, name: f.name }))
+    console.log("Global Delete - Grouped Items:", {
+      folders: folders.map((f) => ({ id: f.id, name: f.name })),
+      files: files.map((f) => ({ id: f.id, name: f.name })),
     });
 
     // Check if any selected items are in trash or have deleted ancestors
-    const hasDeletedItems = selectedItems.some(item => item.deletedAt || item.hasDeletedAncestor);
-    
+    const hasDeletedItems = selectedItems.some(
+      (item) => item.deletedAt || item.hasDeletedAncestor
+    );
+
     // Open a single dialog for all items
-    const allIds = selectedItems.map(item => item.id);
-    const allNames = selectedItems.map(item => `${item.name} (${item.cardType})`);
+    const allIds = selectedItems.map((item) => item.id);
+    const allNames = selectedItems.map(
+      (item) => `${item.name} (${item.cardType})`
+    );
 
     openDeleteDialog(
       allIds,
-      folders.length > 0 && files.length > 0 ? 'folder' : folders.length > 0 ? 'folder' : 'document',
+      folders.length > 0 && files.length > 0
+        ? "folder"
+        : folders.length > 0
+          ? "folder"
+          : "document",
       allNames,
-      hasDeletedItems ? 'deleted' : null,
+      hasDeletedItems ? "deleted" : null,
       hasDeletedItems
     );
   };

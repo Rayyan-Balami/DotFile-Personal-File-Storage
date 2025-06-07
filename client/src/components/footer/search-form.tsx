@@ -1,16 +1,21 @@
-import { Search } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Search } from "lucide-react";
 
-export function SearchForm({ id = "search", ...props }: React.ComponentProps<"form"> & { id?: string }) {
+export function SearchForm({
+  id = "search",
+  ...props
+}: React.ComponentProps<"form"> & { id?: string }) {
   return (
     <form {...props} className="relative flex-grow h-11 max-h-full group">
       <div className="relative h-full flex items-center">
         <Label htmlFor={id} className="sr-only">
           Search
         </Label>
-        <Search className="pointer-events-none size-5 opacity-50 select-none gap-4
-        group-focus-within:opacity-100 group-focus-within:text-primary transition-all duration-200 ease-in-out" />
+        <Search
+          className="pointer-events-none size-5 opacity-50 select-none gap-4
+        group-focus-within:opacity-100 group-focus-within:text-primary transition-all duration-200 ease-in-out"
+        />
         <Input
           id={id}
           placeholder="Type to search..."
@@ -20,5 +25,5 @@ export function SearchForm({ id = "search", ...props }: React.ComponentProps<"fo
       </div>
       <div className="absolute z-10 h-0 bottom-0 group-focus-within:h-[3.5px] left-1/2 -translate-x-1/2 block w-0 group-focus-within:w-[100%] transition-[width,height] duration-300 ease-in-out group-focus-within:bg-primary/80 rounded-t-full" />
     </form>
-  )
+  );
 }
