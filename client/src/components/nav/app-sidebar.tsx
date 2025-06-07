@@ -12,11 +12,11 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { NavColors } from "@/components/user-nav/nav-colors";
-import { NavMain } from "@/components/user-nav/nav-main";
-import { NavPins } from "@/components/user-nav/nav-pins";
-import { NavUpload } from "@/components/user-nav/nav-upload";
-import { NavUser } from "@/components/user-nav/nav-user";
+import { NavColors } from "@/components/nav/nav-colors";
+import { NavMain } from "@/components/nav/nav-main";
+import { NavPins } from "@/components/nav/nav-pins";
+import { NavUpload } from "@/components/nav/nav-upload";
+import { NavUser } from "@/components/nav/nav-user";
 import {
   VITE_APP_DESCRIPTION,
   VITE_APP_NAME,
