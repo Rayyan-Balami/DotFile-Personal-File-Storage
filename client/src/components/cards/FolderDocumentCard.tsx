@@ -12,9 +12,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { FolderIcon } from "@/components/ui/folder-icon";
+import { ImagePreview } from "@/components/cards/ImagePreview";
 import { ColorOption } from "@/config/colors";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
-import { useFilePreview } from "@/hooks/useFilePreview";
 import { cn } from "@/lib/utils";
 import { useSelectionStore } from "@/stores/useSelectionStore";
 import {
@@ -164,17 +164,12 @@ const FileOrFolderIcon = React.memo(
     const iconStyles =
       cardType === "document" ? getIconStyles(fileExtension) : null;
 
-    // Use file preview hook for images only
-    let preview: React.ReactNode = null;
-    if (
-      cardType === "document" &&
-      fileId &&
-      fileType &&
-      typeof fileType === "string" &&
-      fileType.startsWith("image/")
-    ) {
-      preview = useFilePreview({ fileId, mimeType: fileType });
-    }
+    // Use ImagePreview directly for images
+    const isImage = cardType === "document" && 
+      fileId && 
+      fileType && 
+      typeof fileType === "string" && 
+      fileType.startsWith("image/");
 
     return (
       <div
@@ -187,8 +182,8 @@ const FileOrFolderIcon = React.memo(
         {cardType === "folder" && (
           <FolderIcon className="size-full" color={color as ColorOption} />
         )}
-        {cardType === "document" && preview}
-        {cardType === "document" && !preview && iconStyles && (
+        {isImage && <ImagePreview fileId={fileId} className="size-full object-cover" />}
+        {cardType === "document" && !isImage && iconStyles && (
           <FileIcon extension={fileExtension} {...iconStyles} />
         )}
       </div>

@@ -7,7 +7,11 @@ import {
 import { useSortPreferencesStore } from "@/stores/useSortPreferencesStore";
 import { useViewPreferencesStore } from "@/stores/useViewPreferencesStore";
 import { useDialogStore } from "@/stores/useDialogStore";
-import { useSortedItems, getMimeCategory, groupItemsByDate } from "@/utils/sortUtils";
+import {
+  useSortedItems,
+  getMimeCategory,
+  groupItemsByDate,
+} from "@/utils/sortUtils";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -45,7 +49,9 @@ export default function DirectoryView({
   const setVisibleItems = useSelectionStore((state) => state.setVisibleItems);
   const addItem = useFileSystemStore((state) => state.addItem);
   const sortBy = useSortPreferencesStore((state) => state.sortBy);
-  const folderArrangement = useSortPreferencesStore((state) => state.folderArrangement);
+  const folderArrangement = useSortPreferencesStore(
+    (state) => state.folderArrangement
+  );
   const viewType = useViewPreferencesStore((state) => state.viewType);
   const { openFilePreviewDialog } = useDialogStore();
 
@@ -54,7 +60,7 @@ export default function DirectoryView({
 
   // Sync items with the store
   useEffect(() => {
-    mappedItems.forEach(item => {
+    mappedItems.forEach((item) => {
       addItem(item);
     });
   }, [mappedItems, addItem]);
@@ -68,17 +74,17 @@ export default function DirectoryView({
 
   // Group documents by MIME type when sorting by kind
   const groupedDocuments = useMemo(() => {
-    if (sortBy !== "kind") return { "Files": documents };
+    if (sortBy !== "kind") return { Files: documents };
 
     const groups: Record<string, FileSystemItem[]> = {};
-    
+
     // Add folders group
     if (folders.length > 0) {
       groups["Folders"] = folders;
     }
 
     // Group documents by MIME category
-    documents.forEach(doc => {
+    documents.forEach((doc) => {
       const category = getMimeCategory(doc.type);
       if (!groups[category]) {
         groups[category] = [];
@@ -91,7 +97,10 @@ export default function DirectoryView({
 
   // Group documents by date when sorting by date fields
   const groupedByDate = useMemo(() => {
-    if (folderArrangement === "separated" && (sortBy === "dateAdded" || sortBy === "dateUpdated")) {
+    if (
+      folderArrangement === "separated" &&
+      (sortBy === "dateAdded" || sortBy === "dateUpdated")
+    ) {
       return groupItemsByDate(documents, sortBy);
     }
     return null;
@@ -106,14 +115,16 @@ export default function DirectoryView({
 
     const item = sortedItems.find((item) => item.id === id);
     if (!item) return;
-    
+
     if (item.cardType === "folder") {
       navigate({ to: `/folder/${item.id}` });
     } else {
       // Handle document opening - open preview dialog
-      const documentItems = sortedItems.filter((item) => item.cardType === "document") as DocumentItem[];
+      const documentItems = sortedItems.filter(
+        (item) => item.cardType === "document"
+      ) as DocumentItem[];
       const currentIndex = documentItems.findIndex((doc) => doc.id === id);
-      
+
       if (currentIndex !== -1) {
         openFilePreviewDialog(documentItems, currentIndex);
       }
@@ -147,17 +158,15 @@ export default function DirectoryView({
 
   return (
     <FileDropZone>
-            <div className="p-4 pb-0 md:p-6 md:pb-0">
-              <h1 className="text-2xl font-bold">{directoryName}</h1>
-              <p className="text-muted-foreground">
-                {sortedItems.length}{" "}
-                {sortedItems.length === 1 ? "item" : "items"}
-              </p>
-            </div>
+      <div className="p-4 pb-0 md:p-6 md:pb-0">
+        <h1 className="text-2xl font-bold">{directoryName}</h1>
+        <p className="text-muted-foreground">
+          {sortedItems.length} {sortedItems.length === 1 ? "item" : "items"}
+        </p>
+      </div>
       <ContextMenu modal={false}>
         <ContextMenuTrigger asChild>
           <section className="flex flex-1 flex-col gap-4 md:gap-6 p-4 md:p-6 directory-view-container">
-
             {folderArrangement === "separated" ? (
               <>
                 {folders.length > 0 && sortBy !== "kind" && (
@@ -172,50 +181,58 @@ export default function DirectoryView({
                   </section>
                 )}
 
-                {sortBy === "kind" ? (
-                  // Show grouped items when sorting by kind
-                  Object.entries(groupedDocuments).map(([groupName, items]) => (
-                    items.length > 0 && (
-                      <section key={groupName} className="flex flex-col gap-4 mb-6">
-                        <h2 className="text-lg font-medium capitalize">{groupName}</h2>
-                        <CardGrid
-                          items={items}
-                          viewType={viewType}
-                          onItemClick={handleSelectItem}
-                          onItemOpen={handleOpenItem}
-                        />
-                      </section>
+                {sortBy === "kind"
+                  ? // Show grouped items when sorting by kind
+                    Object.entries(groupedDocuments).map(
+                      ([groupName, items]) =>
+                        items.length > 0 && (
+                          <section
+                            key={groupName}
+                            className="flex flex-col gap-4 mb-6"
+                          >
+                            <h2 className="text-lg font-medium capitalize">
+                              {groupName}
+                            </h2>
+                            <CardGrid
+                              items={items}
+                              viewType={viewType}
+                              onItemClick={handleSelectItem}
+                              onItemOpen={handleOpenItem}
+                            />
+                          </section>
+                        )
                     )
-                  ))
-                ) : groupedByDate ? (
-                  // Show date-based groups when sorting by date
-                  groupedByDate.map(({ label, items }) => (
-                    items.length > 0 && (
-                      <section key={label} className="flex flex-col gap-4 mb-6">
-                        <h2 className="text-lg font-medium">{label}</h2>
-                        <CardGrid
-                          items={items}
-                          viewType={viewType}
-                          onItemClick={handleSelectItem}
-                          onItemOpen={handleOpenItem}
-                        />
-                      </section>
-                    )
-                  ))
-                ) : (
-                  // Show regular files section for other sort types
-                  documents.length > 0 && (
-                    <section className="flex flex-col gap-4">
-                      <h2 className="text-lg font-medium">Files</h2>
-                      <CardGrid
-                        items={documents}
-                        viewType={viewType}
-                        onItemClick={handleSelectItem}
-                        onItemOpen={handleOpenItem}
-                      />
-                    </section>
-                  )
-                )}
+                  : groupedByDate
+                    ? // Show date-based groups when sorting by date
+                      groupedByDate.map(
+                        ({ label, items }) =>
+                          items.length > 0 && (
+                            <section
+                              key={label}
+                              className="flex flex-col gap-4 mb-6"
+                            >
+                              <h2 className="text-lg font-medium">{label}</h2>
+                              <CardGrid
+                                items={items}
+                                viewType={viewType}
+                                onItemClick={handleSelectItem}
+                                onItemOpen={handleOpenItem}
+                              />
+                            </section>
+                          )
+                      )
+                    : // Show regular files section for other sort types
+                      documents.length > 0 && (
+                        <section className="flex flex-col gap-4">
+                          <h2 className="text-lg font-medium">Files</h2>
+                          <CardGrid
+                            items={documents}
+                            viewType={viewType}
+                            onItemClick={handleSelectItem}
+                            onItemOpen={handleOpenItem}
+                          />
+                        </section>
+                      )}
               </>
             ) : (
               <section className="flex flex-1 flex-col gap-4">
