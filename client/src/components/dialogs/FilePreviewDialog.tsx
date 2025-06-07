@@ -38,8 +38,9 @@ export default function FilePreviewDialog() {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [fitScale, setFitScale] = useState(1);
 
-  // Calculate the maximum zoom out scale to fit the media in the container
+  // Calculate the scale needed to fit the media exactly within the container
   const calculateFitScale = useCallback(() => {
     if (!mediaRef.current || !previewRef.current || !currentFile) return 1;
 
@@ -65,13 +66,15 @@ export default function FilePreviewDialog() {
     const scaleX = containerWidth / mediaWidth;
     const scaleY = containerHeight / mediaHeight;
 
-    return Math.min(scaleX, scaleY, 1); // Never scale up beyond 100% initially
+    // Return the scale that makes the media fit exactly within the container
+    return Math.min(scaleX, scaleY);
   }, [currentFile]);
 
-  // Reset view to initial state
+  // Reset view to initial state (fit-to-container as 100%)
   const resetView = useCallback(() => {
-    const fitScale = calculateFitScale();
-    setZoom(fitScale);
+    const newFitScale = calculateFitScale();
+    setFitScale(newFitScale);
+    setZoom(1); // 1 = 100% = fit to container
     setPosition({ x: 0, y: 0 });
   }, [calculateFitScale]);
 
@@ -98,7 +101,10 @@ export default function FilePreviewDialog() {
 
   // Handle media load events
   const handleMediaLoad = useCallback(() => {
-    resetView();
+    // Wait a bit for the media to be fully rendered before calculating fit scale
+    setTimeout(() => {
+      resetView();
+    }, 50);
     // Re-attach wheel event listener after media loads
     const previewElement = previewRef.current;
     if (previewElement && filePreviewDialogOpen) {
@@ -250,17 +256,42 @@ export default function FilePreviewDialog() {
     resetView();
   }, [currentFile?.id, resetView]);
 
+  // Handle container resize to recalculate fit scale
+  useEffect(() => {
+    if (!previewRef.current) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (currentFile && (currentFile.type.startsWith("image/") || currentFile.type.startsWith("video/"))) {
+        // Recalculate fit scale when container resizes
+        setTimeout(() => {
+          const newFitScale = calculateFitScale();
+          setFitScale(newFitScale);
+        }, 50);
+      }
+    });
+
+    resizeObserver.observe(previewRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [currentFile, calculateFitScale]);
+
   const renderPreview = () => {
     if (!currentFile) return null;
 
     const { id, type: mimeType, name, extension } = currentFile;
     const fileUrl = fileApi.getFileUrl(id);
 
+    // Calculate the actual scale: fitScale * zoom
+    // fitScale makes it fit the container (our new 100%), zoom is the user's zoom level
+    const actualScale = fitScale * zoom;
+
     const mediaStyle = {
-      transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
+      transform: `scale(${actualScale}) translate(${position.x / actualScale}px, ${position.y / actualScale}px)`,
       cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "default",
-      maxWidth: "100%",
-      maxHeight: "100%",
+      maxWidth: "none", // Remove constraints to allow proper scaling
+      maxHeight: "none",
       objectFit: "contain" as const,
     };
 
