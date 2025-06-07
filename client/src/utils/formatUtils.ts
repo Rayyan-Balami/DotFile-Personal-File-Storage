@@ -10,9 +10,9 @@ export function formatFileSize(bytes: number | string): string {
   if (isNaN(size)) return '0 B';
   
   if (size < 1024) return size + ' B';
-  else if (size < 1048576) return (size / 1024).toFixed(1) + ' KB';
-  else if (size < 1073741824) return (size / 1048576).toFixed(1) + ' MB';
-  else return (size / 1073741824).toFixed(1) + ' GB';
+  else if (size < 1048576) return (size / 1024).toFixed(2) + ' KB';
+  else if (size < 1073741824) return (size / 1048576).toFixed(2) + ' MB';
+  else return (size / 1073741824).toFixed(2) + ' GB';
 }
 
 /**
@@ -72,4 +72,17 @@ export function formatDate(date: string | Date | null | undefined, withTime = fa
     });
     return withTime ? `${dateString} at ${timeString}` : dateString;
   }
+}
+
+
+// Helper function to format date to YYYY-MM-DD without timezone issues
+export function formatDateString(dateString: string | Date): string {
+  const date = new Date(dateString)
+
+  const year = date.toLocaleString('default', { year: 'numeric' })
+  const month = date.toLocaleString('default', { month: '2-digit' })
+  const day = date.toLocaleString('default', { day: '2-digit' })
+
+  // Generate yyyy-mm-dd date string
+  return year + '-' + month + '-' + day
 }

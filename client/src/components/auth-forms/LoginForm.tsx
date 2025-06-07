@@ -9,9 +9,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { cn, logger } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
 import { extractFieldError, getErrorMessage } from "@/utils/apiErrorHandler";
+import { logger } from "@/utils/logger";
 import { LoginUserInput, loginUserSchema } from "@/validation/authForm";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -39,7 +40,11 @@ export function LoginForm({
       const { data } = await login.mutateAsync(values);
       setAuth(data.user, data.accessToken);
       toast.success("Login successful!");
-      navigate({ to: "/" });
+      
+      // Navigate based on isAdmin from store (automatically computed)
+      // We need to get the updated state after setAuth
+      const { isAdmin } = useAuthStore.getState();
+      navigate({ to: isAdmin ? "/admin" : "/" });
     } catch (error: any) {
       logger.error("Login error:", error);
 

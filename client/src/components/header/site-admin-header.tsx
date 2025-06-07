@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 
 function AdminSiteHeader() {
   return (
-    <header className="sticky top-0 z-50 flex h-(--header-height) w-full flex-1 items-center gap-3.5 px-4 md:px-6 border-b">
+    <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md flex h-(--header-height) w-full flex-1 items-center gap-3.5 px-4 md:px-6 border-b">
       <AdminAppSidebar />
       <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
         <form className="ml-auto flex-1 sm:flex-initial">

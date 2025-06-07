@@ -286,6 +286,51 @@ class FileDao {
       .populate("folder")
       .sort({ updatedAt: -1 }); // Most recently updated first
   }
+
+  /**
+   * Get file creation analytics by date range
+   * @param startDate - Required start date for analytics (YYYY-MM-DD format)
+   * @param endDate - Required end date for analytics (YYYY-MM-DD format)
+   * @returns Array of daily file creation counts
+   */
+  async getFileCreationAnalytics(
+    startDate: string,
+    endDate: string
+  ): Promise<{ date: string; count: number }[]> {
+    const start = new Date(`${startDate}T00:00:00.000Z`);
+    const end = new Date(`${endDate}T23:59:59.999Z`);
+
+    const result = await File.aggregate([
+      {
+      $match: {
+        createdAt: { $gte: start, $lte: end }
+      }
+      },
+      {
+      $group: {
+        _id: {
+        $dateToString: {
+          format: "%Y-%m-%d",
+          date: "$createdAt"
+        }
+        },
+        count: { $sum: 1 }
+      }
+      },
+      {
+      $sort: { _id: 1 }
+      },
+      {
+      $project: {
+        _id: 0,
+        date: "$_id",
+        count: 1
+      }
+      }
+    ]);
+
+    return result;
+  }
 }
 
 export default new FileDao();

@@ -4,7 +4,6 @@ import {
   useUpdateProfile,
 } from "@/api/user/user.query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -14,12 +13,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { formatFileSize } from "@/utils/formatUtils";
-import { getInitials } from "@/utils/getInitials";
+import { VITE_API_URL } from "@/config/constants";
 import { useAuthStore } from "@/stores/authStore";
 import { extractFieldError, getErrorMessage } from "@/utils/apiErrorHandler";
+import { getInitials } from "@/utils/getInitials";
 import {
   avatarFileSchema,
   UpdateUserInput,
@@ -29,13 +27,11 @@ import {
 } from "@/validation/authForm";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { VITE_API_URL } from "@/config/constants";
-import DeleteAccountDialog from "@/components/dialogs/DeleteAccountDialog";
 
-export const Route = createFileRoute("/(user)/setting/profile")({
+export const Route = createFileRoute("/(admin)/admin/setting/profile")({
   component: RouteComponent,
 });
 
@@ -44,7 +40,6 @@ export default function RouteComponent() {
   const updateUser = useAuthStore((state) => state.updateUser);
 
   const [avatarPreview, setAvatarPreview] = useState<string>("");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const updateProfileMutation = useUpdateProfile();
@@ -171,15 +166,10 @@ export default function RouteComponent() {
     }
   }
 
-  // Handle delete account
-  function handleDeleteAccount() {
-    setDeleteDialogOpen(true);
-  }
-
   const initials = getInitials(user?.name || "");
 
   return (
-    <section className="flex flex-1 flex-col gap-6 md:gap-8 p-4 md:p-6">
+    <>
       {/* Top Profile Header Section */}
       <div className="flex items-center gap-6">
         <Avatar className="size-32 border rounded-md">
@@ -396,63 +386,6 @@ export default function RouteComponent() {
           </form>
         </Form>
       </div>
-
-      <Separator />
-
-      {/* Storage section */}
-      <div className="flex flex-col md:flex-row items-start flex-wrap gap-6">
-        <div className="w-xs">
-          <h5 className="font-medium">Storage</h5>
-          <p className="text-sm text-muted-foreground">
-            View your storage usage and limits
-          </p>
-        </div>
-        <div className="flex-1 space-y-4 max-w-lg">
-          <Badge
-            variant="secondary"
-            className="truncate h-6 rounded-full text-xs font-normal"
-          >
-            {user && user.maxStorageLimit > 0
-              ? ((user.storageUsed / user.maxStorageLimit) * 100).toFixed(0)
-              : 0}
-            % used
-          </Badge>
-          <Progress
-            value={
-              user && user.maxStorageLimit > 0
-                ? Math.round((user.storageUsed / user.maxStorageLimit) * 100)
-                : 0
-            }
-          />
-          <span className="font-light text-xs">
-            {user ? formatFileSize(user.storageUsed) : "0 B"} of{" "}
-            {user ? formatFileSize(user.maxStorageLimit) : "0 B"}
-          </span>
-        </div>
-      </div>
-
-      <Separator />
-
-      {/* Delete Account Section */}
-      <div className="flex flex-col md:flex-row items-start flex-wrap gap-6">
-        <div className="w-xs">
-          <h5 className="font-medium text-destructive">Delete Account</h5>
-          <p className="text-sm text-destructive/80">
-            Permanently delete your account
-          </p>
-        </div>
-        <div className="flex-1">
-          <Button variant="destructive" onClick={handleDeleteAccount}>
-            Delete Account
-          </Button>
-        </div>
-      </div>
-
-      {/* Delete Account Dialog */}
-      <DeleteAccountDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-      />
-    </section>
+    </>
   );
 }

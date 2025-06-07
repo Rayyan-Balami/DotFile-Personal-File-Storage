@@ -9,9 +9,9 @@ import {
 } from "@/api/folder/folder.query";
 import { Button } from "@/components/ui/button";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
-import { logger } from "@/lib/utils";
 import { useDialogStore } from "@/stores/useDialogStore";
 import { getErrorMessage } from "@/utils/apiErrorHandler";
+import { logger } from "@/utils/logger";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 

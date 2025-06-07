@@ -12,11 +12,8 @@ export const restrictTo = (allowedRoles: UserRole[]) =>
 
     const userRole = req.user.role as UserRole;
 
-    // Deny if user's role is not in allowed list and not admin
-    if (
-      !allowedRoles.includes(userRole) &&
-      !allowedRoles.includes(UserRole.ADMIN)
-    ) {
+    // Allow access if user's role is in the allowed list
+    if (!allowedRoles.includes(userRole)) {
       throw new ApiError(
         403,
         [{ authorization: `Access denied. Required role: ${allowedRoles.join(" or ")}` }]

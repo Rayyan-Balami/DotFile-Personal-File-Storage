@@ -30,7 +30,7 @@ guestRoutes
   .post("/refresh-token", validateData(refreshTokenSchema), userController.refreshToken); // Refresh token
 
 //=========================//
-// Auth routes (/users)
+// Auth routes (/users) for both user and admin
 //=========================//
 const authRoutes = Router();
 authRoutes.use(verifyAuth);

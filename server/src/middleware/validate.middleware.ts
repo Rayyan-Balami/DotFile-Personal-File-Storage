@@ -22,8 +22,11 @@ export const validateData = (
       // Validate the request data using the provided schema
       const data = await schema.parseAsync(req[source]);
 
-      // Overwrite the request source with validated and transformed data
-      req[source] = data;
+      // For body and params, we can overwrite with validated data
+      // For query, we just validate without overwriting since it's read-only
+      if (source !== 'query') {
+        req[source] = data;
+      }
 
       // Move to the next middleware or route
       next();

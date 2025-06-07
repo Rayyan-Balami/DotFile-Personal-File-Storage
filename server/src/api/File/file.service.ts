@@ -853,6 +853,32 @@ class FileService {
     // Sanitize for response
     return recentFiles.map(file => this.sanitizeFile(file));
   }
+
+
+  /**
+   * Get file creation analytics by date range
+   * @param startDate - Start date for analytics (YYYY-MM-DD format)
+   * @param endDate - End date for analytics (YYYY-MM-DD format)
+   * @returns Array of daily file creation counts
+   */
+  async getFileCreationAnalytics(
+    startDate: string,
+    endDate: string
+  ): Promise<{ date: string; count: number }[]> {
+
+      const analytics = await fileDao.getFileCreationAnalytics(startDate, endDate);
+
+      // Return empty array instead of throwing error when no data found
+      // This is better UX - no data is a valid state, not an error
+      if (!analytics || analytics.length === 0) {
+        return [];
+      }
+
+      return analytics.map(item => ({
+        date: item.date,
+        count: item.count
+      }));
+  }
 }
 
 export default new FileService();

@@ -11,26 +11,21 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
-import { Route as AdminRouteImport } from './routes/admin/route'
 import { Route as userRouteImport } from './routes/(user)/route'
 import { Route as authRouteImport } from './routes/(auth)/route'
+import { Route as adminRouteImport } from './routes/(admin)/route'
 import { Route as userIndexImport } from './routes/(user)/index'
-import { Route as AdminUserImport } from './routes/admin/user'
-import { Route as AdminAnalyticImport } from './routes/admin/analytic'
 import { Route as userTrashImport } from './routes/(user)/trash'
 import { Route as userRecentImport } from './routes/(user)/recent'
 import { Route as authRegisterImport } from './routes/(auth)/register'
 import { Route as authLoginImport } from './routes/(auth)/login'
+import { Route as adminAdminIndexImport } from './routes/(admin)/admin/index'
 import { Route as userSettingProfileImport } from './routes/(user)/setting.profile'
 import { Route as userFolderIdImport } from './routes/(user)/folder.$id'
+import { Route as adminAdminUserImport } from './routes/(admin)/admin/user'
+import { Route as adminAdminSettingProfileImport } from './routes/(admin)/admin/setting.profile'
 
 // Create/Update Routes
-
-const AdminRouteRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRoute,
-} as any)
 
 const userRouteRoute = userRouteImport.update({
   id: '/(user)',
@@ -42,22 +37,15 @@ const authRouteRoute = authRouteImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
+const adminRouteRoute = adminRouteImport.update({
+  id: '/(admin)',
+  getParentRoute: () => rootRoute,
+} as any)
+
 const userIndexRoute = userIndexImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => userRouteRoute,
-} as any)
-
-const AdminUserRoute = AdminUserImport.update({
-  id: '/user',
-  path: '/user',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-
-const AdminAnalyticRoute = AdminAnalyticImport.update({
-  id: '/analytic',
-  path: '/analytic',
-  getParentRoute: () => AdminRouteRoute,
 } as any)
 
 const userTrashRoute = userTrashImport.update({
@@ -84,6 +72,12 @@ const authLoginRoute = authLoginImport.update({
   getParentRoute: () => authRouteRoute,
 } as any)
 
+const adminAdminIndexRoute = adminAdminIndexImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => adminRouteRoute,
+} as any)
+
 const userSettingProfileRoute = userSettingProfileImport.update({
   id: '/setting/profile',
   path: '/setting/profile',
@@ -96,10 +90,29 @@ const userFolderIdRoute = userFolderIdImport.update({
   getParentRoute: () => userRouteRoute,
 } as any)
 
+const adminAdminUserRoute = adminAdminUserImport.update({
+  id: '/admin/user',
+  path: '/admin/user',
+  getParentRoute: () => adminRouteRoute,
+} as any)
+
+const adminAdminSettingProfileRoute = adminAdminSettingProfileImport.update({
+  id: '/admin/setting/profile',
+  path: '/admin/setting/profile',
+  getParentRoute: () => adminRouteRoute,
+} as any)
+
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/(admin)': {
+      id: '/(admin)'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof adminRouteImport
+      parentRoute: typeof rootRoute
+    }
     '/(auth)': {
       id: '/(auth)'
       path: '/'
@@ -112,13 +125,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof userRouteImport
-      parentRoute: typeof rootRoute
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRoute
     }
     '/(auth)/login': {
@@ -149,26 +155,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof userTrashImport
       parentRoute: typeof userRouteImport
     }
-    '/admin/analytic': {
-      id: '/admin/analytic'
-      path: '/analytic'
-      fullPath: '/admin/analytic'
-      preLoaderRoute: typeof AdminAnalyticImport
-      parentRoute: typeof AdminRouteImport
-    }
-    '/admin/user': {
-      id: '/admin/user'
-      path: '/user'
-      fullPath: '/admin/user'
-      preLoaderRoute: typeof AdminUserImport
-      parentRoute: typeof AdminRouteImport
-    }
     '/(user)/': {
       id: '/(user)/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof userIndexImport
       parentRoute: typeof userRouteImport
+    }
+    '/(admin)/admin/user': {
+      id: '/(admin)/admin/user'
+      path: '/admin/user'
+      fullPath: '/admin/user'
+      preLoaderRoute: typeof adminAdminUserImport
+      parentRoute: typeof adminRouteImport
     }
     '/(user)/folder/$id': {
       id: '/(user)/folder/$id'
@@ -184,10 +183,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof userSettingProfileImport
       parentRoute: typeof userRouteImport
     }
+    '/(admin)/admin/': {
+      id: '/(admin)/admin/'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof adminAdminIndexImport
+      parentRoute: typeof adminRouteImport
+    }
+    '/(admin)/admin/setting/profile': {
+      id: '/(admin)/admin/setting/profile'
+      path: '/admin/setting/profile'
+      fullPath: '/admin/setting/profile'
+      preLoaderRoute: typeof adminAdminSettingProfileImport
+      parentRoute: typeof adminRouteImport
+    }
   }
 }
 
 // Create and export the route tree
+
+interface adminRouteRouteChildren {
+  adminAdminUserRoute: typeof adminAdminUserRoute
+  adminAdminIndexRoute: typeof adminAdminIndexRoute
+  adminAdminSettingProfileRoute: typeof adminAdminSettingProfileRoute
+}
+
+const adminRouteRouteChildren: adminRouteRouteChildren = {
+  adminAdminUserRoute: adminAdminUserRoute,
+  adminAdminIndexRoute: adminAdminIndexRoute,
+  adminAdminSettingProfileRoute: adminAdminSettingProfileRoute,
+}
+
+const adminRouteRouteWithChildren = adminRouteRoute._addFileChildren(
+  adminRouteRouteChildren,
+)
 
 interface authRouteRouteChildren {
   authLoginRoute: typeof authLoginRoute
@@ -223,114 +252,102 @@ const userRouteRouteWithChildren = userRouteRoute._addFileChildren(
   userRouteRouteChildren,
 )
 
-interface AdminRouteRouteChildren {
-  AdminAnalyticRoute: typeof AdminAnalyticRoute
-  AdminUserRoute: typeof AdminUserRoute
-}
-
-const AdminRouteRouteChildren: AdminRouteRouteChildren = {
-  AdminAnalyticRoute: AdminAnalyticRoute,
-  AdminUserRoute: AdminUserRoute,
-}
-
-const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
-  AdminRouteRouteChildren,
-)
-
 export interface FileRoutesByFullPath {
   '/': typeof userIndexRoute
-  '/admin': typeof AdminRouteRouteWithChildren
   '/login': typeof authLoginRoute
   '/register': typeof authRegisterRoute
   '/recent': typeof userRecentRoute
   '/trash': typeof userTrashRoute
-  '/admin/analytic': typeof AdminAnalyticRoute
-  '/admin/user': typeof AdminUserRoute
+  '/admin/user': typeof adminAdminUserRoute
   '/folder/$id': typeof userFolderIdRoute
   '/setting/profile': typeof userSettingProfileRoute
+  '/admin': typeof adminAdminIndexRoute
+  '/admin/setting/profile': typeof adminAdminSettingProfileRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof userIndexRoute
-  '/admin': typeof AdminRouteRouteWithChildren
   '/login': typeof authLoginRoute
   '/register': typeof authRegisterRoute
   '/recent': typeof userRecentRoute
   '/trash': typeof userTrashRoute
-  '/admin/analytic': typeof AdminAnalyticRoute
-  '/admin/user': typeof AdminUserRoute
+  '/admin/user': typeof adminAdminUserRoute
   '/folder/$id': typeof userFolderIdRoute
   '/setting/profile': typeof userSettingProfileRoute
+  '/admin': typeof adminAdminIndexRoute
+  '/admin/setting/profile': typeof adminAdminSettingProfileRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
+  '/(admin)': typeof adminRouteRouteWithChildren
   '/(auth)': typeof authRouteRouteWithChildren
   '/(user)': typeof userRouteRouteWithChildren
-  '/admin': typeof AdminRouteRouteWithChildren
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/register': typeof authRegisterRoute
   '/(user)/recent': typeof userRecentRoute
   '/(user)/trash': typeof userTrashRoute
-  '/admin/analytic': typeof AdminAnalyticRoute
-  '/admin/user': typeof AdminUserRoute
   '/(user)/': typeof userIndexRoute
+  '/(admin)/admin/user': typeof adminAdminUserRoute
   '/(user)/folder/$id': typeof userFolderIdRoute
   '/(user)/setting/profile': typeof userSettingProfileRoute
+  '/(admin)/admin/': typeof adminAdminIndexRoute
+  '/(admin)/admin/setting/profile': typeof adminAdminSettingProfileRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/admin'
     | '/login'
     | '/register'
     | '/recent'
     | '/trash'
-    | '/admin/analytic'
     | '/admin/user'
     | '/folder/$id'
     | '/setting/profile'
+    | '/admin'
+    | '/admin/setting/profile'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
     | '/login'
     | '/register'
     | '/recent'
     | '/trash'
-    | '/admin/analytic'
     | '/admin/user'
     | '/folder/$id'
     | '/setting/profile'
+    | '/admin'
+    | '/admin/setting/profile'
   id:
     | '__root__'
+    | '/(admin)'
     | '/(auth)'
     | '/(user)'
-    | '/admin'
     | '/(auth)/login'
     | '/(auth)/register'
     | '/(user)/recent'
     | '/(user)/trash'
-    | '/admin/analytic'
-    | '/admin/user'
     | '/(user)/'
+    | '/(admin)/admin/user'
     | '/(user)/folder/$id'
     | '/(user)/setting/profile'
+    | '/(admin)/admin/'
+    | '/(admin)/admin/setting/profile'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
+  adminRouteRoute: typeof adminRouteRouteWithChildren
   authRouteRoute: typeof authRouteRouteWithChildren
   userRouteRoute: typeof userRouteRouteWithChildren
-  AdminRouteRoute: typeof AdminRouteRouteWithChildren
 }
 
 const rootRouteChildren: RootRouteChildren = {
+  adminRouteRoute: adminRouteRouteWithChildren,
   authRouteRoute: authRouteRouteWithChildren,
   userRouteRoute: userRouteRouteWithChildren,
-  AdminRouteRoute: AdminRouteRouteWithChildren,
 }
 
 export const routeTree = rootRoute
@@ -343,9 +360,17 @@ export const routeTree = rootRoute
     "__root__": {
       "filePath": "__root.tsx",
       "children": [
+        "/(admin)",
         "/(auth)",
-        "/(user)",
-        "/admin"
+        "/(user)"
+      ]
+    },
+    "/(admin)": {
+      "filePath": "(admin)/route.tsx",
+      "children": [
+        "/(admin)/admin/user",
+        "/(admin)/admin/",
+        "/(admin)/admin/setting/profile"
       ]
     },
     "/(auth)": {
@@ -365,13 +390,6 @@ export const routeTree = rootRoute
         "/(user)/setting/profile"
       ]
     },
-    "/admin": {
-      "filePath": "admin/route.tsx",
-      "children": [
-        "/admin/analytic",
-        "/admin/user"
-      ]
-    },
     "/(auth)/login": {
       "filePath": "(auth)/login.tsx",
       "parent": "/(auth)"
@@ -388,17 +406,13 @@ export const routeTree = rootRoute
       "filePath": "(user)/trash.tsx",
       "parent": "/(user)"
     },
-    "/admin/analytic": {
-      "filePath": "admin/analytic.tsx",
-      "parent": "/admin"
-    },
-    "/admin/user": {
-      "filePath": "admin/user.tsx",
-      "parent": "/admin"
-    },
     "/(user)/": {
       "filePath": "(user)/index.tsx",
       "parent": "/(user)"
+    },
+    "/(admin)/admin/user": {
+      "filePath": "(admin)/admin/user.tsx",
+      "parent": "/(admin)"
     },
     "/(user)/folder/$id": {
       "filePath": "(user)/folder.$id.tsx",
@@ -407,6 +421,14 @@ export const routeTree = rootRoute
     "/(user)/setting/profile": {
       "filePath": "(user)/setting.profile.tsx",
       "parent": "/(user)"
+    },
+    "/(admin)/admin/": {
+      "filePath": "(admin)/admin/index.tsx",
+      "parent": "/(admin)"
+    },
+    "/(admin)/admin/setting/profile": {
+      "filePath": "(admin)/admin/setting.profile.tsx",
+      "parent": "/(admin)"
     }
   }
 }

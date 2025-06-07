@@ -12,10 +12,19 @@ import { useEffect } from "react";
 
 export const Route = createFileRoute("/(user)")({
   beforeLoad: () => {
-    const { isAuthenticated } = useAuthStore.getState();
+    const { isAuthenticated, isAdmin } = useAuthStore.getState();
+    
     if (!isAuthenticated) {
       throw redirect({
         to: "/login",
+        replace: true,
+      });
+    }
+    
+    // Redirect admin users to admin dashboard
+    if (isAdmin) {
+      throw redirect({
+        to: "/admin",
         replace: true,
       });
     }

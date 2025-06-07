@@ -16,9 +16,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
-import { logger } from "@/lib/utils";
 import { useDialogStore } from "@/stores/useDialogStore";
 import { extractFieldError, getErrorMessage } from "@/utils/apiErrorHandler";
+import { logger } from "@/utils/logger";
 import { renameItemSchema } from "@/validation/folder.validation";
 import { toast } from "sonner";
 

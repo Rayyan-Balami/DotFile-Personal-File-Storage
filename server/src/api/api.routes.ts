@@ -4,6 +4,7 @@ import { ApiResponse } from "@utils/apiResponse.utils.js";
 import fileRoutes from "@api/file/file.routes.js";
 import folderRoutes from "./folder/folder.routes.js";
 import userRoutes from "./user/user.routes.js";
+import analyticsRoutes from "./analytics/analytics.routes.js";
 
 const apiRoutes = Router();
 
@@ -43,9 +44,9 @@ apiRoutes.get("/health", (_, res) => {
 });
 
 /**
- * Mount sub-routes: /auth, /users, /admin/users, /files, /folders
+ * Mount sub-routes: /auth, /users, /admin/users, /files, /folders, /analytics
  */
-apiRoutes.use("/", userRoutes, fileRoutes, folderRoutes);
+apiRoutes.use("/", userRoutes, fileRoutes, folderRoutes, analyticsRoutes);
 
 
 export default apiRoutes;

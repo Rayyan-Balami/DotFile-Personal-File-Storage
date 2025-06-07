@@ -20,7 +20,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { VITE_API_URL } from "@/config/constants";
-import { formatBytes, getInitials } from "@/lib/utils";
+import { formatFileSize } from "@/utils/formatUtils";
+import { getInitials } from "@/utils/getInitials";
 import { useAuthStore } from "@/stores/authStore";
 import { getErrorMessage } from "@/utils/apiErrorHandler";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -125,8 +126,8 @@ export function NavUser() {
               )}
             />
             <span className="font-light text-xs">
-              {formatBytes(user.storageUsed)} of{" "}
-              {formatBytes(user.maxStorageLimit)}
+              {formatFileSize(user.storageUsed)} of{" "}
+              {formatFileSize(user.maxStorageLimit)}
             </span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />

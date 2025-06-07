@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { VITE_API_URL } from "@/config/constants";
-import { getInitials } from "@/lib/utils";
+import { getInitials } from "@/utils/getInitials";
 import { useAuthStore } from "@/stores/authStore";
 import { getErrorMessage } from "@/utils/apiErrorHandler";
 import { toast } from "sonner";
@@ -74,27 +74,25 @@ export function AdminNavUser() {
       >
         {/* User info header */}
         <DropdownMenuLabel className="font-normal">
-            <div className="flex items-center gap-2 py-1.5 text-left text-sm">
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
-                <span className="truncate text-xs font-normal text-muted-foreground">
-                  {user.email}
-                </span>
-              </div>
-              <Avatar className="size-8 rounded-lg">
-                <AvatarImage
-                  src={`${VITE_API_URL}${user.avatar}`}
-                  alt={user.name}
-                />
-                <AvatarFallback className="rounded-lg">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
+          <div className="flex items-center gap-2 py-1.5 text-left text-sm">
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-medium">{user.name}</span>
+              <span className="truncate text-xs font-normal text-muted-foreground">
+                {user.email}
+              </span>
             </div>
+            <Avatar className="size-8 rounded-lg">
+              <AvatarImage
+                src={`${VITE_API_URL}${user.avatar}`}
+                alt={user.name}
+              />
+              <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+            </Avatar>
+          </div>
         </DropdownMenuLabel>
 
         <DropdownMenuSeparator />
-        
+
         {/* Role section */}
         <DropdownMenuLabel className="font-normal flex items-center justify-between gap-2">
           <span>Role</span>
@@ -105,27 +103,27 @@ export function AdminNavUser() {
             {user.role}
           </Badge>
         </DropdownMenuLabel>
-        
+
         <DropdownMenuSeparator />
-        
+
         {/* Theme toggle */}
         <DropdownMenuLabel className="font-normal flex items-center justify-between gap-2">
           <span>Theme</span>
           <ModeToggle />
         </DropdownMenuLabel>
-        
+
         <DropdownMenuSeparator />
-        
+
         {/* Settings and logout */}
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <Link to="/setting/profile" className="flex items-center gap-2">
+            <Link to="/admin/setting/profile" className="flex items-center gap-2">
               <Settings2 className="mr-1 h-4 w-4" />
               Settings
             </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
-        
+
         <DropdownMenuSeparator />
 
         <DropdownMenuItem onClick={handleLogout}>

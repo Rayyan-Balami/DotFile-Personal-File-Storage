@@ -966,6 +966,32 @@ class FolderService {
   }
 
   /**
+   * Get folder creation analytics by date range
+   * @param startDate - Start date for analytics (YYYY-MM-DD format)
+   * @param endDate - End date for analytics (YYYY-MM-DD format)
+   * @returns Array of daily folder creation counts
+   */
+  async getFolderCreationAnalytics(
+    startDate: string,
+    endDate: string
+  ): Promise<{ date: string; count: number }[]> {
+
+    const analytics = await folderDao.getFolderCreationAnalytics(startDate, endDate);
+    
+    // Return empty array instead of throwing error when no data found
+    // This is better UX - no data is a valid state, not an error
+    if (!analytics || analytics.length === 0) {
+      logger.debug(`No folder creation analytics found for date range ${startDate} to ${endDate}`);
+      return [];
+    }
+
+    return analytics.map(item => ({
+      date: item.date,
+      count: item.count
+    }));
+  }
+
+  /**
    * Manually move folder from trash to any location (macOS drag behavior)
    * @param folderId - Target folder to move
    * @param newParentId - New parent folder ID (null for root)
