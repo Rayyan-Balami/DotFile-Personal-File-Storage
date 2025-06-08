@@ -20,7 +20,11 @@ adminRoutes
   // Creation analytics (files and folders)
   .get("/creation", 
     validateData(creationAnalyticsSchema, 'query'),
-    AnalyticsController.getCreationAnalytics);
+    AnalyticsController.getCreationAnalytics)
+  
+  // Summary analytics for dashboard
+  .get("/summary", 
+    AnalyticsController.getSummaryAnalytics);
 
 //=========================//
 // Mount under /analytics

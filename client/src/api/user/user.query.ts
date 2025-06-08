@@ -38,25 +38,12 @@ export const useRefreshToken = () =>
 // AUTH USER HOOKS
 // ==========================
 
-interface CurrentUserResponse {
-  success: boolean;
-  statusCode: number;
-  message: string;
-  data: {
-    user: User;
-  };
-  timestamp: string;
-}
-
 export const useGetCurrentUser = () => {
   const updateUser = useAuthStore((state) => state.updateUser);
 
-  const query = useQuery<CurrentUserResponse>({
+  const query = useQuery({
     queryKey: ["currentUser"],
-    queryFn: async () => {
-      const response = await userApi.getCurrentUser();
-      return response.data;
-    },
+    queryFn: () => userApi.getCurrentUser().then((res) => res.data),
   });
 
   useEffect(() => {

@@ -1,7 +1,6 @@
 import analyticsApi from "@/api/analytics/analytics.api";
 import {
   CreationAnalyticsParams,
-  CreationAnalyticsResponse,
 } from "@/types/analytics.dto";
 import { useQuery } from "@tanstack/react-query";
 
@@ -26,6 +25,20 @@ export const useCreationAnalytics = (params: CreationAnalyticsParams) =>
     queryFn: () =>
       analyticsApi
         .getCreationAnalytics(params)
-        .then((res) => res.data as CreationAnalyticsResponse),
+        .then((res) => res.data),
     enabled: !!params.startDate && !!params.endDate,
+  });
+
+/**
+ * Hook to get summary analytics for dashboard
+ */
+export const useSummaryAnalytics = () =>
+  useQuery({
+    queryKey: ANALYTICS_KEYS.summary(),
+    queryFn: () =>
+      analyticsApi
+        .getSummaryAnalytics()
+        .then((res) => res.data),
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    refetchInterval: 30 * 60 * 1000, // Auto-refetch every 30 minutes
   });

@@ -879,6 +879,26 @@ class FileService {
         count: item.count
       }));
   }
+
+  /**
+   * Get file count for a specific date range
+   * @param startDate - Start date for counting files
+   * @param endDate - End date for counting files
+   * @returns Number of files created in the date range
+   */
+  async getFileCountByDateRange(startDate: Date, endDate: Date): Promise<number> {
+    return await fileDao.getFileCountByDateRange(startDate, endDate);
+  }
+
+  /**
+   * Get total storage size for files in a specific date range
+   * @param startDate - Start date for calculating storage
+   * @param endDate - End date for calculating storage
+   * @returns Total size in bytes for files created in the date range
+   */
+  async getStorageSizeByDateRange(startDate: Date, endDate: Date): Promise<number> {
+    return await fileDao.getStorageSizeByDateRange(startDate, endDate);
+  }
 }
 
 export default new FileService();

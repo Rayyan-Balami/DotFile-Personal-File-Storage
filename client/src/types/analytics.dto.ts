@@ -9,17 +9,15 @@ export interface CreationAnalyticsItem {
   total: number; // Total creations (file + folder)
 }
 
-export interface CreationAnalyticsResponse {
-  success: boolean;
-  statusCode: number;
-  message: string;
-  data: {
-    analytics: CreationAnalyticsItem[];
-  };
-  timestamp: string;
-}
-
 export interface CreationAnalyticsParams {
   startDate: string; // Required start date filter (YYYY-MM-DD)
   endDate: string; // Required end date filter (YYYY-MM-DD)
+}
+
+export interface SummaryAnalyticsItem {
+  type: 'users' | 'files' | 'storage' | 'activity';
+  label: string;
+  currentMonth: number;
+  previousMonth: number;
+  growthRate: number;
 }

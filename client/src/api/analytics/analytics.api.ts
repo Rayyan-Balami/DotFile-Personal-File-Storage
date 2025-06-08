@@ -11,7 +11,7 @@ export const analyticsApi = {
   }) => API.get("/analytics/creation", { params }),
 
   // Get summary statistics
-  getSummaryStats: () => API.get("/analytics/summary"),
+  getSummaryAnalytics: () => API.get("/analytics/summary"),
 };
 
 export default analyticsApi;

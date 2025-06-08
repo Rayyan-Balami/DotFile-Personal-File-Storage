@@ -565,9 +565,9 @@ class UserService {
   }
 
   /**
-   * Strip sensitive data from user object
-   * @param user - Raw user document
-   * @returns Client-safe user data
+   * Sanitize user document before sending to client (remove sensitive data)
+   * @param user - User document to sanitize
+   * @returns Sanitized user object without sensitive fields
    */
   private sanitizeUser(user: IUser): UserResponseDTO {
     // First use the general sanitizer
@@ -575,6 +575,26 @@ class UserService {
       excludeFields: ["password", "__v"],
       recursive: true,
     });
+  }
+
+  /**
+   * Get user count for a specific date range
+   * @param startDate - Start date for counting users
+   * @param endDate - End date for counting users
+   * @returns Number of users created in the date range
+   */
+  async getUserCountByDateRange(startDate: Date, endDate: Date): Promise<number> {
+    return await userDAO.getUserCountByDateRange(startDate, endDate);
+  }
+
+  /**
+   * Get active users count (users who uploaded at least one file) for a specific date range
+   * @param startDate - Start date for counting active users
+   * @param endDate - End date for counting active users
+   * @returns Number of active users in the date range
+   */
+  async getActiveUsersCountByDateRange(startDate: Date, endDate: Date): Promise<number> {
+    return await userDAO.getActiveUsersCountByDateRange(startDate, endDate);
   }
 }
 

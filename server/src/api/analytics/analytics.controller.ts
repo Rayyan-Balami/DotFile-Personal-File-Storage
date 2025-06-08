@@ -33,6 +33,23 @@ class AnalyticsController {
         "Creation analytics retrieved successfully"
       )
     );
+  });  /**
+   * Get summary analytics for dashboard
+   * @returns Summary analytics with current month vs previous month comparison
+   */
+  getSummaryAnalytics = asyncHandler(async (req: Request, res: Response) => {
+    logger.info("Getting summary analytics for dashboard");
+    
+    // Get summary analytics from analytics service
+    const analyticsArray = await analyticsService.getSummaryAnalytics();
+    
+    res.json(
+      new ApiResponse(
+        200, 
+        { analytics: analyticsArray },
+        "Summary analytics retrieved successfully"
+      )
+    );
   });
 }
 

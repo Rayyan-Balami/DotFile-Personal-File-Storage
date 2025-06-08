@@ -321,15 +321,53 @@ class FileDao {
       $sort: { _id: 1 }
       },
       {
-      $project: {
-        _id: 0,
-        date: "$_id",
-        count: 1
-      }
+        $project: {
+          _id: 0,
+          date: "$_id",
+          count: 1
+        }
       }
     ]);
 
     return result;
+  }
+
+  /**
+   * Get file count for a specific date range
+   * @param startDate - Start date for counting files
+   * @param endDate - End date for counting files
+   * @returns Number of files created in the date range
+   */
+  async getFileCountByDateRange(startDate: Date, endDate: Date): Promise<number> {
+    return await File.countDocuments({
+      createdAt: { $gte: startDate, $lt: endDate },
+      deletedAt: null
+    });
+  }
+
+  /**
+   * Get total storage size for files in a specific date range
+   * @param startDate - Start date for calculating storage
+   * @param endDate - End date for calculating storage
+   * @returns Total size in bytes for files created in the date range
+   */
+  async getStorageSizeByDateRange(startDate: Date, endDate: Date): Promise<number> {
+    const result = await File.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate, $lt: endDate },
+          deletedAt: null
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalSize: { $sum: "$size" }
+        }
+      }
+    ]);
+
+    return result[0]?.totalSize || 0;
   }
 }
 

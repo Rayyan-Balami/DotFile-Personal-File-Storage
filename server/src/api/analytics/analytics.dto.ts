@@ -19,3 +19,12 @@ export interface CreationAnalyticsResponseDto {
   file: number; // File creation count
   total: number; // Total creations (folder + file)
 }
+
+export interface SummaryAnalyticsItemDto {
+  type: 'users' | 'files' | 'storage' | 'activity';
+  label: string;
+  currentMonth: number;
+  previousMonth: number;
+  growthRate: number;
+}
+

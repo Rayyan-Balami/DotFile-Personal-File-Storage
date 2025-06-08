@@ -6,7 +6,6 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
-  isAdmin: boolean;
   storageUsed: number;
   maxStorageLimit: number;
   deletedAt: null | string;

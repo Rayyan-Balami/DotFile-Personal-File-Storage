@@ -286,7 +286,7 @@ export class UserDAO {
   }
 
   /**
-   * Permanently delete user from database
+   * Permanently delete user from database (hard delete)
    * @param userId - User's MongoDB ID
    * @returns Deletion result with acknowledged and deletedCount properties
    */
@@ -302,6 +302,53 @@ export class UserDAO {
       acknowledged: result.acknowledged,
       deletedCount: result.deletedCount,
     };
+  }
+
+  /**
+   * Get user count for a specific date range
+   * @param startDate - Start date for counting users
+   * @param endDate - End date for counting users
+   * @returns Number of users created in the date range
+   */
+  async getUserCountByDateRange(startDate: Date, endDate: Date): Promise<number> {
+    return await User.countDocuments({
+      createdAt: { $gte: startDate, $lt: endDate },
+      deletedAt: null
+    });
+  }
+
+  /**
+   * Get active users count (users who uploaded at least one file) for a specific date range
+   * @param startDate - Start date for counting active users
+   * @param endDate - End date for counting active users
+   * @returns Number of active users in the date range
+   */
+  async getActiveUsersCountByDateRange(startDate: Date, endDate: Date): Promise<number> {
+    const result = await User.aggregate([
+      {
+        $lookup: {
+          from: "files",
+          localField: "_id",
+          foreignField: "owner",
+          as: "files"
+        }
+      },
+      {
+        $match: {
+          deletedAt: null,
+          "files.createdAt": { $gte: startDate, $lt: endDate },
+          "files.deletedAt": null
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    return result[0]?.count || 0;
   }
 }
 

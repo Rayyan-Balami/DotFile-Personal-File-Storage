@@ -1,6 +1,7 @@
-import { CreationAnalyticsDto, CreationAnalyticsRequestDto, CreationAnalyticsResponseDto } from "@api/analytics/analytics.dto.js";
+import { CreationAnalyticsDto, CreationAnalyticsRequestDto, CreationAnalyticsResponseDto, SummaryAnalyticsItemDto } from "@api/analytics/analytics.dto.js";
 import fileService from "@api/file/file.service.js";
 import folderService from "@api/folder/folder.service.js";
+import userService from "@api/user/user.service.js";
 import { ApiError } from "@utils/apiError.utils.js";
 import logger from "@utils/logger.utils.js";
 
@@ -66,6 +67,88 @@ class AnalyticsService {
     logger.debug(`Retrieved combined creation analytics: ${result.length} data points`);
     return result;
   }
+
+  /**
+   * Get summary analytics for dashboard with growth rates
+   * @returns Summary analytics array with current month vs previous month comparison
+   */
+  async getSummaryAnalytics(): Promise<SummaryAnalyticsItemDto[]> {
+    logger.info("Getting summary analytics");
+
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    // Helper function to calculate growth rate
+    const calculateGrowthRate = (current: number, previous: number): number => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return Math.round(((current - previous) / previous) * 100);
+    };
+
+    // Get all statistics in parallel using proper service layer methods
+    const [
+      currentMonthUsers,
+      previousMonthUsers,
+      currentMonthFiles,
+      previousMonthFiles,
+      currentMonthStorage,
+      previousMonthStorage,
+      currentActiveUsers,
+      previousActiveUsers
+    ] = await Promise.all([
+      // User statistics
+      userService.getUserCountByDateRange(currentMonthStart, currentMonthEnd),
+      userService.getUserCountByDateRange(previousMonthStart, currentMonthStart),
+      
+      // File statistics
+      fileService.getFileCountByDateRange(currentMonthStart, currentMonthEnd),
+      fileService.getFileCountByDateRange(previousMonthStart, currentMonthStart),
+      
+      // Storage statistics
+      fileService.getStorageSizeByDateRange(currentMonthStart, currentMonthEnd),
+      fileService.getStorageSizeByDateRange(previousMonthStart, currentMonthStart),
+      
+      // Active users statistics
+      userService.getActiveUsersCountByDateRange(currentMonthStart, currentMonthEnd),
+      userService.getActiveUsersCountByDateRange(previousMonthStart, currentMonthStart)
+    ]);
+
+    const summaryAnalytics: SummaryAnalyticsItemDto[] = [
+      {
+        type: 'users',
+        label: 'Total Users',
+        currentMonth: currentMonthUsers,
+        previousMonth: previousMonthUsers,
+        growthRate: calculateGrowthRate(currentMonthUsers, previousMonthUsers)
+      },
+      {
+        type: 'files',
+        label: 'Total Files',
+        currentMonth: currentMonthFiles,
+        previousMonth: previousMonthFiles,
+        growthRate: calculateGrowthRate(currentMonthFiles, previousMonthFiles)
+      },
+      {
+        type: 'storage',
+        label: 'Storage Used',
+        currentMonth: currentMonthStorage,
+        previousMonth: previousMonthStorage,
+        growthRate: calculateGrowthRate(currentMonthStorage, previousMonthStorage)
+      },
+      {
+        type: 'activity',
+        label: 'Active Users',
+        currentMonth: currentActiveUsers,
+        previousMonth: previousActiveUsers,
+        growthRate: calculateGrowthRate(currentActiveUsers, previousActiveUsers)
+      }
+    ];
+
+    logger.debug(`Retrieved summary analytics:`, summaryAnalytics);
+    return summaryAnalytics;
+  }
+
 }
 
 export default new AnalyticsService();
