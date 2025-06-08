@@ -9,17 +9,11 @@ interface AuthState {
   accessToken: string | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  setAuth: (user: Omit<User, 'isAdmin'>, accessToken: string) => void;
+  setAuth: (user: Omit<User, "isAdmin">, accessToken: string) => void;
   setAccessToken: (accessToken: string) => void;
   clearAuth: () => void;
-  updateUser: (user: Omit<User, 'isAdmin'>) => void;
+  updateUser: (user: Omit<User, "isAdmin">) => void;
 }
-
-// Helper function to add isAdmin property
-const addIsAdmin = (user: Omit<User, 'isAdmin'>): User => ({
-  ...user,
-  isAdmin: user.role === UserRole.ADMIN,
-});
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -29,18 +23,25 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isAdmin: false,
       setAuth: (user, accessToken) => {
-        const userWithIsAdmin = addIsAdmin(user);
-        const isAdmin = user.role === UserRole.ADMIN;
-        set({ user: userWithIsAdmin, accessToken, isAuthenticated: true, isAdmin });
+        set({
+          user,
+          accessToken,
+          isAuthenticated: true,
+          isAdmin: user.role === UserRole.ADMIN,
+        });
       },
       setAccessToken: (accessToken) => set({ accessToken }),
       clearAuth: () => {
-        set({ user: null, accessToken: null, isAuthenticated: false, isAdmin: false });
+        set({
+          user: null,
+          accessToken: null,
+          isAuthenticated: false,
+          isAdmin: false,
+        });
       },
       updateUser: (user) => {
-        const userWithIsAdmin = addIsAdmin(user);
         const isAdmin = user.role === UserRole.ADMIN;
-        set({ user: userWithIsAdmin, isAdmin });
+        set({ user, isAdmin });
       },
     }),
     {

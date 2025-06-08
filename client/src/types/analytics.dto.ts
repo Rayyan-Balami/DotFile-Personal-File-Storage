@@ -26,3 +26,8 @@ export interface FileTypeAnalyticsItem {
   type: string; // MIME type of the file
   count: number; // Number of files with this type
 }
+
+export interface UserStorageConsumptionAnalyticsItem {
+  label: "100%" | "75%" | "50%" | "25%" | "0%";
+  count: number; // Number of users in this storage consumption category
+}

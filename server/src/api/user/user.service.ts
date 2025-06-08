@@ -596,6 +596,14 @@ class UserService {
   async getActiveUsersCountByDateRange(startDate: Date, endDate: Date): Promise<number> {
     return await userDAO.getActiveUsersCountByDateRange(startDate, endDate);
   }
+
+  /**
+   * Get user storage consumption distribution
+   * @returns Array of storage consumption categories with user counts
+   */
+  async getUserStorageConsumption(): Promise<{ category: string; count: number }[]> {
+    return await userDAO.getUserStorageConsumption();
+  }
 }
 
 export default new UserService();

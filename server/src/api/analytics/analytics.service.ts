@@ -1,4 +1,4 @@
-import { CreationAnalyticsDto, CreationAnalyticsRequestDto, CreationAnalyticsResponseDto, SummaryAnalyticsItemDto, FileTypeAnalyticsDto } from "@api/analytics/analytics.dto.js";
+import { CreationAnalyticsDto, CreationAnalyticsRequestDto, CreationAnalyticsResponseDto, SummaryAnalyticsItemDto, FileTypeAnalyticsDto, UserStorageConsumptionAnalyticsDto } from "@api/analytics/analytics.dto.js";
 import fileService from "@api/file/file.service.js";
 import folderService from "@api/folder/folder.service.js";
 import userService from "@api/user/user.service.js";
@@ -170,6 +170,32 @@ class AnalyticsService {
 
     logger.debug(`Retrieved file type analytics: ${fileTypeAnalytics.length} types`);
     return fileTypeAnalytics;
+  }
+
+  /**
+   * Get user storage consumption distribution analytics
+   * @returns Array of storage consumption categories with user counts
+   */
+  async getUserStorageConsumptionAnalytics(): Promise<UserStorageConsumptionAnalyticsDto[]> {
+    logger.info("Getting user storage consumption analytics");
+
+    // Get storage consumption data from user service
+    const storageConsumption = await userService.getUserStorageConsumption();
+
+    // Define all possible categories to ensure complete data
+    const allCategories: UserStorageConsumptionAnalyticsDto["label"][] = ["0%", "25%", "50%", "75%", "100%"];
+    
+    // Map database results to DTO format, filling in missing categories with 0
+    const consumptionAnalytics: UserStorageConsumptionAnalyticsDto[] = allCategories.map(label => {
+      const found = storageConsumption.find(item => item.category === label);
+      return {
+        label,
+        count: found ? found.count : 0
+      };
+    });
+
+    logger.debug(`Retrieved user storage consumption analytics: ${consumptionAnalytics.length} categories`);
+    return consumptionAnalytics;
   }
 
 }

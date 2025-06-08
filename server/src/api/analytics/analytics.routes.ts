@@ -28,7 +28,11 @@ adminRoutes
   
   // File type distribution analytics
   .get("/file-types", 
-    AnalyticsController.getFileTypeAnalytics);
+    AnalyticsController.getFileTypeAnalytics)
+  
+  // User storage consumption analytics
+  .get("/user-storage-consumption", 
+    AnalyticsController.getUserStorageConsumptionAnalytics);
 
 //=========================//
 // Mount under /analytics

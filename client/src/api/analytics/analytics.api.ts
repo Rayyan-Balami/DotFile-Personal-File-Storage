@@ -15,6 +15,9 @@ export const analyticsApi = {
 
   // Get file type distribution analytics
   getFileTypeAnalytics: () => API.get("/analytics/file-types"),
+
+  // Get user storage consumption analytics
+  getUserStorageConsumptionAnalytics: () => API.get("/analytics/user-storage-consumption"),
 };
 
 export default analyticsApi;

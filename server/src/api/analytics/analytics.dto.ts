@@ -33,3 +33,8 @@ export interface FileTypeAnalyticsDto {
   count: number; // Number of files with this type
 }
 
+export interface UserStorageConsumptionAnalyticsDto {
+  label: "100%" | "75%" | "50%" | "25%" | "0%";
+  count: number; // Number of users in this storage consumption category
+}
+

@@ -70,6 +70,25 @@ class AnalyticsController {
       )
     );
   });
+
+  /**
+   * Get user storage consumption distribution analytics
+   * @returns Array of storage consumption categories with user counts for bar chart
+   */
+  getUserStorageConsumptionAnalytics = asyncHandler(async (req: Request, res: Response) => {
+    logger.info("Getting user storage consumption analytics");
+    
+    // Get user storage consumption analytics from analytics service
+    const analytics = await analyticsService.getUserStorageConsumptionAnalytics();
+    
+    res.json(
+      new ApiResponse(
+        200, 
+        { analytics },
+        "User storage consumption analytics retrieved successfully"
+      )
+    );
+  });
 }
 
 export default new AnalyticsController();

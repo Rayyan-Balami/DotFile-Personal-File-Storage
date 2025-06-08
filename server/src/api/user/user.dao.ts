@@ -350,6 +350,72 @@ export class UserDAO {
 
     return result[0]?.count || 0;
   }
+
+  /**
+   * Get user storage consumption distribution
+   * @returns Array of storage consumption categories with user counts
+   */
+  async getUserStorageConsumption(): Promise<{ category: string; count: number }[]> {
+    const result = await User.aggregate([
+      {
+        $match: {
+          deletedAt: null
+        }
+      },
+      {
+        $addFields: {
+          storagePercentage: {
+            $cond: {
+              if: { $eq: ["$maxStorageLimit", 0] },
+              then: 0,
+              else: {
+                $multiply: [
+                  { $divide: ["$storageUsed", "$maxStorageLimit"] },
+                  100
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        $addFields: {
+          category: {
+            $switch: {
+              branches: [
+                { case: { $eq: ["$storagePercentage", 0] }, then: "0%" },
+                { case: { $and: [{ $gt: ["$storagePercentage", 0] }, { $lte: ["$storagePercentage", 25] }] }, then: "25%" },
+                { case: { $and: [{ $gt: ["$storagePercentage", 25] }, { $lte: ["$storagePercentage", 50] }] }, then: "50%" },
+                { case: { $and: [{ $gt: ["$storagePercentage", 50] }, { $lte: ["$storagePercentage", 75] }] }, then: "75%" },
+                { case: { $gt: ["$storagePercentage", 75] }, then: "100%" }
+              ],
+              default: "0%"
+            }
+          }
+        }
+      },
+      {
+        $group: {
+          _id: "$category",
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          category: "$_id",
+          count: 1
+        }
+      },
+      {
+        $sort: {
+          category: 1
+        }
+      }
+    ]);
+
+    return result;
+  }
 }
 
 export default new UserDAO();

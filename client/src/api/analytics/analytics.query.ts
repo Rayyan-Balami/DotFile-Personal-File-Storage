@@ -11,6 +11,7 @@ export const ANALYTICS_KEYS = {
     [...ANALYTICS_KEYS.all, "creation", params] as const,
   summary: () => [...ANALYTICS_KEYS.all, "summary"] as const,
   fileTypes: () => [...ANALYTICS_KEYS.all, "fileTypes"] as const,
+  userStorageConsumption: () => [...ANALYTICS_KEYS.all, "userStorageConsumption"] as const,
   userGrowth: (params?: { startDate?: string; endDate?: string }) =>
     [...ANALYTICS_KEYS.all, "users", params] as const,
   comprehensive: (params?: { startDate?: string; endDate?: string }) =>
@@ -53,6 +54,20 @@ export const useFileTypeAnalytics = () =>
     queryFn: () =>
       analyticsApi
         .getFileTypeAnalytics()
+        .then((res) => res.data),
+    staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
+    refetchInterval: 60 * 60 * 1000, // Auto-refetch every hour
+  });
+
+/**
+ * Hook to get user storage consumption analytics for horizontal bar chart
+ */
+export const useUserStorageConsumptionAnalytics = () =>
+  useQuery({
+    queryKey: ANALYTICS_KEYS.userStorageConsumption(),
+    queryFn: () =>
+      analyticsApi
+        .getUserStorageConsumptionAnalytics()
         .then((res) => res.data),
     staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
     refetchInterval: 60 * 60 * 1000, // Auto-refetch every hour
