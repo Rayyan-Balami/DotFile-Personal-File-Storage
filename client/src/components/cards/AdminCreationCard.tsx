@@ -36,6 +36,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
+import { useDebounce } from "@/hooks/use-debounce";
 import { cn } from "@/lib/utils";
 import { CreationAnalyticsItem } from "@/types/analytics.dto";
 import { formatDateString } from "@/utils/formatUtils";
@@ -93,37 +94,34 @@ export function AdminCreationCard() {
     };
   });
 
-  // Debounced auto-submit when date range changes
+  // Watch form values and prepare date range for debouncing
+  const formDateRange = form.watch("dateRange");
+  
+  // Create API-ready date range from form values
+  const apiDateRange = React.useMemo(() => {
+    if (formDateRange?.from && formDateRange?.to) {
+      return {
+        startDate: formatDateString(formDateRange.from),
+        endDate: formatDateString(formDateRange.to),
+      };
+    }
+    return dateRange; // fallback to current state
+  }, [formDateRange, dateRange]);
+
+  // Debounce the API date range
+  const debouncedDateRange = useDebounce(apiDateRange, 500);
+
+  // Update the actual date range when debounced value changes
   React.useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      if (
-        name === "dateRange" &&
-        value.dateRange?.from &&
-        value.dateRange?.to
-      ) {
-        // Debounce the API call by 500ms
-        const timeoutId = setTimeout(() => {
-          // Type guard to ensure values exist
-          if (value.dateRange && value.dateRange.from && value.dateRange.to) {
-            const apiDateRange = {
-              startDate: formatDateString(value.dateRange.from),
-              endDate: formatDateString(value.dateRange.to),
-            };
-
-            // Validate using your existing schema
-            const validatedData = creationAnalyticsSchema.parse(apiDateRange);
-
-            console.log("Date range auto-submitted:", validatedData);
-            setDateRange(validatedData);
-          }
-        }, 500);
-
-        return () => clearTimeout(timeoutId);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [form]);
+    // Validate using your existing schema
+    try {
+      const validatedData = creationAnalyticsSchema.parse(debouncedDateRange);
+      console.log("Date range debounced and validated:", validatedData);
+      setDateRange(validatedData);
+    } catch (error) {
+      console.error("Invalid date range:", error);
+    }
+  }, [debouncedDateRange]);
 
   // Fetch analytics data
   const {
