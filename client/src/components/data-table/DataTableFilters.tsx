@@ -16,13 +16,18 @@ export function TableFilters<TData>({
   table,
   filters,
 }: TableFiltersProps<TData>) {
+  const getDisplayValue = (filter: FilterOption) => {
+    const currentFilterValue = table.getColumn(filter.column)?.getFilterValue() as string;
+    return currentFilterValue || "";
+  };
+
   return (
     <>
       {filters.map((filter) => (
         <Combobox
           key={filter.column}
           list={filter.options}
-          value={table.getColumn(filter.column)?.getFilterValue() as string}
+          value={getDisplayValue(filter)}
           onChange={(value) =>
             table.getColumn(filter.column)?.setFilterValue(value)
           }

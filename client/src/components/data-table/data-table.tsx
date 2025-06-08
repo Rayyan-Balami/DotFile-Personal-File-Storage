@@ -10,9 +10,8 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-} from "@tanstack/react-table"
+} from "@tanstack/react-table";
 import * as React from "react";
-import { Input } from "@/components/ui/input"
 
 import {
   Table,
@@ -22,10 +21,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DataTablePagination } from "./DataTablePagination";
-import { DataTableViewOptions } from "./DataTableViewOptions";
 import { TableFilters } from "./DataTableFilters";
+import { DataTablePagination } from "./DataTablePagination";
 import { DataTableSearch } from "./DataTableSearch";
+import { DataTableViewOptions } from "./DataTableViewOptions";
 
 interface FilterOption {
   column: string;

@@ -4,7 +4,6 @@ import { useGetAllUsers } from "@/api/user/user.query";
 import { User } from "@/types/user";
 import { DataTable } from "./data-table";
 import { userColumns } from "./userColumns";
-import { userFilterOptions, userSearchColumns } from "./userTableConfig";
 
 interface AdminUserTableProps {
   includeDeleted?: boolean;
@@ -38,6 +37,40 @@ export default function AdminUserTable({ includeDeleted = false }: AdminUserTabl
   }
 
   const users: User[] = data?.data?.users || [];
+
+  // Configuration for AdminUserTable filters and search columns
+
+const userFilterOptions = [
+  {
+    column: "role",
+    label: "Role",
+    options: [
+      { label: "All", value: "" },
+      { label: "Admin", value: "admin" },
+      { label: "User", value: "user" },
+    ],
+  },
+  {
+    column: "deletedAt",
+    label: "Status",
+    options: [
+      { label: "All", value: "" },
+      { label: "Active", value: "active" },
+      { label: "Deleted", value: "deleted" },
+    ],
+  },
+];
+
+const userSearchColumns = [
+  {
+    column: "name",
+    label: "Name",
+  },
+  {
+    column: "email",
+    label: "Email",
+  },
+];
 
   return (
       <DataTable 
