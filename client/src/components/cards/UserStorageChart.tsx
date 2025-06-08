@@ -1,9 +1,8 @@
 "use client";
 
-import * as React from "react";
-import { TrendingUp } from "lucide-react";
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
 
+import { useUserStorageConsumptionAnalytics } from "@/api/analytics/analytics.query";
 import {
   Card,
   CardContent,
@@ -19,7 +18,6 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useUserStorageConsumptionAnalytics } from "@/api/analytics/analytics.query";
 import { UserStorageConsumptionAnalyticsItem } from "@/types/analytics.dto";
 
 export const description = "User storage consumption horizontal bar chart";
@@ -28,21 +26,49 @@ export const description = "User storage consumption horizontal bar chart";
 const chartConfig = {
   count: {
     label: "Users",
-    color: "hsl(var(--chart-1))",
+  },
+  "0%": {
+    label: "0%",
+    color: "var(--chart-1)",
+  },
+  "25%": {
+    label: "25%",
+    color: "var(--chart-2)",
+  },
+  "50%": {
+    label: "50%",
+    color: "var(--chart-3)",
+  },
+  "75%": {
+    label: "75%",
+    color: "var(--chart-4)",
+  },
+  "100%": {
+    label: "100%",
+    color: "var(--chart-5)",
   },
 } satisfies ChartConfig;
 
 // Transform data for the chart
 const transformDataForChart = (data: UserStorageConsumptionAnalyticsItem[]) => {
+  const colorMap: Record<string, string> = {
+    "0%": "var(--chart-1)",
+    "25%": "var(--chart-2)", 
+    "50%": "var(--chart-3)",
+    "75%": "var(--chart-4)",
+    "100%": "var(--chart-5)",
+  };
+  
   return data.map((item) => ({
-    label: item.label,
+    storage: item.label,
     count: item.count,
-    fill: "var(--color-count)",
+    fill: colorMap[item.label] || "var(--chart-1)",
   }));
 };
 
 export function UserStorageChart() {
   const { data, isLoading, error } = useUserStorageConsumptionAnalytics();
+  console.log("UserStorageChart data:", data);
 
   // Loading state
   if (isLoading) {
@@ -66,7 +92,7 @@ export function UserStorageChart() {
   }
 
   // Error state
-  if (error || !data?.analytics) {
+  if (error || !data?.data?.analytics) {
     return (
       <Card className="flex flex-col">
         <CardHeader className="items-center pb-0">
@@ -82,7 +108,7 @@ export function UserStorageChart() {
     );
   }
 
-  const chartData = transformDataForChart(data.analytics);
+  const chartData = transformDataForChart(data.data.analytics);
   const totalUsers = chartData.reduce((acc, curr) => acc + curr.count, 0);
 
   // Find the category with the most users
@@ -100,64 +126,40 @@ export function UserStorageChart() {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
-        <ChartContainer
-          config={chartConfig}
-          className="mx-auto aspect-square max-h-[250px]"
-        >
+        <ChartContainer config={chartConfig}>
           <BarChart
+            accessibilityLayer
             data={chartData}
-            layout="horizontal"
+            layout="vertical"
             margin={{
-              left: 40,
-              right: 12,
-              top: 12,
-              bottom: 12,
+              left: 0,
             }}
           >
-            <XAxis 
-              type="number" 
-              dataKey="count"
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={(value) => `${value}`}
-            />
             <YAxis
+              dataKey="storage"
               type="category"
-              dataKey="label"
               tickLine={false}
+              tickMargin={10}
               axisLine={false}
-              width={40}
+              tickFormatter={(value) =>
+                chartConfig[value as keyof typeof chartConfig]?.label
+              }
             />
+            <XAxis dataKey="count" type="number" hide />
             <ChartTooltip
               cursor={false}
               content={<ChartTooltipContent hideLabel />}
-              formatter={(value) => [
-                <div className="flex items-center gap-2 text-sm">
-                  <div
-                    className="h-2.5 w-2.5 shrink-0 rounded-[2px] bg-[--color-count]"
-                    style={{
-                      "--color-count": "var(--color-count)",
-                    } as React.CSSProperties}
-                  />
-                  {`${value} users`}
-                </div>
-              ]}
             />
-            <Bar 
-              dataKey="count" 
-              fill="var(--color-count)" 
-              radius={[0, 4, 4, 0]}
-            />
+            <Bar dataKey="count" layout="vertical" radius={5} />
           </BarChart>
         </ChartContainer>
       </CardContent>
-      <CardFooter className="flex-col gap-2 text-sm">
-        <div className="flex items-center gap-2 font-medium leading-none">
-          Most users are at {maxCategory.label} storage usage
-          <TrendingUp className="h-4 w-4" />
+      <CardFooter className="flex-col items-center gap-2 text-sm">
+        <div className="flex gap-2 leading-none font-medium">
+          Most users are at {maxCategory.storage} storage usage
         </div>
         <div className="leading-none text-muted-foreground">
-          Showing storage consumption distribution across all active users
+          Showing user distribution by storage consumption
         </div>
       </CardFooter>
     </Card>

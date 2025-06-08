@@ -42,7 +42,7 @@ export function LoginForm({
       toast.success("Login successful!");
       
       // Navigate based on user role
-      const isAdmin = data.user.role === UserRole.ADMIN;
+      const {isAdmin} = useAuthStore.getState();
       navigate({ to: isAdmin ? "/admin" : "/" });
     } catch (error: any) {
       logger.error("Login error:", error);

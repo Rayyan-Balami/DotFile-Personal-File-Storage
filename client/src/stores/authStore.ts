@@ -9,10 +9,10 @@ interface AuthState {
   accessToken: string | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  setAuth: (user: Omit<User, "isAdmin">, accessToken: string) => void;
+  setAuth: (user: User, accessToken: string) => void;
   setAccessToken: (accessToken: string) => void;
   clearAuth: () => void;
-  updateUser: (user: Omit<User, "isAdmin">) => void;
+  updateUser: (user: User) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -40,8 +40,7 @@ export const useAuthStore = create<AuthState>()(
         });
       },
       updateUser: (user) => {
-        const isAdmin = user.role === UserRole.ADMIN;
-        set({ user, isAdmin });
+        set({ user, isAdmin: user.role === UserRole.ADMIN });
       },
     }),
     {

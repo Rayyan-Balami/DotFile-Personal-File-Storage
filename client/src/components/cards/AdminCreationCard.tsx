@@ -13,6 +13,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -357,6 +358,16 @@ export function AdminCreationCard() {
           </AreaChart>
         </ChartContainer>
       </CardContent>
+      <CardFooter className="flex-col items-center gap-2 text-sm">
+        <div className="flex gap-2 leading-none font-medium">
+          Created {chartData.reduce((acc, curr) => acc + curr.total, 0)} items with{" "}
+          {chartData.reduce((acc, curr) => acc + curr.file, 0)} files and{" "}
+          {chartData.reduce((acc, curr) => acc + curr.folder, 0)} folders
+        </div>
+        <div className="leading-none text-muted-foreground">
+          Showing creation activity for files and folders
+        </div>
+      </CardFooter>
     </Card>
   );
 }

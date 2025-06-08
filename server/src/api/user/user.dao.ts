@@ -358,11 +358,6 @@ export class UserDAO {
   async getUserStorageConsumption(): Promise<{ category: string; count: number }[]> {
     const result = await User.aggregate([
       {
-        $match: {
-          deletedAt: null
-        }
-      },
-      {
         $addFields: {
           storagePercentage: {
             $cond: {

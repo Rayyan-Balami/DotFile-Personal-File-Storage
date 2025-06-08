@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { TrendingUp } from "lucide-react";
 import { Label, Pie, PieChart } from "recharts";
 
+import { useFileTypeAnalytics } from "@/api/analytics/analytics.query";
 import {
   Card,
   CardContent,
@@ -19,7 +19,6 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useFileTypeAnalytics } from "@/api/analytics/analytics.query";
 import { FileTypeAnalyticsItem } from "@/types/analytics.dto";
 
 export const description = "File type distribution pie chart";
@@ -207,8 +206,8 @@ export function FileTypePieChart() {
       </CardContent>
       <CardFooter className="flex-col gap-2 text-sm">
         {topFileType && (
-          <div className="flex items-center gap-2 leading-none font-medium">
-            Most common: {topFileType.label} ({topFileType.count} files)
+          <div className="flex gap-2 leading-none font-medium">
+            Most files are {topFileType.label} format with {topFileType.count} files
           </div>
         )}
         <div className="text-muted-foreground leading-none">
