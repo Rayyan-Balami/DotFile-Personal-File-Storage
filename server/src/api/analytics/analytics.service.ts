@@ -198,6 +198,19 @@ class AnalyticsService {
     return consumptionAnalytics;
   }
 
+  /**
+   * Get monthly user registrations analytics for the current year
+   * @returns Array of monthly user registration counts for current year
+   */
+  async getMonthlyUserRegistrationsAnalytics(): Promise<{ month: string; count: number }[]> {
+    logger.info("Getting monthly user registrations analytics");
+
+    const monthlyRegistrations = await userService.getMonthlyUserRegistrations();
+
+    logger.debug(`Retrieved monthly user registrations: ${monthlyRegistrations.length} months`);
+    return monthlyRegistrations;
+  }
+
 }
 
 export default new AnalyticsService();

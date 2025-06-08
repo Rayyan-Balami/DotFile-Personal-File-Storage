@@ -18,6 +18,9 @@ export const analyticsApi = {
 
   // Get user storage consumption analytics
   getUserStorageConsumptionAnalytics: () => API.get("/analytics/user-storage-consumption"),
+
+  // Get monthly user registrations analytics
+  getMonthlyUserRegistrationsAnalytics: () => API.get("/analytics/monthly-user-registrations"),
 };
 
 export default analyticsApi;

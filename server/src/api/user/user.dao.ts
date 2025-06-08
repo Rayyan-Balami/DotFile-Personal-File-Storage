@@ -411,6 +411,57 @@ export class UserDAO {
 
     return result;
   }
+
+  /**
+   * Get user registrations by month for the current year
+   * @returns Array of monthly user registration counts for current year
+   */
+  async getMonthlyUserRegistrations(): Promise<{ month: string; count: number }[]> {
+    const currentYear = new Date().getFullYear();
+    const startOfYear = new Date(currentYear, 0, 1);
+    const endOfYear = new Date(currentYear + 1, 0, 1);
+
+    const result = await User.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startOfYear, $lt: endOfYear },
+          deletedAt: null
+        }
+      },
+      {
+        $group: {
+          _id: { $month: "$createdAt" },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          monthNumber: "$_id",
+          count: 1
+        }
+      },
+      {
+        $sort: { monthNumber: 1 }
+      }
+    ]);
+
+    // Create a complete array with all 12 months (abbreviated)
+    const months = [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    ];
+
+    const completeResult = months.map((month, index) => {
+      const existingMonth = result.find(item => item.monthNumber === index + 1);
+      return {
+        month,
+        count: existingMonth ? existingMonth.count : 0
+      };
+    });
+
+    return completeResult;
+  }
 }
 
 export default new UserDAO();

@@ -89,6 +89,25 @@ class AnalyticsController {
       )
     );
   });
+
+  /**
+   * Get monthly user registrations analytics for the current year
+   * @returns Array of monthly user registration counts for radar chart
+   */
+  getMonthlyUserRegistrationsAnalytics = asyncHandler(async (req: Request, res: Response) => {
+    logger.info("Getting monthly user registrations analytics");
+    
+    // Get monthly user registrations analytics from analytics service
+    const analytics = await analyticsService.getMonthlyUserRegistrationsAnalytics();
+    
+    res.json(
+      new ApiResponse(
+        200, 
+        { analytics },
+        "Monthly user registrations analytics retrieved successfully"
+      )
+    );
+  });
 }
 
 export default new AnalyticsController();

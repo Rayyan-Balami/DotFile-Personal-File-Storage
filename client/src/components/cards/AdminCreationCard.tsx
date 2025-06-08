@@ -214,9 +214,7 @@ export function AdminCreationCard() {
         <div>
           <CardTitle>{chartConfig.creation.label}</CardTitle>
           <CardDescription>
-            {description} from{" "}
-            {format(new Date(dateRange.startDate), "MMM dd, yyyy")} to{" "}
-            {format(new Date(dateRange.endDate), "MMM dd, yyyy")}
+            {description}
           </CardDescription>
         </div>
         <div className="">
@@ -271,10 +269,10 @@ export function AdminCreationCard() {
           </Form>
         </div>
       </div>
-      <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
+      <CardContent className="pb-0">
         <ChartContainer
           config={chartConfig}
-          className="aspect-auto h-[250px] w-full"
+          className="h-[250px] w-full"
         >
           <AreaChart
             data={chartData}
@@ -360,12 +358,23 @@ export function AdminCreationCard() {
       </CardContent>
       <CardFooter className="flex-col items-center gap-2 text-sm">
         <div className="flex gap-2 leading-none font-medium">
-          Created {chartData.reduce((acc, curr) => acc + curr.total, 0)} items with{" "}
-          {chartData.reduce((acc, curr) => acc + curr.file, 0)} files and{" "}
-          {chartData.reduce((acc, curr) => acc + curr.folder, 0)} folders
+          {(() => {
+            if (chartData.length === 0) return "No data available";
+            const peakDay = chartData.reduce((max, curr) => (curr.total > max.total ? curr : max));
+            const peakDate = new Date(peakDay.date);
+            const formattedDate = peakDate.toLocaleDateString("en-US", {
+              month: "short",
+              day: "2-digit",
+              year: "numeric"
+            });
+            return `Peak creation was ${peakDay.total} creations on ${formattedDate}`;
+          })()}
         </div>
         <div className="leading-none text-muted-foreground">
-          Showing creation activity for files and folders
+          Total of {chartData.reduce((acc, curr) => acc + curr.file, 0)} files and{" "}
+          {chartData.reduce((acc, curr) => acc + curr.folder, 0)} folders created in {
+            chartData.length
+          } days
         </div>
       </CardFooter>
     </Card>

@@ -31,3 +31,8 @@ export interface UserStorageConsumptionAnalyticsItem {
   label: "100%" | "75%" | "50%" | "25%" | "0%";
   count: number; // Number of users in this storage consumption category
 }
+
+export interface UserGrowthAnalytics {
+  month: string; // Month name (e.g., "Jan", "Feb", "Mar")
+  count: number; // Number of new users in this month
+}

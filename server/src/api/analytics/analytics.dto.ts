@@ -38,3 +38,8 @@ export interface UserStorageConsumptionAnalyticsDto {
   count: number; // Number of users in this storage consumption category
 }
 
+export interface UserGrowthAnalytics {
+  month: string; // Abbreviated month name (e.g., "Jan", "Feb", "Mar")
+  count: number; // Number of new users in this month
+}
+

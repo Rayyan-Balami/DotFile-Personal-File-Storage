@@ -32,7 +32,11 @@ adminRoutes
   
   // User storage consumption analytics
   .get("/user-storage-consumption", 
-    AnalyticsController.getUserStorageConsumptionAnalytics);
+    AnalyticsController.getUserStorageConsumptionAnalytics)
+  
+  // Monthly user registrations analytics
+  .get("/monthly-user-registrations", 
+    AnalyticsController.getMonthlyUserRegistrationsAnalytics);
 
 //=========================//
 // Mount under /analytics

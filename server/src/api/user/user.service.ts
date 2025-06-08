@@ -604,6 +604,14 @@ class UserService {
   async getUserStorageConsumption(): Promise<{ category: string; count: number }[]> {
     return await userDAO.getUserStorageConsumption();
   }
+
+  /**
+   * Get monthly user registrations for the current year
+   * @returns Array of monthly user registration counts for current year
+   */
+  async getMonthlyUserRegistrations(): Promise<{ month: string; count: number }[]> {
+    return await userDAO.getMonthlyUserRegistrations();
+  }
 }
 
 export default new UserService();
