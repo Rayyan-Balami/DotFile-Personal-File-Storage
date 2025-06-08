@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
 import { extractFieldError, getErrorMessage } from "@/utils/apiErrorHandler";
 import { logger } from "@/utils/logger";
-import { LoginUserInput, loginUserSchema, UserRole } from "@/validation/authForm";
+import { LoginUserInput, loginUserSchema } from "@/validation/authForm";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";

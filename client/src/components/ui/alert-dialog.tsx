@@ -51,7 +51,7 @@ const AlertDialog = React.forwardRef<HTMLDivElement, AlertDialogProps>(
       disabled = false,
       className,
     },
-    ref
+    _ref
   ) => {
     const [open, setOpen] = React.useState(false);
     const [countdown, setCountdown] = React.useState(0);

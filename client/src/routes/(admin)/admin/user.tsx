@@ -1,9 +1,9 @@
+import DemoPage from '@/components/data-table/AdminUserTable'
 import { createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/(admin)/admin/user')({
-  component: RouteComponent,
+  component: DemoPage,
 })
 
-function RouteComponent() {
-  return <div>Hello "/admin/user"!</div>
-}
+
+

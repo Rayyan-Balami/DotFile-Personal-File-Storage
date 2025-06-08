@@ -29,7 +29,7 @@ interface ComboboxProps {
 const Combobox = React.forwardRef<HTMLButtonElement, ComboboxProps>(
   (
     { list, value, onChange, placeholder = "Select Item", className, multiple = false, disabled = false },
-    ref
+    _ref
   ) => {
     const [open, setOpen] = React.useState(false);
     const triggerRef = React.useRef<HTMLButtonElement>(null);
@@ -87,7 +87,7 @@ const Combobox = React.forwardRef<HTMLButtonElement, ComboboxProps>(
             <CommandInput placeholder="Search..." disabled={disabled} />
             <CommandList>
               <CommandEmpty>No item found.</CommandEmpty>
-              <CommandGroup className="text-black">
+              <CommandGroup>
                 {list.map((item) => (
                   <CommandItem
                     value={item.label}

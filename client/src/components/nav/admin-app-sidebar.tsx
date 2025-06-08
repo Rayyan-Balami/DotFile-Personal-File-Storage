@@ -1,5 +1,5 @@
 import { Link, useMatchRoute } from "@tanstack/react-router";
-import { BarChart3, Menu, Package2, Users } from "lucide-react";
+import { BarChart3, Menu, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";

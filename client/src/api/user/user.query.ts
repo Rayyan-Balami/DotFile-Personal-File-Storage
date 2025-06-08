@@ -1,6 +1,5 @@
 import userApi from "@/api/user/user.api";
 import { useAuthStore } from "@/stores/authStore";
-import { User } from "@/types/user";
 import {
   DeleteUserAccountInput,
   LoginUserInput,
