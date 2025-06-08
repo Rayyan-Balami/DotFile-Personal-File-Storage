@@ -369,6 +369,28 @@ class FileDao {
 
     return result[0]?.totalSize || 0;
   }
+
+
+  async getFileTypeCount(): Promise<{ [key: string]: number }> {
+    const result = await File.aggregate([
+      {
+        $match: {
+          deletedAt: null
+        }
+      },
+      {
+        $group: {
+          _id: "$type",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    return result.reduce((acc, item) => {
+      acc[item._id] = item.count;
+      return acc;
+    }, {} as { [key: string]: number });
+  }
 }
 
 export default new FileDao();

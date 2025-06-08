@@ -1,4 +1,4 @@
-import { CreationAnalyticsDto, CreationAnalyticsRequestDto, CreationAnalyticsResponseDto, SummaryAnalyticsItemDto } from "@api/analytics/analytics.dto.js";
+import { CreationAnalyticsDto, CreationAnalyticsRequestDto, CreationAnalyticsResponseDto, SummaryAnalyticsItemDto, FileTypeAnalyticsDto } from "@api/analytics/analytics.dto.js";
 import fileService from "@api/file/file.service.js";
 import folderService from "@api/folder/folder.service.js";
 import userService from "@api/user/user.service.js";
@@ -147,6 +147,29 @@ class AnalyticsService {
 
     logger.debug(`Retrieved summary analytics:`, summaryAnalytics);
     return summaryAnalytics;
+  }
+
+  /**
+   * Get file type distribution analytics
+   * @returns Array of file types with their counts
+   */
+  async getFileTypeAnalytics(): Promise<FileTypeAnalyticsDto[]> {
+    logger.info("Getting file type distribution analytics");
+
+    // Get file type counts from file service
+    const fileTypeCounts = await fileService.getFileTypeDistribution();
+
+    // Transform object to array format suitable for pie chart
+    const fileTypeAnalytics: FileTypeAnalyticsDto[] = Object.entries(fileTypeCounts).map(([type, count]) => ({
+      type,
+      count
+    }));
+
+    // Sort by count in descending order for better visualization
+    fileTypeAnalytics.sort((a, b) => b.count - a.count);
+
+    logger.debug(`Retrieved file type analytics: ${fileTypeAnalytics.length} types`);
+    return fileTypeAnalytics;
   }
 
 }

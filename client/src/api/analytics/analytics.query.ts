@@ -10,6 +10,7 @@ export const ANALYTICS_KEYS = {
   creation: (params: CreationAnalyticsParams) =>
     [...ANALYTICS_KEYS.all, "creation", params] as const,
   summary: () => [...ANALYTICS_KEYS.all, "summary"] as const,
+  fileTypes: () => [...ANALYTICS_KEYS.all, "fileTypes"] as const,
   userGrowth: (params?: { startDate?: string; endDate?: string }) =>
     [...ANALYTICS_KEYS.all, "users", params] as const,
   comprehensive: (params?: { startDate?: string; endDate?: string }) =>
@@ -41,4 +42,18 @@ export const useSummaryAnalytics = () =>
         .then((res) => res.data),
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     refetchInterval: 30 * 60 * 1000, // Auto-refetch every 30 minutes
+  });
+
+/**
+ * Hook to get file type analytics for pie chart
+ */
+export const useFileTypeAnalytics = () =>
+  useQuery({
+    queryKey: ANALYTICS_KEYS.fileTypes(),
+    queryFn: () =>
+      analyticsApi
+        .getFileTypeAnalytics()
+        .then((res) => res.data),
+    staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
+    refetchInterval: 60 * 60 * 1000, // Auto-refetch every hour
   });

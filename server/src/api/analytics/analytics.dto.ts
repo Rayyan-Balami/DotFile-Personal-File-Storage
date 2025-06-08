@@ -28,3 +28,8 @@ export interface SummaryAnalyticsItemDto {
   growthRate: number;
 }
 
+export interface FileTypeAnalyticsDto {
+  type: string; // MIME type of the file
+  count: number; // Number of files with this type
+}
+

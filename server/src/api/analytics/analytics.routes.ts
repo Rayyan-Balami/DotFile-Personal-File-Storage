@@ -24,7 +24,11 @@ adminRoutes
   
   // Summary analytics for dashboard
   .get("/summary", 
-    AnalyticsController.getSummaryAnalytics);
+    AnalyticsController.getSummaryAnalytics)
+  
+  // File type distribution analytics
+  .get("/file-types", 
+    AnalyticsController.getFileTypeAnalytics);
 
 //=========================//
 // Mount under /analytics

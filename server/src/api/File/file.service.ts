@@ -899,6 +899,14 @@ class FileService {
   async getStorageSizeByDateRange(startDate: Date, endDate: Date): Promise<number> {
     return await fileDao.getStorageSizeByDateRange(startDate, endDate);
   }
+
+  /**
+   * Get file type distribution for analytics
+   * @returns Object with MIME types as keys and counts as values
+   */
+  async getFileTypeDistribution(): Promise<{ [key: string]: number }> {
+    return await fileDao.getFileTypeCount();
+  }
 }
 
 export default new FileService();

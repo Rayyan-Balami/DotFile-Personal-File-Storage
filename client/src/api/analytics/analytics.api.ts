@@ -12,6 +12,9 @@ export const analyticsApi = {
 
   // Get summary statistics
   getSummaryAnalytics: () => API.get("/analytics/summary"),
+
+  // Get file type distribution analytics
+  getFileTypeAnalytics: () => API.get("/analytics/file-types"),
 };
 
 export default analyticsApi;

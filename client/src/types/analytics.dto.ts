@@ -21,3 +21,8 @@ export interface SummaryAnalyticsItem {
   previousMonth: number;
   growthRate: number;
 }
+
+export interface FileTypeAnalyticsItem {
+  type: string; // MIME type of the file
+  count: number; // Number of files with this type
+}

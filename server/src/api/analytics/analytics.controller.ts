@@ -51,6 +51,25 @@ class AnalyticsController {
       )
     );
   });
+
+  /**
+   * Get file type distribution analytics
+   * @returns Array of file types with their counts for pie chart
+   */
+  getFileTypeAnalytics = asyncHandler(async (req: Request, res: Response) => {
+    logger.info("Getting file type distribution analytics");
+    
+    // Get file type analytics from analytics service
+    const analytics = await analyticsService.getFileTypeAnalytics();
+    
+    res.json(
+      new ApiResponse(
+        200, 
+        { analytics },
+        "File type analytics retrieved successfully"
+      )
+    );
+  });
 }
 
 export default new AnalyticsController();
