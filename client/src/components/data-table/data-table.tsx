@@ -49,8 +49,6 @@ interface DataTableProps<TData, TValue> {
 export function DataTable<TData, TValue>({
   columns,
   data,
-  filterColumn = "name",
-  filterPlaceholder = "Filter...",
   filters = [],
   searchColumns = [],
 }: DataTableProps<TData, TValue>) {

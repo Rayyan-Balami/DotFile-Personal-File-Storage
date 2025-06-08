@@ -47,6 +47,20 @@ export const userApi = {
   getAllUsers: (params?: { page?: number; limit?: number; search?: string }) =>
     API.get("/admin/users", { params }),
 
+  getUsersPaginated: (params?: {
+    page?: number;
+    pageSize?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    search?: string;
+    searchFields?: string[];
+    filters?: Record<string, any>;
+  }) => API.get("/admin/users/paginated", { params: {
+    ...params,
+    searchFields: params?.searchFields?.join(','),
+    filters: params?.filters ? JSON.stringify(params.filters) : undefined
+  }}),
+
   getUserById: (id: string) => API.get(`/admin/users/${id}`),
 
   updateUser: (id: string, data: UpdateUserInput) =>

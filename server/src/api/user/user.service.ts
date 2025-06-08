@@ -326,8 +326,8 @@ class UserService {
   }
 
   /**
-   * Admin: List all users
-   * @param includeDeleted - Include trashed users
+   * Get all users (admin)
+   * @param includeDeleted - Include soft-deleted users
    * @returns Array of users
    */
   async getAllUsers(
@@ -335,6 +335,49 @@ class UserService {
   ): Promise<UserResponseDTO[]> {
     const users = await userDAO.getAllUsers(includeDeleted);
     return users.map((user) => this.sanitizeUser(user));
+  }
+
+  /**
+   * Get users with pagination, sorting, filtering, and search (admin)
+   * @param options - Pagination and filtering options
+   * @returns Paginated user results
+   */
+  async getAllUsersWithPagination(options: {
+    page: number;
+    pageSize: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    search?: string;
+    searchFields?: string[];
+    filters?: {
+      role?: string;
+      status?: 'active' | 'deleted';
+      includeDeleted?: boolean;
+    };
+  }): Promise<{
+    data: UserResponseDTO[];
+    pagination: {
+      page: number;
+      pageSize: number;
+      totalItems: number;
+      totalPages: number;
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+    };
+  }> {
+    const result = await userDAO.getAllUsersWithPagination(options);
+    
+    return {
+      data: result.users.map((user) => this.sanitizeUser(user)),
+      pagination: {
+        page: options.page,
+        pageSize: options.pageSize,
+        totalItems: result.totalItems,
+        totalPages: result.totalPages,
+        hasNextPage: result.hasNextPage,
+        hasPreviousPage: result.hasPreviousPage
+      }
+    };
   }
 
   /**

@@ -1,0 +1,207 @@
+"use client";
+
+import {
+  ColumnDef,
+  PaginationState,
+  SortingState,
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+} from "@tanstack/react-table";
+import * as React from "react";
+
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { TableFilters } from "./DataTableFilters";
+import { DataTablePagination } from "./DataTablePagination";
+import { DataTableSearch } from "./DataTableSearch";
+import { DataTableViewOptions } from "./DataTableViewOptions";
+
+interface FilterOption {
+  column: string;
+  label: string;
+  options: { label: string; value: string }[];
+}
+
+interface SearchColumn {
+  column: string;
+  label: string;
+}
+
+interface ServerSidePagination {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+interface DataTableServerSideProps<TData, TValue> {
+  columns: ColumnDef<TData, TValue>[];
+  data: TData[];
+  pagination: ServerSidePagination;
+  loading?: boolean;
+  filters?: FilterOption[];
+  searchColumns?: SearchColumn[];
+  onPaginationChange: (pagination: PaginationState) => void;
+  onSortingChange?: (sorting: SortingState) => void;
+  onSearchChange?: (search: string, searchColumns?: string[]) => void;
+  onFiltersChange?: (filters: Record<string, any>) => void;
+  sorting?: SortingState;
+  searchValue?: string;
+  filterValues?: Record<string, any>;
+}
+
+export function DataTableServerSide<TData, TValue>({
+  columns,
+  data,
+  pagination,
+  loading = false,
+  filters = [],
+  searchColumns = [],
+  onPaginationChange,
+  onSortingChange,
+  onSearchChange,
+  onFiltersChange,
+  sorting = [],
+  searchValue = "",
+  filterValues = {},
+}: DataTableServerSideProps<TData, TValue>) {
+  const [internalSorting, setInternalSorting] = React.useState<SortingState>(sorting);
+
+  const table = useReactTable({
+    data,
+    columns,
+    pageCount: pagination.totalPages,
+    state: {
+      sorting: internalSorting,
+      pagination: {
+        pageIndex: pagination.page - 1, // Convert 1-based to 0-based
+        pageSize: pagination.pageSize,
+      },
+    },
+    onSortingChange: (updater) => {
+      const newSorting = typeof updater === 'function' ? updater(internalSorting) : updater;
+      setInternalSorting(newSorting);
+      onSortingChange?.(newSorting);
+    },
+    onPaginationChange: (updater) => {
+      const currentPagination = {
+        pageIndex: pagination.page - 1,
+        pageSize: pagination.pageSize,
+      };
+      const newPagination = typeof updater === 'function' ? updater(currentPagination) : updater;
+      onPaginationChange({
+        pageIndex: newPagination.pageIndex,
+        pageSize: newPagination.pageSize,
+      });
+    },
+    getCoreRowModel: getCoreRowModel(),
+    manualPagination: true,
+    manualSorting: true,
+  });
+
+  const handleSearchChange = (value: string) => {
+    const searchFields = searchColumns.map(col => col.column);
+    onSearchChange?.(value, searchFields);
+  };
+
+  const handleFiltersChange = (newFilters: Record<string, any>) => {
+    onFiltersChange?.(newFilters);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-1 flex-col gap-4 md:flex-row md:items-center md:space-x-2">
+          {searchColumns.length > 0 && (
+            <DataTableSearch
+              searchColumns={searchColumns}
+              table={table}
+              onSearchChange={handleSearchChange}
+              searchValue={searchValue}
+            />
+          )}
+          {filters.length > 0 && (
+            <TableFilters
+              filters={filters}
+              table={table}
+              onFiltersChange={handleFiltersChange}
+              filterValues={filterValues}
+            />
+          )}
+        </div>
+        <DataTableViewOptions table={table} />
+      </div>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  return (
+                    <TableHead key={header.id} colSpan={header.colSpan}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  Loading...
+                </TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  No results.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      <DataTablePagination 
+        table={table}
+      />
+    </div>
+  );
+}

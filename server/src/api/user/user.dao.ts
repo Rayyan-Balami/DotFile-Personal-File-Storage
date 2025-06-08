@@ -228,6 +228,24 @@ export class UserDAO {
   }
 
   /**
+   * Admin: Set user's storage limit in bytes
+   * @param userId - User's MongoDB ID
+   * @param maxStorageLimit - New storage limit
+   * @returns Updated user or null
+   */
+  async updateUserStorageLimit(
+    userId: string,
+    maxStorageLimit: number
+  ): Promise<IUser | null> {
+    if (!mongoose.Types.ObjectId.isValid(userId)) return null;
+    return await User.findOneAndUpdate(
+      { _id: userId, deletedAt: null },
+      { maxStorageLimit },
+      { new: true }
+    );
+  }
+
+  /**
    * Soft delete user by setting deletedAt
    * @param userId - User's MongoDB ID
    * @returns Updated user or null
@@ -268,21 +286,100 @@ export class UserDAO {
   }
 
   /**
-   * Admin: Set user's storage limit in bytes
-   * @param userId - User's MongoDB ID
-   * @param maxStorageLimit - New storage limit
-   * @returns Updated user or null
+   * Get users with pagination, sorting, filtering, and search
+   * @param options - Pagination and filtering options
+   * @returns Paginated user results with metadata
    */
-  async updateUserStorageLimit(
-    userId: string,
-    maxStorageLimit: number
-  ): Promise<IUser | null> {
-    if (!mongoose.Types.ObjectId.isValid(userId)) return null;
-    return await User.findOneAndUpdate(
-      { _id: userId, deletedAt: null },
-      { maxStorageLimit },
-      { new: true }
-    );
+  async getAllUsersWithPagination(options: {
+    page: number;
+    pageSize: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    search?: string;
+    searchFields?: string[];
+    filters?: {
+      role?: string;
+      status?: 'active' | 'deleted';
+      includeDeleted?: boolean;
+    };
+  }): Promise<{
+    users: IUser[];
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  }> {
+    const {
+      page,
+      pageSize,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      search,
+      searchFields = ['name', 'email'],
+      filters = {}
+    } = options;
+
+    // Build match stage for aggregation
+    const matchStage: any = {};
+
+    // Handle deleted users filter
+    if (filters.status === 'deleted') {
+      matchStage.deletedAt = { $ne: null };
+    } else if (filters.status === 'active') {
+      matchStage.deletedAt = null;
+    } else if (!filters.includeDeleted) {
+      matchStage.deletedAt = null;
+    }
+
+    // Handle role filter
+    if (filters.role) {
+      matchStage.role = filters.role;
+    }
+
+    // Handle search
+    if (search && searchFields.length > 0) {
+      const searchRegex = new RegExp(search, 'i');
+      matchStage.$or = searchFields.map(field => ({
+        [field]: searchRegex
+      }));
+    }
+
+    // Build sort stage
+    const sortStage: any = {};
+    sortStage[sortBy] = sortOrder === 'asc' ? 1 : -1;
+
+    // Calculate skip value
+    const skip = (page - 1) * pageSize;
+
+    // Build aggregation pipeline
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $facet: {
+          data: [
+            { $sort: sortStage },
+            { $skip: skip },
+            { $limit: pageSize }
+          ],
+          totalCount: [
+            { $count: "count" }
+          ]
+        }
+      }
+    ];
+
+    const result = await User.aggregate(pipeline);
+    const users = result[0].data;
+    const totalItems = result[0].totalCount[0]?.count || 0;
+    const totalPages = Math.ceil(totalItems / pageSize);
+
+    return {
+      users,
+      totalItems,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1
+    };
   }
 
   /**

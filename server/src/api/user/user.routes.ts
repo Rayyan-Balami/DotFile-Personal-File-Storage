@@ -11,6 +11,7 @@ import {
   updateUserPasswordSchema,
   updateUserRoleSchema,
   updateUserSchema,
+  userPaginationQuerySchema,
 } from "@api/user/user.validator.js";
 import { verifyGuest } from "@middleware/guest.middleware.js";
 import { verifyAuth } from "@middleware/auth.middleware.js";
@@ -51,7 +52,7 @@ adminRoutes.use(verifyAuth);
 adminRoutes.use(restrictTo([UserRole.ADMIN]));
 
 adminRoutes
-  .get("/", userController.getAllUsers)                                             // List all users
+  .get("/paginated", validateData(userPaginationQuerySchema, "query"), userController.getAllUsersWithPagination)                      // List users with pagination
   .get("/:id", userController.getUserById)                                          // Get user by ID
   .put("/:id", validateData(updateUserSchema), userController.updateUser)           // Update user profile
   .patch("/:id/password", validateData(adminSetPasswordSchema), userController.adminSetUserPassword) // Set password

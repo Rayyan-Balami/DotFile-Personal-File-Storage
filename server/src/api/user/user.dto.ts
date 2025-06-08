@@ -112,3 +112,43 @@ export interface JwtUserPayload {
 export interface AdminUpdateStorageDTO {
   maxStorageLimit: number;
 }
+
+/**
+ * Pagination query parameters
+ */
+export interface PaginationDTO {
+  page: number;
+  pageSize: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  search?: string;
+  searchFields?: string[];
+  filters?: Record<string, any>;
+}
+
+/**
+ * Paginated response structure
+ */
+export interface PaginatedResponseDTO<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}
+
+/**
+ * User pagination query parameters
+ */
+export interface UserPaginationDTO extends PaginationDTO {
+  filters?: {
+    role?: UserRole;
+    status?: 'active' | 'deleted';
+    includeDeleted?: boolean;
+  };
+  searchFields?: ('name' | 'email')[];
+}

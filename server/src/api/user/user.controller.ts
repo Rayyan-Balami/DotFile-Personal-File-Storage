@@ -63,6 +63,52 @@ class UserController {
   });
 
   /**
+   * Get users with pagination, filtering, and search (admin)
+   */
+  getAllUsersWithPagination = asyncHandler(async (req: Request, res: Response) => {
+    const {
+      page = 1,
+      pageSize = 10,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      search,
+      searchFields,
+      filters
+    } = req.query;
+
+    // Parse pagination parameters
+    const pageNum = parseInt(page as string, 10);
+    const pageSizeNum = parseInt(pageSize as string, 10);
+    
+    // Parse search fields if provided
+    const searchFieldsArray = searchFields 
+      ? (searchFields as string).split(',').map(field => field.trim())
+      : undefined;
+
+    // Parse filters if provided
+    let parsedFilters;
+    if (filters) {
+      try {
+        parsedFilters = typeof filters === 'string' ? JSON.parse(filters) : filters;
+      } catch (error) {
+        parsedFilters = {};
+      }
+    }
+
+    const result = await userService.getAllUsersWithPagination({
+      page: pageNum,
+      pageSize: pageSizeNum,
+      sortBy: sortBy as string,
+      sortOrder: sortOrder as 'asc' | 'desc',
+      search: search as string,
+      searchFields: searchFieldsArray,
+      filters: parsedFilters
+    });
+
+    res.json(new ApiResponse(200, result, "Users retrieved successfully"));
+  });
+
+  /**
    * Fetch single user profile
    */
   getUserById = asyncHandler(async (req: Request, res: Response) => {

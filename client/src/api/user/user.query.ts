@@ -110,6 +110,20 @@ export const useGetAllUsers = (params?: {
     queryFn: () => userApi.getAllUsers(params).then((res) => res.data),
   });
 
+export const useGetUsersPaginated = (params?: {
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  search?: string;
+  searchFields?: string[];
+  filters?: Record<string, any>;
+}) =>
+  useQuery({
+    queryKey: ["adminUsersPaginated", params],
+    queryFn: () => userApi.getUsersPaginated(params).then((res) => res.data),
+  });
+
 export const useGetUserById = (id: string) =>
   useQuery({
     queryKey: ["adminUser", id],

@@ -133,6 +133,23 @@ const deleteUserAccountSchema = z.object({
   password: z.string().min(1, { message: "Password is required to delete account" }),
 });
 
+/**
+ * User pagination query validation
+ */
+const userPaginationQuerySchema = z.object({
+  page: z.string().transform(val => parseInt(val, 10)).refine(val => val > 0, {
+    message: "Page must be a positive number"
+  }).optional(),
+  pageSize: z.string().transform(val => parseInt(val, 10)).refine(val => val > 0 && val <= 100, {
+    message: "Page size must be between 1 and 100"
+  }).optional(),
+  sortBy: z.string().optional(),
+  sortOrder: z.enum(['asc', 'desc']).optional(),
+  search: z.string().optional(),
+  searchFields: z.string().optional(),
+  filters: z.string().optional()
+});
+
 export {
   adminSetPasswordSchema,
   deleteUserAccountSchema,
@@ -142,5 +159,6 @@ export {
   updateStorageLimitSchema,
   updateUserPasswordSchema,
   updateUserRoleSchema,
-  updateUserSchema
+  updateUserSchema,
+  userPaginationQuerySchema
 };

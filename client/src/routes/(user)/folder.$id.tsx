@@ -1,9 +1,10 @@
 import { useFolderById, useFolderContents } from '@/api/folder/folder.query';
-import DirectoryView from '@/components/views/DirectoryView';
 import { useFileSystemStore } from '@/stores/useFileSystemStore';
 import { createFileRoute } from '@tanstack/react-router';
 import { Loader2 } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
+
+const DirectoryView = lazy(() => import('@/components/views/DirectoryView'));
 
 // When we go inside a folder we use a dynamic route
 export const Route = createFileRoute('/(user)/folder/$id')({
@@ -38,11 +39,19 @@ function RouteComponent() {
   }
 
   return (
-    <DirectoryView 
-      items={sortedItems} 
-      directoryName={folderContents?.pathSegments?.[folderContents.pathSegments.length - 1]?.name || 'Loading...'}
-      currentPath={`/folder/${id}`}
-      parentId={id}
-    />
+    <Suspense 
+      fallback={
+        <div className="flex items-center justify-center h-full">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      }
+    >
+      <DirectoryView 
+        items={sortedItems} 
+        directoryName={folderContents?.pathSegments?.[folderContents.pathSegments.length - 1]?.name || 'Loading...'}
+        currentPath={`/folder/${id}`}
+        parentId={id}
+      />
+    </Suspense>
   );
 }
