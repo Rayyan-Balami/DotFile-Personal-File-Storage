@@ -71,8 +71,6 @@ export const userApi = {
 
   updateUserPassword: (id: string, data: UpdateUserPasswordInput) =>
     API.patch(`/admin/users/${id}/password`, data),
-
-  deleteUser: (id: string) => API.delete(`/admin/users/${id}`),
 };
 
 export default userApi;

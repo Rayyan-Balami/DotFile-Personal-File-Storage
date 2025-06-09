@@ -180,15 +180,7 @@ class UserController {
     );
   });
 
-  /**
-   * Move user to trash
-   */
-  softDeleteUser = asyncHandler(async (req: Request, res: Response) => {
-    const deletedUser = await userService.softDeleteUser(req.params.id);
-    res.json(
-      new ApiResponse(200, { user: deletedUser }, "User soft deleted successfully")
-    );
-  });
+
 
   /**
    * End session and clear cookies
@@ -307,19 +299,7 @@ class UserController {
     );
   });
 
-  /**
-   * Admin: Restore user from trash
-   */
-  restoreUser = asyncHandler(async (req: Request, res: Response) => {
-    const restoredUser = await userService.restoreUser(req.params.id);
-    res.json(
-      new ApiResponse(
-        200,
-        { user: restoredUser },
-        "User restored successfully"
-      )
-    );
-  });
+
 
   /**
    * Permanently delete current user account
@@ -387,6 +367,51 @@ class UserController {
       }
       throw error;
     }
+  });
+
+  /**
+   * Admin: Bulk soft delete users
+   */
+  bulkSoftDeleteUsers = asyncHandler(async (req: Request, res: Response) => {
+    const { userIds } = req.body;
+    const result = await userService.bulkSoftDeleteUsers(userIds);
+    res.json(
+      new ApiResponse(
+        200,
+        result,
+        "Users soft deleted successfully"
+      )
+    );
+  });
+
+  /**
+   * Admin: Bulk restore users
+   */
+  bulkRestoreUsers = asyncHandler(async (req: Request, res: Response) => {
+    const { userIds } = req.body;
+    const result = await userService.bulkRestoreUsers(userIds);
+    res.json(
+      new ApiResponse(
+        200,
+        result,
+        "Users restored successfully"
+      )
+    );
+  });
+
+  /**
+   * Admin: Bulk permanent delete users
+   */
+  bulkPermanentDeleteUsers = asyncHandler(async (req: Request, res: Response) => {
+    const { userIds } = req.body;
+    const result = await userService.bulkPermanentDeleteUsers(userIds);
+    res.json(
+      new ApiResponse(
+        200,
+        result,
+        "Users permanently deleted successfully"
+      )
+    );
   });
 }
 

@@ -246,35 +246,6 @@ export class UserDAO {
   }
 
   /**
-   * Soft delete user by setting deletedAt
-   * @param userId - User's MongoDB ID
-   * @returns Updated user or null
-   */
-  async softDeleteUser(userId: string): Promise<IUser | null> {
-    if (!mongoose.Types.ObjectId.isValid(userId)) return null;
-    return await User.findOneAndUpdate(
-      { _id: userId },
-      { deletedAt: new Date() },
-      { new: true }
-    );
-  }
-
-
-  /**
-   * Restore soft-deleted user
-   * @param userId - User's MongoDB ID
-   * @returns Restored user or null
-   */
-  async restoreUser(userId: string): Promise<IUser | null> {
-    if (!mongoose.Types.ObjectId.isValid(userId)) return null;
-    return await User.findOneAndUpdate(
-      { _id: userId },
-      { deletedAt: null },
-      { new: true }
-    );
-  }
-
-  /**
    * List all users with optional deleted filter
    * @param deletedAt - Filter for deleted users
    * @returns Array of matching users
@@ -580,6 +551,201 @@ export class UserDAO {
     });
 
     return completeResult;
+  }
+
+  /**
+   * Bulk soft delete users by setting deletedAt
+   * @param userIds - Array of user MongoDB IDs
+   * @returns Object with success and failed operations
+   */
+  async bulkSoftDeleteUsers(userIds: string[]): Promise<{
+    successful: IUser[];
+    failed: Array<{ id: string; error: string }>;
+  }> {
+    const successful: IUser[] = [];
+    const failed: Array<{ id: string; error: string }> = [];
+
+    // Validate all IDs first
+    const validIds: string[] = [];
+    for (const userId of userIds) {
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        failed.push({ id: userId, error: "Invalid user ID format" });
+      } else {
+        validIds.push(userId);
+      }
+    }
+
+    if (validIds.length === 0) {
+      return { successful, failed };
+    }
+
+    try {
+      // Use bulkWrite for atomic operations
+      const bulkOps = validIds.map(userId => ({
+        updateOne: {
+          filter: { _id: userId, deletedAt: null },
+          update: { deletedAt: new Date() }
+        }
+      }));
+
+      const bulkResult = await User.bulkWrite(bulkOps);
+      
+      // Get the successfully updated users
+      if (bulkResult.modifiedCount > 0) {
+        const updatedUsers = await User.find({
+          _id: { $in: validIds },
+          deletedAt: { $ne: null }
+        });
+        successful.push(...updatedUsers);
+      }
+
+      // Identify failed operations
+      const successfulIds = successful.map(user => user._id.toString());
+      const failedIds = validIds.filter(id => !successfulIds.includes(id));
+      
+      for (const failedId of failedIds) {
+        failed.push({ id: failedId, error: "User not found or already deleted" });
+      }
+
+    } catch (error) {
+      // If bulk operation fails, fall back to marking all as failed
+      for (const userId of validIds) {
+        failed.push({ id: userId, error: "Database operation failed" });
+      }
+    }
+
+    return { successful, failed };
+  }
+
+  /**
+   * Bulk restore soft-deleted users
+   * @param userIds - Array of user MongoDB IDs
+   * @returns Object with success and failed operations
+   */
+  async bulkRestoreUsers(userIds: string[]): Promise<{
+    successful: IUser[];
+    failed: Array<{ id: string; error: string }>;
+  }> {
+    const successful: IUser[] = [];
+    const failed: Array<{ id: string; error: string }> = [];
+
+    // Validate all IDs first
+    const validIds: string[] = [];
+    for (const userId of userIds) {
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        failed.push({ id: userId, error: "Invalid user ID format" });
+      } else {
+        validIds.push(userId);
+      }
+    }
+
+    if (validIds.length === 0) {
+      return { successful, failed };
+    }
+
+    try {
+      // Use bulkWrite for atomic operations
+      const bulkOps = validIds.map(userId => ({
+        updateOne: {
+          filter: { _id: userId, deletedAt: { $ne: null } },
+          update: { deletedAt: null }
+        }
+      }));
+
+      const bulkResult = await User.bulkWrite(bulkOps);
+      
+      // Get the successfully updated users
+      if (bulkResult.modifiedCount > 0) {
+        const updatedUsers = await User.find({
+          _id: { $in: validIds },
+          deletedAt: null
+        });
+        successful.push(...updatedUsers);
+      }
+
+      // Identify failed operations
+      const successfulIds = successful.map(user => user._id.toString());
+      const failedIds = validIds.filter(id => !successfulIds.includes(id));
+      
+      for (const failedId of failedIds) {
+        failed.push({ id: failedId, error: "User not found or not deleted" });
+      }
+
+    } catch (error) {
+      // If bulk operation fails, fall back to marking all as failed
+      for (const userId of validIds) {
+        failed.push({ id: userId, error: "Database operation failed" });
+      }
+    }
+
+    return { successful, failed };
+  }
+
+  /**
+   * Bulk permanently delete users from database
+   * @param userIds - Array of user MongoDB IDs
+   * @returns Object with success and failed operations
+   */
+  async bulkPermanentDeleteUsers(userIds: string[]): Promise<{
+    successful: string[];
+    failed: Array<{ id: string; error: string }>;
+  }> {
+    const successful: string[] = [];
+    const failed: Array<{ id: string; error: string }> = [];
+
+    // Validate all IDs first
+    const validIds: string[] = [];
+    for (const userId of userIds) {
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        failed.push({ id: userId, error: "Invalid user ID format" });
+      } else {
+        validIds.push(userId);
+      }
+    }
+
+    if (validIds.length === 0) {
+      return { successful, failed };
+    }
+
+    try {
+      // First, get all users that exist to track which ones we can delete
+      const existingUsers = await User.find({
+        _id: { $in: validIds }
+      }).select('_id');
+
+      const existingIds = existingUsers.map(user => user._id.toString());
+
+      // Mark non-existing users as failed
+      for (const userId of validIds) {
+        if (!existingIds.includes(userId)) {
+          failed.push({ id: userId, error: "User not found" });
+        }
+      }
+
+      // Delete existing users
+      if (existingIds.length > 0) {
+        const deleteResult = await User.deleteMany({
+          _id: { $in: existingIds }
+        });
+
+        if (deleteResult.acknowledged) {
+          successful.push(...existingIds);
+        } else {
+          // If delete operation failed, mark all as failed
+          for (const userId of existingIds) {
+            failed.push({ id: userId, error: "Failed to delete from database" });
+          }
+        }
+      }
+
+    } catch (error) {
+      // If bulk operation fails, fall back to marking all as failed
+      for (const userId of validIds) {
+        failed.push({ id: userId, error: "Database operation failed" });
+      }
+    }
+
+    return { successful, failed };
   }
 }
 

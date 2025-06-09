@@ -12,6 +12,7 @@ import {
   updateUserRoleSchema,
   updateUserSchema,
   userPaginationQuerySchema,
+  userIdSchema,
 } from "@api/user/user.validator.js";
 import { verifyGuest } from "@middleware/guest.middleware.js";
 import { verifyAuth } from "@middleware/auth.middleware.js";
@@ -58,8 +59,9 @@ adminRoutes
   .patch("/:id/password", validateData(adminSetPasswordSchema), userController.adminSetUserPassword) // Set password
   .patch("/:id/role", validateData(updateUserRoleSchema), userController.updateUserRole)             // Change role
   .patch("/:id/storage", validateData(updateStorageLimitSchema), userController.updateUserStorageLimit) // Update storage
-  .delete("/:id", userController.softDeleteUser)                                    // Soft delete user
-  .post("/:id/restore", userController.restoreUser);                                // Restore deleted user
+  .delete("/bulk/softdelete", validateData(userIdSchema), userController.bulkSoftDeleteUsers)  // Bulk soft delete users
+  .post("/bulk/restore", validateData(userIdSchema), userController.bulkRestoreUsers) // Bulk restore users
+  .delete("/bulk/permanent", validateData(userIdSchema), userController.bulkPermanentDeleteUsers); // Bulk permanent delete users
 
 //=========================//
 // Main router

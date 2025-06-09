@@ -310,20 +310,7 @@ class UserService {
     return this.sanitizeUser(updatedUser);
   }
 
-  /**
-   * Move user to trash
-   * @param id - Target user ID
-   * @throws User not found
-   */
-  async softDeleteUser(id: string): Promise<UserResponseDTO> {
-    const deletedUser = await userDAO.softDeleteUser(id);
 
-    if (!deletedUser) {
-      throw new ApiError(404, [{ id: "User not found" }]);
-    }
-
-    return this.sanitizeUser(deletedUser);
-  }
 
   /**
    * Get all users (admin)
@@ -493,31 +480,7 @@ class UserService {
     return this.sanitizeUser(updatedUser);
   }
 
-  /**
-   * Admin: Restore user from trash
-   * @param userId - Target user ID
-   * @returns Restored user
-   * @throws User not found or not deleted
-   */
-  async restoreUser(userId: string): Promise<UserResponseDTO> {
-    // First check if user exists and is deleted
-    const user = await userDAO.getUserById(userId, { deletedAt: true });
-    if (!user) {
-      throw new ApiError(404, [{ id: "User not found" }]);
-    }
 
-    if (!user.deletedAt) {
-      throw new ApiError(400, [{ user: "User is not deleted" }]);
-    }
-
-    // Restore the user
-    const restoredUser = await userDAO.restoreUser(userId);
-    if (!restoredUser) {
-      throw new ApiError(500, [{ restore: "Failed to restore user" }]);
-    }
-
-    return this.sanitizeUser(restoredUser);
-  }
 
   /**
    * Permanently delete user account and all associated data
@@ -605,6 +568,251 @@ class UserService {
       }
       throw new ApiError(500, [{ delete: "Failed to delete user account" }]);
     }
+  }
+
+  /**
+   * Admin: Bulk soft delete users
+   * @param userIds - Array of user IDs to soft delete
+   * @returns Summary of operation results
+   * @throws ApiError for various failure scenarios
+   */
+  async bulkSoftDeleteUsers(userIds: string[]): Promise<{
+    success: UserResponseDTO[];
+    failed: Array<{ id: string; error: string }>;
+    summary: { total: number; successful: number; failed: number };
+  }> {
+    if (!userIds || userIds.length === 0) {
+      return {
+        success: [],
+        failed: [],
+        summary: { total: 0, successful: 0, failed: 0 },
+      };
+    }
+
+    try {
+      // Use bulk DAO operation for better performance
+      const result = await userDAO.bulkSoftDeleteUsers(userIds);
+      
+      // Convert successful users to response DTOs
+      const success = result.successful.map(user => this.sanitizeUser(user));
+      
+      return {
+        success,
+        failed: result.failed,
+        summary: {
+          total: userIds.length,
+          successful: success.length,
+          failed: result.failed.length,
+        },
+      };
+    } catch (error) {
+      logger.error("Error in bulk soft delete operation:", error);
+      
+      // Fallback: mark all as failed if bulk operation fails entirely
+      const failed = userIds.map(id => ({
+        id,
+        error: "Bulk operation failed"
+      }));
+      
+      return {
+        success: [],
+        failed,
+        summary: {
+          total: userIds.length,
+          successful: 0,
+          failed: userIds.length,
+        },
+      };
+    }
+  }
+
+  /**
+   * Admin: Bulk restore users
+   * @param userIds - Array of user IDs to restore
+   * @returns Summary of operation results
+   * @throws ApiError for various failure scenarios
+   */
+  async bulkRestoreUsers(userIds: string[]): Promise<{
+    success: UserResponseDTO[];
+    failed: Array<{ id: string; error: string }>;
+    summary: { total: number; successful: number; failed: number };
+  }> {
+    if (!userIds || userIds.length === 0) {
+      return {
+        success: [],
+        failed: [],
+        summary: { total: 0, successful: 0, failed: 0 },
+      };
+    }
+
+    try {
+      // Use bulk DAO operation for better performance
+      const result = await userDAO.bulkRestoreUsers(userIds);
+      
+      // Convert successful users to response DTOs
+      const success = result.successful.map(user => this.sanitizeUser(user));
+      
+      return {
+        success,
+        failed: result.failed,
+        summary: {
+          total: userIds.length,
+          successful: success.length,
+          failed: result.failed.length,
+        },
+      };
+    } catch (error) {
+      logger.error("Error in bulk restore operation:", error);
+      
+      // Fallback: mark all as failed if bulk operation fails entirely
+      const failed = userIds.map(id => ({
+        id,
+        error: "Bulk operation failed"
+      }));
+      
+      return {
+        success: [],
+        failed,
+        summary: {
+          total: userIds.length,
+          successful: 0,
+          failed: userIds.length,
+        },
+      };
+    }
+  }
+
+  /**
+   * Admin: Bulk permanent delete users
+   * @param userIds - Array of user IDs to permanently delete
+   * @returns Summary of operation results
+   * @throws ApiError for various failure scenarios
+   */
+  async bulkPermanentDeleteUsers(userIds: string[]): Promise<{
+    success: string[];
+    failed: Array<{ id: string; error: string }>;
+    summary: { total: number; successful: number; failed: number };
+  }> {
+    if (!userIds || userIds.length === 0) {
+      return {
+        success: [],
+        failed: [],
+        summary: { total: 0, successful: 0, failed: 0 },
+      };
+    }
+
+    const success: string[] = [];
+    const failed: Array<{ id: string; error: string }> = [];
+    const usersToDelete: string[] = [];
+
+    // First phase: Process each user's data cleanup
+    for (const userId of userIds) {
+      try {
+        // Check if user exists first
+        const user = await userDAO.getUserById(userId, { deletedAt: true });
+        if (!user) {
+          failed.push({ id: userId, error: "User not found" });
+          continue;
+        }
+
+        logger.info(`Starting cleanup for user: ${userId}`);
+
+        // 1. Delete all user files (both active and trashed) from database and storage
+        await fileService.permanentDeleteAllDeletedFiles(userId);
+        
+        // Get and delete all active files
+        const activeFiles = await fileService.getUserFilesByFolders(userId, undefined, false);
+        for (const file of activeFiles) {
+          await fileService.permanentDeleteFile(file.id, userId);
+        }
+
+        // 2. Delete all user folders (both active and trashed) from database
+        await folderService.permanentDeleteAllDeletedFolders(userId);
+        
+        // Get and delete all active folders
+        const activeFolders = await folderService.getUserFolders(userId, undefined, false);
+        for (const folder of activeFolders) {
+          await folderService.permanentDeleteFolder(folder.id, userId);
+        }
+
+        // 3. Remove user's upload directory entirely from server filesystem
+        try {
+          const userDirPath = getUserDirectoryPath(userId);
+          const removed = removeDirectory(userDirPath);
+          if (removed) {
+            logger.info(`Removed user directory: ${userDirPath}`);
+          } else {
+            logger.warn(`Failed to remove user directory: ${userDirPath}`);
+          }
+        } catch (error) {
+          logger.error(`Error removing user directory:`, error);
+          // Continue with deletion even if directory removal fails
+        }
+
+        // 4. Delete user avatar file if not default
+        if (user.avatar && user.avatar !== DEFAULT_USER_AVATAR_URL) {
+          try {
+            const { deleteAvatarFile } = await import("@middleware/avatar.middleware.js");
+            await deleteAvatarFile(user.avatar);
+            logger.info(`Deleted user avatar: ${user.avatar}`);
+          } catch (error) {
+            logger.warn("Failed to delete user avatar file:", error);
+            // Continue with deletion even if avatar cleanup fails
+          }
+        }
+
+        // Mark user as ready for deletion
+        usersToDelete.push(userId);
+        logger.info(`Completed cleanup for user: ${userId}`);
+
+      } catch (error) {
+        logger.error(`Error during cleanup for ${userId}:`, error);
+        let errorMessage = "Cleanup failed";
+        if (error instanceof ApiError) {
+          const firstError = error.errors?.[0];
+          if (firstError) {
+            errorMessage = firstError.delete || firstError.id || error.message;
+          }
+        } else if (error instanceof Error) {
+          errorMessage = error.message;
+        }
+        failed.push({ id: userId, error: errorMessage });
+      }
+    }
+
+    // Second phase: Bulk delete users from database
+    if (usersToDelete.length > 0) {
+      try {
+        logger.info(`Bulk deleting ${usersToDelete.length} users from database`);
+        const bulkResult = await userDAO.bulkPermanentDeleteUsers(usersToDelete);
+        
+        // Add successful deletions
+        success.push(...bulkResult.successful);
+        
+        // Add any failures from the bulk operation
+        failed.push(...bulkResult.failed);
+        
+        logger.info(`Successfully deleted ${bulkResult.successful.length} users from database`);
+        
+      } catch (error) {
+        logger.error("Error in bulk database deletion:", error);
+        
+        // If bulk deletion fails, mark all prepared users as failed
+        for (const userId of usersToDelete) {
+          failed.push({ id: userId, error: "Database deletion failed" });
+        }
+      }
+    }
+
+    return {
+      success,
+      failed,
+      summary: {
+        total: userIds.length,
+        successful: success.length,
+        failed: failed.length,
+      },
+    };
   }
 
   /**

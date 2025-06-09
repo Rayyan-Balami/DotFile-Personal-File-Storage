@@ -183,33 +183,22 @@ Content-Type: application/json
 }
 ```
 
-## Soft Delete User
-Mark a user as deleted (can be restored later).
+## Bulk Operations
+
+### Bulk Soft Delete Users
+Mark multiple users as deleted (can be restored later).
 
 ```http
-DELETE /:id
-```
-
-### Response
-```json
-{
-  "status": 200,
-  "data": {
-    "user": {
-      "id": "user_id",
-      "deletedAt": "2024-03-15T12:00:00Z"
-    }
-  },
-  "message": "User soft deleted successfully"
-}
-```
-
-## Restore User
-Restore a soft-deleted user.
-
-```http
-POST /:id/restore
+DELETE /bulk/softdelete
 Authorization: Bearer your_access_token_here
+Content-Type: application/json
+```
+
+### Request Body
+```json
+{
+  "userIds": ["user_id_1", "user_id_2", "user_id_3"]
+}
 ```
 
 ### Response
@@ -217,33 +206,121 @@ Authorization: Bearer your_access_token_here
 {
   "status": 200,
   "data": {
-    "user": {
-      "id": "user_id",
-      "deletedAt": null,
-      "updatedAt": "2024-03-15T12:00:00Z"
+    "success": [
+      {
+        "id": "user_id_1",
+        "name": "John Doe",
+        "email": "user1@example.com",
+        "deletedAt": "2024-03-15T12:00:00Z"
+      }
+    ],
+    "failed": [
+      {
+        "id": "user_id_2",
+        "error": "User not found"
+      }
+    ],
+    "summary": {
+      "total": 3,
+      "successful": 1,
+      "failed": 2
     }
   },
-  "message": "User restored successfully"
+  "message": "Users soft deleted successfully"
 }
 ```
 
-### Error Responses
+### Bulk Restore Users
+Restore multiple soft-deleted users.
+
+```http
+POST /bulk/restore
+Authorization: Bearer your_access_token_here
+Content-Type: application/json
+```
+
+### Request Body
+```json
+{
+  "userIds": ["user_id_1", "user_id_2", "user_id_3"]
+}
+```
+
+### Response
+```json
+{
+  "status": 200,
+  "data": {
+    "success": [
+      {
+        "id": "user_id_1",
+        "name": "John Doe",
+        "email": "user1@example.com",
+        "deletedAt": null,
+        "updatedAt": "2024-03-15T12:00:00Z"
+      }
+    ],
+    "failed": [
+      {
+        "id": "user_id_2",
+        "error": "User not found or not deleted"
+      }
+    ],
+    "summary": {
+      "total": 3,
+      "successful": 1,
+      "failed": 2
+    }
+  },
+  "message": "Users restored successfully"
+}
+```
+
+### Bulk Permanent Delete Users
+Permanently delete multiple users and all their associated data.
+
+```http
+DELETE /bulk/permanent
+Authorization: Bearer your_access_token_here
+Content-Type: application/json
+```
+
+### Request Body
+```json
+{
+  "userIds": ["user_id_1", "user_id_2", "user_id_3"]
+}
+```
+
+### Response
+```json
+{
+  "status": 200,
+  "data": {
+    "success": ["user_id_1", "user_id_3"],
+    "failed": [
+      {
+        "id": "user_id_2",
+        "error": "User not found"
+      }
+    ],
+    "summary": {
+      "total": 3,
+      "successful": 2,
+      "failed": 1
+    }
+  },
+  "message": "Users permanently deleted successfully"
+}
+```
+
+### Error Responses for Bulk Operations
 ```json
 {
   "status": 400,
   "errors": [
     {
-      "user": "User is not deleted"
-    }
-  ]
-}
-```
-```json
-{
-  "status": 404,
-  "errors": [
-    {
-      "id": "User not found"
+      "userIds": "User IDs array is required"
     }
   ]
 } 

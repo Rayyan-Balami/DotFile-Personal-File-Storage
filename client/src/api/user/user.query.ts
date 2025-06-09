@@ -142,8 +142,3 @@ export const useUpdateUserPassword = () =>
     mutationFn: ({ id, data }: { id: string; data: UpdateUserPasswordInput }) =>
       userApi.updateUserPassword(id, data),
   });
-
-export const useDeleteUser = () =>
-  useMutation({
-    mutationFn: (id: string) => userApi.deleteUser(id),
-  });
