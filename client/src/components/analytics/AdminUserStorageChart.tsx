@@ -17,10 +17,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Skeleton } from "@/components/ui/skeleton";
 import { UserStorageConsumptionAnalyticsItem } from "@/types/analytics.dto";
-
-export const description = "User storage consumption horizontal bar chart";
 
 // Chart configuration
 const chartConfig = {
@@ -66,32 +63,11 @@ const transformDataForChart = (data: UserStorageConsumptionAnalyticsItem[]) => {
   }));
 };
 
-export function AdminUserStorageCard() {
-  const { data, isLoading, error } = useUserStorageConsumptionAnalytics();
+export function AdminUserStorageChart() {
+  const { data, error } = useUserStorageConsumptionAnalytics();
   console.log("AdminUserStorageCard data:", data);
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <Card className="flex flex-col">
-        <CardHeader className="items-center pb-0">
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-4 w-64 mt-2" />
-        </CardHeader>
-        <CardContent className="flex-1 pb-0">
-          <div className="flex h-[250px] items-center justify-center">
-            <Skeleton className="h-full w-full" />
-          </div>
-        </CardContent>
-        <CardFooter className="flex-col gap-2 text-sm">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-3/4" />
-        </CardFooter>
-      </Card>
-    );
-  }
-
-  // Error state
+  // Handle error state only (loading is handled by Suspense)
   if (error || !data?.data?.analytics) {
     return (
       <Card className="flex flex-col">
@@ -165,5 +141,3 @@ export function AdminUserStorageCard() {
     </Card>
   );
 }
-
-export default AdminUserStorageCard;

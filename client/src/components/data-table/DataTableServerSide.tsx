@@ -118,9 +118,8 @@ export function DataTableServerSide<TData, TValue>({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-1 flex-col gap-4 md:flex-row md:items-center md:space-x-2">
+    <>
+      <div className="flex flex-wrap gap-4">
           {searchColumns.length > 0 && (
             <DataTableSearch
               searchColumns={searchColumns}
@@ -137,7 +136,6 @@ export function DataTableServerSide<TData, TValue>({
               filterValues={filterValues}
             />
           )}
-        </div>
         <DataTableViewOptions table={table} />
       </div>
       <div className="rounded-md border">
@@ -202,6 +200,6 @@ export function DataTableServerSide<TData, TValue>({
       <DataTablePagination 
         table={table}
       />
-    </div>
+    </>
   );
 }

@@ -1,14 +1,39 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { lazy, Suspense } from 'react';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { createFileRoute } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 
 // Lazy load admin components to reduce initial bundle size and split recharts
-const AdminSummaryCard = lazy(() => import("@/components/cards/AdminSummaryCard").then(m => ({ default: m.AdminSummaryCard })));
-const AdminCreationCard = lazy(() => import("@/components/cards/AdminCreationCard").then(m => ({ default: m.AdminCreationCard })));
-const AdminFileTypeCard = lazy(() => import("@/components/cards/AdminFileTypeCard").then(m => ({ default: m.AdminFileTypeCard })));
-const AdminMonthlyUserRegistrationsCard = lazy(() => import("@/components/cards/AdminMonthlyUserRegistrationsCard").then(m => ({ default: m.AdminMonthlyUserRegistrationsCard })));
-const AdminUserStorageCard = lazy(() => import("@/components/cards/AdminUserStorageCard"));
+const AdminSummaryChart = lazy(() =>
+  import("@/components/analytics/AdminSummaryChart").then((m) => ({
+    default: m.AdminSummaryChart,
+  }))
+);
+const AdminCreationChart = lazy(() =>
+  import("@/components/analytics/AdminCreationChart").then((m) => ({
+    default: m.AdminCreationChart,
+  }))
+);
+const AdminFileTypeChart = lazy(() =>
+  import("@/components/analytics/AdminFileTypeChart").then((m) => ({
+    default: m.AdminFileTypeChart,
+  }))
+);
+const AdminMonthlyUserRegistrationsChart = lazy(() =>
+  import("@/components/analytics/AdminMonthlyUserRegistrationsChart").then((m) => ({
+    default: m.AdminMonthlyUserRegistrationsChart,
+  }))
+);
+const AdminUserStorageChart = lazy(() =>
+  import("@/components/analytics/AdminUserStorageChart").then((m) => ({
+    default: m.AdminUserStorageChart,
+  }))
+);
 
 // Chart loading skeleton
 const ChartSkeleton = () => (
@@ -27,15 +52,21 @@ const ChartSkeleton = () => (
 
 // Fallback component for loading state
 const CardSkeleton = () => (
-  <div className="space-y-3">
-    <Skeleton className="h-[125px] w-full rounded-xl" />
-    <div className="space-y-2">
-      <Skeleton className="h-4 w-[250px]" />
-      <Skeleton className="h-4 w-[200px]" />
-    </div>
+  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+    {[...Array(4)].map((_, i) => (
+      <Card key={i} className="@container/card">
+        <CardHeader className="space-y-3">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-10 w-[50%]" />
+        </CardHeader>
+        <CardFooter className="flex-col items-start gap-1.5">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-3 w-[70%]" />
+        </CardFooter>
+      </Card>
+    ))}
   </div>
 );
-
 export const Route = createFileRoute("/(admin)/admin/")({
   component: RouteComponent,
 });
@@ -44,20 +75,20 @@ function RouteComponent() {
   return (
     <>
       <Suspense fallback={<CardSkeleton />}>
-        <AdminSummaryCard />
+        <AdminSummaryChart />
       </Suspense>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <Suspense fallback={<ChartSkeleton />}>
-          <AdminCreationCard />
+          <AdminMonthlyUserRegistrationsChart />
         </Suspense>
         <Suspense fallback={<ChartSkeleton />}>
-          <AdminMonthlyUserRegistrationsCard />
+          <AdminCreationChart />
         </Suspense>
         <Suspense fallback={<ChartSkeleton />}>
-          <AdminFileTypeCard />
+          <AdminFileTypeChart />
         </Suspense>
         <Suspense fallback={<ChartSkeleton />}>
-          <AdminUserStorageCard />
+          <AdminUserStorageChart />
         </Suspense>
       </div>
     </>

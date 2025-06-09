@@ -1,14 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { format } from "date-fns";
-import { CalendarIcon, Loader2 } from "lucide-react";
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 import { z } from "zod";
 
 import { useCreationAnalytics } from "@/api/analytics/analytics.query";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import {
   Card,
   CardContent,
@@ -23,26 +19,14 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Form, FormField } from "@/components/ui/form";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { useDebounce } from "@/hooks/use-debounce";
-import { cn } from "@/lib/utils";
 import { CreationAnalyticsItem } from "@/types/analytics.dto";
 import { formatDateString } from "@/utils/formatUtils";
 import { creationAnalyticsSchema } from "@/validation/analytics.validaton";
+import { DateRangePicker } from "../ui/DateRangePicker";
 
-const description = "Showing files and folders creation";
 const chartConfig = {
   creation: {
     label: "Creations",
@@ -57,7 +41,7 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-export function AdminCreationCard() {
+export function AdminCreationChart() {
   const { isMobile } = useBreakpoint();
 
   // Form schema that extends your existing schema to handle Date objects for the calendar
@@ -96,7 +80,7 @@ export function AdminCreationCard() {
 
   // Watch form values and prepare date range for debouncing
   const formDateRange = form.watch("dateRange");
-  
+
   // Create API-ready date range from form values
   const apiDateRange = React.useMemo(() => {
     if (formDateRange?.from && formDateRange?.to) {
@@ -124,11 +108,7 @@ export function AdminCreationCard() {
   }, [debouncedDateRange]);
 
   // Fetch analytics data
-  const {
-    data: analyticsData,
-    isLoading,
-    error,
-  } = useCreationAnalytics(dateRange);
+  const { data: analyticsData, error } = useCreationAnalytics(dateRange);
 
   // Filter and format data for the chart
   const chartData = React.useMemo(() => {
@@ -171,35 +151,19 @@ export function AdminCreationCard() {
     return completeData;
   }, [analyticsData, dateRange]);
 
-  // Handle loading and error states
-  if (isLoading) {
-    return (
-      <Card className="@container/card">
-        <CardHeader>
-          <CardTitle>{chartConfig.creation.label}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-        <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
-          <div className="flex h-[250px] items-center justify-center">
-            <Loader2 className="animate-spin mx-auto text-primary" />
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
+  // Handle error state only (loading is handled by Suspense)
   if (error) {
     return (
       <Card className="@container/card">
         <CardHeader>
-          <CardTitle>{chartConfig.creation.label}</CardTitle>
-          <CardDescription>{description}</CardDescription>
+          <CardTitle>File & Folder Creation</CardTitle>
+          <CardDescription>
+            Showing creation of files and folders in system
+          </CardDescription>
         </CardHeader>
-        <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
-          <div className="flex h-[250px] items-center justify-center">
-            <div className="text-destructive">
-              Failed to load analytics data
-            </div>
+        <CardContent className="flex-1 pb-0">
+          <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+            <p>Failed to load creation data</p>
           </div>
         </CardContent>
       </Card>
@@ -212,66 +176,25 @@ export function AdminCreationCard() {
         <div>
           <CardTitle>{chartConfig.creation.label}</CardTitle>
           <CardDescription>
-            {description}
+            Showing creation of files and folders in system
           </CardDescription>
         </div>
-        <div className="">
-          <Form {...form}>
-            <FormField
-              control={form.control}
-              name="dateRange"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          id="date"
-                          variant={"outline"}
-                          className={cn(
-                            "w-full gap-6 justify-between text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                          size="sm"
-                        >
-                          <CalendarIcon className="h-4 w-4 opacity-50" />
-                          {field.value?.from ? (
-                            field.value.to ? (
-                              <>
-                                {format(field.value.from, "MMM dd")} -{" "}
-                                {format(field.value.to, "MMM dd, yyyy")}
-                              </>
-                            ) : (
-                              format(field.value.from, "MMM dd, yyyy")
-                            )
-                          ) : (
-                            <span>Pick a date range</span>
-                          )}
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="end">
-                      <Calendar
-                        mode="range"
-                        defaultMonth={field.value?.from}
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        numberOfMonths={isMobile ? 1 : 2}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </Form>
-        </div>
+        <Form {...form}>
+          <FormField
+            control={form.control}
+            name="dateRange"
+            render={({ field, fieldState }) => (
+              <DateRangePicker
+                value={field.value}
+                onChange={field.onChange}
+                error={fieldState.error?.message}
+              />
+            )}
+          />
+        </Form>
       </div>
       <CardContent className="pb-0">
-        <ChartContainer
-          config={chartConfig}
-          className="h-[250px] w-full"
-        >
+        <ChartContainer config={chartConfig} className="h-[250px] w-full">
           <AreaChart
             data={chartData}
             margin={{
@@ -358,21 +281,22 @@ export function AdminCreationCard() {
         <div className="flex gap-2 leading-none font-medium">
           {(() => {
             if (chartData.length === 0) return "No data available";
-            const peakDay = chartData.reduce((max, curr) => (curr.total > max.total ? curr : max));
+            const peakDay = chartData.reduce((max, curr) =>
+              curr.total > max.total ? curr : max
+            );
             const peakDate = new Date(peakDay.date);
             const formattedDate = peakDate.toLocaleDateString("en-US", {
               month: "short",
               day: "2-digit",
-              year: "numeric"
+              year: "numeric",
             });
             return `Peak creation was ${peakDay.total} creations on ${formattedDate}`;
           })()}
         </div>
         <div className="leading-none text-muted-foreground">
-          Total of {chartData.reduce((acc, curr) => acc + curr.file, 0)} files and{" "}
-          {chartData.reduce((acc, curr) => acc + curr.folder, 0)} folders created in {
-            chartData.length
-          } days
+          Total of {chartData.reduce((acc, curr) => acc + curr.file, 0)} files
+          and {chartData.reduce((acc, curr) => acc + curr.folder, 0)} folders
+          created in {chartData.length} days
         </div>
       </CardFooter>
     </Card>

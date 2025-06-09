@@ -87,7 +87,7 @@ export function DataTableSearch<TData>({
   }
 
   return (
-    <>
+    <div className="flex flex-wrap gap-2">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="icon" className="gap-1">
@@ -130,9 +130,9 @@ export function DataTableSearch<TData>({
             placeholder={`Search ${label}`} // Display the label in the placeholder
             value={searchFilters[column] || ""}
             onChange={(event) => handleSearchFilter(event, column)}
-            className="sm:max-w-[16rem] h-9" // Always show active inputs
+            className="flex-1 h-9" // Always show active inputs
           />
         ))}
-    </>
+    </div>
   );
 }

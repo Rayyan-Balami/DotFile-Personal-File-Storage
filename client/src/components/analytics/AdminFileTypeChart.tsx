@@ -18,10 +18,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Skeleton } from "@/components/ui/skeleton";
 import { FileTypeAnalyticsItem } from "@/types/analytics.dto";
-
-export const description = "File type distribution pie chart";
 
 // Helper function to get user-friendly labels for MIME types
 const getMimeTypeLabel = (mimeType: string): string => {
@@ -86,8 +83,8 @@ const transformDataForChart = (data: FileTypeAnalyticsItem[]) => {
   }));
 };
 
-export function AdminFileTypeCard() {
-  const { data: fileTypeData, isLoading, isError } = useFileTypeAnalytics();
+export function AdminFileTypeChart() {
+  const { data: fileTypeData, isError } = useFileTypeAnalytics();
 
   const chartData = React.useMemo(() => {
     if (!fileTypeData?.data?.analytics) return [];
@@ -111,26 +108,7 @@ export function AdminFileTypeCard() {
     );
   }, [chartData]);
 
-  if (isLoading) {
-    return (
-      <Card className="flex flex-col">
-        <CardHeader className="items-center pb-0">
-          <Skeleton className="h-6 w-48 bg-primary/20" />
-          <Skeleton className="h-4 w-32 bg-primary/20" />
-        </CardHeader>
-        <CardContent className="flex-1 pb-0">
-          <div className="mx-auto aspect-square max-h-[250px] flex items-center justify-center">
-            <Skeleton className="h-[250px] w-[250px] rounded-full bg-primary/20" />
-          </div>
-        </CardContent>
-        <CardFooter className="flex-col gap-2 text-sm">
-          <Skeleton className="h-4 w-full bg-primary/20" />
-          <Skeleton className="h-3 w-3/4 bg-primary/20" />
-        </CardFooter>
-      </Card>
-    );
-  }
-
+  // Handle error state only (loading is handled by Suspense)
   if (isError || !fileTypeData || chartData.length === 0) {
     return (
       <Card className="flex flex-col">

@@ -10,13 +10,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
 import { useSummaryAnalytics } from "@/api/analytics/analytics.query"
 import { formatFileSize } from "@/utils/formatUtils"
 import { SummaryAnalyticsItem } from "@/types/analytics.dto"
 
-export function AdminSummaryCard() {
-  const { data: summaryData, isLoading, isError } = useSummaryAnalytics()
+export function AdminSummaryChart() {
+  const { data: summaryData, isError, isLoading } = useSummaryAnalytics()
   
   // Helper function to format growth rate display
   const formatGrowthRate = (rate: number) => {
@@ -35,31 +34,18 @@ export function AdminSummaryCard() {
     }
   }
 
-  if (isLoading) {
-    return (
-        <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i} className="@container/card">
-              <CardHeader className="space-y-3">
-                <Skeleton className="h-4 w-20 bg-primary/20" />
-                <Skeleton className="h-10 w-[50%] bg-primary/20" />
-              </CardHeader>
-              <CardFooter className="flex-col items-start gap-1.5">
-                <Skeleton className="h-4 w-full bg-primary/20" />
-                <Skeleton className="h-3 w-[70%] bg-primary/20" />
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-    )
-  }
-
-  if (isError || !summaryData) {
+  // Handle error state only (loading is handled by Suspense for component, but data loading shows nothing)
+  if (isError) {
     return (
       <div className="text-center text-red-600 p-4">
         Failed to load analytics data
       </div>
     )
+  }
+
+  // Don't render anything while loading - let Suspense handle it
+  if (isLoading || !summaryData?.data?.analytics) {
+    return null
   }
 
   const analytics = summaryData.data.analytics

@@ -17,10 +17,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Skeleton } from "@/components/ui/skeleton";
 import { UserGrowthAnalytics } from "@/types/analytics.dto";
-
-export const description = "Monthly user registrations radar chart showing all 12 months";
 
 const chartConfig = {
   users: {
@@ -34,8 +31,8 @@ interface ChartDataItem {
   users: number;
 }
 
-export function AdminMonthlyUserRegistrationsCard() {
-  const { data, isLoading, error } = useMonthlyUserRegistrationsAnalytics();
+export function AdminMonthlyUserRegistrationsChart() {
+  const { data, error } = useMonthlyUserRegistrationsAnalytics();
   
   const chartData: ChartDataItem[] = data?.data?.analytics?.map((item: UserGrowthAnalytics) => ({
     month: item.month,
@@ -50,26 +47,7 @@ export function AdminMonthlyUserRegistrationsCard() {
 
   const currentYear = new Date().getFullYear();
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader className="items-center pb-4">
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-4 w-64 mt-2" />
-        </CardHeader>
-        <CardContent className="pb-0">
-          <div className="mx-auto aspect-square max-h-[250px] flex items-center justify-center">
-            <Skeleton className="h-full w-full rounded-full" />
-          </div>
-        </CardContent>
-        <CardFooter className="flex-col gap-2 text-sm">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-3/4" />
-        </CardFooter>
-      </Card>
-    );
-  }
-
+  // Handle error state only (loading is handled by Suspense)
   if (error || !data?.data?.analytics) {
     return (
       <Card>
