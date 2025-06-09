@@ -142,3 +142,46 @@ export const useUpdateUserPassword = () =>
     mutationFn: ({ id, data }: { id: string; data: UpdateUserPasswordInput }) =>
       userApi.updateUserPassword(id, data),
   });
+
+// ==========================
+// ADMIN BULK OPERATION HOOKS
+// ==========================
+
+export const useBulkSoftDeleteUsers = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userIds: string[]) =>
+      userApi.bulkSoftDeleteUsers(userIds).then((res) => res.data),
+    onSuccess: () => {
+      // Invalidate all user-related queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      queryClient.invalidateQueries({ queryKey: ["adminUsersPaginated"] });
+    },
+  });
+};
+
+export const useBulkRestoreUsers = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userIds: string[]) =>
+      userApi.bulkRestoreUsers(userIds).then((res) => res.data),
+    onSuccess: () => {
+      // Invalidate all user-related queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      queryClient.invalidateQueries({ queryKey: ["adminUsersPaginated"] });
+    },
+  });
+};
+
+export const useBulkPermanentDeleteUsers = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userIds: string[]) =>
+      userApi.bulkPermanentDeleteUsers(userIds).then((res) => res.data),
+    onSuccess: () => {
+      // Invalidate all user-related queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ["adminUsers"] });
+      queryClient.invalidateQueries({ queryKey: ["adminUsersPaginated"] });
+    },
+  });
+};

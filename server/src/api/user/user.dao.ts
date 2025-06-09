@@ -303,8 +303,6 @@ export class UserDAO {
       matchStage.deletedAt = { $ne: null };
     } else if (filters.status === 'active') {
       matchStage.deletedAt = null;
-    } else if (!filters.includeDeleted) {
-      matchStage.deletedAt = null;
     }
 
     // Handle role filter

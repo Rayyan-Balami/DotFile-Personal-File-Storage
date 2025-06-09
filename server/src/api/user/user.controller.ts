@@ -73,7 +73,9 @@ class UserController {
       sortOrder = 'desc',
       search,
       searchFields,
-      filters
+      filters,
+      createdAtStart,
+      createdAtEnd
     } = req.query;
 
     // Parse pagination parameters
@@ -95,6 +97,15 @@ class UserController {
       }
     }
 
+    // Build date ranges object from query parameters
+    const dateRanges: { createdAtStart?: string; createdAtEnd?: string } = {};
+    if (createdAtStart) {
+      dateRanges.createdAtStart = createdAtStart as string;
+    }
+    if (createdAtEnd) {
+      dateRanges.createdAtEnd = createdAtEnd as string;
+    }
+
     const result = await userService.getAllUsersWithPagination({
       page: pageNum,
       pageSize: pageSizeNum,
@@ -102,7 +113,8 @@ class UserController {
       sortOrder: sortOrder as 'asc' | 'desc',
       search: search as string,
       searchFields: searchFieldsArray,
-      filters: parsedFilters
+      filters: parsedFilters,
+      dateRanges: Object.keys(dateRanges).length > 0 ? dateRanges : undefined
     });
 
     res.json(new ApiResponse(200, result, "Users retrieved successfully"));

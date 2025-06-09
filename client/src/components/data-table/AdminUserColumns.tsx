@@ -138,8 +138,8 @@ export const AdminUserColumns: ColumnDef<User>[] = [
     cell: ({ row }) => {
       const deletedAt = row.getValue("deletedAt");
       return (
-        <Badge variant={deletedAt ? "destructive" : "outline"}>
-          {deletedAt ? "Deleted" : "Active"}
+        <Badge className={deletedAt ? "bg-orange-100 border-orange-500 text-orange-800" : "bg-green-100 border-green-500 text-green-800"}>
+          {deletedAt ? "Soft Deleted" : "Active"}
         </Badge>
       );
     },

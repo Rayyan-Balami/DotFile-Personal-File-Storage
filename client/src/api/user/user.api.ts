@@ -71,6 +71,16 @@ export const userApi = {
 
   updateUserPassword: (id: string, data: UpdateUserPasswordInput) =>
     API.patch(`/admin/users/${id}/password`, data),
+
+  // BULK OPERATIONS - Admin endpoints for managing multiple users
+  bulkSoftDeleteUsers: (userIds: string[]) =>
+    API.delete("/admin/users/bulk/softdelete", { data: { userIds } }),
+
+  bulkRestoreUsers: (userIds: string[]) =>
+    API.post("/admin/users/bulk/restore", { userIds }),
+
+  bulkPermanentDeleteUsers: (userIds: string[]) =>
+    API.delete("/admin/users/bulk/permanent", { data: { userIds } }),
 };
 
 export default userApi;

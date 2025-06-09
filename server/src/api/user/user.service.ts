@@ -341,6 +341,10 @@ class UserService {
       status?: 'active' | 'deleted';
       includeDeleted?: boolean;
     };
+    dateRanges?: {
+      createdAtStart?: string;
+      createdAtEnd?: string;
+    };
   }): Promise<{
     data: UserResponseDTO[];
     pagination: {
