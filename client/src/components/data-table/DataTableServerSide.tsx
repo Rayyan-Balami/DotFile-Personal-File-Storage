@@ -141,7 +141,7 @@ export function DataTableServerSide<TData, TValue>({
 
   return (
     <>
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-2">
         {searchColumns.length > 0 && (
           <DataTableSearch
             searchColumns={searchColumns}

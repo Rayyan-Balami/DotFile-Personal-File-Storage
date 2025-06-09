@@ -97,8 +97,8 @@ export function AdminNavUser() {
         <DropdownMenuLabel className="font-normal flex items-center justify-between gap-2">
           <span>Role</span>
           <Badge
-            variant="secondary"
-            className="truncate h-6 rounded-full text-xs font-normal uppercase"
+            variant="outline"
+            className="truncate h-6 rounded-full text-xs font-normal uppercase bg-muted"
           >
             {user.role}
           </Badge>

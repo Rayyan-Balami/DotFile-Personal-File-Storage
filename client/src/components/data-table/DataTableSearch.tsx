@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Search, UndoDot } from "lucide-react";
 import React, { useState } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface SearchColumn {
   column: string;
@@ -34,10 +35,32 @@ export function DataTableSearch<TData>({
   const [activeSelectedIndexes, setActiveSelectedIndexes] = useState<number[]>([0]); // Manage multiple selected indexes
   const [globalSearch, setGlobalSearch] = useState(searchValue);
 
+  // Debounce search filters to prevent too many API calls
+  const debouncedSearchFilters = useDebounce(searchFilters);
+
   // Update global search when searchValue prop changes
   React.useEffect(() => {
     setGlobalSearch(searchValue);
   }, [searchValue]);
+
+  // Effect to handle debounced search filter changes
+  React.useEffect(() => {
+    if (onSearchChange) {
+      // For server-side search, trigger search with the debounced values
+      const activeColumns = searchColumns
+        .filter((_, index) => activeSelectedIndexes.includes(index))
+        .map(col => col.column);
+      
+      // Get the first non-empty search value from active filters
+      const searchValue = Object.values(debouncedSearchFilters).find(value => value.trim() !== '') || '';
+      onSearchChange(searchValue, activeColumns);
+    } else {
+      // For client-side search, apply filters directly to table
+      Object.entries(debouncedSearchFilters).forEach(([columnId, value]) => {
+        table.getColumn(columnId)?.setFilterValue(value);
+      });
+    }
+  }, [debouncedSearchFilters, activeSelectedIndexes]); // Removed onSearchChange, searchColumns, table from deps
 
   const handleSearchFilter = (event: React.ChangeEvent<HTMLInputElement>, columnId: string) => {
     const value = event.target.value;
@@ -45,17 +68,7 @@ export function DataTableSearch<TData>({
       ...prev,
       [columnId]: value,
     }));
-    
-    if (onSearchChange) {
-      // Server-side search - trigger search with selected columns
-      const selectedColumns = searchColumns
-        .filter((_, index) => activeSelectedIndexes.includes(index))
-        .map(col => col.column);
-      onSearchChange(value, selectedColumns);
-    } else {
-      // Client-side search
-      table.getColumn(columnId)?.setFilterValue(value);
-    }
+    // Debounced effect will handle the actual search trigger
   };
 
   const handleClearSearch = () => {
@@ -87,7 +100,7 @@ export function DataTableSearch<TData>({
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="icon" className="gap-1">
@@ -130,9 +143,9 @@ export function DataTableSearch<TData>({
             placeholder={`Search ${label}`} // Display the label in the placeholder
             value={searchFilters[column] || ""}
             onChange={(event) => handleSearchFilter(event, column)}
-            className="flex-1" // Always show active inputs
+            className="sm:max-w-sm" // Always show active inputs
           />
         ))}
-    </div>
+    </>
   );
 }

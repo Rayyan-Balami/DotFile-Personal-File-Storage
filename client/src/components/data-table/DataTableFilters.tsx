@@ -39,8 +39,8 @@ export function TableFilters<TData>({
   const previousFiltersRef = useRef<string>("");
 
   // Debounced values
-  const debouncedFilterValues = useDebounce(localFilterValues, 300);
-  const debouncedDateRangeValues = useDebounce(localDateRangeValues, 300);
+  const debouncedFilterValues = useDebounce(localFilterValues);
+  const debouncedDateRangeValues = useDebounce(localDateRangeValues);
 
   // Memoized callback for filter changes
   const handleFiltersUpdate = useCallback(() => {
