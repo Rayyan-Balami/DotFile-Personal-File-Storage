@@ -1,14 +1,14 @@
 "use client";
 
-import { 
-  useGetUsersPaginated, 
-  useBulkSoftDeleteUsers, 
-  useBulkRestoreUsers, 
-  useBulkPermanentDeleteUsers 
+import {
+  useGetUsersPaginated,
+  useBulkSoftDeleteUsers,
+  useBulkRestoreUsers,
+  useBulkPermanentDeleteUsers,
 } from "@/api/user/user.query";
 import { User } from "@/types/user";
-import { DataTableServerSide } from "./DataTableServerSide";
-import { AdminUserColumns } from "./AdminUserColumns";
+import { DataTableServerSide } from "@/components/data-table/DataTableServerSide";
+import { AdminManageUserColumns } from "@/components/tables/AdminManageUserColumns";
 import { Button } from "@/components/ui/button";
 import { Trash2, RotateCcw } from "lucide-react";
 import { useState } from "react";
@@ -19,7 +19,7 @@ interface AdminUserTableProps {
   includeDeleted?: boolean;
 }
 
-export default function AdminUserTable({
+export default function AdminManageUserTable({
   includeDeleted = false,
 }: AdminUserTableProps) {
   // Mutation hooks for bulk operations
@@ -125,7 +125,7 @@ export default function AdminUserTable({
     hasPreviousPage: paginationInfo?.hasPreviousPage || false,
   };
 
-  // Configuration for AdminUserTable filters and search columns
+  // Configuration for AdminManageUserTable filters and search columns
   const userFilterColumns = [
     {
       column: "role",
@@ -179,15 +179,20 @@ export default function AdminUserTable({
       confirmButtonText: "Delete Permanently",
       onConfirm: async (selectedIds: string[]) => {
         try {
-          const result = await bulkPermanentDeleteMutation.mutateAsync(selectedIds);
+          const result =
+            await bulkPermanentDeleteMutation.mutateAsync(selectedIds);
           const { summary } = result.data;
-          
+
           if (summary.successful > 0) {
-            toast.success(`Successfully deleted ${summary.successful} user${summary.successful > 1 ? 's' : ''}`);
+            toast.success(
+              `Successfully deleted ${summary.successful} user${summary.successful > 1 ? "s" : ""}`
+            );
           }
-          
+
           if (summary.failed > 0) {
-            toast.error(`Failed to delete ${summary.failed} user${summary.failed > 1 ? 's' : ''}`);
+            toast.error(
+              `Failed to delete ${summary.failed} user${summary.failed > 1 ? "s" : ""}`
+            );
           }
         } catch (error) {
           toast.error(getErrorMessage(error));
@@ -208,13 +213,17 @@ export default function AdminUserTable({
         try {
           const result = await bulkSoftDeleteMutation.mutateAsync(selectedIds);
           const { summary } = result.data;
-          
+
           if (summary.successful > 0) {
-            toast.success(`Successfully soft deleted ${summary.successful} user${summary.successful > 1 ? 's' : ''}`);
+            toast.success(
+              `Successfully soft deleted ${summary.successful} user${summary.successful > 1 ? "s" : ""}`
+            );
           }
-          
+
           if (summary.failed > 0) {
-            toast.error(`Failed to soft delete ${summary.failed} user${summary.failed > 1 ? 's' : ''}`);
+            toast.error(
+              `Failed to soft delete ${summary.failed} user${summary.failed > 1 ? "s" : ""}`
+            );
           }
         } catch (error) {
           toast.error(getErrorMessage(error));
@@ -235,13 +244,17 @@ export default function AdminUserTable({
         try {
           const result = await bulkRestoreMutation.mutateAsync(selectedIds);
           const { summary } = result.data;
-          
+
           if (summary.successful > 0) {
-            toast.success(`Successfully restored ${summary.successful} user${summary.successful > 1 ? 's' : ''}`);
+            toast.success(
+              `Successfully restored ${summary.successful} user${summary.successful > 1 ? "s" : ""}`
+            );
           }
-          
+
           if (summary.failed > 0) {
-            toast.error(`Failed to restore ${summary.failed} user${summary.failed > 1 ? 's' : ''}`);
+            toast.error(
+              `Failed to restore ${summary.failed} user${summary.failed > 1 ? "s" : ""}`
+            );
           }
         } catch (error) {
           toast.error(getErrorMessage(error));
@@ -252,7 +265,7 @@ export default function AdminUserTable({
 
   return (
     <DataTableServerSide
-      columns={AdminUserColumns}
+      columns={AdminManageUserColumns}
       data={users}
       pagination={serverPagination}
       loading={isLoading}

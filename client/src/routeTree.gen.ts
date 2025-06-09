@@ -23,6 +23,7 @@ import { Route as adminAdminIndexImport } from './routes/(admin)/admin/index'
 import { Route as userSettingProfileImport } from './routes/(user)/setting.profile'
 import { Route as userFolderIdImport } from './routes/(user)/folder.$id'
 import { Route as adminAdminUserImport } from './routes/(admin)/admin/user'
+import { Route as adminAdminAdminImport } from './routes/(admin)/admin/admin'
 import { Route as adminAdminSettingProfileImport } from './routes/(admin)/admin/setting.profile'
 
 // Create/Update Routes
@@ -96,6 +97,12 @@ const adminAdminUserRoute = adminAdminUserImport.update({
   getParentRoute: () => adminRouteRoute,
 } as any)
 
+const adminAdminAdminRoute = adminAdminAdminImport.update({
+  id: '/admin/admin',
+  path: '/admin/admin',
+  getParentRoute: () => adminRouteRoute,
+} as any)
+
 const adminAdminSettingProfileRoute = adminAdminSettingProfileImport.update({
   id: '/admin/setting/profile',
   path: '/admin/setting/profile',
@@ -162,6 +169,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof userIndexImport
       parentRoute: typeof userRouteImport
     }
+    '/(admin)/admin/admin': {
+      id: '/(admin)/admin/admin'
+      path: '/admin/admin'
+      fullPath: '/admin/admin'
+      preLoaderRoute: typeof adminAdminAdminImport
+      parentRoute: typeof adminRouteImport
+    }
     '/(admin)/admin/user': {
       id: '/(admin)/admin/user'
       path: '/admin/user'
@@ -203,12 +217,14 @@ declare module '@tanstack/react-router' {
 // Create and export the route tree
 
 interface adminRouteRouteChildren {
+  adminAdminAdminRoute: typeof adminAdminAdminRoute
   adminAdminUserRoute: typeof adminAdminUserRoute
   adminAdminIndexRoute: typeof adminAdminIndexRoute
   adminAdminSettingProfileRoute: typeof adminAdminSettingProfileRoute
 }
 
 const adminRouteRouteChildren: adminRouteRouteChildren = {
+  adminAdminAdminRoute: adminAdminAdminRoute,
   adminAdminUserRoute: adminAdminUserRoute,
   adminAdminIndexRoute: adminAdminIndexRoute,
   adminAdminSettingProfileRoute: adminAdminSettingProfileRoute,
@@ -258,6 +274,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof authRegisterRoute
   '/recent': typeof userRecentRoute
   '/trash': typeof userTrashRoute
+  '/admin/admin': typeof adminAdminAdminRoute
   '/admin/user': typeof adminAdminUserRoute
   '/folder/$id': typeof userFolderIdRoute
   '/setting/profile': typeof userSettingProfileRoute
@@ -271,6 +288,7 @@ export interface FileRoutesByTo {
   '/register': typeof authRegisterRoute
   '/recent': typeof userRecentRoute
   '/trash': typeof userTrashRoute
+  '/admin/admin': typeof adminAdminAdminRoute
   '/admin/user': typeof adminAdminUserRoute
   '/folder/$id': typeof userFolderIdRoute
   '/setting/profile': typeof userSettingProfileRoute
@@ -288,6 +306,7 @@ export interface FileRoutesById {
   '/(user)/recent': typeof userRecentRoute
   '/(user)/trash': typeof userTrashRoute
   '/(user)/': typeof userIndexRoute
+  '/(admin)/admin/admin': typeof adminAdminAdminRoute
   '/(admin)/admin/user': typeof adminAdminUserRoute
   '/(user)/folder/$id': typeof userFolderIdRoute
   '/(user)/setting/profile': typeof userSettingProfileRoute
@@ -303,6 +322,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/recent'
     | '/trash'
+    | '/admin/admin'
     | '/admin/user'
     | '/folder/$id'
     | '/setting/profile'
@@ -315,6 +335,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/recent'
     | '/trash'
+    | '/admin/admin'
     | '/admin/user'
     | '/folder/$id'
     | '/setting/profile'
@@ -330,6 +351,7 @@ export interface FileRouteTypes {
     | '/(user)/recent'
     | '/(user)/trash'
     | '/(user)/'
+    | '/(admin)/admin/admin'
     | '/(admin)/admin/user'
     | '/(user)/folder/$id'
     | '/(user)/setting/profile'
@@ -368,6 +390,7 @@ export const routeTree = rootRoute
     "/(admin)": {
       "filePath": "(admin)/route.tsx",
       "children": [
+        "/(admin)/admin/admin",
         "/(admin)/admin/user",
         "/(admin)/admin/",
         "/(admin)/admin/setting/profile"
@@ -409,6 +432,10 @@ export const routeTree = rootRoute
     "/(user)/": {
       "filePath": "(user)/index.tsx",
       "parent": "/(user)"
+    },
+    "/(admin)/admin/admin": {
+      "filePath": "(admin)/admin/admin.tsx",
+      "parent": "/(admin)"
     },
     "/(admin)/admin/user": {
       "filePath": "(admin)/admin/user.tsx",

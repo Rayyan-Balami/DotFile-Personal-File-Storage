@@ -14,12 +14,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { DataTableColumnHeader } from "./DataTableColumnHeader";
+import { DataTableColumnHeader } from "@/components/data-table/DataTableColumnHeader";
 import { User } from "@/types/user";
 import { formatFileSize } from "@/utils/formatUtils";
 import { getInitials } from "@/utils/getInitials";
 
-export const AdminUserColumns: ColumnDef<User>[] = [
+export const AdminManageUserColumns: ColumnDef<User>[] = [
   {
     id: "select",
     header: ({ table }) => (
