@@ -58,7 +58,10 @@ export const userApi = {
   }) => API.get("/admin/users/paginated", { params: {
     ...params,
     searchFields: params?.searchFields?.join(','),
-    filters: params?.filters ? JSON.stringify(params.filters) : undefined
+    filters: params?.filters ? JSON.stringify(params.filters) : undefined,
+    // Extract date range parameters from filters
+    createdAtStart: params?.filters?.createdAtStart,
+    createdAtEnd: params?.filters?.createdAtEnd
   }}),
 
   getUserById: (id: string) => API.get(`/admin/users/${id}`),

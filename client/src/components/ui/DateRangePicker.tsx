@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { FormControl, FormItem, FormMessage } from "@/components/ui/form";
 import {
   Popover,
   PopoverContent,
@@ -20,7 +19,6 @@ interface DateRange {
 interface DateRangePickerProps {
   value: DateRange;
   onChange: (range: DateRange) => void;
-  error?: string;
   label?: string;
 }
 
@@ -28,70 +26,73 @@ export function DateRangePicker({
   label = "Date Range",
   value,
   onChange,
-  error,
 }: DateRangePickerProps) {
   const { isMobile } = useBreakpoint();
 
   return (
-    <FormItem className="flex flex-col">
-      <Popover>
-        <PopoverTrigger asChild>
-          <FormControl>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-full gap-6 justify-between text-left font-normal",
-                !value?.from && "text-muted-foreground"
-              )}
-              size="sm"
-            >
-              <CalendarIcon className="h-4 w-4 opacity-50" />
-              {value?.from ? (
-                value.to ? (
-                  value.from.toDateString() === value.to.toDateString() ? (
-                    format(value.from, "MMM dd, yyyy")
-                  ) : (
-                    <>
-                      {format(value.from, "MMM dd")} -{" "}
-                      {format(value.to, "MMM dd, yyyy")}
-                    </>
-                  )
-                ) : (
-                  format(value.from, "MMM dd, yyyy")
-                )
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn(
+            "gap-6 justify-between text-left font-normal",
+            !value?.from && "text-muted-foreground"
+          )}
+        >
+          <CalendarIcon className="h-4 w-4 opacity-50" />
+          {value?.from ? (
+            value.to ? (
+              value.from.toDateString() === value.to.toDateString() ? (
+                format(value.from, "MMM dd, yyyy")
               ) : (
-                <span>{label}</span>
-              )}
-                            <Badge variant={"secondary"} className="-mr-1.5 font-normal">
-                {value?.from && value?.to
-                  ? Math.ceil(
-                      (value.to.getTime() - value.from.getTime()) /
-                        (1000 * 60 * 60 * 24)
-                    ) + 1
-                  : "0"}{" "}
-                Days
-              </Badge>
-            </Button>
-          </FormControl>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="end">
-          <Calendar
-            mode="range"
-            defaultMonth={value?.from}
-            selected={value}
-            onSelect={(range) => {
-              if (range?.from && range?.to) {
-                onChange({
-                  from: range.from,
-                  to: range.to,
-                });
-              }
-            }}
-            numberOfMonths={isMobile ? 1 : 2}
-          />
-        </PopoverContent>
-      </Popover>
-      {error && <FormMessage>{error}</FormMessage>}
-    </FormItem>
+                <>
+                  {format(value.from, "MMM dd")} -{" "}
+                  {format(value.to, "MMM dd, yyyy")}
+                </>
+              )
+            ) : (
+              format(value.from, "MMM dd, yyyy")
+            )
+          ) : (
+            <span>{label}</span>
+          )}
+          {value?.from && value?.to && (
+            <Badge variant={"secondary"} className="-mr-1.5 font-normal">
+              {Math.ceil(
+                (value.to.getTime() - value.from.getTime()) /
+                  (1000 * 60 * 60 * 24)
+              ) + 1}{" "}
+              Days
+            </Badge>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-2 pt-0 flex flex-col" align="end">
+        <Calendar
+          mode="range"
+          defaultMonth={value?.from}
+          selected={value}
+          onSelect={(range) => {
+            if (range?.from && range?.to) {
+              onChange({
+                from: range.from,
+                to: range.to,
+              });
+            }
+          }}
+          numberOfMonths={isMobile ? 1 : 2}
+          showOutsideDays={false}
+        />
+        {/* Clear Button */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="ml-auto"
+          onClick={() => onChange({ from: undefined, to: undefined })}
+        >
+          Clear
+        </Button>
+      </PopoverContent>
+    </Popover>
   );
 }

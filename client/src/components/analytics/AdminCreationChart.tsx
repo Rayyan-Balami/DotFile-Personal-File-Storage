@@ -19,7 +19,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Form, FormField } from "@/components/ui/form";
+import { Form, FormControl, FormField } from "@/components/ui/form";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { useDebounce } from "@/hooks/use-debounce";
 import { CreationAnalyticsItem } from "@/types/analytics.dto";
@@ -183,12 +183,16 @@ export function AdminCreationChart() {
           <FormField
             control={form.control}
             name="dateRange"
-            render={({ field, fieldState }) => (
-              <DateRangePicker
-                value={field.value}
-                onChange={field.onChange}
-                error={fieldState.error?.message}
-              />
+            render={({ field }) => (
+              <FormControl>
+                <DateRangePicker
+                  value={field.value}
+                  onChange={(value) => {
+                    field.onChange(value);
+                  }}
+                />
+              </FormControl>
+              
             )}
           />
         </Form>

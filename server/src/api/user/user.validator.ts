@@ -147,7 +147,18 @@ const userPaginationQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).optional(),
   search: z.string().optional(),
   searchFields: z.string().optional(),
-  filters: z.string().optional()
+  filters: z.string().optional(),
+  // Date range filter support
+  createdAtStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
+    message: "createdAtStart must be in YYYY-MM-DD format"
+  }).optional(),
+  createdAtEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
+    message: "createdAtEnd must be in YYYY-MM-DD format"
+  }).optional()
+});
+
+const userIdSchema = z.object({
+  userIds: z.array(z.string())
 });
 
 export {
@@ -160,5 +171,6 @@ export {
   updateUserPasswordSchema,
   updateUserRoleSchema,
   updateUserSchema,
-  userPaginationQuerySchema
+  userPaginationQuerySchema,
+  userIdSchema,
 };

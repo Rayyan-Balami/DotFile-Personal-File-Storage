@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { DataTableActionDialog } from "./DataTableActionDialog";
 import { TableFilters } from "./DataTableFilters";
 import { DataTablePagination } from "./DataTablePagination";
 import { DataTableSearch } from "./DataTableSearch";
@@ -27,6 +28,11 @@ interface FilterOption {
   column: string;
   label: string;
   options: { label: string; value: string }[];
+}
+
+interface DateRangeFilterOption {
+  column: string;
+  label: string;
 }
 
 interface SearchColumn {
@@ -49,6 +55,7 @@ interface DataTableServerSideProps<TData, TValue> {
   pagination: ServerSidePagination;
   loading?: boolean;
   filters?: FilterOption[];
+  dateRangeFilters?: DateRangeFilterOption[];
   searchColumns?: SearchColumn[];
   onPaginationChange: (pagination: PaginationState) => void;
   onSortingChange?: (sorting: SortingState) => void;
@@ -57,6 +64,15 @@ interface DataTableServerSideProps<TData, TValue> {
   sorting?: SortingState;
   searchValue?: string;
   filterValues?: Record<string, any>;
+  actionDialogs?: {
+    [key: string]: {
+      title: string;
+      description: string;
+      trigger: React.ReactNode;
+      confirmButtonText: string;
+      onConfirm: (selectedIds: string[]) => Promise<void>;
+    };
+  };
 }
 
 export function DataTableServerSide<TData, TValue>({
@@ -65,6 +81,7 @@ export function DataTableServerSide<TData, TValue>({
   pagination,
   loading = false,
   filters = [],
+  dateRangeFilters = [],
   searchColumns = [],
   onPaginationChange,
   onSortingChange,
@@ -73,8 +90,10 @@ export function DataTableServerSide<TData, TValue>({
   sorting = [],
   searchValue = "",
   filterValues = {},
+  actionDialogs = {},
 }: DataTableServerSideProps<TData, TValue>) {
   const [internalSorting, setInternalSorting] = React.useState<SortingState>(sorting);
+  const [rowSelection, setRowSelection] = React.useState({});
 
   const table = useReactTable({
     data,
@@ -83,10 +102,13 @@ export function DataTableServerSide<TData, TValue>({
     state: {
       sorting: internalSorting,
       pagination: {
-        pageIndex: pagination.page - 1, // Convert 1-based to 0-based
+        pageIndex: pagination.page - 1,
         pageSize: pagination.pageSize,
       },
+      rowSelection,
     },
+    enableRowSelection: true,
+    onRowSelectionChange: setRowSelection,
     onSortingChange: (updater) => {
       const newSorting = typeof updater === 'function' ? updater(internalSorting) : updater;
       setInternalSorting(newSorting);
@@ -120,23 +142,37 @@ export function DataTableServerSide<TData, TValue>({
   return (
     <>
       <div className="flex flex-wrap gap-4">
-          {searchColumns.length > 0 && (
-            <DataTableSearch
-              searchColumns={searchColumns}
-              table={table}
-              onSearchChange={handleSearchChange}
-              searchValue={searchValue}
-            />
-          )}
-          {filters.length > 0 && (
-            <TableFilters
-              filters={filters}
-              table={table}
-              onFiltersChange={handleFiltersChange}
-              filterValues={filterValues}
-            />
-          )}
+        {searchColumns.length > 0 && (
+          <DataTableSearch
+            searchColumns={searchColumns}
+            table={table}
+            onSearchChange={handleSearchChange}
+            searchValue={searchValue}
+          />
+        )}
+        {(filters.length > 0 || dateRangeFilters.length > 0) && (
+          <TableFilters
+            filters={filters}
+            dateRangeFilters={dateRangeFilters}
+            table={table}
+            onFiltersChange={handleFiltersChange}
+            filterValues={filterValues}
+          />
+        )}
         <DataTableViewOptions table={table} />
+        <div className="ml-auto flex items-center gap-2">
+          {Object.entries(actionDialogs).map(([key, dialog]) => (
+            <DataTableActionDialog
+              key={key}
+              table={table}
+              title={dialog.title}
+              description={dialog.description}
+              confirmButtonText={dialog.confirmButtonText}
+              trigger={dialog.trigger}
+              onConfirm={dialog.onConfirm}
+            />
+          ))}
+        </div>
       </div>
       <div className="rounded-md border">
         <Table>

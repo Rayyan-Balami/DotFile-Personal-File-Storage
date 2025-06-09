@@ -302,6 +302,10 @@ export class UserDAO {
       status?: 'active' | 'deleted';
       includeDeleted?: boolean;
     };
+    dateRanges?: {
+      createdAtStart?: string;
+      createdAtEnd?: string;
+    };
   }): Promise<{
     users: IUser[];
     totalItems: number;
@@ -316,7 +320,8 @@ export class UserDAO {
       sortOrder = 'desc',
       search,
       searchFields = ['name', 'email'],
-      filters = {}
+      filters = {},
+      dateRanges = {}
     } = options;
 
     // Build match stage for aggregation
@@ -334,6 +339,23 @@ export class UserDAO {
     // Handle role filter
     if (filters.role) {
       matchStage.role = filters.role;
+    }
+
+    // Handle date range filtering for createdAt
+    if (dateRanges.createdAtStart || dateRanges.createdAtEnd) {
+      matchStage.createdAt = {};
+      
+      if (dateRanges.createdAtStart) {
+        const startDate = new Date(dateRanges.createdAtStart);
+        matchStage.createdAt.$gte = startDate;
+      }
+      
+      if (dateRanges.createdAtEnd) {
+        const endDate = new Date(dateRanges.createdAtEnd);
+        // Add 23:59:59.999 to include the entire end date
+        endDate.setHours(23, 59, 59, 999);
+        matchStage.createdAt.$lte = endDate;
+      }
     }
 
     // Handle search

@@ -4,6 +4,8 @@ import { useGetUsersPaginated } from "@/api/user/user.query";
 import { User } from "@/types/user";
 import { DataTableServerSide } from "./DataTableServerSide";
 import { userColumns } from "./userColumns";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 import { useState } from "react";
 
 interface AdminUserTableProps {
@@ -87,7 +89,7 @@ export default function AdminUserTable({
   };
 
   // Configuration for AdminUserTable filters and search columns
-  const userFilterOptions = [
+  const userFilterColumns = [
     {
       column: "role",
       label: "Role",
@@ -108,6 +110,14 @@ export default function AdminUserTable({
     },
   ];
 
+  const userCalendarColumns = [
+    {
+      label: "Created Date",
+      column: "createdAt",
+      type: "dateRange" as const,
+    },
+  ];
+
   const userSearchColumns = [
     {
       column: "name",
@@ -119,6 +129,25 @@ export default function AdminUserTable({
     },
   ];
 
+  const userActionDialogs = {
+    delete: {
+      title: "Delete Users",
+      description:
+        "Are you sure you want to delete the selected users? This action cannot be undone.",
+      trigger: (
+        <Button variant={"outline"} size={"icon"} className="size-8">
+          <Trash2 className="h-4 w-4" />{" "}
+        </Button>
+      ),
+      confirmButtonText: "Delete",
+      onConfirm: async (selectedIds: string[]) => {
+        console.log("Delete user action triggered for IDs:", selectedIds);
+        // TODO: Replace with actual API call
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
+      },
+    },
+  };
+
   return (
     <DataTableServerSide
       columns={userColumns}
@@ -128,12 +157,14 @@ export default function AdminUserTable({
       onPaginationChange={setPagination}
       sorting={sorting}
       onSortingChange={setSorting}
-      filters={userFilterOptions}
+      filters={userFilterColumns}
+      dateRangeFilters={userCalendarColumns}
       filterValues={filters}
       onFiltersChange={handleFiltersChange}
       searchColumns={userSearchColumns}
       searchValue={search}
       onSearchChange={handleSearchChange}
+      actionDialogs={userActionDialogs}
     />
   );
 }

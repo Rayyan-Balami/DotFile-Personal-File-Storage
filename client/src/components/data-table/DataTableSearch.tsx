@@ -130,7 +130,7 @@ export function DataTableSearch<TData>({
             placeholder={`Search ${label}`} // Display the label in the placeholder
             value={searchFilters[column] || ""}
             onChange={(event) => handleSearchFilter(event, column)}
-            className="flex-1 h-9" // Always show active inputs
+            className="flex-1" // Always show active inputs
           />
         ))}
     </div>
