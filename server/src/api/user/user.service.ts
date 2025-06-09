@@ -385,14 +385,16 @@ class UserService {
    * Update user's storage usage
    * @param userId - Target user ID
    * @param bytesToAdd - Bytes to add (positive) or subtract (negative)
+   * @param includeDeleted - Allow updating storage for soft-deleted users (needed during permanent delete)
    * @throws User not found
    */
   async updateUserStorageUsage(
     userId: string,
-    bytesToAdd: number
+    bytesToAdd: number,
+    includeDeleted: boolean = false
   ): Promise<UserResponseDTO> {
-    // First check if user exists
-    const user = await userDAO.getUserById(userId);
+    // First check if user exists (include deleted users if specified)
+    const user = await userDAO.getUserById(userId, { deletedAt: includeDeleted });
     if (!user) {
       throw new ApiError(404, [{ id: "User not found" }]);
     }
@@ -400,10 +402,10 @@ class UserService {
     // Calculate new storage used
     const newStorageUsed = Math.max(0, user.storageUsed + bytesToAdd);
 
-    // Update storage calculation
+    // Update storage calculation (include deleted users if specified)
     const updatedUser = await userDAO.updateUser(userId, {
       storageUsed: newStorageUsed,
-    });
+    }, includeDeleted);
 
     if (!updatedUser) {
       throw new ApiError(500, [{ storage: "Failed to update storage usage" }]);

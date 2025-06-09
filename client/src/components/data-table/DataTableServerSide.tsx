@@ -160,21 +160,21 @@ export function DataTableServerSide<TData, TValue>({
           />
         )}
         <div className="ml-auto flex items-center gap-2">
-        <DataTableViewOptions table={table} />
           {Object.entries(actionDialogs).map(([key, dialog]) => (
             <DataTableActionDialog
-              key={key}
-              table={table}
-              title={dialog.title}
-              description={dialog.description}
-              confirmButtonText={dialog.confirmButtonText}
-              trigger={dialog.trigger}
-              onConfirm={dialog.onConfirm}
+            key={key}
+            table={table}
+            title={dialog.title}
+            description={dialog.description}
+            confirmButtonText={dialog.confirmButtonText}
+            trigger={dialog.trigger}
+            onConfirm={dialog.onConfirm}
             />
           ))}
+          <DataTableViewOptions table={table} />
         </div>
       </div>
-      <div className="rounded-md border">
+      <div className="rounded-md border bg-muted/40">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

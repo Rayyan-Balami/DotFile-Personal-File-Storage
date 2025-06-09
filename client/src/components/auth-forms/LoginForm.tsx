@@ -40,9 +40,9 @@ export function LoginForm({
       const { data } = await login.mutateAsync(values);
       setAuth(data.user, data.accessToken);
       toast.success("Login successful!");
-      
+
       // Navigate based on user role
-      const {isAdmin} = useAuthStore.getState();
+      const { isAdmin } = useAuthStore.getState();
       navigate({ to: isAdmin ? "/admin" : "/" });
     } catch (error: any) {
       logger.error("Login error:", error);
@@ -95,15 +95,7 @@ export function LoginForm({
             name="password"
             render={({ field }) => (
               <FormItem className="gap-3">
-                <div className="flex items-center">
-                  <FormLabel htmlFor="password">Password</FormLabel>
-                  <Link
-                    to="/"
-                    className="ml-auto text-xs underline-offset-4 hover:underline"
-                  >
-                    Forgot your password?
-                  </Link>
-                </div>
+                <FormLabel htmlFor="password">Password</FormLabel>
                 <FormControl>
                   <Input
                     id="password"

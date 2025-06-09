@@ -10,7 +10,7 @@ import { User } from "@/types/user";
 import { DataTableServerSide } from "@/components/data-table/DataTableServerSide";
 import { AdminManageUserColumns } from "@/components/tables/AdminManageUserColumns";
 import { Button } from "@/components/ui/button";
-import { Trash2, RotateCcw } from "lucide-react";
+import { Trash2, RotateCcw, Delete, Redo } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/utils/apiErrorHandler";
@@ -44,10 +44,8 @@ export default function AdminManageUserTable({
   const buildFilters = () => {
     const builtFilters: Record<string, any> = {};
 
-    // Handle role filter
-    if (filters.role) {
-      builtFilters.role = filters.role;
-    }
+    // Always filter to show only users with role "user"
+    builtFilters.role = "user";
 
     // Handle status filter from UI (deletedAt column)
     if (filters.deletedAt) {
@@ -128,15 +126,6 @@ export default function AdminManageUserTable({
   // Configuration for AdminManageUserTable filters and search columns
   const userFilterColumns = [
     {
-      column: "role",
-      label: "Role",
-      options: [
-        { label: "All", value: "" },
-        { label: "Admin", value: "admin" },
-        { label: "User", value: "user" },
-      ],
-    },
-    {
       column: "deletedAt",
       label: "Status",
       options: [
@@ -167,45 +156,13 @@ export default function AdminManageUserTable({
   ];
 
   const userActionDialogs = {
-    delete: {
-      title: "Permanently Delete Users",
-      description:
-        "Are you sure you want to permanently delete the selected users? This action cannot be undone and will remove all their data.",
-      trigger: (
-        <Button variant={"outline"} size={"icon"}>
-          <Trash2 className="h-4 w-4" />{" "}
-        </Button>
-      ),
-      confirmButtonText: "Delete Permanently",
-      onConfirm: async (selectedIds: string[]) => {
-        try {
-          const result =
-            await bulkPermanentDeleteMutation.mutateAsync(selectedIds);
-          const { summary } = result.data;
-
-          if (summary.successful > 0) {
-            toast.success(
-              `Successfully deleted ${summary.successful} user${summary.successful > 1 ? "s" : ""}`
-            );
-          }
-
-          if (summary.failed > 0) {
-            toast.error(
-              `Failed to delete ${summary.failed} user${summary.failed > 1 ? "s" : ""}`
-            );
-          }
-        } catch (error) {
-          toast.error(getErrorMessage(error));
-        }
-      },
-    },
     softDelete: {
       title: "Soft Delete Users",
       description:
         "Are you sure you want to soft delete the selected users? They will be moved to the deleted state but can be restored later.",
       trigger: (
         <Button variant={"outline"} size={"icon"}>
-          <Trash2 className="h-4 w-4" />{" "}
+          <Delete className="h-4 w-4" />{" "}
         </Button>
       ),
       confirmButtonText: "Soft Delete",
@@ -236,7 +193,7 @@ export default function AdminManageUserTable({
         "Are you sure you want to restore the selected users? They will be moved back to the active state.",
       trigger: (
         <Button variant={"outline"} size={"icon"}>
-          <RotateCcw className="h-4 w-4" />{" "}
+          <Redo className="h-4 w-4" />{" "}
         </Button>
       ),
       confirmButtonText: "Restore",
@@ -254,6 +211,38 @@ export default function AdminManageUserTable({
           if (summary.failed > 0) {
             toast.error(
               `Failed to restore ${summary.failed} user${summary.failed > 1 ? "s" : ""}`
+            );
+          }
+        } catch (error) {
+          toast.error(getErrorMessage(error));
+        }
+      },
+    },
+        delete: {
+      title: "Permanently Delete Users",
+      description:
+        "Are you sure you want to permanently delete the selected users? This action cannot be undone and will remove all their data.",
+      trigger: (
+        <Button variant={"outline"} size={"icon"}>
+          <Trash2 className="h-4 w-4" />{" "}
+        </Button>
+      ),
+      confirmButtonText: "Delete Permanently",
+      onConfirm: async (selectedIds: string[]) => {
+        try {
+          const result =
+            await bulkPermanentDeleteMutation.mutateAsync(selectedIds);
+          const { summary } = result.data;
+
+          if (summary.successful > 0) {
+            toast.success(
+              `Successfully deleted ${summary.successful} user${summary.successful > 1 ? "s" : ""}`
+            );
+          }
+
+          if (summary.failed > 0) {
+            toast.error(
+              `Failed to delete ${summary.failed} user${summary.failed > 1 ? "s" : ""}`
             );
           }
         } catch (error) {

@@ -655,10 +655,23 @@ class FolderService {
    * @throws Delete operation failed
    */
   async permanentDeleteFolder(folderId: string, userId: string): Promise<void> {
-    // First verify folder exists and user owns it
-    const folder = await this.verifyFolderOwnership(folderId, userId);
+    // Try to verify folder exists and user owns it, but allow it to not exist during bulk operations
+    let folder;
+    try {
+      folder = await this.verifyFolderOwnership(folderId, userId);
+    } catch (error) {
+      // If folder is not found during bulk delete, it may have already been deleted
+      if (error instanceof ApiError && error.statusCode === 404) {
+        logger.info(`Folder ${folderId} not found during permanent delete - may already be deleted`);
+        return; // Exit gracefully since folder is already gone
+      }
+      // Re-throw other errors (like permission errors)
+      throw error;
+    }
+    
     if (!folder) {
-      throw new ApiError(404, [{ folder: "Folder not found" }]);
+      // Folder doesn't exist, nothing to delete
+      return;
     }
 
     // Get all descendant folders recursively
@@ -820,9 +833,9 @@ class FolderService {
     // Delete all explicitly deleted files
     await fileService.permanentDeleteAllDeletedFiles(userId);
 
-    // Update user's storage usage if files were deleted
+    // Update user's storage usage if files were deleted (include deleted users since this might be during permanent cleanup)
     if (totalSizeFreed > 0) {
-      await userService.updateUserStorageUsage(userId, -totalSizeFreed);
+      await userService.updateUserStorageUsage(userId, -totalSizeFreed, true);
     }
 
     return {

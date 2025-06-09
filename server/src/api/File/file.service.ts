@@ -620,8 +620,8 @@ class FileService {
       ]);
     }
 
-    // Update user's storage usage
-    await userService.updateUserStorageUsage(userId, -file.size);
+    // Update user's storage usage (include deleted users since this might be during permanent cleanup)
+    await userService.updateUserStorageUsage(userId, -file.size, true);
   }
 
   /**
@@ -753,9 +753,9 @@ class FileService {
       throw new ApiError(500, [{ delete: "Failed to empty trash" }]);
     }
 
-    // Update user's storage usage if files were deleted
+    // Update user's storage usage if files were deleted (include deleted users since this might be during permanent cleanup)
     if (totalSize > 0) {
-      await userService.updateUserStorageUsage(userId, -totalSize);
+      await userService.updateUserStorageUsage(userId, -totalSize, true);
     }
   }
 

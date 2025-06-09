@@ -13,11 +13,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DataTableColumnHeader } from "@/components/data-table/DataTableColumnHeader";
 import { User } from "@/types/user";
 import { formatFileSize } from "@/utils/formatUtils";
 import { getInitials } from "@/utils/getInitials";
+import { VITE_API_URL } from "@/config/constants";
 
 export const AdminManageUserColumns: ColumnDef<User>[] = [
   {
@@ -51,8 +53,8 @@ export const AdminManageUserColumns: ColumnDef<User>[] = [
       const user = row.original;
       return (
         <div className="flex items-center space-x-3">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={user.avatar} alt={user.name} />
+          <Avatar className="h-8 w-8 border">
+            <AvatarImage src={`${VITE_API_URL}${user.avatar}`} alt={user.name} />
             <AvatarFallback className="text-xs">
               {getInitials(user.name)}
             </AvatarFallback>
@@ -70,15 +72,12 @@ export const AdminManageUserColumns: ColumnDef<User>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Role" />
     ),
-    cell: ({ row }) => {
-      const role = row.getValue("role") as string;
-      return (
-        <Badge variant={role === "admin" ? "default" : "secondary"}>
-          {role.charAt(0).toUpperCase() + role.slice(1)}
-        </Badge>
-      );
+    cell: ({ row }) => (
+      <Badge variant={"outline"}>
+        {row.getValue("role")}
+      </Badge>
+    )
     },
-  },
   {
     accessorKey: "storageUsed",
     header: ({ column }) => (
@@ -93,18 +92,10 @@ export const AdminManageUserColumns: ColumnDef<User>[] = [
           <div className="text-sm">
             {formatFileSize(user.storageUsed)} / {formatFileSize(user.maxStorageLimit)}
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-1.5">
-            <div
-              className={`h-1.5 rounded-full ${
-                usagePercentage > 90
-                  ? "bg-red-500"
-                  : usagePercentage > 70
-                  ? "bg-yellow-500"
-                  : "bg-green-500"
-              }`}
-              style={{ width: `${Math.min(usagePercentage, 100)}%` }}
-            />
-          </div>
+          <Progress
+            value={Math.min(usagePercentage, 100)}
+            className="w-full h-2"
+          />
           <div className="text-xs text-muted-foreground">
             {usagePercentage.toFixed(1)}% used
           </div>

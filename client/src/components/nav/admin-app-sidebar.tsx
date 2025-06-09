@@ -17,8 +17,8 @@ const adminNavItems = [
     icon: Users,
   },
   {
-    title: "Analytics",
-    url: "/admin/analytic",
+    title: "Admins",
+    url: "/admin/admin",
     icon: BarChart3,
   },
 ];

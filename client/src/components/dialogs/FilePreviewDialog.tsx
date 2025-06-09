@@ -261,7 +261,11 @@ export default function FilePreviewDialog() {
     if (!previewRef.current) return;
 
     const resizeObserver = new ResizeObserver(() => {
-      if (currentFile && (currentFile.type.startsWith("image/") || currentFile.type.startsWith("video/"))) {
+      if (
+        currentFile &&
+        (currentFile.type.startsWith("image/") ||
+          currentFile.type.startsWith("video/"))
+      ) {
         // Recalculate fit scale when container resizes
         setTimeout(() => {
           const newFitScale = calculateFitScale();
@@ -350,13 +354,11 @@ export default function FilePreviewDialog() {
 
     if (mimeType.startsWith("text/")) {
       return (
-        <div className="w-full h-full p-4 bg-white/80">
-          <iframe
-            src={fileUrl}
-            title={name}
-            className="w-full h-full border-none"
-          />
-        </div>
+        <iframe
+          src={fileUrl}
+          title={name}
+          className="w-full h-full border-none"
+        />
       );
     }
 

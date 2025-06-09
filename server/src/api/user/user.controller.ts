@@ -78,6 +78,17 @@ class UserController {
       createdAtEnd
     } = req.query;
 
+    console.log("Query parameters:", {
+      page,
+      pageSize,
+      sortBy,
+      sortOrder,
+      search,
+      searchFields,
+      filters,
+      createdAtStart,
+      createdAtEnd
+    });
     // Parse pagination parameters
     const pageNum = parseInt(page as string, 10);
     const pageSizeNum = parseInt(pageSize as string, 10);
