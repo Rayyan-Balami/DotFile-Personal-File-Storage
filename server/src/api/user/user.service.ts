@@ -12,9 +12,16 @@ import {
   UserResponseDTO,
 } from "@api/user/user.dto.js";
 import { IUser } from "@api/user/user.model.js";
-import { REFRESH_TOKEN_SECRET, DEFAULT_USER_AVATAR_URL } from "@config/constants.js";
+import {
+  REFRESH_TOKEN_SECRET,
+  DEFAULT_USER_AVATAR_URL,
+} from "@config/constants.js";
 import { ApiError } from "@utils/apiError.utils.js";
-import { createUserDirectory, getUserDirectoryPath, removeDirectory } from "@utils/mkdir.utils.js";
+import {
+  createUserDirectory,
+  getUserDirectoryPath,
+  removeDirectory,
+} from "@utils/mkdir.utils.js";
 import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
 import logger from "@utils/logger.utils.js";
 import jwt from "jsonwebtoken";
@@ -213,7 +220,10 @@ class UserService {
    * @param avatarUrl - New avatar URL
    * @throws User not found
    */
-  async updateUserAvatar(id: string, avatarUrl: string): Promise<UserResponseDTO> {
+  async updateUserAvatar(
+    id: string,
+    avatarUrl: string
+  ): Promise<UserResponseDTO> {
     // Get current user to check existing avatar
     const currentUser = await userDAO.getUserById(id);
     if (!currentUser) {
@@ -223,7 +233,9 @@ class UserService {
     // Clean up old avatar if it's not the default
     if (currentUser.avatar && currentUser.avatar !== DEFAULT_USER_AVATAR_URL) {
       try {
-        const { deleteAvatarFile } = await import("@middleware/avatar.middleware.js");
+        const { deleteAvatarFile } = await import(
+          "@middleware/avatar.middleware.js"
+        );
         await deleteAvatarFile(currentUser.avatar);
       } catch (error) {
         logger.warn("Failed to delete old avatar file:", error);
@@ -310,8 +322,6 @@ class UserService {
     return this.sanitizeUser(updatedUser);
   }
 
-
-
   /**
    * Get all users (admin)
    * @param includeDeleted - Include soft-deleted users
@@ -333,12 +343,12 @@ class UserService {
     page: number;
     pageSize: number;
     sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
+    sortOrder?: "asc" | "desc";
     search?: string;
     searchFields?: string[];
     filters?: {
       role?: string;
-      status?: 'active' | 'deleted';
+      status?: "active" | "deleted";
       includeDeleted?: boolean;
     };
     dateRanges?: {
@@ -357,7 +367,7 @@ class UserService {
     };
   }> {
     const result = await userDAO.getAllUsersWithPagination(options);
-    
+
     return {
       data: result.users.map((user) => this.sanitizeUser(user)),
       pagination: {
@@ -366,8 +376,8 @@ class UserService {
         totalItems: result.totalItems,
         totalPages: result.totalPages,
         hasNextPage: result.hasNextPage,
-        hasPreviousPage: result.hasPreviousPage
-      }
+        hasPreviousPage: result.hasPreviousPage,
+      },
     };
   }
 
@@ -484,29 +494,44 @@ class UserService {
     return this.sanitizeUser(updatedUser);
   }
 
-
-
   /**
    * Permanently delete user account and all associated data
    * @param userId - Target user ID
    * @param deleteData - Password confirmation for security
+   * (optional, for admin-initiated deletions)
    * @throws Invalid password or user not found
    */
-  async deleteUserAccount(userId: string, deleteData: DeleteUserAccountDTO): Promise<void> {
+  async deleteUserAccount(
+    userId: string,
+    deleteData: DeleteUserAccountDTO
+  ): Promise<void> {
     // Get user with password for verification
-    const user = await userDAO.getUserById(userId, { includeRefreshToken: true });
+    const user = await userDAO.getUserById(userId, {
+      includeRefreshToken: true,
+    });
     if (!user) {
       throw new ApiError(404, [{ id: "User not found" }]);
     }
 
+    // if the user is an admin, prevent deletion
+    if (user.role === "admin") {
+      throw new ApiError(403, [
+        { id: "Admin cannot delete their own account" },
+      ]);
+    }
+
     // Get user with password to verify the password
-    const userWithPassword = await userDAO.getUserByEmail(user.email, { includePassword: true });
+    const userWithPassword = await userDAO.getUserByEmail(user.email, {
+      includePassword: true,
+    });
     if (!userWithPassword) {
       throw new ApiError(404, [{ id: "User not found" }]);
     }
 
     // Verify password
-    const validPassword = await userWithPassword.checkPassword(deleteData.password);
+    const validPassword = await userWithPassword.checkPassword(
+      deleteData.password
+    );
     if (!validPassword) {
       throw new ApiError(401, [{ password: "Invalid password" }]);
     }
@@ -516,18 +541,26 @@ class UserService {
 
       // 1. Delete all user files (both active and trashed) from database and storage
       await fileService.permanentDeleteAllDeletedFiles(userId);
-      
+
       // Get and delete all active files
-      const activeFiles = await fileService.getUserFilesByFolders(userId, undefined, false);
+      const activeFiles = await fileService.getUserFilesByFolders(
+        userId,
+        undefined,
+        false
+      );
       for (const file of activeFiles) {
         await fileService.permanentDeleteFile(file.id, userId);
       }
 
       // 2. Delete all user folders (both active and trashed) from database
       await folderService.permanentDeleteAllDeletedFolders(userId);
-      
+
       // Get and delete all active folders
-      const activeFolders = await folderService.getUserFolders(userId, undefined, false);
+      const activeFolders = await folderService.getUserFolders(
+        userId,
+        undefined,
+        false
+      );
       for (const folder of activeFolders) {
         await folderService.permanentDeleteFolder(folder.id, userId);
       }
@@ -549,7 +582,9 @@ class UserService {
       // 4. Delete user avatar file if not default
       if (user.avatar && user.avatar !== DEFAULT_USER_AVATAR_URL) {
         try {
-          const { deleteAvatarFile } = await import("@middleware/avatar.middleware.js");
+          const { deleteAvatarFile } = await import(
+            "@middleware/avatar.middleware.js"
+          );
           await deleteAvatarFile(user.avatar);
           logger.info(`Deleted user avatar: ${user.avatar}`);
         } catch (error) {
@@ -580,7 +615,10 @@ class UserService {
    * @returns Summary of operation results
    * @throws ApiError for various failure scenarios
    */
-  async bulkSoftDeleteUsers(userIds: string[]): Promise<{
+  async bulkSoftDeleteUsers(
+    userIds: string[],
+    adminId: string
+  ): Promise<{
     success: UserResponseDTO[];
     failed: Array<{ id: string; error: string }>;
     summary: { total: number; successful: number; failed: number };
@@ -593,13 +631,26 @@ class UserService {
       };
     }
 
+    if (userIds.includes(adminId)) {
+      return {
+        success: [],
+        failed: [
+          {
+            id: adminId,
+            error: "Admin can't delete themselves, only other admins",
+          },
+        ],
+        summary: { total: 1, successful: 0, failed: 1 },
+      };
+    }
+
     try {
       // Use bulk DAO operation for better performance
       const result = await userDAO.bulkSoftDeleteUsers(userIds);
-      
+
       // Convert successful users to response DTOs
-      const success = result.successful.map(user => this.sanitizeUser(user));
-      
+      const success = result.successful.map((user) => this.sanitizeUser(user));
+
       return {
         success,
         failed: result.failed,
@@ -611,13 +662,13 @@ class UserService {
       };
     } catch (error) {
       logger.error("Error in bulk soft delete operation:", error);
-      
+
       // Fallback: mark all as failed if bulk operation fails entirely
-      const failed = userIds.map(id => ({
+      const failed = userIds.map((id) => ({
         id,
-        error: "Bulk operation failed"
+        error: "Bulk operation failed",
       }));
-      
+
       return {
         success: [],
         failed,
@@ -633,10 +684,14 @@ class UserService {
   /**
    * Admin: Bulk restore users
    * @param userIds - Array of user IDs to restore
+   * @param adminId - ID of the admin performing the action
    * @returns Summary of operation results
    * @throws ApiError for various failure scenarios
    */
-  async bulkRestoreUsers(userIds: string[]): Promise<{
+  async bulkRestoreUsers(
+    userIds: string[],
+    adminId: string
+  ): Promise<{
     success: UserResponseDTO[];
     failed: Array<{ id: string; error: string }>;
     summary: { total: number; successful: number; failed: number };
@@ -649,13 +704,22 @@ class UserService {
       };
     }
 
+    // Prevent admin from restoring themselves (shouldn't be deleted in first place)
+    if (userIds.includes(adminId)) {
+      return {
+        success: [],
+        failed: [{ id: adminId, error: "Admin cannot restore themselves" }],
+        summary: { total: 1, successful: 0, failed: 1 },
+      };
+    }
+
     try {
       // Use bulk DAO operation for better performance
       const result = await userDAO.bulkRestoreUsers(userIds);
-      
+
       // Convert successful users to response DTOs
-      const success = result.successful.map(user => this.sanitizeUser(user));
-      
+      const success = result.successful.map((user) => this.sanitizeUser(user));
+
       return {
         success,
         failed: result.failed,
@@ -667,13 +731,13 @@ class UserService {
       };
     } catch (error) {
       logger.error("Error in bulk restore operation:", error);
-      
+
       // Fallback: mark all as failed if bulk operation fails entirely
-      const failed = userIds.map(id => ({
+      const failed = userIds.map((id) => ({
         id,
-        error: "Bulk operation failed"
+        error: "Bulk operation failed",
       }));
-      
+
       return {
         success: [],
         failed,
@@ -689,10 +753,14 @@ class UserService {
   /**
    * Admin: Bulk permanent delete users
    * @param userIds - Array of user IDs to permanently delete
+   * @param adminId - ID of the admin performing the action
    * @returns Summary of operation results
    * @throws ApiError for various failure scenarios
    */
-  async bulkPermanentDeleteUsers(userIds: string[]): Promise<{
+  async bulkPermanentDeleteUsers(
+    userIds: string[],
+    adminId: string
+  ): Promise<{
     success: string[];
     failed: Array<{ id: string; error: string }>;
     summary: { total: number; successful: number; failed: number };
@@ -702,6 +770,17 @@ class UserService {
         success: [],
         failed: [],
         summary: { total: 0, successful: 0, failed: 0 },
+      };
+    }
+
+    // Prevent admin from permanently deleting themselves
+    if (userIds.includes(adminId)) {
+      return {
+        success: [],
+        failed: [
+          { id: adminId, error: "Admin cannot permanently delete themselves" },
+        ],
+        summary: { total: 1, successful: 0, failed: 1 },
       };
     }
 
@@ -723,18 +802,26 @@ class UserService {
 
         // 1. Delete all user files (both active and trashed) from database and storage
         await fileService.permanentDeleteAllDeletedFiles(userId);
-        
+
         // Get and delete all active files
-        const activeFiles = await fileService.getUserFilesByFolders(userId, undefined, false);
+        const activeFiles = await fileService.getUserFilesByFolders(
+          userId,
+          undefined,
+          false
+        );
         for (const file of activeFiles) {
           await fileService.permanentDeleteFile(file.id, userId);
         }
 
         // 2. Delete all user folders (both active and trashed) from database
         await folderService.permanentDeleteAllDeletedFolders(userId);
-        
+
         // Get and delete all active folders
-        const activeFolders = await folderService.getUserFolders(userId, undefined, false);
+        const activeFolders = await folderService.getUserFolders(
+          userId,
+          undefined,
+          false
+        );
         for (const folder of activeFolders) {
           await folderService.permanentDeleteFolder(folder.id, userId);
         }
@@ -756,7 +843,9 @@ class UserService {
         // 4. Delete user avatar file if not default
         if (user.avatar && user.avatar !== DEFAULT_USER_AVATAR_URL) {
           try {
-            const { deleteAvatarFile } = await import("@middleware/avatar.middleware.js");
+            const { deleteAvatarFile } = await import(
+              "@middleware/avatar.middleware.js"
+            );
             await deleteAvatarFile(user.avatar);
             logger.info(`Deleted user avatar: ${user.avatar}`);
           } catch (error) {
@@ -768,7 +857,6 @@ class UserService {
         // Mark user as ready for deletion
         usersToDelete.push(userId);
         logger.info(`Completed cleanup for user: ${userId}`);
-
       } catch (error) {
         logger.error(`Error during cleanup for ${userId}:`, error);
         let errorMessage = "Cleanup failed";
@@ -787,20 +875,24 @@ class UserService {
     // Second phase: Bulk delete users from database
     if (usersToDelete.length > 0) {
       try {
-        logger.info(`Bulk deleting ${usersToDelete.length} users from database`);
-        const bulkResult = await userDAO.bulkPermanentDeleteUsers(usersToDelete);
-        
+        logger.info(
+          `Bulk deleting ${usersToDelete.length} users from database`
+        );
+        const bulkResult =
+          await userDAO.bulkPermanentDeleteUsers(usersToDelete);
+
         // Add successful deletions
         success.push(...bulkResult.successful);
-        
+
         // Add any failures from the bulk operation
         failed.push(...bulkResult.failed);
-        
-        logger.info(`Successfully deleted ${bulkResult.successful.length} users from database`);
-        
+
+        logger.info(
+          `Successfully deleted ${bulkResult.successful.length} users from database`
+        );
       } catch (error) {
         logger.error("Error in bulk database deletion:", error);
-        
+
         // If bulk deletion fails, mark all prepared users as failed
         for (const userId of usersToDelete) {
           failed.push({ id: userId, error: "Database deletion failed" });
@@ -838,7 +930,10 @@ class UserService {
    * @param endDate - End date for counting users
    * @returns Number of users created in the date range
    */
-  async getUserCountByDateRange(startDate: Date, endDate: Date): Promise<number> {
+  async getUserCountByDateRange(
+    startDate: Date,
+    endDate: Date
+  ): Promise<number> {
     return await userDAO.getUserCountByDateRange(startDate, endDate);
   }
 
@@ -848,7 +943,10 @@ class UserService {
    * @param endDate - End date for counting active users
    * @returns Number of active users in the date range
    */
-  async getActiveUsersCountByDateRange(startDate: Date, endDate: Date): Promise<number> {
+  async getActiveUsersCountByDateRange(
+    startDate: Date,
+    endDate: Date
+  ): Promise<number> {
     return await userDAO.getActiveUsersCountByDateRange(startDate, endDate);
   }
 
@@ -856,7 +954,9 @@ class UserService {
    * Get user storage consumption distribution
    * @returns Array of storage consumption categories with user counts
    */
-  async getUserStorageConsumption(): Promise<{ category: string; count: number }[]> {
+  async getUserStorageConsumption(): Promise<
+    { category: string; count: number }[]
+  > {
     return await userDAO.getUserStorageConsumption();
   }
 
@@ -864,7 +964,9 @@ class UserService {
    * Get monthly user registrations for the current year
    * @returns Array of monthly user registration counts for current year
    */
-  async getMonthlyUserRegistrations(): Promise<{ month: string; count: number }[]> {
+  async getMonthlyUserRegistrations(): Promise<
+    { month: string; count: number }[]
+  > {
     return await userDAO.getMonthlyUserRegistrations();
   }
 }

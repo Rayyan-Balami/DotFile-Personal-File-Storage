@@ -385,8 +385,12 @@ class UserController {
    * Admin: Bulk soft delete users
    */
   bulkSoftDeleteUsers = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+
     const { userIds } = req.body;
-    const result = await userService.bulkSoftDeleteUsers(userIds);
+    const result = await userService.bulkSoftDeleteUsers(userIds, req.user.id);
     res.json(
       new ApiResponse(
         200,
@@ -400,8 +404,12 @@ class UserController {
    * Admin: Bulk restore users
    */
   bulkRestoreUsers = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+
     const { userIds } = req.body;
-    const result = await userService.bulkRestoreUsers(userIds);
+    const result = await userService.bulkRestoreUsers(userIds, req.user.id);
     res.json(
       new ApiResponse(
         200,
@@ -415,8 +423,12 @@ class UserController {
    * Admin: Bulk permanent delete users
    */
   bulkPermanentDeleteUsers = asyncHandler(async (req: Request, res: Response) => {
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+
     const { userIds } = req.body;
-    const result = await userService.bulkPermanentDeleteUsers(userIds);
+    const result = await userService.bulkPermanentDeleteUsers(userIds, req.user.id);
     res.json(
       new ApiResponse(
         200,
