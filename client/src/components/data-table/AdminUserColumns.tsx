@@ -19,7 +19,7 @@ import { User } from "@/types/user";
 import { formatFileSize } from "@/utils/formatUtils";
 import { getInitials } from "@/utils/getInitials";
 
-export const userColumns: ColumnDef<User>[] = [
+export const AdminUserColumns: ColumnDef<User>[] = [
   {
     id: "select",
     header: ({ table }) => (

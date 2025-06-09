@@ -65,7 +65,6 @@ const transformDataForChart = (data: UserStorageConsumptionAnalyticsItem[]) => {
 
 export function AdminUserStorageChart() {
   const { data, error } = useUserStorageConsumptionAnalytics();
-  console.log("AdminUserStorageCard data:", data);
 
   // Handle error state only (loading is handled by Suspense)
   if (error || !data?.data?.analytics) {

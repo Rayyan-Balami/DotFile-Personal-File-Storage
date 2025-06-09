@@ -100,12 +100,14 @@ export function AdminCreationChart() {
     // Validate using your existing schema
     try {
       const validatedData = creationAnalyticsSchema.parse(debouncedDateRange);
-      console.log("Date range debounced and validated:", validatedData);
-      setDateRange(validatedData);
+      // Only update if the range has actually changed
+      if (validatedData.startDate !== dateRange.startDate || validatedData.endDate !== dateRange.endDate) {
+        setDateRange(validatedData);
+      }
     } catch (error) {
       console.error("Invalid date range:", error);
     }
-  }, [debouncedDateRange]);
+  }, [debouncedDateRange, dateRange.startDate, dateRange.endDate]);
 
   // Fetch analytics data
   const { data: analyticsData, error } = useCreationAnalytics(dateRange);
@@ -147,7 +149,6 @@ export function AdminCreationChart() {
       currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    console.log("Chart data with all dates:", completeData);
     return completeData;
   }, [analyticsData, dateRange]);
 

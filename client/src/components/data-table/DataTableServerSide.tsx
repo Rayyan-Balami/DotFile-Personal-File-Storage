@@ -159,8 +159,8 @@ export function DataTableServerSide<TData, TValue>({
             filterValues={filterValues}
           />
         )}
-        <DataTableViewOptions table={table} />
         <div className="ml-auto flex items-center gap-2">
+        <DataTableViewOptions table={table} />
           {Object.entries(actionDialogs).map(([key, dialog]) => (
             <DataTableActionDialog
               key={key}

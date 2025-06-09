@@ -3,7 +3,7 @@
 import { useGetUsersPaginated } from "@/api/user/user.query";
 import { User } from "@/types/user";
 import { DataTableServerSide } from "./DataTableServerSide";
-import { userColumns } from "./userColumns";
+import { AdminUserColumns } from "./AdminUserColumns";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -135,7 +135,7 @@ export default function AdminUserTable({
       description:
         "Are you sure you want to delete the selected users? This action cannot be undone.",
       trigger: (
-        <Button variant={"outline"} size={"icon"} className="size-8">
+        <Button variant={"outline"} size={"icon"}>
           <Trash2 className="h-4 w-4" />{" "}
         </Button>
       ),
@@ -150,7 +150,7 @@ export default function AdminUserTable({
 
   return (
     <DataTableServerSide
-      columns={userColumns}
+      columns={AdminUserColumns}
       data={users}
       pagination={serverPagination}
       loading={isLoading}
