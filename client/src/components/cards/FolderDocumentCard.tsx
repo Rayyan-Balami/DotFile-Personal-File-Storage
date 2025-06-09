@@ -278,7 +278,7 @@ const CardContent = React.memo(
     color?: string;
   }) => {
     const [menuOpen, setMenuOpen] = useState(false);
-    const { isMobile } = useBreakpoint();
+    const { isMobile, isDesktop } = useBreakpoint();
 
     // Only render dropdown content when menu is open
     const dropdownMenu = (
@@ -322,9 +322,9 @@ const CardContent = React.memo(
 
     if (variant === "list") {
       return (
-        <div className="px-1 flex-1 flex gap-6">
+        <div className="px-1 flex-1 flex gap-4">
           <div className="flex-1 flex max-lg:flex-col lg:items-center">
-            <h3 className="text-sm font-[425] line-clamp-1 break-all mb-1.5 lg:max-w-sm w-full">
+            <h3 className="text-sm font-[425] line-clamp-1 break-all mb-1.5 lg:max-w-xs xl:max-w-sm w-full">
               {cardType === "document" && extension
                 ? `${title}.${extension}`
                 : title}
@@ -357,7 +357,7 @@ const CardContent = React.memo(
     }
 
     return (
-      <div className="px-1 flex-1 flex gap-6 mb-0.5">
+      <div className="px-1 flex-1 flex gap-4 mb-0.5">
         <div className="flex-1 flex flex-col">
           <h3 className="text-sm font-[425] line-clamp-1 break-all mb-1.5">
             {cardType === "document" && extension
@@ -370,7 +370,7 @@ const CardContent = React.memo(
             byteCount={byteCount}
           />
           <span className="text-xs font-light text-muted-foreground pt-3 mt-auto">
-            {formatDate(createdAt, isMobile ? false : true)}
+            {formatDate(createdAt, isDesktop ? false : true)}
           </span>
         </div>
         <div className="flex flex-col-reverse justify-between items-center mt-0.75">

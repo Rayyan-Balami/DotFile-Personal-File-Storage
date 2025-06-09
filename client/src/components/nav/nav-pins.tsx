@@ -310,7 +310,7 @@ export function NavPins() {
                     {item.type === "file" ? (
                       <button
                         onClick={(e) => handleFileClick(e, item.data)}
-                        className="w-full flex items-center gap-2 text-left"
+                        className="w-full flex items-center text-left"
                       >
                         <item.icon />
                         <span className="truncate overflow-hidden selection:bg-transparent">

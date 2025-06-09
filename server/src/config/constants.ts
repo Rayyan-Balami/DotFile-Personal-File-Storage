@@ -48,8 +48,8 @@ export const DEFAULT_USER_AVATAR_URL = '/avatars/default-user-avatar.png';
 // ==============================
 // LIMITS
 // ==============================
-export const MAX_FOLDER_DEPTH = 5;
-export const MAX_FILES_PER_FOLDER = 20;
+export const MAX_FOLDER_DEPTH = 10;
+export const MAX_FILES_PER_FOLDER = 50;
 export const MAX_FILES_PER_UPLOAD_BATCH = 20;
 export const MAX_SIZE_PER_UPLOAD_BATCH = 52428800; // 50 MB
 export const MAX_AVATAR_SIZE = 2097152; // 2 MB
