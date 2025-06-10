@@ -354,11 +354,13 @@ export default function FilePreviewDialog() {
 
     if (mimeType.startsWith("text/")) {
       return (
-        <iframe
-          src={fileUrl}
-          title={name}
-          className="w-full h-full border-none"
-        />
+        <div className="h-full size-full bg-white/80">
+          <iframe
+            src={fileUrl}
+            title={name}
+            className="w-full h-full border-none"
+          />
+        </div>
       );
     }
 
