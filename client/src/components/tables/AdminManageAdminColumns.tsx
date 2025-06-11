@@ -24,10 +24,9 @@ import {
   Copy,
   Delete,
   Edit3,
-  Eye,
   MoreHorizontal,
   Redo,
-  Trash2,
+  Trash2
 } from "lucide-react";
 
 type AccountActionType = "soft-delete" | "restore" | "permanent-delete";
@@ -168,10 +167,6 @@ export const AdminManageAdminColumns: ColumnDef<User>[] = [
               >
                 <Copy className="mr-2 h-4 w-4" />
                 Copy Admin ID
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Eye className="mr-2 h-4 w-4" />
-                View Details
               </DropdownMenuItem>
               {isCurrentUser ? (
                 <DropdownMenuItem asChild>
