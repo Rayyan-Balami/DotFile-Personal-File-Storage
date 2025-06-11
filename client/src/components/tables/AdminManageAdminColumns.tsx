@@ -202,9 +202,11 @@ export const AdminManageAdminColumns: ColumnDef<User>[] = [
                     </>
                   ) : (
                     <>
-                      <DropdownMenuItem>
-                        <Edit3 className="mr-2 h-4 w-4" />
-                        Edit Admin
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/$id/edit" params={{ id: user.id }}>
+                          <Edit3 className="mr-2 h-4 w-4" />
+                          Edit Admin
+                        </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         onClick={() => handleAction("soft-delete")}

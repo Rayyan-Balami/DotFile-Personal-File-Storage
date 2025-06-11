@@ -19,6 +19,7 @@ import { useDialogStore } from "@/stores/useDialogStore";
 import { User } from "@/types/user";
 import { formatFileSize } from "@/utils/formatUtils";
 import { getInitials } from "@/utils/getInitials";
+import { Link } from "@tanstack/react-router";
 import { ColumnDef } from "@tanstack/react-table";
 import {
   Copy,
@@ -27,7 +28,7 @@ import {
   Eye,
   MoreHorizontal,
   Redo,
-  Trash2
+  Trash2,
 } from "lucide-react";
 
 type AccountActionType = "soft-delete" | "restore" | "permanent-delete";
@@ -87,7 +88,9 @@ export const AdminManageUserColumns: ColumnDef<User>[] = [
       <DataTableColumnHeader column={column} title="Role" />
     ),
     cell: ({ row }) => (
-      <Badge variant={"outline"} className="capitalize">{row.getValue("role")}</Badge>
+      <Badge variant={"outline"} className="capitalize">
+        {row.getValue("role")}
+      </Badge>
     ),
   },
   {
@@ -198,12 +201,14 @@ export const AdminManageUserColumns: ColumnDef<User>[] = [
               <DropdownMenuSeparator />
               {!isDeleted ? (
                 <>
-                  <DropdownMenuItem>
-                    <Edit3 className="mr-2 h-4 w-4" />
-                    Edit User
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin/$id/edit" params={{ id: user.id }}>
+                      <Edit3 className="mr-2 h-4 w-4" />
+                      Edit User
+                    </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => handleAction("soft-delete")} 
+                  <DropdownMenuItem
+                    onClick={() => handleAction("soft-delete")}
                     className="text-yellow-600 focus:text-yellow-600 focus:bg-yellow-700/20"
                   >
                     <Delete className="text-yellow-600 mr-2 h-4 w-4" />
@@ -212,14 +217,14 @@ export const AdminManageUserColumns: ColumnDef<User>[] = [
                 </>
               ) : (
                 <>
-                  <DropdownMenuItem 
-                    onClick={() => handleAction("restore")} 
+                  <DropdownMenuItem
+                    onClick={() => handleAction("restore")}
                     className="text-green-600 focus:text-green-600 focus:bg-green-700/20"
                   >
                     <Redo className="text-green-600 mr-2 h-4 w-4" />
                     Restore User
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => handleAction("permanent-delete")}
                     className="text-red-600 focus:text-red-600 focus:bg-red-700/20"
                   >

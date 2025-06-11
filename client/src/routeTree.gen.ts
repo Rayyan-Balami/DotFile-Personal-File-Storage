@@ -24,7 +24,9 @@ import { Route as userSettingProfileImport } from './routes/(user)/setting.profi
 import { Route as userFolderIdImport } from './routes/(user)/folder.$id'
 import { Route as adminAdminUserImport } from './routes/(admin)/admin/user'
 import { Route as adminAdminAdminImport } from './routes/(admin)/admin/admin'
+import { Route as adminAdminUserIndexImport } from './routes/(admin)/admin/user.index'
 import { Route as adminAdminSettingProfileImport } from './routes/(admin)/admin/setting.profile'
+import { Route as adminAdminIdEditImport } from './routes/(admin)/admin/$id.edit'
 
 // Create/Update Routes
 
@@ -103,9 +105,21 @@ const adminAdminAdminRoute = adminAdminAdminImport.update({
   getParentRoute: () => adminRouteRoute,
 } as any)
 
+const adminAdminUserIndexRoute = adminAdminUserIndexImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => adminAdminUserRoute,
+} as any)
+
 const adminAdminSettingProfileRoute = adminAdminSettingProfileImport.update({
   id: '/admin/setting/profile',
   path: '/admin/setting/profile',
+  getParentRoute: () => adminRouteRoute,
+} as any)
+
+const adminAdminIdEditRoute = adminAdminIdEditImport.update({
+  id: '/admin/$id/edit',
+  path: '/admin/$id/edit',
   getParentRoute: () => adminRouteRoute,
 } as any)
 
@@ -204,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminAdminIndexImport
       parentRoute: typeof adminRouteImport
     }
+    '/(admin)/admin/$id/edit': {
+      id: '/(admin)/admin/$id/edit'
+      path: '/admin/$id/edit'
+      fullPath: '/admin/$id/edit'
+      preLoaderRoute: typeof adminAdminIdEditImport
+      parentRoute: typeof adminRouteImport
+    }
     '/(admin)/admin/setting/profile': {
       id: '/(admin)/admin/setting/profile'
       path: '/admin/setting/profile'
@@ -211,22 +232,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof adminAdminSettingProfileImport
       parentRoute: typeof adminRouteImport
     }
+    '/(admin)/admin/user/': {
+      id: '/(admin)/admin/user/'
+      path: '/'
+      fullPath: '/admin/user/'
+      preLoaderRoute: typeof adminAdminUserIndexImport
+      parentRoute: typeof adminAdminUserImport
+    }
   }
 }
 
 // Create and export the route tree
 
+interface adminAdminUserRouteChildren {
+  adminAdminUserIndexRoute: typeof adminAdminUserIndexRoute
+}
+
+const adminAdminUserRouteChildren: adminAdminUserRouteChildren = {
+  adminAdminUserIndexRoute: adminAdminUserIndexRoute,
+}
+
+const adminAdminUserRouteWithChildren = adminAdminUserRoute._addFileChildren(
+  adminAdminUserRouteChildren,
+)
+
 interface adminRouteRouteChildren {
   adminAdminAdminRoute: typeof adminAdminAdminRoute
-  adminAdminUserRoute: typeof adminAdminUserRoute
+  adminAdminUserRoute: typeof adminAdminUserRouteWithChildren
   adminAdminIndexRoute: typeof adminAdminIndexRoute
+  adminAdminIdEditRoute: typeof adminAdminIdEditRoute
   adminAdminSettingProfileRoute: typeof adminAdminSettingProfileRoute
 }
 
 const adminRouteRouteChildren: adminRouteRouteChildren = {
   adminAdminAdminRoute: adminAdminAdminRoute,
-  adminAdminUserRoute: adminAdminUserRoute,
+  adminAdminUserRoute: adminAdminUserRouteWithChildren,
   adminAdminIndexRoute: adminAdminIndexRoute,
+  adminAdminIdEditRoute: adminAdminIdEditRoute,
   adminAdminSettingProfileRoute: adminAdminSettingProfileRoute,
 }
 
@@ -275,11 +317,13 @@ export interface FileRoutesByFullPath {
   '/recent': typeof userRecentRoute
   '/trash': typeof userTrashRoute
   '/admin/admin': typeof adminAdminAdminRoute
-  '/admin/user': typeof adminAdminUserRoute
+  '/admin/user': typeof adminAdminUserRouteWithChildren
   '/folder/$id': typeof userFolderIdRoute
   '/setting/profile': typeof userSettingProfileRoute
   '/admin': typeof adminAdminIndexRoute
+  '/admin/$id/edit': typeof adminAdminIdEditRoute
   '/admin/setting/profile': typeof adminAdminSettingProfileRoute
+  '/admin/user/': typeof adminAdminUserIndexRoute
 }
 
 export interface FileRoutesByTo {
@@ -289,11 +333,12 @@ export interface FileRoutesByTo {
   '/recent': typeof userRecentRoute
   '/trash': typeof userTrashRoute
   '/admin/admin': typeof adminAdminAdminRoute
-  '/admin/user': typeof adminAdminUserRoute
   '/folder/$id': typeof userFolderIdRoute
   '/setting/profile': typeof userSettingProfileRoute
   '/admin': typeof adminAdminIndexRoute
+  '/admin/$id/edit': typeof adminAdminIdEditRoute
   '/admin/setting/profile': typeof adminAdminSettingProfileRoute
+  '/admin/user': typeof adminAdminUserIndexRoute
 }
 
 export interface FileRoutesById {
@@ -307,11 +352,13 @@ export interface FileRoutesById {
   '/(user)/trash': typeof userTrashRoute
   '/(user)/': typeof userIndexRoute
   '/(admin)/admin/admin': typeof adminAdminAdminRoute
-  '/(admin)/admin/user': typeof adminAdminUserRoute
+  '/(admin)/admin/user': typeof adminAdminUserRouteWithChildren
   '/(user)/folder/$id': typeof userFolderIdRoute
   '/(user)/setting/profile': typeof userSettingProfileRoute
   '/(admin)/admin/': typeof adminAdminIndexRoute
+  '/(admin)/admin/$id/edit': typeof adminAdminIdEditRoute
   '/(admin)/admin/setting/profile': typeof adminAdminSettingProfileRoute
+  '/(admin)/admin/user/': typeof adminAdminUserIndexRoute
 }
 
 export interface FileRouteTypes {
@@ -327,7 +374,9 @@ export interface FileRouteTypes {
     | '/folder/$id'
     | '/setting/profile'
     | '/admin'
+    | '/admin/$id/edit'
     | '/admin/setting/profile'
+    | '/admin/user/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -336,11 +385,12 @@ export interface FileRouteTypes {
     | '/recent'
     | '/trash'
     | '/admin/admin'
-    | '/admin/user'
     | '/folder/$id'
     | '/setting/profile'
     | '/admin'
+    | '/admin/$id/edit'
     | '/admin/setting/profile'
+    | '/admin/user'
   id:
     | '__root__'
     | '/(admin)'
@@ -356,7 +406,9 @@ export interface FileRouteTypes {
     | '/(user)/folder/$id'
     | '/(user)/setting/profile'
     | '/(admin)/admin/'
+    | '/(admin)/admin/$id/edit'
     | '/(admin)/admin/setting/profile'
+    | '/(admin)/admin/user/'
   fileRoutesById: FileRoutesById
 }
 
@@ -393,6 +445,7 @@ export const routeTree = rootRoute
         "/(admin)/admin/admin",
         "/(admin)/admin/user",
         "/(admin)/admin/",
+        "/(admin)/admin/$id/edit",
         "/(admin)/admin/setting/profile"
       ]
     },
@@ -439,7 +492,10 @@ export const routeTree = rootRoute
     },
     "/(admin)/admin/user": {
       "filePath": "(admin)/admin/user.tsx",
-      "parent": "/(admin)"
+      "parent": "/(admin)",
+      "children": [
+        "/(admin)/admin/user/"
+      ]
     },
     "/(user)/folder/$id": {
       "filePath": "(user)/folder.$id.tsx",
@@ -453,9 +509,17 @@ export const routeTree = rootRoute
       "filePath": "(admin)/admin/index.tsx",
       "parent": "/(admin)"
     },
+    "/(admin)/admin/$id/edit": {
+      "filePath": "(admin)/admin/$id.edit.tsx",
+      "parent": "/(admin)"
+    },
     "/(admin)/admin/setting/profile": {
       "filePath": "(admin)/admin/setting.profile.tsx",
       "parent": "/(admin)"
+    },
+    "/(admin)/admin/user/": {
+      "filePath": "(admin)/admin/user.index.tsx",
+      "parent": "/(admin)/admin/user"
     }
   }
 }
