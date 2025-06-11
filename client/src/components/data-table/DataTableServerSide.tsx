@@ -106,8 +106,13 @@ export function DataTableServerSide<TData, TValue>({
         pageSize: pagination.pageSize,
       },
       rowSelection,
+      columnPinning: {
+        left: ['select'],
+        right: ['actions'],
+      },
     },
     enableRowSelection: true,
+    enableColumnPinning: true,
     onRowSelectionChange: setRowSelection,
     onSortingChange: (updater) => {
       const newSorting = typeof updater === 'function' ? updater(internalSorting) : updater;
@@ -174,14 +179,21 @@ export function DataTableServerSide<TData, TValue>({
           <DataTableViewOptions table={table} />
         </div>
       </div>
-      <div className="rounded-md border bg-muted/40 overflow-hidden">
-        <Table>
+      <div className="rounded-md border bg-card overflow-auto">
+        <Table className="relative">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
+                  const isPinnedLeft = header.column.getIsPinned() === 'left';
+                  const isPinnedRight = header.column.getIsPinned() === 'right';
+                  
                   return (
-                    <TableHead key={header.id} colSpan={header.colSpan}>
+                    <TableHead 
+                      key={header.id} 
+                      colSpan={header.colSpan}
+                      className={`${isPinnedLeft ? 'sticky left-0 z-10 bg-card shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]' : ''} ${isPinnedRight ? 'sticky right-0 z-10 bg-card shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]' : ''}`}
+                    >
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -210,14 +222,22 @@ export function DataTableServerSide<TData, TValue>({
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
+                  {row.getVisibleCells().map((cell) => {
+                    const isPinnedLeft = cell.column.getIsPinned() === 'left';
+                    const isPinnedRight = cell.column.getIsPinned() === 'right';
+                    
+                    return (
+                      <TableCell 
+                        key={cell.id}
+                        className={`${isPinnedLeft ? 'sticky left-0 z-10 bg-card shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]' : ''} ${isPinnedRight ? 'sticky right-0 z-10 bg-card shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]' : ''}`}
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               ))
             ) : (

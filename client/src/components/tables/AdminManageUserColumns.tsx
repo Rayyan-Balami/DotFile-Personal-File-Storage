@@ -1,7 +1,6 @@
 "use client";
 
 import { DataTableColumnHeader } from "@/components/data-table/DataTableColumnHeader";
-import { AccountActionDialog, AccountActionType } from "@/components/dialogs/AccountActionDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
 import { VITE_API_URL } from "@/config/constants";
+import { useDialogStore } from "@/stores/useDialogStore";
 import { User } from "@/types/user";
 import { formatFileSize } from "@/utils/formatUtils";
 import { getInitials } from "@/utils/getInitials";
@@ -29,7 +29,8 @@ import {
   Redo,
   Trash2
 } from "lucide-react";
-import { useState } from "react";
+
+type AccountActionType = "soft-delete" | "restore" | "permanent-delete";
 
 export const AdminManageUserColumns: ColumnDef<User>[] = [
   {
@@ -166,20 +167,14 @@ export const AdminManageUserColumns: ColumnDef<User>[] = [
     cell: ({ row }) => {
       const user = row.original;
       const isDeleted = !!user.deletedAt;
-      
-      // Dialog state
-      const [dialogOpen, setDialogOpen] = useState(false);
-      const [selectedUser, setSelectedUser] = useState<User | null>(null);
-      const [actionType, setActionType] = useState<AccountActionType>("soft-delete");
+      const { openAccountActionDialog } = useDialogStore();
 
       const handleAction = (type: AccountActionType) => {
-        setSelectedUser(user);
-        setActionType(type);
-        setDialogOpen(true);
+        openAccountActionDialog(user, type, "user");
       };
 
       return (
-        <>
+        <div className="flex items-center justify-end">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0">
@@ -235,15 +230,7 @@ export const AdminManageUserColumns: ColumnDef<User>[] = [
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-          
-          <AccountActionDialog
-            open={dialogOpen}
-            onOpenChange={setDialogOpen}
-            account={selectedUser}
-            actionType={actionType}
-            accountType="user"
-          />
-        </>
+        </div>
       );
     },
   },

@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+type AccountActionType = "soft-delete" | "restore" | "permanent-delete";
+
 interface DialogState {
   // Create Folder Dialog
   createFolderOpen: boolean;
@@ -56,6 +58,14 @@ interface DialogState {
   openFilePreviewDialog: (items: any[], currentIndex: number) => void;
   closeFilePreviewDialog: () => void;
   setFilePreviewIndex: (index: number) => void;
+
+  // Account Action Dialog
+  accountActionDialogOpen: boolean;
+  accountActionAccount: any | null; // User type
+  accountActionType: AccountActionType;
+  accountActionAccountType: "user" | "admin";
+  openAccountActionDialog: (account: any, actionType: AccountActionType, accountType: "user" | "admin") => void;
+  closeAccountActionDialog: () => void;
 
   // Helper to close all dialogs
   closeAllDialogs: () => void;
@@ -230,6 +240,33 @@ export const useDialogStore = create<DialogState>((set) => ({
     filePreviewCurrentIndex: index
   })),
 
+  // Account Action Dialog
+  accountActionDialogOpen: false,
+  accountActionAccount: null,
+  accountActionType: "soft-delete",
+  accountActionAccountType: "user",
+  openAccountActionDialog: (account: any, actionType: AccountActionType, accountType: "user" | "admin") => set((state) => ({
+    ...state,
+    accountActionDialogOpen: true,
+    accountActionAccount: account,
+    accountActionType: actionType,
+    accountActionAccountType: accountType,
+    createFolderOpen: false,
+    renameDialogOpen: false,
+    duplicateDialogOpen: false,
+    deleteDialogOpen: false,
+    uploadChoiceDialogOpen: false,
+    folderColorDialogOpen: false,
+    filePreviewDialogOpen: false
+  })),
+  closeAccountActionDialog: () => set((state) => ({
+    ...state,
+    accountActionDialogOpen: false,
+    accountActionAccount: null,
+    accountActionType: "soft-delete",
+    accountActionAccountType: "user"
+  })),
+
   closeAllDialogs: () => set((state) => ({
     ...state,
     createFolderOpen: false,
@@ -239,6 +276,7 @@ export const useDialogStore = create<DialogState>((set) => ({
     uploadChoiceDialogOpen: false,
     folderColorDialogOpen: false,
     filePreviewDialogOpen: false,
+    accountActionDialogOpen: false,
     createFolderParentId: null,
     renameItemId: null,
     renameItemCardType: null,
@@ -258,6 +296,9 @@ export const useDialogStore = create<DialogState>((set) => ({
     deleteItemDeletedAt: null,
     deleteItemHasDeletedAncestor: false,
     deleteItemIds: [],
-    deleteItemNames: []
+    deleteItemNames: [],
+    accountActionAccount: null,
+    accountActionType: "soft-delete",
+    accountActionAccountType: "user"
   }))
 }));

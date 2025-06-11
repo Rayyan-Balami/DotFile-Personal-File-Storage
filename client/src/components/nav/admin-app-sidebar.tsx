@@ -1,4 +1,3 @@
-import React from "react";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import { Database, Menu, ShieldUser, UsersRound } from "lucide-react";
 
