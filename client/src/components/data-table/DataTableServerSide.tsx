@@ -174,7 +174,7 @@ export function DataTableServerSide<TData, TValue>({
           <DataTableViewOptions table={table} />
         </div>
       </div>
-      <div className="rounded-md border bg-muted/40">
+      <div className="rounded-md border bg-muted/40 overflow-hidden">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

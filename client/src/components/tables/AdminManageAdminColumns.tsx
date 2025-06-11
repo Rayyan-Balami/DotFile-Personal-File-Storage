@@ -1,11 +1,7 @@
 "use client";
 
-import {
-  useBulkPermanentDeleteUsers,
-  useBulkRestoreUsers,
-  useBulkSoftDeleteUsers,
-} from "@/api/user/user.query";
 import { DataTableColumnHeader } from "@/components/data-table/DataTableColumnHeader";
+import { AccountActionDialog, AccountActionType } from "@/components/dialogs/AccountActionDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,7 +17,6 @@ import {
 import { VITE_API_URL } from "@/config/constants";
 import { useAuthStore } from "@/stores/authStore";
 import { User } from "@/types/user";
-import { getErrorMessage } from "@/utils/apiErrorHandler";
 import { getInitials } from "@/utils/getInitials";
 import { Link } from "@tanstack/react-router";
 import { ColumnDef } from "@tanstack/react-table";
@@ -34,7 +29,7 @@ import {
   Redo,
   Trash2,
 } from "lucide-react";
-import { toast } from "sonner";
+import { useState } from "react";
 
 export const AdminManageAdminColumns: ColumnDef<User>[] = [
   {
@@ -149,119 +144,95 @@ export const AdminManageAdminColumns: ColumnDef<User>[] = [
       const isDeleted = !!user.deletedAt;
       const currentUser = useAuthStore((state) => state.user);
       const isCurrentUser = currentUser?.id === user.id;
+      
+      // Dialog state
+      const [dialogOpen, setDialogOpen] = useState(false);
+      const [selectedAdmin, setSelectedAdmin] = useState<User | null>(null);
+      const [actionType, setActionType] = useState<AccountActionType>("soft-delete");
 
-      // Mutation hooks for individual operations (using bulk with single user)
-      const bulkSoftDeleteMutation = useBulkSoftDeleteUsers();
-      const bulkRestoreMutation = useBulkRestoreUsers();
-      const bulkPermanentDeleteMutation = useBulkPermanentDeleteUsers();
-
-      // Handle individual operations using bulk endpoints with single user array
-      const handleSoftDelete = async () => {
-        try {
-          const result = await bulkSoftDeleteMutation.mutateAsync([user.id]);
-          const { summary } = result.data;
-
-          if (summary.successful > 0) {
-            toast.success("Admin soft deleted successfully");
-          } else if (summary.failed > 0) {
-            toast.error("Failed to soft delete admin");
-          }
-        } catch (error) {
-          toast.error(getErrorMessage(error));
-        }
-      };
-
-      const handleRestore = async () => {
-        try {
-          const result = await bulkRestoreMutation.mutateAsync([user.id]);
-          const { summary } = result.data;
-
-          if (summary.successful > 0) {
-            toast.success("Admin restored successfully");
-          } else if (summary.failed > 0) {
-            toast.error("Failed to restore admin");
-          }
-        } catch (error) {
-          toast.error(getErrorMessage(error));
-        }
-      };
-
-      const handlePermanentDelete = async () => {
-        try {
-          const result = await bulkPermanentDeleteMutation.mutateAsync([user.id]);
-          const { summary } = result.data;
-
-          if (summary.successful > 0) {
-            toast.success("Admin permanently deleted successfully");
-          } else if (summary.failed > 0) {
-            toast.error("Failed to permanently delete admin");
-          }
-        } catch (error) {
-          toast.error(getErrorMessage(error));
-        }
+      const handleAction = (type: AccountActionType) => {
+        setSelectedAdmin(user);
+        setActionType(type);
+        setDialogOpen(true);
       };
 
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-48">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(user.id)}
-            >
-              <Copy className="mr-2 h-4 w-4" />
-              Copy Admin ID
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Eye className="mr-2 h-4 w-4" />
-              View Details
-            </DropdownMenuItem>
-            {isCurrentUser ? (
-              <DropdownMenuItem asChild>
-                <Link to={`/admin/setting/profile`}>
-                  <Edit3 className="mr-2 h-4 w-4" />
-                  Edit Your Profile
-                </Link>
+        <>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-48">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => navigator.clipboard.writeText(user.id)}
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                Copy Admin ID
               </DropdownMenuItem>
-            ) : (
-              <>
-                <DropdownMenuSeparator />
-                {isDeleted ? (
-                  <>
-                    <DropdownMenuItem onClick={handleRestore} className="text-green-600 focus:text-green-600 focus:bg-green-700/20">
-                      <Redo className="text-green-600 mr-2 h-4 w-4" />
-                      Restore Admin
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-red-600 focus:text-red-600 focus:bg-red-700/20"
-                      onClick={handlePermanentDelete}
-                    >
-                      <Trash2 className="text-red-600 mr-2 h-4 w-4" />
-                      Permanently Delete Admin
-                    </DropdownMenuItem>
-                  </>
-                ) : (
-                  <>
-                    <DropdownMenuItem>
-                      <Edit3 className="mr-2 h-4 w-4" />
-                      Edit Admin
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleSoftDelete} className="text-yellow-600 focus:text-yellow-600 focus:bg-yellow-700/20">
-                      <Delete className="text-yellow-600 mr-2 h-4 w-4" />
-                      Soft Delete Admin
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuItem>
+                <Eye className="mr-2 h-4 w-4" />
+                View Details
+              </DropdownMenuItem>
+              {isCurrentUser ? (
+                <DropdownMenuItem asChild>
+                  <Link to={`/admin/setting/profile`}>
+                    <Edit3 className="mr-2 h-4 w-4" />
+                    Edit Your Profile
+                  </Link>
+                </DropdownMenuItem>
+              ) : (
+                <>
+                  <DropdownMenuSeparator />
+                  {isDeleted ? (
+                    <>
+                      <DropdownMenuItem 
+                        onClick={() => handleAction("restore")}
+                        className="text-green-600 focus:text-green-600 focus:bg-green-700/20"
+                      >
+                        <Redo className="text-green-600 mr-2 h-4 w-4" />
+                        Restore Admin
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleAction("permanent-delete")}
+                        className="text-red-600 focus:text-red-600 focus:bg-red-700/20"
+                      >
+                        <Trash2 className="text-red-600 mr-2 h-4 w-4" />
+                        Permanently Delete Admin
+                      </DropdownMenuItem>
+                    </>
+                  ) : (
+                    <>
+                      <DropdownMenuItem>
+                        <Edit3 className="mr-2 h-4 w-4" />
+                        Edit Admin
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleAction("soft-delete")}
+                        className="text-yellow-600 focus:text-yellow-600 focus:bg-yellow-700/20"
+                      >
+                        <Delete className="text-yellow-600 mr-2 h-4 w-4" />
+                        Soft Delete Admin
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          <AccountActionDialog
+            open={dialogOpen}
+            onOpenChange={setDialogOpen}
+            account={selectedAdmin}
+            actionType={actionType}
+            accountType="admin"
+          />
+        </>
       );
     },
   },
