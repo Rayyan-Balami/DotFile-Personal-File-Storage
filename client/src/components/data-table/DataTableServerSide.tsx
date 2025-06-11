@@ -192,7 +192,7 @@ export function DataTableServerSide<TData, TValue>({
                     <TableHead 
                       key={header.id} 
                       colSpan={header.colSpan}
-                      className={`${isPinnedLeft ? 'sticky left-0 z-10 bg-card shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]' : ''} ${isPinnedRight ? 'sticky right-0 z-10 bg-card shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]' : ''}`}
+                      className={`${isPinnedLeft ? 'sticky left-0' : ''} ${isPinnedRight ? 'sticky right-0' : ''}`}
                     >
                       {header.isPlaceholder
                         ? null
@@ -229,7 +229,7 @@ export function DataTableServerSide<TData, TValue>({
                     return (
                       <TableCell 
                         key={cell.id}
-                        className={`${isPinnedLeft ? 'sticky left-0 z-10 bg-card shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]' : ''} ${isPinnedRight ? 'sticky right-0 z-10 bg-card shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)]' : ''}`}
+                        className={`${isPinnedLeft ? 'sticky left-0' : ''} ${isPinnedRight ? 'sticky right-0' : ''}`}
                       >
                         {flexRender(
                           cell.column.columnDef.cell,
