@@ -1,7 +1,9 @@
 import {
-  useUpdateAvatar,
-  useUpdatePassword,
-  useUpdateProfile,
+  useGetUserById,
+  useUpdateUser,
+  useSetUserPassword,
+  useUpdateUserRole,
+  useUpdateStorageLimit,
 } from "@/api/user/user.query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -11,86 +13,127 @@ import {
   FormControl,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { VITE_API_URL } from "@/config/constants";
+import { UserRole } from "@/validation/authForm";
+import { extractFieldError, getErrorMessage } from "@/utils/apiErrorHandler";
 import { formatFileSize } from "@/utils/formatUtils";
 import { getInitials } from "@/utils/getInitials";
-import { useAuthStore } from "@/stores/authStore";
-import { extractFieldError, getErrorMessage } from "@/utils/apiErrorHandler";
 import {
-  avatarFileSchema,
+  AdminSetPasswordInput,
+  adminSetPasswordSchema,
+  UpdateStorageLimitInput,
+  updateStorageLimitSchema,
   UpdateUserInput,
-  UpdateUserPasswordInput,
-  updateUserPasswordSchema,
+  UpdateUserRoleInput,
+  updateUserRoleSchema,
   updateUserSchema,
 } from "@/validation/authForm";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { VITE_API_URL } from "@/config/constants";
-import DeleteAccountDialog from "@/components/dialogs/DeleteAccountDialog";
 
 export const Route = createFileRoute("/(admin)/admin/$id/edit")({
   component: RouteComponent,
 });
 
 export default function RouteComponent() {
-  const user = useAuthStore((state) => state.user);
-  const updateUser = useAuthStore((state) => state.updateUser);
+  const { id } = Route.useParams();
+  const { data: userData, isLoading, error } = useGetUserById(id);
+  const user = userData?.data?.user;
 
-  const [avatarPreview, setAvatarPreview] = useState<string>("");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const updateUserMutation = useUpdateUser();
+  const setPasswordMutation = useSetUserPassword();
+  const updateRoleMutation = useUpdateUserRole();
+  const updateStorageMutation = useUpdateStorageLimit();
 
-  const updateProfileMutation = useUpdateProfile();
-  const updatePasswordMutation = useUpdatePassword();
-  const updateAvatarMutation = useUpdateAvatar();
-
-  // Profile form (only name is editable)
+  // Profile form
   const profileForm = useForm<UpdateUserInput>({
     resolver: zodResolver(updateUserSchema),
     defaultValues: {
-      name: user?.name || "",
+      name: "",
     },
   });
 
-  // Password form
-  const passwordForm = useForm<UpdateUserPasswordInput>({
-    resolver: zodResolver(updateUserPasswordSchema),
+  // Password form (admin can set password without old password)
+  const passwordForm = useForm<AdminSetPasswordInput>({
+    resolver: zodResolver(adminSetPasswordSchema),
     defaultValues: {
-      oldPassword: "",
       newPassword: "",
       confirmNewPassword: "",
     },
   });
 
-  // Update form when user data changes
+  // Role form
+  const roleForm = useForm<UpdateUserRoleInput>({
+    resolver: zodResolver(updateUserRoleSchema),
+    defaultValues: {
+      role: UserRole.USER // Use default value instead of user?.role which is undefined initially
+    },
+  });
+
+  // Storage form
+  const storageForm = useForm<UpdateStorageLimitInput>({
+    resolver: zodResolver(updateStorageLimitSchema),
+    defaultValues: {
+      maxStorageLimit: 0,
+    },
+  });
+
+  // Update forms when user data changes
   useEffect(() => {
     if (user) {
       profileForm.reset({
         name: user.name || "",
       });
+      roleForm.reset({
+        role: user.role || UserRole.USER,
+      });
+      storageForm.reset({
+        maxStorageLimit: user.maxStorageLimit || 0,
+      });
     }
-  }, [user, profileForm]);
+  }, [user, profileForm, roleForm, storageForm]);
 
-  // Return early if no user - after all hooks
-  if (!user) {
-    return null;
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-lg">Loading user details...</div>
+      </div>
+    );
   }
 
-  // Profile update handler (name only)
+  // Error state
+  if (error || !user) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-lg text-red-600">
+          {error ? "Failed to load user details" : "User not found"}
+        </div>
+      </div>
+    );
+  }
+
+  // Profile update handler
   async function onProfileSubmit(values: UpdateUserInput) {
     try {
-      const response = await updateProfileMutation.mutateAsync(values);
-      if (response.data?.data?.user) {
-        updateUser(response.data.data.user);
-        toast.success("Profile updated successfully!");
-      }
+      await updateUserMutation.mutateAsync({ id, data: values });
+      toast.success("Profile updated successfully!");
     } catch (error: any) {
       const fieldError = extractFieldError(error);
       if (fieldError && fieldError.field === "name") {
@@ -105,21 +148,19 @@ export default function RouteComponent() {
   }
 
   // Password update handler
-  async function onPasswordSubmit(values: UpdateUserPasswordInput) {
+  async function onPasswordSubmit(values: AdminSetPasswordInput) {
     try {
-      await updatePasswordMutation.mutateAsync(values);
+      await setPasswordMutation.mutateAsync({ id, data: values });
       toast.success("Password updated successfully!");
       passwordForm.reset();
     } catch (error: any) {
       const fieldError = extractFieldError(error);
       if (
         fieldError &&
-        ["oldPassword", "newPassword", "confirmNewPassword"].includes(
-          fieldError.field
-        )
+        ["newPassword", "confirmNewPassword"].includes(fieldError.field)
       ) {
         passwordForm.setError(
-          fieldError.field as keyof UpdateUserPasswordInput,
+          fieldError.field as keyof AdminSetPasswordInput,
           {
             type: "manual",
             message: fieldError.message,
@@ -131,49 +172,40 @@ export default function RouteComponent() {
     }
   }
 
-  // Handle avatar file selection
-  function handleAvatarSelect(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Validate file
-    const validation = avatarFileSchema.safeParse({ file });
-    if (!validation.success) {
-      toast.error(validation.error.errors[0].message);
-      return;
-    }
-
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setAvatarPreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-  }
-
-  // Upload avatar
-  async function handleAvatarUpload() {
-    const file = fileInputRef.current?.files?.[0];
-    if (!file) return;
-
+  // Role update handler
+  async function onRoleSubmit(values: UpdateUserRoleInput) {
     try {
-      const response = await updateAvatarMutation.mutateAsync(file);
-      if (response.data?.data?.user) {
-        updateUser(response.data.data.user);
-        toast.success("Avatar updated successfully!");
-        setAvatarPreview("");
-        if (fileInputRef.current) {
-          fileInputRef.current.value = "";
-        }
-      }
+      await updateRoleMutation.mutateAsync({ id, data: values });
+      toast.success("Role updated successfully!");
     } catch (error: any) {
-      toast.error(getErrorMessage(error));
+      const fieldError = extractFieldError(error);
+      if (fieldError && fieldError.field === "role") {
+        roleForm.setError("role", {
+          type: "manual",
+          message: fieldError.message,
+        });
+      } else {
+        toast.error(getErrorMessage(error));
+      }
     }
   }
 
-  // Handle delete account
-  function handleDeleteAccount() {
-    setDeleteDialogOpen(true);
+  // Storage update handler
+  async function onStorageSubmit(values: UpdateStorageLimitInput) {
+    try {
+      await updateStorageMutation.mutateAsync({ id, data: values });
+      toast.success("Storage limit updated successfully!");
+    } catch (error: any) {
+      const fieldError = extractFieldError(error);
+      if (fieldError && fieldError.field === "maxStorageLimit") {
+        storageForm.setError("maxStorageLimit", {
+          type: "manual",
+          message: fieldError.message,
+        });
+      } else {
+        toast.error(getErrorMessage(error));
+      }
+    }
   }
 
   const initials = getInitials(user?.name || "");
@@ -195,24 +227,40 @@ export default function RouteComponent() {
             {user?.name}
           </h3>
           <p className="text-muted-foreground text-lg">{user?.email}</p>
+          <div className="flex items-center gap-2">
+            <Badge
+            className="border capitalize bg-blue-100 border-blue-500 text-blue-800"
+                    >
+            {user?.role || "User"}
+                    </Badge>
+                    <Badge
+            className={`border capitalize ${
+              user?.deletedAt
+                ? "bg-orange-100 border-orange-500 text-orange-800"
+                : "bg-green-100 border-green-500 text-green-800"
+            }`}
+                    >
+            {user?.deletedAt ? "soft Deleted" : "active"}
+                    </Badge>
+          </div>
         </div>
       </div>
 
       <div>
-        <h4 className="text-xl font-medium">Profile Settings</h4>
+        <h4 className="text-xl font-medium">User Management</h4>
         <p className="text-sm text-muted-foreground">
-          Manage your profile information, avatar, password, and storage here.
+          Manage user profile, role, password, and storage settings.
         </p>
       </div>
 
       <Separator />
 
-      {/* name and email section */}
+      {/* Profile Information Section */}
       <div className="flex flex-col md:flex-row items-start flex-wrap gap-6">
         <div className="w-xs">
-          <h5 className="font-medium">My Information</h5>
+          <h5 className="font-medium">Profile Information</h5>
           <p className="text-sm text-muted-foreground">
-            Update your profile information.
+            Update the user's profile information.
           </p>
         </div>
         <Form {...profileForm}>
@@ -225,9 +273,10 @@ export default function RouteComponent() {
               name="name"
               render={({ field }) => (
                 <FormItem>
+                  <FormLabel>Full Name</FormLabel>
                   <FormControl>
                     <Input
-                      id="name"
+                      placeholder="Enter full name"
                       disabled={profileForm.formState.isSubmitting}
                       {...field}
                     />
@@ -238,8 +287,8 @@ export default function RouteComponent() {
             />
 
             <div className="space-y-2">
+              <FormLabel>Email Address</FormLabel>
               <Input
-                id="email"
                 type="email"
                 value={user?.email || ""}
                 disabled
@@ -257,7 +306,7 @@ export default function RouteComponent() {
               disabled={!profileForm.formState.isDirty}
               className="bg-foreground/90 text-background hover:bg-foreground hover:text-background"
             >
-              Save Changes
+              Update Profile
             </Button>
           </form>
         </Form>
@@ -265,62 +314,65 @@ export default function RouteComponent() {
 
       <Separator />
 
-      {/* Avatar section */}
+      {/* Role Management Section */}
       <div className="flex flex-col md:flex-row items-start flex-wrap gap-6">
         <div className="w-xs">
-          <h5 className="font-medium">Avatar</h5>
+          <h5 className="font-medium">User Role</h5>
           <p className="text-sm text-muted-foreground">
-            Update your profile picture
+            Change the user's role and permissions.
           </p>
         </div>
-        <div className="flex flex-1 w-full max-w-lg gap-4">
-          <Avatar className="size-22.5 border rounded-md">
-            <AvatarImage
-              src={
-                avatarPreview ||
-                (user?.avatar ? `${VITE_API_URL}${user.avatar}` : undefined)
-              }
-              alt={user?.name}
+        <Form {...roleForm}>
+          <form
+            onSubmit={roleForm.handleSubmit(onRoleSubmit)}
+            className="flex-1 w-full max-w-lg space-y-4"
+          >
+            <FormField
+              control={roleForm.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Role</FormLabel>
+                  <FormControl>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      key={`role-select-${user?.id}-${field.value}`} // Force re-render when user or value changes
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={UserRole.USER}>User</SelectItem>
+                        <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            <AvatarFallback className="rounded-md">{initials}</AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col gap-4">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarSelect}
-              className="hidden"
-            />
+
             <Button
-              type="button"
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-              className="border-dashed"
-            >
-              Choose Avatar
-            </Button>
-            <Button
-              type="button"
-              onClick={handleAvatarUpload}
-              loading={updateAvatarMutation.isPending}
-              disabled={updateAvatarMutation.isPending || !avatarPreview}
+              type="submit"
+              loading={roleForm.formState.isSubmitting}
+              disabled={!roleForm.formState.isDirty}
               className="bg-foreground/90 text-background hover:bg-foreground hover:text-background"
             >
-              Save Changes
+              Update Role
             </Button>
-          </div>
-        </div>
+          </form>
+        </Form>
       </div>
 
       <Separator />
 
-      {/* Password section */}
+      {/* Password Section */}
       <div className="flex flex-col md:flex-row items-start flex-wrap gap-6">
         <div className="w-xs">
-          <h5 className="font-medium">Password</h5>
+          <h5 className="font-medium">Set Password</h5>
           <p className="text-sm text-muted-foreground">
-            Update your account password
+            Set a new password for this user (no old password required).
           </p>
         </div>
         <Form {...passwordForm}>
@@ -330,33 +382,14 @@ export default function RouteComponent() {
           >
             <FormField
               control={passwordForm.control}
-              name="oldPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Input
-                      id="oldPassword"
-                      type="password"
-                      placeholder="Current Password"
-                      disabled={passwordForm.formState.isSubmitting}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={passwordForm.control}
               name="newPassword"
               render={({ field }) => (
                 <FormItem>
+                  <FormLabel>New Password</FormLabel>
                   <FormControl>
                     <Input
-                      id="newPassword"
                       type="password"
-                      placeholder="New Password"
+                      placeholder="Enter new password"
                       disabled={passwordForm.formState.isSubmitting}
                       {...field}
                     />
@@ -371,11 +404,11 @@ export default function RouteComponent() {
               name="confirmNewPassword"
               render={({ field }) => (
                 <FormItem>
+                  <FormLabel>Confirm New Password</FormLabel>
                   <FormControl>
                     <Input
-                      id="confirmNewPassword"
                       type="password"
-                      placeholder="Confirm New Password"
+                      placeholder="Confirm new password"
                       disabled={passwordForm.formState.isSubmitting}
                       {...field}
                     />
@@ -391,7 +424,7 @@ export default function RouteComponent() {
               disabled={!passwordForm.formState.isDirty}
               className="bg-foreground/90 text-background hover:bg-foreground hover:text-background"
             >
-              Update Password
+              Set Password
             </Button>
           </form>
         </Form>
@@ -399,60 +432,85 @@ export default function RouteComponent() {
 
       <Separator />
 
-      {/* Storage section */}
+      {/* Storage Management Section */}
       <div className="flex flex-col md:flex-row items-start flex-wrap gap-6">
         <div className="w-xs">
-          <h5 className="font-medium">Storage</h5>
+          <h5 className="font-medium">Storage Management</h5>
           <p className="text-sm text-muted-foreground">
-            View your storage usage and limits
+            View and update the user's storage limit.
           </p>
         </div>
         <div className="flex-1 space-y-4 max-w-lg">
-          <Badge
-            variant="secondary"
-            className="truncate h-6 rounded-full text-xs font-normal"
-          >
-            {user && user.maxStorageLimit > 0
-              ? ((user.storageUsed / user.maxStorageLimit) * 100).toFixed(0)
-              : 0}
-            % used
-          </Badge>
-          <Progress
-            value={
-              user && user.maxStorageLimit > 0
-                ? Math.round((user.storageUsed / user.maxStorageLimit) * 100)
-                : 0
-            }
-          />
-          <span className="font-light text-xs">
-            {user ? formatFileSize(user.storageUsed) : "0 B"} of{" "}
-            {user ? formatFileSize(user.maxStorageLimit) : "0 B"}
-          </span>
+          {/* Current Usage Display */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>Storage Used</span>
+              <span>{formatFileSize(user?.storageUsed || 0)}</span>
+            </div>
+            <Progress
+              value={
+                user && user.maxStorageLimit > 0
+                  ? Math.min((user.storageUsed / user.maxStorageLimit) * 100, 100)
+                  : 0
+              }
+              className="w-full h-2"
+            />
+            <div className="text-xs text-muted-foreground">
+              {user && user.maxStorageLimit > 0
+                ? `${((user.storageUsed / user.maxStorageLimit) * 100).toFixed(1)}% of ${formatFileSize(user.maxStorageLimit)} used`
+                : 'No storage limit set'}
+            </div>
+          </div>
+
+          {/* Storage Limit Form */}
+          <Form {...storageForm}>
+            <form
+              onSubmit={storageForm.handleSubmit(onStorageSubmit)}
+              className="space-y-4"
+            >
+              <FormField
+                control={storageForm.control}
+                name="maxStorageLimit"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Max Storage Limit (bytes)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="Enter storage limit in bytes"
+                        disabled={storageForm.formState.isSubmitting}
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <div className="mt-2">
+                      <Input
+                        placeholder="Converted size"
+                        value={field.value ? formatFileSize(field.value) : "0 B"}
+                        disabled
+                        readOnly
+                        className="bg-muted"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Human readable format
+                      </p>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button
+                type="submit"
+                loading={storageForm.formState.isSubmitting}
+                disabled={!storageForm.formState.isDirty}
+                className="bg-foreground/90 text-background hover:bg-foreground hover:text-background"
+              >
+                Update Storage Limit
+              </Button>
+            </form>
+          </Form>
         </div>
       </div>
-
-      <Separator />
-
-      {/* Delete Account Section */}
-      <div className="flex flex-col md:flex-row items-start flex-wrap gap-6">
-        <div className="w-xs">
-          <h5 className="font-medium text-destructive">Delete Account</h5>
-          <p className="text-sm text-destructive/80">
-            Permanently delete your account
-          </p>
-        </div>
-        <div className="flex-1">
-          <Button variant="destructive" onClick={handleDeleteAccount}>
-            Delete Account
-          </Button>
-        </div>
-      </div>
-
-      {/* Delete Account Dialog */}
-      <DeleteAccountDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-      />
     </section>
   );
 }

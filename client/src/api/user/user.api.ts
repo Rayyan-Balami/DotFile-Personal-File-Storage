@@ -1,11 +1,14 @@
 import API from "@/lib/axios";
 import {
+  AdminSetPasswordInput,
   DeleteUserAccountInput,
   LoginUserInput,
   RefreshTokenInput,
   RegisterUserInput,
+  UpdateStorageLimitInput,
   UpdateUserInput,
   UpdateUserPasswordInput,
+  UpdateUserRoleInput,
 } from "@/validation/authForm";
 
 /**
@@ -71,6 +74,16 @@ export const userApi = {
 
   updateUserPassword: (id: string, data: UpdateUserPasswordInput) =>
     API.patch(`/admin/users/${id}/password`, data),
+
+  // ADMIN SPECIFIC OPERATIONS - Set password without old password, update role, update storage
+  adminSetUserPassword: (id: string, data: AdminSetPasswordInput) =>
+    API.patch(`/admin/users/${id}/password`, data),
+
+  updateUserRole: (id: string, data: UpdateUserRoleInput) =>
+    API.patch(`/admin/users/${id}/role`, data),
+
+  updateUserStorageLimit: (id: string, data: UpdateStorageLimitInput) =>
+    API.patch(`/admin/users/${id}/storage`, data),
 
   // BULK OPERATIONS - Admin endpoints for managing multiple users
   bulkSoftDeleteUsers: (userIds: string[]) =>

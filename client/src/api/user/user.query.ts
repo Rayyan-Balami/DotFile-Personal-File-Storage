@@ -1,12 +1,15 @@
 import userApi from "@/api/user/user.api";
 import { useAuthStore } from "@/stores/authStore";
 import {
+  AdminSetPasswordInput,
   DeleteUserAccountInput,
   LoginUserInput,
   RefreshTokenInput,
   RegisterUserInput,
+  UpdateStorageLimitInput,
   UpdateUserInput,
   UpdateUserPasswordInput,
+  UpdateUserRoleInput,
 } from "@/validation/authForm";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
@@ -141,6 +144,24 @@ export const useUpdateUserPassword = () =>
   useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateUserPasswordInput }) =>
       userApi.updateUserPassword(id, data),
+  });
+
+export const useSetUserPassword = () =>
+  useMutation({
+    mutationFn: ({ id, data }: { id: string; data: AdminSetPasswordInput }) =>
+      userApi.adminSetUserPassword(id, data),
+  });
+
+export const useUpdateUserRole = () =>
+  useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateUserRoleInput }) =>
+      userApi.updateUserRole(id, data),
+  });
+
+export const useUpdateStorageLimit = () =>
+  useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateStorageLimitInput }) =>
+      userApi.updateUserStorageLimit(id, data),
   });
 
 // ==========================
