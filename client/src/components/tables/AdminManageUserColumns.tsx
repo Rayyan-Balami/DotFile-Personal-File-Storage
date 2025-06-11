@@ -1,9 +1,15 @@
 "use client";
 
-import { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, Edit, Trash2, RotateCcw } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
+import {
+  useBulkPermanentDeleteUsers,
+  useBulkRestoreUsers,
+  useBulkSoftDeleteUsers,
+} from "@/api/user/user.query";
+import { DataTableColumnHeader } from "@/components/data-table/DataTableColumnHeader";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,14 +18,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { DataTableColumnHeader } from "@/components/data-table/DataTableColumnHeader";
+import { VITE_API_URL } from "@/config/constants";
 import { User } from "@/types/user";
+import { getErrorMessage } from "@/utils/apiErrorHandler";
 import { formatFileSize } from "@/utils/formatUtils";
 import { getInitials } from "@/utils/getInitials";
-import { VITE_API_URL } from "@/config/constants";
+import { ColumnDef } from "@tanstack/react-table";
+import {
+  Copy,
+  Delete,
+  Edit3,
+  Eye,
+  MoreHorizontal,
+  Redo,
+  Trash2
+} from "lucide-react";
+import { toast } from "sonner";
 
 export const AdminManageUserColumns: ColumnDef<User>[] = [
   {
@@ -54,7 +69,10 @@ export const AdminManageUserColumns: ColumnDef<User>[] = [
       return (
         <div className="flex items-center space-x-3">
           <Avatar className="h-8 w-8 border">
-            <AvatarImage src={`${VITE_API_URL}${user.avatar}`} alt={user.name} />
+            <AvatarImage
+              src={`${VITE_API_URL}${user.avatar}`}
+              alt={user.name}
+            />
             <AvatarFallback className="text-xs">
               {getInitials(user.name)}
             </AvatarFallback>
@@ -73,11 +91,9 @@ export const AdminManageUserColumns: ColumnDef<User>[] = [
       <DataTableColumnHeader column={column} title="Role" />
     ),
     cell: ({ row }) => (
-      <Badge variant={"outline"}>
-        {row.getValue("role")}
-      </Badge>
-    )
-    },
+      <Badge variant={"outline"} className="capitalize">{row.getValue("role")}</Badge>
+    ),
+  },
   {
     accessorKey: "storageUsed",
     header: ({ column }) => (
@@ -86,11 +102,12 @@ export const AdminManageUserColumns: ColumnDef<User>[] = [
     cell: ({ row }) => {
       const user = row.original;
       const usagePercentage = (user.storageUsed / user.maxStorageLimit) * 100;
-      
+
       return (
         <div className="space-y-1">
           <div className="text-sm">
-            {formatFileSize(user.storageUsed)} / {formatFileSize(user.maxStorageLimit)}
+            {formatFileSize(user.storageUsed)} /{" "}
+            {formatFileSize(user.maxStorageLimit)}
           </div>
           <Progress
             value={Math.min(usagePercentage, 100)}
@@ -129,8 +146,14 @@ export const AdminManageUserColumns: ColumnDef<User>[] = [
     cell: ({ row }) => {
       const deletedAt = row.getValue("deletedAt");
       return (
-        <Badge className={deletedAt ? "bg-orange-100 border-orange-500 text-orange-800" : "bg-green-100 border-green-500 text-green-800"}>
-          {deletedAt ? "Soft Deleted" : "Active"}
+        <Badge
+          className={`border capitalize ${
+            deletedAt
+              ? "bg-orange-100 border-orange-500 text-orange-800"
+              : "bg-green-100 border-green-500 text-green-800"
+          }`}
+        >
+          {deletedAt ? "soft Deleted" : "active"}
         </Badge>
       );
     },
@@ -149,6 +172,57 @@ export const AdminManageUserColumns: ColumnDef<User>[] = [
       const user = row.original;
       const isDeleted = !!user.deletedAt;
 
+      // Mutation hooks for individual operations (using bulk with single user)
+      const bulkSoftDeleteMutation = useBulkSoftDeleteUsers();
+      const bulkRestoreMutation = useBulkRestoreUsers();
+      const bulkPermanentDeleteMutation = useBulkPermanentDeleteUsers();
+
+      // Handle individual operations using bulk endpoints with single user array
+      const handleSoftDelete = async () => {
+        try {
+          const result = await bulkSoftDeleteMutation.mutateAsync([user.id]);
+          const { summary } = result.data;
+
+          if (summary.successful > 0) {
+            toast.success("User soft deleted successfully");
+          } else if (summary.failed > 0) {
+            toast.error("Failed to soft delete user");
+          }
+        } catch (error) {
+          toast.error(getErrorMessage(error));
+        }
+      };
+
+      const handleRestore = async () => {
+        try {
+          const result = await bulkRestoreMutation.mutateAsync([user.id]);
+          const { summary } = result.data;
+
+          if (summary.successful > 0) {
+            toast.success("User restored successfully");
+          } else if (summary.failed > 0) {
+            toast.error("Failed to restore user");
+          }
+        } catch (error) {
+          toast.error(getErrorMessage(error));
+        }
+      };
+
+      const handlePermanentDelete = async () => {
+        try {
+          const result = await bulkPermanentDeleteMutation.mutateAsync([user.id]);
+          const { summary } = result.data;
+
+          if (summary.successful > 0) {
+            toast.success("User permanently deleted successfully");
+          } else if (summary.failed > 0) {
+            toast.error("Failed to permanently delete user");
+          }
+        } catch (error) {
+          toast.error(getErrorMessage(error));
+        }
+      };
+
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -157,34 +231,45 @@ export const AdminManageUserColumns: ColumnDef<User>[] = [
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="min-w-48">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => navigator.clipboard.writeText(user.id)}
             >
-              Copy user ID
+              <Copy className="mr-2 h-4 w-4" />
+              Copy User ID
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Eye className="mr-2 h-4 w-4" />
+              View Details
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <Edit className="mr-2 h-4 w-4" />
-              View details
-            </DropdownMenuItem>
             {!isDeleted ? (
               <>
                 <DropdownMenuItem>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit user
+                  <Edit3 className="mr-2 h-4 w-4" />
+                  Edit User
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete user
+                <DropdownMenuItem onClick={handleSoftDelete} className="text-yellow-600 focus:text-yellow-600 focus:bg-yellow-700/20">
+                  <Delete className="text-yellow-600 mr-2 h-4 w-4" />
+                  Soft Delete User
                 </DropdownMenuItem>
               </>
             ) : (
-              <DropdownMenuItem>
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Restore user
-              </DropdownMenuItem>
+              <>
+                <DropdownMenuItem onClick={handleRestore} className="text-green-600 focus:text-green-600 focus:bg-green-700/20">
+                  <Redo className="text-green-600 mr-2 h-4 w-4" />
+                  Restore User
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  className="text-red-600 focus:text-red-600 focus:bg-red-700/20"
+                  onClick={handlePermanentDelete}
+                >
+                  <Trash2 className="text-red-600 mr-2 h-4 w-4" />
+                  Permanently Delete User
+                </DropdownMenuItem>
+              </>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
