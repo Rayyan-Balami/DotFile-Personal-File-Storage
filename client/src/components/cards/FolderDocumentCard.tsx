@@ -260,6 +260,7 @@ const CardContent = React.memo(
     extension,
     deletedAt,
     createdAt,
+    updatedAt,
     hasDeletedAncestor,
     color,
   }: {
@@ -274,6 +275,7 @@ const CardContent = React.memo(
     dateModified?: string;
     deletedAt?: Date | null;
     createdAt?: string | Date;
+    updatedAt?: string | Date;
     hasDeletedAncestor?: boolean;
     color?: string;
   }) => {
@@ -313,6 +315,16 @@ const CardContent = React.memo(
                 }
                 hasDeletedAncestor={hasDeletedAncestor}
                 color={color}
+                createdAt={
+                  createdAt instanceof Date
+                    ? createdAt.toISOString()
+                    : String(createdAt)
+                }
+                updatedAt={
+                  updatedAt instanceof Date
+                    ? updatedAt.toISOString()
+                    : String(updatedAt)
+                }
               />
             </Suspense>
           </DropdownMenuContent>
@@ -595,6 +607,11 @@ const FolderDocumentCard = React.memo(
                   ? createdAt.toISOString()
                   : String(createdAt)
               }
+              updatedAt={
+                updatedAt instanceof Date
+                  ? updatedAt.toISOString()
+                  : String(updatedAt)
+              }
               hasDeletedAncestor={item.hasDeletedAncestor ?? false}
               color={color}
             />
@@ -618,6 +635,16 @@ const FolderDocumentCard = React.memo(
               }
               hasDeletedAncestor={item.hasDeletedAncestor ?? false}
               color={color}
+              createdAt={
+                createdAt instanceof Date
+                  ? createdAt.toISOString()
+                  : String(createdAt)
+              }
+              updatedAt={
+                updatedAt instanceof Date
+                  ? updatedAt.toISOString()
+                  : String(updatedAt)
+              }
             />
           </Suspense>
         </ContextMenuContent>

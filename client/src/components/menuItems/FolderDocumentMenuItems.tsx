@@ -7,10 +7,16 @@ import { useRestoreFolder, useUpdateFolder } from "@/api/folder/folder.query";
 import {
   ContextMenuItem,
   ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
 } from "@/components/ui/context-menu";
 import {
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useDialogStore } from "@/stores/useDialogStore";
 import { useUploadStore } from "@/stores/useUploadStore";
@@ -21,6 +27,71 @@ import { useNavigate } from "@tanstack/react-router";
 import React from "react";
 import { toast } from "sonner";
 
+// Utility function to format timestamps consistently
+const formatTimestamp = (timestamp?: string | Date | null): string => {
+  if (!timestamp) return "Unknown";
+  
+  const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+  
+  if (isNaN(date.getTime())) return "Invalid date";
+  
+  return date.toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
+// Timestamps submenu component that works with both dropdown and context menus
+const TimestampsSubmenu = React.memo(({
+  createdAt,
+  updatedAt,
+  deletedAt,
+  itemComponent: Item,
+  subComponent: Sub,
+  subTriggerComponent: SubTrigger,
+  subContentComponent: SubContent,
+}: {
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+  deletedAt?: string | Date | null;
+  itemComponent: typeof ContextMenuItem | typeof DropdownMenuItem;
+  subComponent: typeof ContextMenuSub | typeof DropdownMenuSub;
+  subTriggerComponent: typeof ContextMenuSubTrigger | typeof DropdownMenuSubTrigger;
+  subContentComponent: typeof ContextMenuSubContent | typeof DropdownMenuSubContent;
+}) => (
+  <Sub>
+    <SubTrigger className="text-blue-600 focus:text-blue-600 focus:bg-blue-700/20">
+      Timestamps
+    </SubTrigger>
+    <SubContent>
+      <Item disabled>
+        <div className="flex flex-col gap-1 py-1">
+          <div className="text-xs font-medium text-muted-foreground">Created</div>
+          <div className="text-sm">{formatTimestamp(createdAt)}</div>
+        </div>
+      </Item>
+      <Item disabled>
+        <div className="flex flex-col gap-1 py-1">
+          <div className="text-xs font-medium text-muted-foreground">Modified</div>
+          <div className="text-sm">{formatTimestamp(updatedAt)}</div>
+        </div>
+      </Item>
+      {deletedAt && (
+        <Item disabled>
+          <div className="flex flex-col gap-1 py-1">
+            <div className="text-xs font-medium text-muted-foreground">Deleted</div>
+            <div className="text-sm">{formatTimestamp(deletedAt)}</div>
+          </div>
+        </Item>
+      )}
+    </SubContent>
+  </Sub>
+));
+
 interface MenuProps {
   cardType: "folder" | "document";
   title: string;
@@ -29,6 +100,8 @@ interface MenuProps {
   deletedAt?: string | null;
   hasDeletedAncestor?: boolean;
   color?: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
 }
 
 const useMenuActions = ({
@@ -38,9 +111,11 @@ const useMenuActions = ({
   deletedAt,
   hasDeletedAncestor,
   color,
+  createdAt,
+  updatedAt,
 }: Pick<
   MenuProps,
-  "cardType" | "title" | "id" | "deletedAt" | "hasDeletedAncestor" | "color"
+  "cardType" | "title" | "id" | "deletedAt" | "hasDeletedAncestor" | "color" | "createdAt" | "updatedAt"
 >) => {
   const {
     openCreateFolderDialog,
@@ -220,9 +295,6 @@ const useMenuActions = ({
           "_blank"
         );
       },
-      info: () => {
-        toast.info("Info dialog coming soon");
-      },
       download: () => {
         console.log("Download action");
       },
@@ -258,6 +330,8 @@ const MenuItems = React.memo(
       deletedAt = null,
       hasDeletedAncestor = false,
       color = "default",
+      createdAt,
+      updatedAt,
     } = props;
     const handleAction = useMenuActions({
       cardType,
@@ -266,6 +340,8 @@ const MenuItems = React.memo(
       deletedAt,
       hasDeletedAncestor,
       color,
+      createdAt,
+      updatedAt,
     });
     const isDeleted = deletedAt || hasDeletedAncestor;
 
@@ -277,12 +353,15 @@ const MenuItems = React.memo(
             Open in New Tab
           </Item>
           <Separator />
-          <Item
-            onClick={() => handleAction("info")}
-            className="text-blue-600 focus:text-blue-600 focus:bg-blue-700/20"
-          >
-            More Info
-          </Item>
+          <TimestampsSubmenu
+            createdAt={createdAt}
+            updatedAt={updatedAt}
+            deletedAt={deletedAt}
+            itemComponent={Item}
+            subComponent={Item === ContextMenuItem ? ContextMenuSub : DropdownMenuSub}
+            subTriggerComponent={Item === ContextMenuItem ? ContextMenuSubTrigger : DropdownMenuSubTrigger}
+            subContentComponent={Item === ContextMenuItem ? ContextMenuSubContent : DropdownMenuSubContent}
+          />
           <Separator />
           {deletedAt && !hasDeletedAncestor && (
             <>
@@ -320,12 +399,15 @@ const MenuItems = React.memo(
           <Item onClick={() => handleAction("color")}>Color</Item>
         )}
         <Separator />
-        <Item
-          onClick={() => handleAction("info")}
-          className="text-blue-600 focus:text-blue-600 focus:bg-blue-700/20"
-        >
-          More Info
-        </Item>
+        <TimestampsSubmenu
+          createdAt={createdAt}
+          updatedAt={updatedAt}
+          deletedAt={deletedAt}
+          itemComponent={Item}
+          subComponent={Item === ContextMenuItem ? ContextMenuSub : DropdownMenuSub}
+          subTriggerComponent={Item === ContextMenuItem ? ContextMenuSubTrigger : DropdownMenuSubTrigger}
+          subContentComponent={Item === ContextMenuItem ? ContextMenuSubContent : DropdownMenuSubContent}
+        />
         <Separator />
         <Item
           onClick={() => handleAction("delete")}
