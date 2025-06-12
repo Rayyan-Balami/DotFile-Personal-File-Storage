@@ -131,7 +131,7 @@ export default function AdminManageAdminTable({
       options: [
         { label: "All", value: "" },
         { label: "Active", value: "active" },
-        { label: "Deleted", value: "deleted" },
+        { label: "Soft Deleted", value: "deleted" },
       ],
     },
   ];

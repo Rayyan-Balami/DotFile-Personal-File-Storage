@@ -84,7 +84,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
       data-slot="table-cell"
       className={cn(
         "p-2 align-middle whitespace-nowrap [&>[role=checkbox]]:translate-y-[2px] transition-colors",
-        isSticky && "bg-card group-hover:bg-muted z-10 shadow-sm group-data-[state=selected]:bg-muted",
+        isSticky && "bg-card group-hover:bg-muted z-10 group-data-[state=selected]:bg-muted",
         
         className
       )}
