@@ -68,6 +68,44 @@ export const DraggableFolderCard = memo(
       },
     });
 
+    // Simple drag handler that prevents dragging from interactive elements
+    const customDragListeners = {
+      onMouseDown: (e: React.MouseEvent) => {
+        const target = e.target as Element;
+        // Only prevent drag from buttons and menu items
+        if (
+          target.closest("button") ||
+          target.closest('[role="menuitem"]') ||
+          target.closest('[role="menu"]') ||
+          target.closest('[aria-label="More options"]') ||
+          target.closest('[data-radix-context-menu-item]') ||
+          target.closest('[data-radix-dropdown-menu-item]') ||
+          target.closest('[data-radix-context-menu-content]') ||
+          target.closest('[data-radix-dropdown-menu-content]')
+        ) {
+          return;
+        }
+        listeners?.onMouseDown?.(e);
+      },
+      onTouchStart: (e: React.TouchEvent) => {
+        const target = e.target as Element;
+        // Only prevent drag from buttons and menu items
+        if (
+          target.closest("button") ||
+          target.closest('[role="menuitem"]') ||
+          target.closest('[role="menu"]') ||
+          target.closest('[aria-label="More options"]') ||
+          target.closest('[data-radix-context-menu-item]') ||
+          target.closest('[data-radix-dropdown-menu-item]') ||
+          target.closest('[data-radix-context-menu-content]') ||
+          target.closest('[data-radix-dropdown-menu-content]')
+        ) {
+          return;
+        }
+        listeners?.onTouchStart?.(e);
+      },
+    };
+
     // Set up droppable functionality for folders
     const { setNodeRef: setDroppableRef, isOver } = useDroppable({
       id: id,
@@ -314,7 +352,7 @@ export const DraggableFolderCard = memo(
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        {...listeners}
+        {...customDragListeners}
         {...attributes}
         tabIndex={-1}
       >

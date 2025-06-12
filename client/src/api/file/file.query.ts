@@ -326,8 +326,42 @@ export const useViewFile = (fileId: string) =>
  */
 export const useDownloadFile = () => {
   return useMutation({
-    mutationFn: (fileId: string) =>
-      fileApi.downloadFile(fileId).then((res) => res.data),
+    mutationFn: async ({ fileId, fallbackFilename }: { fileId: string; fallbackFilename?: string }) => {
+      const response = await fileApi.downloadFile(fileId);
+      const blob = response.data;
+      
+      // Get filename from Content-Disposition header or use fallback
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = fallbackFilename || `file_${fileId}`;
+      
+      if (contentDisposition) {
+        // First try to extract UTF-8 encoded filename
+        const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/);
+        if (utf8Match) {
+          filename = decodeURIComponent(utf8Match[1]);
+        } else {
+          // Fallback to regular filename extraction
+          const regularMatch = contentDisposition.match(/filename=([^;]+)/);
+          if (regularMatch) {
+            filename = regularMatch[1].replace(/['"]/g, '');
+          }
+        }
+      }
+      
+      // Create blob URL and trigger download
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      return { success: true, filename };
+    },
   });
 };
 

@@ -95,10 +95,14 @@ const MenuItems = ({ item }: PinItemProps) => {
 
   return (
     <>
-      <ContextMenuItem onClick={handleOpenInNewTab}>
-        <ExternalLink className="text-muted-foreground mr-2 h-4 w-4" />
-        <span>Open in New Tab</span>
-      </ContextMenuItem>
+      {item.type === "folder" && (
+        <>
+          <ContextMenuItem onClick={handleOpenInNewTab}>
+            <ExternalLink className="text-muted-foreground mr-2 h-4 w-4" />
+            <span>Open in New Tab</span>
+          </ContextMenuItem>
+        </>
+      )}
       <ContextMenuItem onClick={handleShowInEnclosingFolder}>
         <FolderOpen className="text-muted-foreground mr-2 h-4 w-4" />
         <span>Show in Enclosing Folder</span>
@@ -154,10 +158,14 @@ const DropdownMenuOptions = ({ item }: PinItemProps) => {
 
   return (
     <>
-      <DropdownMenuItem onClick={handleOpenInNewTab}>
-        <ExternalLink className="text-muted-foreground mr-2 h-4 w-4" />
-        <span>Open in New Tab</span>
-      </DropdownMenuItem>
+      {item.type === "folder" && (
+        <>
+          <DropdownMenuItem onClick={handleOpenInNewTab}>
+            <ExternalLink className="text-muted-foreground mr-2 h-4 w-4" />
+            <span>Open in New Tab</span>
+          </DropdownMenuItem>
+        </>
+      )}
       <DropdownMenuItem onClick={handleShowInEnclosingFolder}>
         <FolderOpen className="text-muted-foreground mr-2 h-4 w-4" />
         <span>Show in Enclosing Folder</span>

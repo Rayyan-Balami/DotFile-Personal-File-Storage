@@ -1,4 +1,5 @@
 import fileApi from "@/api/file/file.api";
+import { useDownloadFile } from "@/api/file/file.query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useDialogStore } from "@/stores/useDialogStore";
@@ -8,7 +9,6 @@ import {
   ChevronRight,
   Download,
   Music,
-  Printer,
   RotateCcw,
   Telescope,
   X,
@@ -32,6 +32,7 @@ export default function FilePreviewDialog() {
     | undefined;
   const previewRef = useRef<HTMLDivElement>(null);
   const mediaRef = useRef<HTMLImageElement | HTMLVideoElement>(null);
+  const downloadFile = useDownloadFile();
 
   // View state
   const [zoom, setZoom] = useState(1);
@@ -130,21 +131,14 @@ export default function FilePreviewDialog() {
   const handleDownload = async () => {
     if (!currentFile) return;
     try {
-      const link = document.createElement("a");
-      link.href = fileApi.getFileUrl(currentFile.id);
-      link.download = `${currentFile.name}.${currentFile.extension}`;
-      link.target = "_blank";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      toast.success("Download started");
+      const result = await downloadFile.mutateAsync({ 
+        fileId: currentFile.id, 
+        fallbackFilename: `${currentFile.name}.${currentFile.extension}` 
+      });
+      toast.success(`Downloaded "${result.filename}"`);
     } catch (error) {
       toast.error("Failed to download file");
     }
-  };
-
-  const handlePrint = () => {
-    toast.info("Print functionality not yet implemented");
   };
 
   // Zoom functions
@@ -451,14 +445,6 @@ export default function FilePreviewDialog() {
             title="Download"
           >
             <Download className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handlePrint}
-            title="Print"
-          >
-            <Printer className="w-4 h-4" />
           </Button>
           <Button
             variant="ghost"

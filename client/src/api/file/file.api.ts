@@ -70,7 +70,8 @@ const fileApi = {
     `${API.defaults.baseURL}/files/${fileId}/view`,
 
   // Download file
-  downloadFile: (fileId: string) => API.get(`/files/${fileId}/download`),
+  downloadFile: (fileId: string) => 
+    API.get(`/files/${fileId}/download`, { responseType: "blob" }),
 
   // Update a file's properties
   updateFile: (fileId: string, data: UpdateFileDto) =>

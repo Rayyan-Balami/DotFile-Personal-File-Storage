@@ -2,6 +2,7 @@ import {
   useRestoreFile,
   useUpdateFile,
   useUploadFiles,
+  useDownloadFile,
 } from "@/api/file/file.query";
 import { useRestoreFolder, useUpdateFolder } from "@/api/folder/folder.query";
 import {
@@ -111,17 +112,14 @@ const useMenuActions = ({
   deletedAt,
   hasDeletedAncestor,
   color,
-  createdAt,
-  updatedAt,
-}: Pick<
-  MenuProps,
-  "cardType" | "title" | "id" | "deletedAt" | "hasDeletedAncestor" | "color" | "createdAt" | "updatedAt"
->) => {
+}: Pick<MenuProps, "cardType" | "title" | "id" | "deletedAt" | "hasDeletedAncestor" | "color">
+) => {
   const {
     openCreateFolderDialog,
     openRenameDialog,
     openDeleteDialog,
     openFolderColorDialog,
+    openFilePreviewDialog,
   } = useDialogStore();
   const queryClient = useQueryClient();
   const restoreFolder = useRestoreFolder();
@@ -129,6 +127,7 @@ const useMenuActions = ({
   const updateFolder = useUpdateFolder();
   const updateFile = useUpdateFile();
   const uploadFiles = useUploadFiles();
+  const downloadFile = useDownloadFile();
   const { addUpload, updateUploadProgress, setUploadStatus } = useUploadStore();
   const navigate = useNavigate();
 
@@ -287,19 +286,40 @@ const useMenuActions = ({
       color: () => {
         if (cardType === "folder") openFolderColorDialog(id, title, color);
       },
-      open: () =>
-        navigate({ to: `/${cardType === "folder" ? "folder" : "file"}/${id}` }),
+      open: () => {
+        if (cardType === "folder") {
+          // Navigate to the folder
+          navigate({ to: `/folder/${id}` });
+        } else {
+          // For documents, we need to open the file preview dialog
+          // Since we don't have access to all documents in the current context,
+          // we'll create a single-item preview
+          const documentItem = {
+            id,
+            name: title,
+            type: 'application/octet-stream', // We don't have the actual type here
+            extension: '', // We don't have the actual extension here
+            cardType: 'document' as const
+          };
+          openFilePreviewDialog([documentItem], 0);
+        }
+      },
       "open-new-tab": () => {
-        window.open(
-          `/${cardType === "folder" ? "folder" : "file"}/${id}`,
-          "_blank"
-        );
+        if (cardType === "folder") {
+          // Open folder in new tab
+          window.open(`/folder/${id}`, "_blank", "noopener,noreferrer");
+        }
+        // No action for documents since we can't open preview dialog in new tab
       },
-      download: () => {
-        console.log("Download action");
-      },
-      preview: () => {
-        console.log("Preview action");
+      download: async () => {
+        if (cardType === "document") {
+          try {
+            const result = await downloadFile.mutateAsync({ fileId: id, fallbackFilename: title });
+            toast.success(`Downloaded "${result.filename}"`);
+          } catch (error) {
+            toast.error("Failed to download file");
+          }
+        }
       },
       "upload-file": () => triggerFileInput(false),
       "upload-folder": () => triggerFileInput(true),
@@ -340,8 +360,6 @@ const MenuItems = React.memo(
       deletedAt,
       hasDeletedAncestor,
       color,
-      createdAt,
-      updatedAt,
     });
     const isDeleted = deletedAt || hasDeletedAncestor;
 
@@ -349,9 +367,11 @@ const MenuItems = React.memo(
       return (
         <>
           <Item onClick={() => handleAction("open")}>Open</Item>
-          <Item onClick={() => handleAction("open-new-tab")}>
-            Open in New Tab
-          </Item>
+          {cardType === "folder" && (
+            <Item onClick={() => handleAction("open-new-tab")}>
+              Open in New Tab
+            </Item>
+          )}
           <Separator />
           <TimestampsSubmenu
             createdAt={createdAt}
@@ -387,9 +407,11 @@ const MenuItems = React.memo(
     const commonItems = (
       <>
         <Item onClick={() => handleAction("open")}>Open</Item>
-        <Item onClick={() => handleAction("open-new-tab")}>
-          Open in New Tab
-        </Item>
+        {cardType === "folder" && (
+          <Item onClick={() => handleAction("open-new-tab")}>
+            Open in New Tab
+          </Item>
+        )}
         <Item onClick={() => handleAction("rename")}>Rename</Item>
         <Separator />
         <Item onClick={() => handleAction(isPinned ? "unpin" : "pin")}>
@@ -435,7 +457,6 @@ const MenuItems = React.memo(
     return (
       <>
         <Item onClick={() => handleAction("download")}>Download</Item>
-        <Item onClick={() => handleAction("preview")}>Preview</Item>
         <Separator />
         {commonItems}
       </>
