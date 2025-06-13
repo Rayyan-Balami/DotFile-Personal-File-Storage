@@ -36,7 +36,6 @@ export function DateRangePicker({
           variant="outline"
           className={cn(
             "gap-6 justify-between text-left font-normal",
-            !value?.from && "text-muted-foreground"
           )}
         >
           <CalendarIcon className="h-4 w-4 opacity-50" />

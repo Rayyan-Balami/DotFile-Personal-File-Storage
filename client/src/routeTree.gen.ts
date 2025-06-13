@@ -16,6 +16,7 @@ import { Route as authRouteImport } from './routes/(auth)/route'
 import { Route as adminRouteImport } from './routes/(admin)/route'
 import { Route as userIndexImport } from './routes/(user)/index'
 import { Route as userTrashImport } from './routes/(user)/trash'
+import { Route as userSearchImport } from './routes/(user)/search'
 import { Route as userRecentImport } from './routes/(user)/recent'
 import { Route as authRegisterImport } from './routes/(auth)/register'
 import { Route as authLoginImport } from './routes/(auth)/login'
@@ -54,6 +55,12 @@ const userIndexRoute = userIndexImport.update({
 const userTrashRoute = userTrashImport.update({
   id: '/trash',
   path: '/trash',
+  getParentRoute: () => userRouteRoute,
+} as any)
+
+const userSearchRoute = userSearchImport.update({
+  id: '/search',
+  path: '/search',
   getParentRoute: () => userRouteRoute,
 } as any)
 
@@ -167,6 +174,13 @@ declare module '@tanstack/react-router' {
       path: '/recent'
       fullPath: '/recent'
       preLoaderRoute: typeof userRecentImport
+      parentRoute: typeof userRouteImport
+    }
+    '/(user)/search': {
+      id: '/(user)/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof userSearchImport
       parentRoute: typeof userRouteImport
     }
     '/(user)/trash': {
@@ -292,6 +306,7 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
 
 interface userRouteRouteChildren {
   userRecentRoute: typeof userRecentRoute
+  userSearchRoute: typeof userSearchRoute
   userTrashRoute: typeof userTrashRoute
   userIndexRoute: typeof userIndexRoute
   userFolderIdRoute: typeof userFolderIdRoute
@@ -300,6 +315,7 @@ interface userRouteRouteChildren {
 
 const userRouteRouteChildren: userRouteRouteChildren = {
   userRecentRoute: userRecentRoute,
+  userSearchRoute: userSearchRoute,
   userTrashRoute: userTrashRoute,
   userIndexRoute: userIndexRoute,
   userFolderIdRoute: userFolderIdRoute,
@@ -315,6 +331,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof authLoginRoute
   '/register': typeof authRegisterRoute
   '/recent': typeof userRecentRoute
+  '/search': typeof userSearchRoute
   '/trash': typeof userTrashRoute
   '/admin/admin': typeof adminAdminAdminRoute
   '/admin/user': typeof adminAdminUserRouteWithChildren
@@ -331,6 +348,7 @@ export interface FileRoutesByTo {
   '/login': typeof authLoginRoute
   '/register': typeof authRegisterRoute
   '/recent': typeof userRecentRoute
+  '/search': typeof userSearchRoute
   '/trash': typeof userTrashRoute
   '/admin/admin': typeof adminAdminAdminRoute
   '/folder/$id': typeof userFolderIdRoute
@@ -349,6 +367,7 @@ export interface FileRoutesById {
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/register': typeof authRegisterRoute
   '/(user)/recent': typeof userRecentRoute
+  '/(user)/search': typeof userSearchRoute
   '/(user)/trash': typeof userTrashRoute
   '/(user)/': typeof userIndexRoute
   '/(admin)/admin/admin': typeof adminAdminAdminRoute
@@ -368,6 +387,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/recent'
+    | '/search'
     | '/trash'
     | '/admin/admin'
     | '/admin/user'
@@ -383,6 +403,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/recent'
+    | '/search'
     | '/trash'
     | '/admin/admin'
     | '/folder/$id'
@@ -399,6 +420,7 @@ export interface FileRouteTypes {
     | '/(auth)/login'
     | '/(auth)/register'
     | '/(user)/recent'
+    | '/(user)/search'
     | '/(user)/trash'
     | '/(user)/'
     | '/(admin)/admin/admin'
@@ -460,6 +482,7 @@ export const routeTree = rootRoute
       "filePath": "(user)/route.tsx",
       "children": [
         "/(user)/recent",
+        "/(user)/search",
         "/(user)/trash",
         "/(user)/",
         "/(user)/folder/$id",
@@ -476,6 +499,10 @@ export const routeTree = rootRoute
     },
     "/(user)/recent": {
       "filePath": "(user)/recent.tsx",
+      "parent": "/(user)"
+    },
+    "/(user)/search": {
+      "filePath": "(user)/search.tsx",
       "parent": "/(user)"
     },
     "/(user)/trash": {

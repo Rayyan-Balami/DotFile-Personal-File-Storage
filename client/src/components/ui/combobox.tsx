@@ -82,9 +82,10 @@ const Combobox = React.forwardRef<HTMLButtonElement, ComboboxProps>(
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="p-0 " style={{ minWidth: triggerWidth }}>
+        <PopoverContent className="p-0 overflow-hidden" style={{ minWidth: triggerWidth }}>
           <Command>
             <CommandInput placeholder="Search..." disabled={disabled} />
+            {/* clear button */}
             <CommandList>
               <CommandEmpty>No item found.</CommandEmpty>
               <CommandGroup>
@@ -113,6 +114,22 @@ const Combobox = React.forwardRef<HTMLButtonElement, ComboboxProps>(
               </CommandGroup>
             </CommandList>
           </Command>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="w-full rounded-none border-t font-normal"
+            onClick={() => {
+              if (multiple) {
+                onChange([]);
+              } else {
+                onChange("");
+              }
+              setOpen(false);
+            }}
+            disabled={disabled}
+          >
+            Clear Selection
+          </Button>
         </PopoverContent>
       </Popover>
     );

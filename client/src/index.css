@@ -116,8 +116,8 @@
 @layer base {
   /* rayyan defined variables */
   :root {
-    --header-height: 3.5rem; /* Equivalent to theme(spacing.14) */
-    --footer-height: 3.5rem; /* Equivalent to theme(spacing.14) */
+    --header-height: calc(var(--spacing) * 13.25);
+    --footer-height: calc(var(--spacing) * 13.25);
   }
   * {
     @apply border-border outline-ring/50;

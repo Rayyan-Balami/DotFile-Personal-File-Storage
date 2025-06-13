@@ -5,12 +5,14 @@ import { SortOptions } from "@/components/footer/sort-options";
 import { Uploads } from "@/components/footer/uploads";
 import { ViewOptions } from "@/components/footer/view-options";
 import { ButtonGroup } from "@/components/ui/button-group";
+import SearchOptions from "./search-options";
 
 export function SiteFooter() {
   return (
-    <footer className="mt-auto bg-background/80 backdrop-blur-md sticky bottom-0 z-50 border-t transition-[height]">
-      <Uploads />
-      <nav className="flex h-(--footer-height) items-center gap-8 px-4 justify-between">
+    <footer className="mt-auto sticky bottom-0 z-50 transition-[height] px-4 py-2 border-t backdrop-blur-md bg-background/80">
+      <nav className="flex flex-wrap items-center justify-between gap-y-2 gap-x-8">
+        <Uploads />
+        <SearchOptions />
         <ViewOptions />
         <span className="hidden sm:flex flex-grow">
           <SearchForm id="search-desktop" />
@@ -20,10 +22,10 @@ export function SiteFooter() {
           <GlobalDelete />
           <GlobalMenu />
         </ButtonGroup>
-      </nav>
-      <div className="sm:hidden px-4">
+      <div className="sm:hidden flex-grow">
         <SearchForm id="search-mobile" />
       </div>
+      </nav>
     </footer>
   );
 }

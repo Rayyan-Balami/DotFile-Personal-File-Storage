@@ -13,7 +13,7 @@ export function ViewOptions() {
       <Button
         className={`group shadow-none text-sidebar-foreground hover:text-primary border ${
           viewType === "large"
-            ? "bg-secondary-foreground/2 hover:bg-secondary-foreground/2 text-primary"
+            ? "bg-muted hover:bg-muted text-primary"
             : "border-transparent hover:border-border"
         }`}
         variant="secondary"
@@ -25,7 +25,7 @@ export function ViewOptions() {
       <Button
         className={`group shadow-none text-sidebar-foreground hover:text-primary border ${
           viewType === "compact"
-            ? "bg-secondary-foreground/2 hover:bg-secondary-foreground/2 text-primary"
+            ? "bg-muted hover:bg-muted text-primary"
             : "border-transparent hover:border-border"
         }`}
         variant="secondary"
@@ -37,7 +37,7 @@ export function ViewOptions() {
       <Button
         className={`group shadow-none text-sidebar-foreground hover:text-primary border ${
           viewType === "list"
-            ? "bg-secondary-foreground/2 hover:bg-secondary-foreground/2 text-primary"
+            ? "bg-muted hover:bg-muted text-primary"
             : "border-transparent hover:border-border"
         }`}
         variant="secondary"

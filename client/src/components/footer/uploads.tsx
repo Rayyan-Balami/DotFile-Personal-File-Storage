@@ -61,14 +61,14 @@ function UploadCard({
   return (
     <div
       className={cn(
-        "group flex items-center h-12 p-1.5 gap-2 rounded-md bg-sidebar hover:bg-muted border hover:shadow-xs min-w-48 shrink-0 transition-colors ease-out duration-100 focus:outline-none focus:ring-1 focus:ring-primary/40 select-none whitespace-nowrap",
+        "group flex items-center h-10 p-1 gap-2 rounded-md bg-sidebar hover:bg-muted border hover:shadow-xs min-w-48 shrink-0 transition-colors ease-out duration-100 focus:outline-none focus:ring-1 focus:ring-primary/40 select-none whitespace-nowrap",
         status === "error" && "border-destructive/50",
         status === "cancelled" && "border-yellow-400"
       )}
     >
       <div
         className={cn(
-          "h-full grid place-items-center aspect-square bg-sidebar rounded-[0.5rem] *:scale-65",
+          "h-full grid place-items-center aspect-square bg-sidebar rounded-[0.65rem] *:scale-65",
           status === "error" && "bg-destructive/10",
           status === "cancelled" && "bg-yellow-400/10"
         )}
@@ -85,10 +85,10 @@ function UploadCard({
         >
           {displayName}
         </span>
-        <div className="flex items-center gap-2 w-full">
+        <div className="flex items-center gap-2 w-full text-[0.65rem]">
           <span
             className={cn(
-              "text-xs font-light text-muted-foreground",
+              "text-muted-foreground",
               status === "error" && "text-destructive",
               status === "cancelled" && "text-yellow-600"
             )}
@@ -97,18 +97,18 @@ function UploadCard({
           </span>
           {(status === "uploading" || status === "creating-zip") &&
             progress > 0 && (
-              <span className="text-xs font-light text-muted-foreground ml-auto">
+              <span className="text-muted-foreground ml-auto">
                 {progress}%
               </span>
             )}
           {status === "error" && (
-            <span className="text-xs font-medium text-destructive ml-auto flex items-center gap-1">
+            <span className="text-destructive ml-auto flex items-center gap-1">
               <TriangleAlert className="size-3" />
               Failed
             </span>
           )}
           {status === "cancelled" && (
-            <span className="text-xs font-medium text-yellow-600 ml-auto flex items-center gap-1">
+            <span className="text-yellow-600 ml-auto flex items-center gap-1">
               <Ban className="size-3" />
               Cancelled
             </span>
@@ -123,7 +123,7 @@ function UploadCard({
           <Button
             variant="ghost"
             onClick={handleCancel}
-            className="h-full bg-sidebar grid place-items-center aspect-square rounded-[0.5rem] *:scale-65 shadow-none hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground"
+            className="h-full bg-sidebar grid place-items-center aspect-square rounded-[0.65rem] *:scale-65 shadow-none hover:bg-muted-foreground/10 text-muted-foreground hover:text-foreground"
           >
             <X className="size-auto animate-pulse" />
           </Button>
@@ -163,10 +163,11 @@ export function Uploads() {
   }
 
   return (
-    <section className="w-full flex gap-3.5 px-4 pt-3 pb-3">
+    <section className="w-full flex gap-3.5 -order-1">
       <Button
-        className="group shadow-none text-sidebar-foreground hover:text-primary border border-transparent hover:border-border size-12 disabled:cursor-not-allowed disabled:opacity-50"
-        variant="secondary"
+        className="group shadow-none text-sidebar-foreground hover:text-primary  hover:border-border bg-background/70 size-10"
+        variant="outline"
+        size={ "icon"}
         onClick={handleClose}
         disabled={hasActiveUploads}
         title={
@@ -178,7 +179,7 @@ export function Uploads() {
         <ChevronDown className="size-5 group-hover:scale-105 transition-transform" />
         <span className="sr-only">Close uploads section</span>
       </Button>
-      <div className="flex items-center gap-2 overflow-x-auto min-w-0 flex-1">
+      <div className="flex items-center gap-2 overflow-x-auto min-w-0 flex-1 no-scrollbar">
         {uploads.map((upload) => (
           <UploadCard
             key={upload.id}
