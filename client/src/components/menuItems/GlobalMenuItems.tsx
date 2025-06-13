@@ -41,6 +41,9 @@ const useGlobalMenuActions = ({ parentId }: { parentId?: string | null }) => {
   const isInRecentContext = matches.some((m) =>
     m.routeId.includes("/(user)/recent")
   );
+  const isInSearchContext = matches.some((m) =>
+    m.routeId.includes("/(user)/search")
+  );
   const isCurrentFolderDeleted =
     parentId &&
     (!!items[parentId]?.deletedAt || !!items[parentId]?.hasDeletedAncestor);
@@ -48,6 +51,7 @@ const useGlobalMenuActions = ({ parentId }: { parentId?: string | null }) => {
     (parentId && isFolderReadOnly(parentId)) ||
     isInTrashContext ||
     isInRecentContext ||
+    isInSearchContext ||
     isCurrentFolderDeleted;
 
   const handleUpload = (files: File[], isFolder = false) => {
