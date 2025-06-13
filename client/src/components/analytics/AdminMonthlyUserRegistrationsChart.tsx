@@ -1,5 +1,3 @@
-"use client";
-
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from "recharts";
 
 import { useMonthlyUserRegistrationsAnalytics } from "@/api/analytics/analytics.query";
@@ -33,17 +31,26 @@ interface ChartDataItem {
 
 export function AdminMonthlyUserRegistrationsChart() {
   const { data, error } = useMonthlyUserRegistrationsAnalytics();
-  
-  const chartData: ChartDataItem[] = data?.data?.analytics?.map((item: UserGrowthAnalytics) => ({
-    month: item.month,
-    users: item.count,
-  })) || [];
 
-  const totalUsers = chartData.reduce((acc: number, curr: ChartDataItem) => acc + curr.users, 0);
-  
-  const peakMonth = chartData.length > 0 
-    ? chartData.reduce((max: ChartDataItem, curr: ChartDataItem) => (curr.users > max.users ? curr : max), chartData[0])
-    : null;
+  const chartData: ChartDataItem[] =
+    data?.data?.analytics?.map((item: UserGrowthAnalytics) => ({
+      month: item.month,
+      users: item.count,
+    })) || [];
+
+  const totalUsers = chartData.reduce(
+    (acc: number, curr: ChartDataItem) => acc + curr.users,
+    0
+  );
+
+  const peakMonth =
+    chartData.length > 0
+      ? chartData.reduce(
+          (max: ChartDataItem, curr: ChartDataItem) =>
+            curr.users > max.users ? curr : max,
+          chartData[0]
+        )
+      : null;
 
   const currentYear = new Date().getFullYear();
 
@@ -53,7 +60,9 @@ export function AdminMonthlyUserRegistrationsChart() {
       <Card>
         <CardHeader className="items-center pb-4">
           <CardTitle>Monthly User Registrations</CardTitle>
-          <CardDescription>User registrations throughout {currentYear}</CardDescription>
+          <CardDescription>
+            User registrations throughout {currentYear}
+          </CardDescription>
         </CardHeader>
         <CardContent className="pb-0">
           <div className="mx-auto aspect-square max-h-[250px] flex items-center justify-center text-muted-foreground">
@@ -78,9 +87,9 @@ export function AdminMonthlyUserRegistrationsChart() {
           className="mx-auto aspect-square max-h-[250px]"
         >
           <RadarChart data={chartData}>
-            <ChartTooltip 
-              cursor={false} 
-              content={<ChartTooltipContent hideLabel />} 
+            <ChartTooltip
+              cursor={false}
+              content={<ChartTooltipContent hideLabel />}
             />
             <PolarAngleAxis dataKey="month" />
             <PolarGrid />

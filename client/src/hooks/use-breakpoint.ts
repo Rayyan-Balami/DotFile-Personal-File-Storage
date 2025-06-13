@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 
 // Tailwind's default breakpoints

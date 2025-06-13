@@ -59,7 +59,10 @@ export const logger = {
    */
   debug: (message: string, ...args: any[]): void => {
     if (!IS_PRODUCTION) {
-      console.log(`${colors.magenta}[DEBUG] ${message}${colors.reset}`, ...args);
+      console.log(
+        `${colors.magenta}[DEBUG] ${message}${colors.reset}`,
+        ...args
+      );
     }
   },
 

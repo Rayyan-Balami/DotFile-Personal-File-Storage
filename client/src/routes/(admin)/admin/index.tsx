@@ -25,9 +25,11 @@ const AdminFileTypeChart = lazy(() =>
   }))
 );
 const AdminMonthlyUserRegistrationsChart = lazy(() =>
-  import("@/components/analytics/AdminMonthlyUserRegistrationsChart").then((m) => ({
-    default: m.AdminMonthlyUserRegistrationsChart,
-  }))
+  import("@/components/analytics/AdminMonthlyUserRegistrationsChart").then(
+    (m) => ({
+      default: m.AdminMonthlyUserRegistrationsChart,
+    })
+  )
 );
 const AdminUserStorageChart = lazy(() =>
   import("@/components/analytics/AdminUserStorageChart").then((m) => ({

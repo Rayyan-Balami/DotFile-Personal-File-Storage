@@ -9,7 +9,7 @@ import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-import { Badge } from "./badge";
+import { Badge } from "@/components/ui/badge";
 
 interface DateRange {
   from: Date | undefined;
@@ -34,9 +34,7 @@ export function DateRangePicker({
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className={cn(
-            "gap-6 justify-between text-left font-normal",
-          )}
+          className={cn("gap-6 justify-between text-left font-normal")}
         >
           <CalendarIcon className="h-4 w-4 opacity-50" />
           {value?.from ? (

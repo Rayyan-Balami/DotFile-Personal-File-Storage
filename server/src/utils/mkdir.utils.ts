@@ -1,7 +1,7 @@
-import { UPLOADS_DIR } from '@config/constants.js';
-import logger from '@utils/logger.utils.js';
-import fs from 'fs';
-import path from 'path';
+import { UPLOADS_DIR } from "@config/constants.js";
+import logger from "@utils/logger.utils.js";
+import fs from "fs";
+import path from "path";
 
 /**
  * Type guard to confirm if unknown is an Error
@@ -45,7 +45,9 @@ export const mkdir = (folderName: string): string => {
     return folderPath;
   } catch (error: unknown) {
     logger.error(`[mkdir] Failed creating directory ${folderName}:`, error);
-    throw new Error(`[mkdir] Creation failed for ${folderName}: ${getErrorMessage(error)}`);
+    throw new Error(
+      `[mkdir] Creation failed for ${folderName}: ${getErrorMessage(error)}`
+    );
   }
 };
 
@@ -67,15 +69,23 @@ export const createUserDirectory = (userId: string): string => {
     // Verify contents of uploads dir
     try {
       const files = fs.readdirSync(UPLOADS_DIR);
-      logger.debug(`[createUserDirectory] Uploads dir contents after creation:`, files);
+      logger.debug(
+        `[createUserDirectory] Uploads dir contents after creation:`,
+        files
+      );
     } catch (readError: unknown) {
-      logger.warn(`[createUserDirectory] Could not read uploads dir:`, readError);
+      logger.warn(
+        `[createUserDirectory] Could not read uploads dir:`,
+        readError
+      );
     }
 
     return dirPath;
   } catch (error: unknown) {
     logger.error(`[createUserDirectory] Failed for user ${userId}:`, error);
-    throw new Error(`[createUserDirectory] Creation failed: ${getErrorMessage(error)}`);
+    throw new Error(
+      `[createUserDirectory] Creation failed: ${getErrorMessage(error)}`
+    );
   }
 };
 
@@ -91,13 +101,17 @@ export const getUserDirectoryPath = (userId: string): string => {
     logger.debug(`[getUserDirectoryPath] Resolved path: ${userPath}`);
 
     if (!fs.existsSync(userPath)) {
-      logger.warn(`[getUserDirectoryPath] Directory does not exist: ${userPath}`);
+      logger.warn(
+        `[getUserDirectoryPath] Directory does not exist: ${userPath}`
+      );
     }
 
     return userPath;
   } catch (error: unknown) {
     logger.error(`[getUserDirectoryPath] Failed for user ${userId}:`, error);
-    throw new Error(`[getUserDirectoryPath] Retrieval failed: ${getErrorMessage(error)}`);
+    throw new Error(
+      `[getUserDirectoryPath] Retrieval failed: ${getErrorMessage(error)}`
+    );
   }
 };
 
@@ -112,7 +126,10 @@ export const directoryExists = (dirPath: string): boolean => {
     logger.debug(`[directoryExists] Exists check for ${dirPath}: ${exists}`);
     return exists;
   } catch (error: unknown) {
-    logger.error(`[directoryExists] Error checking directory: ${dirPath}`, error);
+    logger.error(
+      `[directoryExists] Error checking directory: ${dirPath}`,
+      error
+    );
     return false;
   }
 };
@@ -151,10 +168,15 @@ export const removeDirectory = (dirPath: string): boolean => {
       logger.info(`[removeDirectory] Directory removed: ${dirPath}`);
       return true;
     }
-    logger.debug(`[removeDirectory] Directory not found, nothing to remove: ${dirPath}`);
+    logger.debug(
+      `[removeDirectory] Directory not found, nothing to remove: ${dirPath}`
+    );
     return true;
   } catch (error: unknown) {
-    logger.error(`[removeDirectory] Failed removing directory ${dirPath}:`, error);
+    logger.error(
+      `[removeDirectory] Failed removing directory ${dirPath}:`,
+      error
+    );
     return false;
   }
 };

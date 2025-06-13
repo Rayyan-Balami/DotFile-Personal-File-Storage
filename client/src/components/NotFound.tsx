@@ -24,7 +24,8 @@ export function NotFound() {
             Oops! Page not found
           </h1>
           <p className="mt-6 text-pretty text-lg font-medium text-muted-foreground sm:text-xl/8">
-            Hey explorer, it seems like you have ventured into uncharted territory.
+            Hey explorer, it seems like you have ventured into uncharted
+            territory.
           </p>
           <div className="mt-10 flex flex-row items-center justify-center flex-wrap gap-y-3 gap-x-6">
             <Button

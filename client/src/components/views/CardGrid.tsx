@@ -1,6 +1,6 @@
-import { FileSystemItem } from "@/types/folderDocumnet";
-import { CardVariant } from "@/components/cards/FolderDocumentCard";
 import { DraggableFolderCard } from "@/components/cards/DraggableFolderCard";
+import { CardVariant } from "@/components/cards/FolderDocumentCard";
+import { FileSystemItem } from "@/types/folderDocumnet";
 
 export interface CardGridProps {
   items: FileSystemItem[];
@@ -9,7 +9,12 @@ export interface CardGridProps {
   onItemOpen?: (id: string) => void;
 }
 
-export function CardGrid({ items, viewType, onItemClick, onItemOpen }: CardGridProps) {
+export function CardGrid({
+  items,
+  viewType,
+  onItemClick,
+  onItemOpen,
+}: CardGridProps) {
   // Helper function to handle item opening via double click
   const handleOpen = (id: string) => {
     if (onItemOpen) {
@@ -23,8 +28,8 @@ export function CardGrid({ items, viewType, onItemClick, onItemOpen }: CardGridP
         viewType === "large"
           ? "grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4 md:gap-6"
           : viewType === "compact"
-          ? "grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-4 md:gap-6"
-          : "grid-cols-1 gap-0.5"
+            ? "grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-4 md:gap-6"
+            : "grid-cols-1 gap-0.5"
       }`}
     >
       {items.map((item, i) => (

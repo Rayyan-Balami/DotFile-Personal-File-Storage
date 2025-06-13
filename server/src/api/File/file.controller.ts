@@ -21,28 +21,32 @@ class FileController {
     if (!userId) {
       throw new ApiError(401, [{ file: "Unauthorized" }]);
     }
-    
+
     // Safely handle the folderId and duplicateAction from the request body
     const { folderId, duplicateAction } = req.body || {};
-    
+
     // Ensure files is always an array
-    const files = Array.isArray(req.files) ? req.files : 
-                  (req.files ? Array.isArray(req.files.files) ? req.files.files : 
-                  Object.values(req.files).flat() : []);
-    
+    const files = Array.isArray(req.files)
+      ? req.files
+      : req.files
+        ? Array.isArray(req.files.files)
+          ? req.files.files
+          : Object.values(req.files).flat()
+        : [];
+
     // Make sure fileToFolderMap and virtualFolders are initialized properly
     const fileToFolderMap = req.fileToFolderMap || {};
     const virtualFolders = req.virtualFolders || {};
-    
+
     const folderKeys = Object.keys(virtualFolders);
     const hasCreatedFolders = folderKeys.length > 0;
     const folderCount = folderKeys.length;
-    
+
     if (!hasCreatedFolders && (!files || files.length === 0)) {
       throw new ApiError(400, [{ file: "No files uploaded" }]);
     }
-    
-    // Get complete folder information if folders were created 
+
+    // Get complete folder information if folders were created
     let folders: Record<string, FolderResponseDto> = {};
     if (hasCreatedFolders) {
       for (const [path, folderId] of Object.entries(virtualFolders)) {
@@ -50,10 +54,10 @@ class FileController {
         folders[path] = folder;
       }
     }
-    
+
     if (hasCreatedFolders && (!files || files.length === 0)) {
       logger.debug(`ZIP contained only folders (${folderCount}) with no files`);
-      
+
       res.status(201).json(
         new ApiResponse(
           201,
@@ -61,16 +65,18 @@ class FileController {
             files: [],
             folders,
             count: 0,
-            folderCount: folderCount
+            folderCount: folderCount,
           },
           `Successfully created ${folderCount} folder(s) from ZIP`
         )
       );
       return;
     }
-    
-    logger.debug(`Passing ${files.length} files to service layer for processing`);
-    
+
+    logger.debug(
+      `Passing ${files.length} files to service layer for processing`
+    );
+
     const uploadResults = await fileService.processUploadedFiles(
       files,
       userId,
@@ -86,9 +92,9 @@ class FileController {
           files: uploadResults,
           folders,
           count: uploadResults.length,
-          folderCount: folderCount
+          folderCount: folderCount,
         },
-        `Successfully uploaded ${uploadResults.length} file(s)${folderCount > 0 ? ` and created ${folderCount} folder(s)` : ''}`
+        `Successfully uploaded ${uploadResults.length} file(s)${folderCount > 0 ? ` and created ${folderCount} folder(s)` : ""}`
       )
     );
   });
@@ -171,7 +177,12 @@ class FileController {
     const fileId = req.params.id;
     const { name, duplicateAction } = req.body;
 
-    const updatedFile = await fileService.renameFile(fileId, name, userId, duplicateAction);
+    const updatedFile = await fileService.renameFile(
+      fileId,
+      name,
+      userId,
+      duplicateAction
+    );
 
     res.json(
       new ApiResponse(200, { file: updatedFile }, "File renamed successfully")
@@ -194,7 +205,12 @@ class FileController {
     const fileId = req.params.id;
     const { folder, name, duplicateAction } = req.body;
 
-    const updatedFile = await fileService.moveFile(fileId, folder, userId, duplicateAction);
+    const updatedFile = await fileService.moveFile(
+      fileId,
+      folder,
+      userId,
+      duplicateAction
+    );
 
     res.json(
       new ApiResponse(200, { file: updatedFile }, "File moved successfully")
@@ -212,14 +228,10 @@ class FileController {
       throw new ApiError(401, [{ authentication: "Unauthorized" }]);
     }
 
-
-
     const fileId = req.params.id;
     const result = await fileService.permanentDeleteFile(fileId, userId);
 
-    res.json(
-      new ApiResponse(200, { result }, "File permanently deleted")
-    );
+    res.json(new ApiResponse(200, { result }, "File permanently deleted"));
   });
 
   /**
@@ -257,11 +269,17 @@ class FileController {
     );
 
     // Set headers for streaming
-    res.setHeader('Content-Type', mimeType);
-    
+    res.setHeader("Content-Type", mimeType);
+
     // Sanitize filename for Content-Disposition header
-    const sanitizedFilename = encodeURIComponent(filename).replace(/['()]/g, escape);
-    res.setHeader('Content-Disposition', `inline; filename*=UTF-8''${sanitizedFilename}`);
+    const sanitizedFilename = encodeURIComponent(filename).replace(
+      /['()]/g,
+      escape
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename*=UTF-8''${sanitizedFilename}`
+    );
 
     // Pipe file stream to response
     stream.pipe(res);
@@ -283,11 +301,17 @@ class FileController {
     );
 
     // Set headers for download instead of viewing
-    res.setHeader('Content-Type', mimeType);
-    
+    res.setHeader("Content-Type", mimeType);
+
     // Sanitize filename for Content-Disposition header
-    const sanitizedFilename = encodeURIComponent(filename).replace(/['()]/g, escape);
-    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${sanitizedFilename}`);
+    const sanitizedFilename = encodeURIComponent(filename).replace(
+      /['()]/g,
+      escape
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename*=UTF-8''${sanitizedFilename}`
+    );
 
     // Pipe file stream to response
     stream.pipe(res);
@@ -307,10 +331,14 @@ class FileController {
 
     const folderId = req.query.folderId as string | undefined;
     logger.info("Folder ID:", folderId);
-    const isDeleted = req.query.includeDeleted === 'true';
-    
-    const files = await fileService.getUserFilesByFolders(userId, folderId || null, isDeleted);
-    
+    const isDeleted = req.query.includeDeleted === "true";
+
+    const files = await fileService.getUserFilesByFolders(
+      userId,
+      folderId || null,
+      isDeleted
+    );
+
     res.json(new ApiResponse(200, { files }, "Files retrieved successfully"));
   });
 
@@ -325,10 +353,11 @@ class FileController {
     }
 
     const files = await fileService.getRecentFiles(userId);
-    
-    res.json(new ApiResponse(200, { files }, "Recent files retrieved successfully"));
-  });
 
+    res.json(
+      new ApiResponse(200, { files }, "Recent files retrieved successfully")
+    );
+  });
 }
 
 export default new FileController();

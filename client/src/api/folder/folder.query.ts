@@ -92,7 +92,14 @@ export const useSearchContents = (params: {
   useQuery({
     queryKey: ["folders", "search", params],
     queryFn: () => folderApi.searchContents(params).then((res) => res.data),
-    enabled: !!(params.query || params.itemType !== "all" || params.fileTypes?.length || params.isPinned !== undefined || params.dateFrom || params.dateTo),
+    enabled: !!(
+      params.query ||
+      params.itemType !== "all" ||
+      params.fileTypes?.length ||
+      params.isPinned !== undefined ||
+      params.dateFrom ||
+      params.dateTo
+    ),
   });
 
 /**

@@ -9,8 +9,8 @@ import fs from "fs";
  * Ensures all files are securely stored on disk using user-based encryption
  */
 export const encryptFiles = async (
-  req: Request, 
-  _res: Response, 
+  req: Request,
+  _res: Response,
   next: NextFunction
 ) => {
   try {
@@ -23,10 +23,10 @@ export const encryptFiles = async (
     const files = Array.isArray(req.files)
       ? req.files
       : req.files?.files
-      ? Array.isArray(req.files.files)
-        ? req.files.files
-        : Object.values(req.files).flat()
-      : [];
+        ? Array.isArray(req.files.files)
+          ? req.files.files
+          : Object.values(req.files).flat()
+        : [];
 
     // Skip if no files to process
     if (files.length === 0) return next();

@@ -2,21 +2,21 @@ import fileDao from "@api/file/file.dao.js";
 import {
   CreateFileDto,
   FileResponseDto,
-  UpdateFileDto
+  UpdateFileDto,
 } from "@api/file/file.dto.js";
 import { IFile } from "@api/file/file.model.js";
 import folderService from "@api/folder/folder.service.js";
 import { IUser } from "@api/user/user.model.js";
+import userService from "@api/user/user.service.js";
 import { ApiError } from "@utils/apiError.utils.js";
-import logger from "@utils/logger.utils.js";
-import { getUserDirectoryPath, removeFile } from "@utils/mkdir.utils.js";
-import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
 import { decryptFileBuffer } from "@utils/cryptoUtil.utils.js"; // Import decryption utility
+import logger from "@utils/logger.utils.js";
+import { getUserDirectoryPath } from "@utils/mkdir.utils.js";
+import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
 import fs from "fs";
 import * as fsPromises from "fs/promises";
 import { Types } from "mongoose";
 import path from "path";
-import userService from "@api/user/user.service.js";
 
 /**
  * FileService: Business logic layer for file operations
@@ -29,10 +29,10 @@ class FileService {
    */
   private extractFolderId(folder: any): string | null {
     if (!folder) return null;
-    
-    if (typeof folder === 'string') {
+
+    if (typeof folder === "string") {
       return folder;
-    } else if (typeof folder === 'object' && '_id' in folder) {
+    } else if (typeof folder === "object" && "_id" in folder) {
       // It's a populated IFolder object
       return (folder as any)._id.toString();
     } else {
@@ -52,7 +52,7 @@ class FileService {
   async createFileWithVirtualFolder(
     fileData: {
       name: string;
-      type: string;  // This is the MIME type
+      type: string; // This is the MIME type
       size: number;
       storageKey: string;
     },
@@ -63,7 +63,10 @@ class FileService {
     logger.debug(`Creating file record for ${fileData.name} by user ${userId}`);
 
     // Get the extension from storage key
-    const fileExtension = path.extname(fileData.storageKey).substring(1).toLowerCase();
+    const fileExtension = path
+      .extname(fileData.storageKey)
+      .substring(1)
+      .toLowerCase();
 
     // Check if file already exists
     const existingFile = await fileDao.checkFileExists(
@@ -74,7 +77,12 @@ class FileService {
     );
 
     // First, ensure the new file exists on disk
-    const newFilePath = path.join(process.cwd(), 'uploads', `user-${userId}`, fileData.storageKey);
+    const newFilePath = path.join(
+      process.cwd(),
+      "uploads",
+      `user-${userId}`,
+      fileData.storageKey
+    );
     try {
       await fsPromises.access(newFilePath);
     } catch (error) {
@@ -89,7 +97,11 @@ class FileService {
         } catch (err) {
           logger.error(`Error cleaning up new file ${newFilePath}:`, err);
         }
-        throw new ApiError(409, [{ name: `A file named "${fileData.name}.${fileExtension}" already exists in this location` }]);
+        throw new ApiError(409, [
+          {
+            name: `A file named "${fileData.name}.${fileExtension}" already exists in this location`,
+          },
+        ]);
       }
 
       if (duplicateAction === "replace") {
@@ -124,9 +136,9 @@ class FileService {
       name: fileData.name,
       owner: userId,
       folder: folderId || null,
-      extension: fileExtension  // Store just the file extension
+      extension: fileExtension, // Store just the file extension
     });
-    
+
     return this.sanitizeFile(file);
   }
 
@@ -141,19 +153,19 @@ class FileService {
     if (!Types.ObjectId.isValid(fileId)) {
       throw new ApiError(400, [{ file: "Invalid file ID" }]);
     }
-    
+
     const file = await fileDao.getFileById(fileId, true);
     if (!file) {
       throw new ApiError(404, [{ file: "File not found" }]);
     }
-    
+
     // Check if the file belongs to the user
     if ((file.owner as IUser)._id.toString() !== userId) {
       throw new ApiError(403, [
         { authorization: "You do not have permission to access this file" },
       ]);
     }
-    
+
     return file;
   }
 
@@ -164,9 +176,9 @@ class FileService {
    */
   async createFile(fileData: CreateFileDto): Promise<FileResponseDto> {
     logger.debug(`Creating file: ${fileData.name} for user ${fileData.owner}`);
-    
+
     const file = await fileDao.createFile(fileData);
-    
+
     return this.sanitizeFile(file);
   }
 
@@ -182,11 +194,15 @@ class FileService {
     folderId?: string | null,
     isDeleted?: boolean
   ): Promise<FileResponseDto[]> {
-    const files = await fileDao.getUserFilesByFolders(userId, folderId, isDeleted);
+    const files = await fileDao.getUserFilesByFolders(
+      userId,
+      folderId,
+      isDeleted
+    );
     // logger.info("User files by folders:", files);
 
     // Return empty array instead of throwing error when no files are found
-    return files.map(file => this.sanitizeFile(file));
+    return files.map((file) => this.sanitizeFile(file));
   }
 
   /**
@@ -196,14 +212,11 @@ class FileService {
    * @returns File document if found
    * @throws ApiError if file not found or user doesn't own it
    */
-  async getFileById(
-    fileId: string, 
-    userId: string
-  ): Promise<FileResponseDto> {
+  async getFileById(fileId: string, userId: string): Promise<FileResponseDto> {
     if (!Types.ObjectId.isValid(fileId)) {
       throw new ApiError(400, [{ file: "Invalid file ID" }]);
     }
-    
+
     // Get the file
     const file = await this.verifyFileOwnership(fileId, userId);
     if (!file) {
@@ -213,10 +226,10 @@ class FileService {
     // Check if user owns the file
     if ((file.owner as IUser)._id.toString() !== userId) {
       throw new ApiError(403, [
-        { authorization: "You do not have permission to access this file" }
+        { authorization: "You do not have permission to access this file" },
       ]);
     }
-    
+
     return this.sanitizeFile(file);
   }
 
@@ -228,17 +241,21 @@ class FileService {
    * @returns Updated file document
    * @throws ApiError if file not found, user doesn't own it, or update fails
    */
-  async updateFile(fileId: string, updateData: UpdateFileDto, userId: string): Promise<FileResponseDto> {
+  async updateFile(
+    fileId: string,
+    updateData: UpdateFileDto,
+    userId: string
+  ): Promise<FileResponseDto> {
     // Verify file ownership
     await this.verifyFileOwnership(fileId, userId);
-    
+
     // Update the file
     const updatedFile = await fileDao.updateFile(fileId, updateData);
-    
+
     if (!updatedFile) {
       throw new ApiError(500, [{ update: "Failed to update file" }]);
     }
-    
+
     return this.sanitizeFile(updatedFile);
   }
 
@@ -249,18 +266,21 @@ class FileService {
    * @returns Deleted file document
    * @throws ApiError if file not found, user doesn't own it, or deletion fails
    */
-  async softDeleteFile(fileId: string, userId: string): Promise<FileResponseDto> {
+  async softDeleteFile(
+    fileId: string,
+    userId: string
+  ): Promise<FileResponseDto> {
     // Verify file ownership
     const existingFile = await this.getFileById(fileId, userId);
-    
+
     // macOS behavior: Simply move the file to trash
     // The file retains its original location metadata for restoration
     const deletedFile = await fileDao.softDeleteFile(fileId);
-    
+
     if (!deletedFile) {
       throw new ApiError(500, [{ delete: "Failed to delete file" }]);
     }
-    
+
     return this.sanitizeFile(deletedFile);
   }
 
@@ -271,7 +291,12 @@ class FileService {
    * @param userId - User ID for ownership verification
    * @returns Updated file document
    */
-  async renameFile(fileId: string, newName: string, userId: string, duplicateAction?: "replace" | "keepBoth"): Promise<FileResponseDto> {
+  async renameFile(
+    fileId: string,
+    newName: string,
+    userId: string,
+    duplicateAction?: "replace" | "keepBoth"
+  ): Promise<FileResponseDto> {
     // Verify file ownership
     const existingFile = await this.verifyFileOwnership(fileId, userId);
     if (!existingFile) {
@@ -285,16 +310,28 @@ class FileService {
 
     // Check if a file with the new name and same extension already exists in the same folder
     const folderId = this.extractFolderId(existingFile.folder);
-    const existingFileWithName = await fileDao.checkFileExists(newName, existingFile.extension, userId, folderId);
+    const existingFileWithName = await fileDao.checkFileExists(
+      newName,
+      existingFile.extension,
+      userId,
+      folderId
+    );
 
     if (existingFileWithName) {
       if (!duplicateAction) {
-        throw new ApiError(409, [{ name: `A file with the name "${newName}.${existingFile.extension}" already exists` }]);
+        throw new ApiError(409, [
+          {
+            name: `A file with the name "${newName}.${existingFile.extension}" already exists`,
+          },
+        ]);
       }
 
       if (duplicateAction === "replace") {
         // Delete the existing file
-        await this.permanentDeleteFile(existingFileWithName._id.toString(), userId);
+        await this.permanentDeleteFile(
+          existingFileWithName._id.toString(),
+          userId
+        );
       } else if (duplicateAction === "keepBoth") {
         // If keepBoth is selected, don't change anything
         return this.sanitizeFile(existingFile);
@@ -303,16 +340,16 @@ class FileService {
 
     // Update the file
     const updatedFile = await fileDao.renameFile(fileId, {
-      name: newName
+      name: newName,
     });
-    
+
     if (!updatedFile) {
       throw new ApiError(500, [{ rename: "Failed to rename file" }]);
     }
-    
+
     return this.sanitizeFile(updatedFile);
   }
-  
+
   /**
    * Move file to new parent folder
    * @param fileId - File ID to move
@@ -321,7 +358,12 @@ class FileService {
    * @param duplicateAction - Action to take if a file with the same name exists
    * @returns Updated file document
    */
-  async moveFile(fileId: string, newFolderId: string | null, userId: string, duplicateAction?: "replace" | "keepBoth"): Promise<FileResponseDto> {
+  async moveFile(
+    fileId: string,
+    newFolderId: string | null,
+    userId: string,
+    duplicateAction?: "replace" | "keepBoth"
+  ): Promise<FileResponseDto> {
     // Verify file ownership
     const existingFile = await this.getFileById(fileId, userId);
     if (!existingFile) {
@@ -337,10 +379,12 @@ class FileService {
     if (existingFile.folder) {
       const currentFolderId = this.extractFolderId(existingFile.folder);
       if (currentFolderId === newFolderId) {
-        throw new ApiError(400, [{ move: "File is already in the target folder" }]);
+        throw new ApiError(400, [
+          { move: "File is already in the target folder" },
+        ]);
       }
     }
-    
+
     // Check if a file with the same name already exists in the target folder
     const existingFileInTarget = await fileDao.checkFileExists(
       existingFile.name,
@@ -351,11 +395,13 @@ class FileService {
 
     if (existingFileInTarget) {
       if (!duplicateAction) {
-        throw new ApiError(409, [{ 
-          name: `A file with the name "${existingFile.name}" already exists in this location`,
-          type: "file",
-          fileName: existingFile.name
-        }]);
+        throw new ApiError(409, [
+          {
+            name: `A file with the name "${existingFile.name}" already exists in this location`,
+            type: "file",
+            fileName: existingFile.name,
+          },
+        ]);
       }
 
       if (duplicateAction === "replace") {
@@ -369,31 +415,31 @@ class FileService {
           userId,
           newFolderId
         );
-        
+
         // Update the file with the unique name
         const updatedFile = await fileDao.moveFile(fileId, {
           name: uniqueName,
-          folder: newFolderId
+          folder: newFolderId,
         });
-        
+
         if (!updatedFile) {
           throw new ApiError(500, [{ move: "Failed to move file" }]);
         }
-        
+
         return this.sanitizeFile(updatedFile);
       }
     }
-    
+
     // Update the file with original name (no conflict or replace action)
     const updatedFile = await fileDao.moveFile(fileId, {
       name: existingFile.name,
-      folder: newFolderId
+      folder: newFolderId,
     });
-    
+
     if (!updatedFile) {
       throw new ApiError(500, [{ move: "Failed to move file" }]);
     }
-    
+
     return this.sanitizeFile(updatedFile);
   }
 
@@ -414,7 +460,7 @@ class FileService {
     duplicateAction?: "replace" | "keepBoth"
   ): Promise<FileResponseDto[]> {
     logger.debug(`Processing ${files.length} files in service layer`);
-    
+
     const uploadResults: Array<FileResponseDto> = [];
 
     for (const file of files) {
@@ -423,7 +469,10 @@ class FileService {
           // File from ZIP archive - use the mapped folder ID directly
           const targetFolderId = fileToFolderMap[file.filename];
           const fileExtension = path.extname(file.originalname).substring(1);
-          const fileName = path.basename(file.originalname, `.${fileExtension}`);
+          const fileName = path.basename(
+            file.originalname,
+            `.${fileExtension}`
+          );
 
           const savedFile = await this.createFileWithVirtualFolder(
             {
@@ -436,14 +485,16 @@ class FileService {
             targetFolderId,
             duplicateAction
           );
-          
+
           uploadResults.push(savedFile);
-          
         } else {
           // Regular file upload
           const fileExtension = path.extname(file.originalname).substring(1);
-          const fileName = path.basename(file.originalname, `.${fileExtension}`);
-          
+          const fileName = path.basename(
+            file.originalname,
+            `.${fileExtension}`
+          );
+
           const savedFile = await this.createFileWithVirtualFolder(
             {
               name: fileName,
@@ -455,18 +506,21 @@ class FileService {
             folderId,
             duplicateAction
           );
-          
+
           uploadResults.push(savedFile);
         }
       } catch (fileError) {
-        logger.error(`Error processing uploaded file ${file.filename}:`, fileError);
+        logger.error(
+          `Error processing uploaded file ${file.filename}:`,
+          fileError
+        );
         throw fileError; // Re-throw to handle in controller
       }
     }
-    
+
     return uploadResults;
   }
-  
+
   /**
    * Create folder structure based on path segments
    * @param virtualPath - Path string with segments separated by /
@@ -484,24 +538,24 @@ class FileService {
     const pathSegments = virtualPath.split("/").filter(Boolean);
     let parentId = parentFolderId || null;
     let currentPath = "";
-    
+
     // Create each folder in the path if it doesn't exist
     for (const segment of pathSegments) {
       currentPath = currentPath ? `${currentPath}/${segment}` : segment;
-      
+
       // Check if we've already created this folder in this session
       if (folderCache.has(currentPath)) {
         parentId = folderCache.get(currentPath)!;
         continue;
       }
-      
+
       // Check if folder already exists at this path under the parent
       let folder = await folderService.getFolderByNameAndParent(
         segment,
         parentId,
         userId
       );
-      
+
       // Create the folder if it doesn't exist
       if (!folder) {
         folder = await folderService.createFolder(
@@ -509,12 +563,12 @@ class FileService {
           userId
         );
       }
-      
+
       // Store folder ID in cache
       folderCache.set(currentPath, folder.id);
       parentId = folder.id;
     }
-    
+
     return parentId;
   }
 
@@ -568,7 +622,7 @@ class FileService {
       recursive: true,
     });
   }
-  
+
   /**
    * Sanitize path segment by removing invalid characters
    * @param name - Original path segment name
@@ -576,10 +630,10 @@ class FileService {
    */
   private sanitizePathSegment(name: string): string {
     return name
-      .replace(/[<>:"/\\|?*\x00-\x1F]/g, '') // Remove invalid characters
-      .replace(/^\.+/, '')                    // Remove leading dots
-      .replace(/\s+/g, ' ')                   // Replace multiple spaces with single space
-      .trim();                                // Remove leading/trailing whitespace
+      .replace(/[<>:"/\\|?*\x00-\x1F]/g, "") // Remove invalid characters
+      .replace(/^\.+/, "") // Remove leading dots
+      .replace(/\s+/g, " ") // Replace multiple spaces with single space
+      .trim(); // Remove leading/trailing whitespace
   }
 
   /**
@@ -591,16 +645,20 @@ class FileService {
   async permanentDeleteFile(fileId: string, userId: string): Promise<void> {
     // First verify the file exists and belongs to the user
     const file = await this.verifyFileOwnership(fileId, userId);
-    
+
     if (!file) {
       throw new ApiError(404, [{ file: "File not found" }]);
     }
 
     // Delete the physical file first
     // Construct proper path relative to project root
-    const userStorageDir = path.join(process.cwd(), 'uploads', `user-${userId}`);
+    const userStorageDir = path.join(
+      process.cwd(),
+      "uploads",
+      `user-${userId}`
+    );
     const filePath = path.join(userStorageDir, file.storageKey);
-    
+
     try {
       // Check if file exists before attempting to delete
       await fsPromises.access(filePath);
@@ -610,7 +668,7 @@ class FileService {
       // If file doesn't exist, log but continue with database deletion
       logger.error(`Error deleting physical file ${filePath}:`, error);
     }
-    
+
     // Delete from database
     const result = await fileDao.permanentDeleteFile(fileId);
 
@@ -634,38 +692,44 @@ class FileService {
   async restoreFile(fileId: string, userId: string): Promise<FileResponseDto> {
     // Verify file exists and belongs to user (include deleted files in search)
     const file = await fileDao.getFileById(fileId, true);
-    
+
     if (!file) {
       throw new ApiError(404, [{ file: "File not found" }]);
     }
-    
+
     if ((file.owner as IUser)._id.toString() !== userId) {
-      throw new ApiError(403, [{ authentication: "You do not have permission to restore this file" }]);
+      throw new ApiError(403, [
+        { authentication: "You do not have permission to restore this file" },
+      ]);
     }
-    
+
     if (file.deletedAt === null) {
       throw new ApiError(400, [{ file: "File is not in trash" }]);
     }
-    
+
     // macOS behavior: Check if original parent folder still exists and is not deleted
     if (file.folder) {
       try {
         // Handle populated folder object vs ObjectId string
         const folderId = this.extractFolderId(file.folder);
         if (!folderId) {
-          throw new ApiError(400, [{ restore: "File has no folder reference" }]);
+          throw new ApiError(400, [
+            { restore: "File has no folder reference" },
+          ]);
         }
-        
+
         const folder = await folderService.getFolderById(folderId, userId);
-        
+
         // If folder exists and is not deleted, restoration can proceed to original location
         if (folder && !folder.deletedAt) {
           // Original folder is available, restore to original location
         } else {
           // macOS behavior: If original folder is missing or deleted, prevent restoration
-          throw new ApiError(400, [{ 
-            file: `Cannot restore '${file.name}.${file.extension}' because the original folder no longer exists or has been moved to Trash.` 
-          }]);
+          throw new ApiError(400, [
+            {
+              file: `Cannot restore '${file.name}.${file.extension}' because the original folder no longer exists or has been moved to Trash.`,
+            },
+          ]);
         }
       } catch (error) {
         if (error instanceof ApiError) {
@@ -673,19 +737,21 @@ class FileService {
         }
         // If folder lookup fails, prevent restoration
         logger.error(`Error checking folder for file ${fileId}:`, error);
-        throw new ApiError(400, [{ 
-          file: `Cannot restore '${file.name}.${file.extension}' because the original location cannot be verified.` 
-        }]);
+        throw new ApiError(400, [
+          {
+            file: `Cannot restore '${file.name}.${file.extension}' because the original location cannot be verified.`,
+          },
+        ]);
       }
     }
-    
+
     // Restore the file to its original location
     const restoredFile = await fileDao.restoreDeletedFile(fileId);
-    
+
     if (!restoredFile) {
       throw new ApiError(500, [{ file: "Failed to restore file" }]);
     }
-    
+
     return this.sanitizeFile(restoredFile);
   }
 
@@ -695,15 +761,21 @@ class FileService {
    * @param folderId - ID of the folder to check
    * @returns Object containing array of deleted files
    */
-  async getDeletedUserFilesByFolders(userId: string, folderId: string): Promise<{ files: FileResponseDto[] }> {
+  async getDeletedUserFilesByFolders(
+    userId: string,
+    folderId: string
+  ): Promise<{ files: FileResponseDto[] }> {
     // Get deleted files for this user
-    const deletedFiles = await fileDao.getDeletedUserFilesByFolders(userId, folderId);
+    const deletedFiles = await fileDao.getDeletedUserFilesByFolders(
+      userId,
+      folderId
+    );
 
     // Sanitize for response
-    const sanitizedFiles = deletedFiles.map(file => this.sanitizeFile(file));
-    
+    const sanitizedFiles = deletedFiles.map((file) => this.sanitizeFile(file));
+
     return {
-      files: sanitizedFiles
+      files: sanitizedFiles,
     };
   }
 
@@ -715,9 +787,9 @@ class FileService {
   async getAllDeletedFiles(userId: string): Promise<FileResponseDto[]> {
     // Get all deleted files for this user
     const deletedFiles = await fileDao.getAllDeletedFiles(userId);
-    
+
     // Sanitize for response
-    return deletedFiles.map(file => this.sanitizeFile(file));
+    return deletedFiles.map((file) => this.sanitizeFile(file));
   }
 
   /**
@@ -728,14 +800,18 @@ class FileService {
   async permanentDeleteAllDeletedFiles(userId: string): Promise<void> {
     // Get all deleted files for this user
     const deletedFiles = await fileDao.getAllDeletedFiles(userId);
-    
+
     // Calculate total size to be freed
     const totalSize = deletedFiles.reduce((sum, file) => sum + file.size, 0);
-    
+
     // remove all files from upload directory
     for (const file of deletedFiles) {
       const userStorageDir = `uploads/user-${userId}`;
-      const filePath = path.join(process.cwd(), userStorageDir, file.storageKey);
+      const filePath = path.join(
+        process.cwd(),
+        userStorageDir,
+        file.storageKey
+      );
       try {
         // Check if file exists before attempting to delete
         await fsPromises.access(filePath);
@@ -746,7 +822,7 @@ class FileService {
         logger.error(`Failed to delete physical file: ${error}`);
       }
     }
-    
+
     // Permanently delete all files recorded in the database
     const result = await fileDao.permanentDeleteAllDeletedFiles(userId);
     if (!result) {
@@ -772,53 +848,59 @@ class FileService {
   ): Promise<{ stream: fs.ReadStream; mimeType: string; filename: string }> {
     // Verify file ownership
     const file = await this.verifyFileOwnership(fileId, userId);
-    
+
     // Construct file path
     const filePath = path.join(getUserDirectoryPath(userId), file.storageKey);
-    
+
     try {
       // Check if file exists
       await fsPromises.access(filePath);
-      
+
       // Read the encrypted file content
       const encryptedBuffer = await fsPromises.readFile(filePath);
-      
+
       // Decrypt the file content using the user's key
       const decryptedBuffer = decryptFileBuffer(encryptedBuffer, userId);
-      
+
       // Log the decrypted data to the console for debugging
       logger.debug(`Decrypted file data (${file.name}.${file.extension}):`);
-      
+
       // For text files, log the content as string
-      if (['txt', 'json', 'csv', 'md', 'html', 'css', 'js', 'ts'].includes(file.extension.toLowerCase())) {
+      if (
+        ["txt", "json", "csv", "md", "html", "css", "js", "ts"].includes(
+          file.extension.toLowerCase()
+        )
+      ) {
         // Convert buffer to string and log - limit to 1000 chars to avoid console overflow
-        const textContent = decryptedBuffer.toString('utf8');
-        logger.debug(textContent.length > 1000 
-          ? `${textContent.substring(0, 1000)}... (truncated, ${textContent.length} chars total)` 
-          : textContent);
+        const textContent = decryptedBuffer.toString("utf8");
+        logger.debug(
+          textContent.length > 1000
+            ? `${textContent.substring(0, 1000)}... (truncated, ${textContent.length} chars total)`
+            : textContent
+        );
       } else {
         // For binary files, just log buffer info
         logger.debug(`Binary data: ${decryptedBuffer.length} bytes`);
       }
-      
+
       // Create a temporary decrypted file path
-      const tempDir = path.join(getUserDirectoryPath(userId), 'temp');
-      
+      const tempDir = path.join(getUserDirectoryPath(userId), "temp");
+
       // Ensure temp directory exists
       if (!fs.existsSync(tempDir)) {
         await fsPromises.mkdir(tempDir, { recursive: true });
       }
-      
+
       const tempFilePath = path.join(tempDir, `decrypted-${file.storageKey}`);
-      
+
       // Write the decrypted content to temp file
       await fsPromises.writeFile(tempFilePath, decryptedBuffer);
-      
+
       // Create read stream from the decrypted temp file
       const stream = fs.createReadStream(tempFilePath);
-      
+
       // Set up cleanup of temp file after stream ends
-      stream.on('end', async () => {
+      stream.on("end", async () => {
         try {
           // Delete temporary decrypted file after it's been streamed
           await fsPromises.unlink(tempFilePath);
@@ -826,18 +908,20 @@ class FileService {
           logger.error(`Error cleaning up temp file ${tempFilePath}:`, err);
         }
       });
-      
-      // Determine mime type from file extension  
-      const mimeType = file.type || 'application/octet-stream';
-      
+
+      // Determine mime type from file extension
+      const mimeType = file.type || "application/octet-stream";
+
       return {
         stream,
         mimeType,
-        filename: `${file.name}.${file.extension}`
+        filename: `${file.name}.${file.extension}`,
       };
     } catch (error) {
-      logger.error('Error serving file:', error);
-      throw new ApiError(404, [{ file: "File not found or could not be decrypted" }]);
+      logger.error("Error serving file:", error);
+      throw new ApiError(404, [
+        { file: "File not found or could not be decrypted" },
+      ]);
     }
   }
 
@@ -849,11 +933,10 @@ class FileService {
   async getRecentFiles(userId: string): Promise<FileResponseDto[]> {
     // Get recent files for this user
     const recentFiles = await fileDao.getRecentFiles(userId);
-    
-    // Sanitize for response
-    return recentFiles.map(file => this.sanitizeFile(file));
-  }
 
+    // Sanitize for response
+    return recentFiles.map((file) => this.sanitizeFile(file));
+  }
 
   /**
    * Get file creation analytics by date range
@@ -865,19 +948,21 @@ class FileService {
     startDate: string,
     endDate: string
   ): Promise<{ date: string; count: number }[]> {
+    const analytics = await fileDao.getFileCreationAnalytics(
+      startDate,
+      endDate
+    );
 
-      const analytics = await fileDao.getFileCreationAnalytics(startDate, endDate);
+    // Return empty array instead of throwing error when no data found
+    // This is better UX - no data is a valid state, not an error
+    if (!analytics || analytics.length === 0) {
+      return [];
+    }
 
-      // Return empty array instead of throwing error when no data found
-      // This is better UX - no data is a valid state, not an error
-      if (!analytics || analytics.length === 0) {
-        return [];
-      }
-
-      return analytics.map(item => ({
-        date: item.date,
-        count: item.count
-      }));
+    return analytics.map((item) => ({
+      date: item.date,
+      count: item.count,
+    }));
   }
 
   /**
@@ -886,7 +971,10 @@ class FileService {
    * @param endDate - End date for counting files
    * @returns Number of files created in the date range
    */
-  async getFileCountByDateRange(startDate: Date, endDate: Date): Promise<number> {
+  async getFileCountByDateRange(
+    startDate: Date,
+    endDate: Date
+  ): Promise<number> {
     return await fileDao.getFileCountByDateRange(startDate, endDate);
   }
 
@@ -896,7 +984,10 @@ class FileService {
    * @param endDate - End date for calculating storage
    * @returns Total size in bytes for files created in the date range
    */
-  async getStorageSizeByDateRange(startDate: Date, endDate: Date): Promise<number> {
+  async getStorageSizeByDateRange(
+    startDate: Date,
+    endDate: Date
+  ): Promise<number> {
     return await fileDao.getStorageSizeByDateRange(startDate, endDate);
   }
 
@@ -935,8 +1026,8 @@ class FileService {
       dateFrom,
       dateTo
     );
-    
-    return files.map(file => this.sanitizeFile(file));
+
+    return files.map((file) => this.sanitizeFile(file));
   }
 }
 

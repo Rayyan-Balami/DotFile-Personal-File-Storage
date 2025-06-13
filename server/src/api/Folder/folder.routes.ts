@@ -1,4 +1,3 @@
-import { Router } from "express";
 import FolderController from "@api/folder/folder.controller.js";
 import {
   createFolderSchema,
@@ -6,10 +5,11 @@ import {
   renameFolderSchema,
   updateFolderSchema,
 } from "@api/folder/folder.validator.js";
+import { UserRole } from "@api/user/user.dto.js";
+import { restrictTo } from "@middleware/accessControl.middleware.js";
 import { verifyAuth } from "@middleware/auth.middleware.js";
 import { validateData } from "@middleware/validate.middleware.js";
-import { restrictTo } from "@middleware/accessControl.middleware.js";
-import { UserRole } from "@api/user/user.dto.js";
+import { Router } from "express";
 
 //=========================//
 // Init router and auth

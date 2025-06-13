@@ -1,20 +1,20 @@
-import { IS_PRODUCTION } from '@config/constants.js';
+import { IS_PRODUCTION } from "@config/constants.js";
 
 // ANSI color codes for terminal styling
 const colors = {
-  reset: '\x1b[0m',
-  bright: '\x1b[1m',
-  red: '\x1b[31m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  blue: '\x1b[34m',
-  magenta: '\x1b[35m',
-  cyan: '\x1b[36m',
+  reset: "\x1b[0m",
+  bright: "\x1b[1m",
+  red: "\x1b[31m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  magenta: "\x1b[35m",
+  cyan: "\x1b[36m",
 };
 
 /**
  * Customized logger for colored, timestamped console output.
- * Skips debug logs in production for cleaner output.
+ * All logs are silenced in production for cleaner output.
  */
 const logger = {
   /**
@@ -23,6 +23,7 @@ const logger = {
    * @param args Additional args for console.log
    */
   info: (message: string, ...args: any[]): void => {
+    if (IS_PRODUCTION) return;
     console.log(`${colors.blue}[INFO] ${message}${colors.reset}`, ...args);
   },
 
@@ -32,6 +33,7 @@ const logger = {
    * @param args Extra values to log
    */
   success: (message: string, ...args: any[]): void => {
+    if (IS_PRODUCTION) return;
     console.log(`${colors.green}[SUCCESS] ${message}${colors.reset}`, ...args);
   },
 
@@ -41,6 +43,7 @@ const logger = {
    * @param args Additional details
    */
   warn: (message: string, ...args: any[]): void => {
+    if (IS_PRODUCTION) return;
     console.log(`${colors.yellow}[WARNING] ${message}${colors.reset}`, ...args);
   },
 
@@ -51,11 +54,16 @@ const logger = {
    * @param args Extra args to log
    */
   error: (message: string | Error, ...args: any[]): void => {
+    if (IS_PRODUCTION) return;
+
     const errorMessage = message instanceof Error ? message.message : message;
     const stack = message instanceof Error ? message.stack : null;
 
-    console.error(`${colors.red}[ERROR] ${errorMessage}${colors.reset}`, ...args);
-    if (stack && !IS_PRODUCTION) {
+    console.error(
+      `${colors.red}[ERROR] ${errorMessage}${colors.reset}`,
+      ...args
+    );
+    if (stack) {
       console.error(`${colors.red}[STACK] ${stack}${colors.reset}`);
     }
   },
@@ -66,9 +74,8 @@ const logger = {
    * @param args Additional values
    */
   debug: (message: string, ...args: any[]): void => {
-    if (!IS_PRODUCTION) {
-      console.log(`${colors.magenta}[DEBUG] ${message}${colors.reset}`, ...args);
-    }
+    if (IS_PRODUCTION) return;
+    console.log(`${colors.magenta}[DEBUG] ${message}${colors.reset}`, ...args);
   },
 
   /**
@@ -83,23 +90,25 @@ const logger = {
 
     // Capture caller info from stack trace for context
     const stack = new Error().stack;
-    const caller = stack ? stack.split('\n')[2].trim() : 'unknown location';
+    const caller = stack ? stack.split("\n")[2].trim() : "unknown location";
 
-    const varName = label || 'Value';
+    const varName = label || "Value";
 
     // Highlight label and location in cyan + bright
-    console.log(`\n${colors.cyan}[DEV] ${varName} ${colors.bright}(${caller})${colors.reset}`);
+    console.log(
+      `\n${colors.cyan}[DEV] ${varName} ${colors.bright}(${caller})${colors.reset}`
+    );
 
     // Pretty-print objects/arrays, plain log for primitives
-    if (typeof value === 'object' && value !== null) {
+    if (typeof value === "object" && value !== null) {
       console.dir(value, { depth: null, colors: true });
     } else {
       console.log(`${colors.cyan}→ ${colors.reset}`, value);
     }
 
     // Visual separator for clarity
-    console.log(`${colors.cyan}${'─'.repeat(50)}${colors.reset}\n`);
-  }
+    console.log(`${colors.cyan}${"─".repeat(50)}${colors.reset}\n`);
+  },
 };
 
 export default logger;

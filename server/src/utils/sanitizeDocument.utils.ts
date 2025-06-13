@@ -10,7 +10,7 @@ type SanitizeOptions = {
 /**
  * Utility to clean and format Mongoose documents for safe JSON output by removing unwanted fields,
  * converting MongoDB-specific types, and optionally recursively processing nested data.
- * 
+ *
  * @template T - Expected return type after sanitization
  * @param doc - Mongoose document or plain object to sanitize
  * @param options - Sanitization options (excludeFields, includeFields, idField, recursive)
@@ -30,9 +30,7 @@ export function sanitizeDocument<T>(
   if (!doc) return null as any;
 
   if (Array.isArray(doc)) {
-    return doc.map((item) =>
-      sanitizeDocument(item, options)
-    ) as any;
+    return doc.map((item) => sanitizeDocument(item, options)) as any;
   }
 
   const obj = typeof doc.toObject === "function" ? doc.toObject() : { ...doc };
@@ -40,7 +38,12 @@ export function sanitizeDocument<T>(
 
   for (const key in obj) {
     if (excludeFields.includes(key)) continue;
-    if (includeFields.length > 0 && !includeFields.includes(key) && key !== "_id") continue;
+    if (
+      includeFields.length > 0 &&
+      !includeFields.includes(key) &&
+      key !== "_id"
+    )
+      continue;
 
     const value = obj[key];
 

@@ -2,8 +2,8 @@ import { DialogProvider } from "@/components/dialogs/DialogProvider";
 import { FileSystemDndProvider } from "@/components/dnd/FileSystemDndContext";
 import { SiteFooter } from "@/components/footer/site-footer";
 import { SiteHeader } from "@/components/header/site-header";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/nav/app-sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { useUserSync } from "@/hooks/useUserSync";
 import { useAuthStore } from "@/stores/authStore";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
@@ -13,14 +13,14 @@ import { useEffect } from "react";
 export const Route = createFileRoute("/(user)")({
   beforeLoad: () => {
     const { isAuthenticated, isAdmin } = useAuthStore.getState();
-    
+
     if (!isAuthenticated) {
       throw redirect({
         to: "/login",
         replace: true,
       });
     }
-    
+
     // Redirect admin users to admin dashboard
     if (isAdmin) {
       throw redirect({
@@ -57,7 +57,7 @@ function RouteComponent() {
           <SiteFooter />
         </SidebarInset>
       </FileSystemDndProvider>
-      {process.env.NODE_ENV === "development" && (
+      {process.env.NODE_ENV === "pro" && (
         <TanStackRouterDevtools position="top-right" />
       )}
       <DialogProvider />

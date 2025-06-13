@@ -71,7 +71,10 @@ class FolderDao {
    * @param includeDeleted - Include deleted if true
    * @returns Folder doc or null
    */
-  async getFolderById(folderId: string, includeDeleted: boolean = false): Promise<IFolder | null> {
+  async getFolderById(
+    folderId: string,
+    includeDeleted: boolean = false
+  ): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) {
       return null;
     }
@@ -82,8 +85,7 @@ class FolderDao {
     }
 
     // Don't populate owner to avoid type issues with ID comparison
-    return await Folder.findOne(query)
-      .populate("parent");
+    return await Folder.findOne(query).populate("parent");
   }
 
   /**
@@ -133,20 +135,16 @@ class FolderDao {
     moveData: MoveFolderDto
   ): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
-    
+
     // Prepare update data
     const updateData: any = { parent: moveData.parent };
-    
+
     // Only update name if it's provided (for duplicate handling)
     if (moveData.name) {
       updateData.name = moveData.name;
     }
-    
-    return await Folder.findByIdAndUpdate(
-      folderId,
-      updateData,
-      { new: true }
-    )
+
+    return await Folder.findByIdAndUpdate(folderId, updateData, { new: true })
       .populate("owner")
       .populate("parent");
   }
@@ -160,8 +158,8 @@ class FolderDao {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
     return await Folder.findByIdAndUpdate(
       folderId,
-      { 
-        deletedAt: new Date()
+      {
+        deletedAt: new Date(),
       },
       { new: true }
     )
@@ -180,17 +178,13 @@ class FolderDao {
     shouldMoveToRoot: boolean = false
   ): Promise<IFolder | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
-    
+
     const updateData: any = { deletedAt: null };
     if (shouldMoveToRoot) {
       updateData.parent = null;
     }
-    
-    return await Folder.findByIdAndUpdate(
-      folderId,
-      updateData,
-      { new: true }
-    )
+
+    return await Folder.findByIdAndUpdate(folderId, updateData, { new: true })
       .populate("owner")
       .populate("parent");
   }
@@ -230,9 +224,7 @@ class FolderDao {
       query.parent = parentId;
     }
 
-    return await Folder.findOne(query)
-      .populate("owner")
-      .populate("parent");
+    return await Folder.findOne(query).populate("owner").populate("parent");
   }
 
   /**
@@ -363,7 +355,7 @@ class FolderDao {
       name,
       owner: new Types.ObjectId(userId),
       parent: parentId ? new Types.ObjectId(parentId) : null,
-      deletedAt: null
+      deletedAt: null,
     });
   }
 
@@ -372,49 +364,48 @@ class FolderDao {
    * @param folderId - Folder ID
    * @returns Folder with count or null
    */
-  async getFolderWithCount(folderId: string): Promise<(IFolder & { items: number }) | null> {
+  async getFolderWithCount(
+    folderId: string
+  ): Promise<(IFolder & { items: number }) | null> {
     if (!mongoose.Types.ObjectId.isValid(folderId)) return null;
 
     const result = await Folder.aggregate([
       { $match: { _id: new Types.ObjectId(folderId) } },
       {
         $lookup: {
-          from: 'folders',
-          localField: '_id',
-          foreignField: 'parent',
+          from: "folders",
+          localField: "_id",
+          foreignField: "parent",
           pipeline: [
             // Remove the deletedAt filter to include all subfolders
           ],
-          as: 'subfolders'
-        }
+          as: "subfolders",
+        },
       },
       {
         $lookup: {
-          from: 'files',
-          localField: '_id',
-          foreignField: 'folder',
+          from: "files",
+          localField: "_id",
+          foreignField: "folder",
           pipeline: [
             // Remove the deletedAt filter to include all files
           ],
-          as: 'files'
-        }
+          as: "files",
+        },
       },
       {
         $addFields: {
           items: {
-            $add: [
-              { $size: '$subfolders' },
-              { $size: '$files' }
-            ]
-          }
-        }
+            $add: [{ $size: "$subfolders" }, { $size: "$files" }],
+          },
+        },
       },
       {
         $project: {
           subfolders: 0,
-          files: 0
-        }
-      }
+          files: 0,
+        },
+      },
     ]);
 
     return result[0] || null;
@@ -431,48 +422,43 @@ class FolderDao {
     const result = await Folder.aggregate([
       {
         $match: {
-          _id: { $in: folderIds.map(id => new Types.ObjectId(id)) }
-        }
+          _id: { $in: folderIds.map((id) => new Types.ObjectId(id)) },
+        },
       },
       {
         $lookup: {
-          from: 'folders',
-          localField: '_id',
-          foreignField: 'parent',
+          from: "folders",
+          localField: "_id",
+          foreignField: "parent",
           pipeline: [
             // Remove the deletedAt filter to include all subfolders
           ],
-          as: 'subfolders'
-        }
+          as: "subfolders",
+        },
       },
       {
         $lookup: {
-          from: 'files',
-          localField: '_id',
-          foreignField: 'folder',
+          from: "files",
+          localField: "_id",
+          foreignField: "folder",
           pipeline: [
             // Remove the deletedAt filter to include all files
           ],
-          as: 'files'
-        }
+          as: "files",
+        },
       },
       {
         $project: {
           _id: 1,
           items: {
-            $add: [
-              { $size: '$subfolders' },
-              { $size: '$files' }
-            ]
-          }
-        }
-      }
+            $add: [{ $size: "$subfolders" }, { $size: "$files" }],
+          },
+        },
+      },
     ]);
 
     // Convert array to Map for easy lookup
-    return new Map(
-      result.map(item => [item._id.toString(), item.items])
-    );
+    return new Map(result.map((item) => [item._id.toString(), item.items]));
   }
 
   /**
@@ -509,14 +495,16 @@ class FolderDao {
     if (!folders.length) return [];
 
     // Get items for all folders
-    const itemsMap = await this.getFolderCounts(folders.map(f => f._id.toString()));
+    const itemsMap = await this.getFolderCounts(
+      folders.map((f) => f._id.toString())
+    );
 
     // Add items to folders
-    return folders.map(folder => {
+    return folders.map((folder) => {
       const folderObj = folder.toObject();
       return {
         ...folderObj,
-        items: itemsMap.get(folder._id.toString()) || 0
+        items: itemsMap.get(folder._id.toString()) || 0,
       };
     });
   }
@@ -538,29 +526,29 @@ class FolderDao {
       {
         $match: {
           createdAt: { $gte: start, $lte: end },
-        }
+        },
       },
       {
         $group: {
           _id: {
             $dateToString: {
               format: "%Y-%m-%d",
-              date: "$createdAt"
-            }
+              date: "$createdAt",
+            },
           },
-          count: { $sum: 1 }
-        }
+          count: { $sum: 1 },
+        },
       },
       {
-        $sort: { _id: 1 }
+        $sort: { _id: 1 },
       },
       {
         $project: {
           _id: 0,
           date: "$_id",
-          count: 1
-        }
-      }
+          count: 1,
+        },
+      },
     ]);
 
     return result;
@@ -571,6 +559,7 @@ class FolderDao {
    * @param userId - User who owns the folders
    * @param query - Search query (folder name)
    * @param isPinned - Pinned filter
+   * @param colors - Color filters
    * @param dateFrom - Start date filter
    * @param dateTo - End date filter
    * @returns Array of matching folders
@@ -579,6 +568,7 @@ class FolderDao {
     userId: string,
     query?: string,
     isPinned?: boolean,
+    colors?: string[],
     dateFrom?: Date,
     dateTo?: Date
   ): Promise<IFolder[]> {
@@ -596,12 +586,18 @@ class FolderDao {
 
     // Apply text search filter
     if (query && query.trim()) {
-      searchQuery.name = { $regex: query.trim(), $options: 'i' };
+      searchQuery.name = { $regex: query.trim(), $options: "i" };
     }
 
-    // Apply pinned filter
-    if (isPinned !== undefined) {
-      searchQuery.isPinned = isPinned;
+    // Apply pinned filter - only filter when isPinned is true
+    // When false, we want to show all items (both pinned and unpinned)
+    if (isPinned === true) {
+      searchQuery.isPinned = true;
+    }
+
+    // Apply color filter
+    if (colors && colors.length > 0) {
+      searchQuery.color = { $in: colors };
     }
 
     // Apply date range filter

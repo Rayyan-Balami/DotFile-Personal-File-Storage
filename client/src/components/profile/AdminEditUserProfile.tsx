@@ -30,6 +30,7 @@ import { VITE_API_URL } from "@/config/constants";
 import { extractFieldError, getErrorMessage } from "@/utils/apiErrorHandler";
 import { formatFileSize } from "@/utils/formatUtils";
 import { getInitials } from "@/utils/getInitials";
+import { logger } from "@/utils/logger";
 import {
   AdminSetPasswordInput,
   adminSetPasswordSchema,
@@ -38,7 +39,8 @@ import {
   UpdateUserInput,
   UpdateUserRoleInput,
   updateUserRoleSchema,
-  updateUserSchema, UserRole
+  updateUserSchema,
+  UserRole,
 } from "@/validation/authForm";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useParams } from "@tanstack/react-router";
@@ -92,10 +94,10 @@ export default function AdminEditUserProfile() {
   // Update forms when user data changes
   useEffect(() => {
     if (user) {
-      console.log("User role from server:", user.role);
-      console.log("UserRole.ADMIN:", UserRole.ADMIN);
-      console.log("UserRole.USER:", UserRole.USER);
-      
+      logger.info("User role from server:", user.role);
+      logger.info("UserRole.ADMIN:", UserRole.ADMIN);
+      logger.info("UserRole.USER:", UserRole.USER);
+
       profileForm.reset({
         name: user.name || "",
       });
@@ -105,8 +107,8 @@ export default function AdminEditUserProfile() {
       storageForm.reset({
         maxStorageLimit: user.maxStorageLimit || 0,
       });
-      
-      console.log("Role form value after reset:", roleForm.getValues().role);
+
+      logger.info("Role form value after reset:", roleForm.getValues().role);
     }
   }, [user, profileForm, roleForm, storageForm]);
 
@@ -160,13 +162,10 @@ export default function AdminEditUserProfile() {
         fieldError &&
         ["newPassword", "confirmNewPassword"].includes(fieldError.field)
       ) {
-        passwordForm.setError(
-          fieldError.field as keyof AdminSetPasswordInput,
-          {
-            type: "manual",
-            message: fieldError.message,
-          }
-        );
+        passwordForm.setError(fieldError.field as keyof AdminSetPasswordInput, {
+          type: "manual",
+          message: fieldError.message,
+        });
       } else {
         toast.error(getErrorMessage(error));
       }
@@ -229,20 +228,18 @@ export default function AdminEditUserProfile() {
           </h3>
           <p className="text-muted-foreground text-lg">{user?.email}</p>
           <div className="flex items-center gap-2">
+            <Badge className="border capitalize bg-blue-100 border-blue-500 text-blue-800">
+              {user?.role || "User"}
+            </Badge>
             <Badge
-            className="border capitalize bg-blue-100 border-blue-500 text-blue-800"
-                    >
-            {user?.role || "User"}
-                    </Badge>
-                    <Badge
-            className={`border capitalize ${
-              user?.deletedAt
-                ? "bg-orange-100 border-orange-500 text-orange-800"
-                : "bg-green-100 border-green-500 text-green-800"
-            }`}
-                    >
-            {user?.deletedAt ? "soft Deleted" : "active"}
-                    </Badge>
+              className={`border capitalize ${
+                user?.deletedAt
+                  ? "bg-orange-100 border-orange-500 text-orange-800"
+                  : "bg-green-100 border-green-500 text-green-800"
+              }`}
+            >
+              {user?.deletedAt ? "soft Deleted" : "active"}
+            </Badge>
           </div>
         </div>
       </div>
@@ -336,7 +333,7 @@ export default function AdminEditUserProfile() {
                   <FormLabel>Role</FormLabel>
                   <FormControl>
                     <Select
-                      key={field.value} 
+                      key={field.value}
                       onValueChange={field.onChange}
                       value={field.value}
                       defaultValue={field.value}
@@ -452,7 +449,10 @@ export default function AdminEditUserProfile() {
             <Progress
               value={
                 user && user.maxStorageLimit > 0
-                  ? Math.min((user.storageUsed / user.maxStorageLimit) * 100, 100)
+                  ? Math.min(
+                      (user.storageUsed / user.maxStorageLimit) * 100,
+                      100
+                    )
                   : 0
               }
               className="w-full h-2"
@@ -460,7 +460,7 @@ export default function AdminEditUserProfile() {
             <div className="text-xs text-muted-foreground">
               {user && user.maxStorageLimit > 0
                 ? `${((user.storageUsed / user.maxStorageLimit) * 100).toFixed(1)}% of ${formatFileSize(user.maxStorageLimit)} used`
-                : 'No storage limit set'}
+                : "No storage limit set"}
             </div>
           </div>
 
@@ -482,13 +482,17 @@ export default function AdminEditUserProfile() {
                         placeholder="Enter storage limit in bytes"
                         disabled={storageForm.formState.isSubmitting}
                         {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value) || 0)
+                        }
                       />
                     </FormControl>
                     <div className="flex gap-2 mt-2">
                       <Input
                         placeholder="Converted size"
-                        value={field.value ? formatFileSize(field.value) : "0 B"}
+                        value={
+                          field.value ? formatFileSize(field.value) : "0 B"
+                        }
                         disabled
                         readOnly
                         className="bg-muted"
@@ -497,23 +501,23 @@ export default function AdminEditUserProfile() {
                         type="button"
                         variant={"outline"}
                         onClick={() => field.onChange(15 * 1024 * 1024)} // 15 MB
-                        >
-                          15 MB
-                        </Button>
+                      >
+                        15 MB
+                      </Button>
                       <Button
                         type="button"
                         variant={"outline"}
                         onClick={() => field.onChange(75 * 1024 * 1024)} // 75 MB
-                        >
-                          75 MB
-                        </Button>
+                      >
+                        75 MB
+                      </Button>
                       <Button
                         type="button"
                         variant={"outline"}
                         onClick={() => field.onChange(200 * 1024 * 1024)} // 200 MB
-                        >
-                          200 MB
-                        </Button>
+                      >
+                        200 MB
+                      </Button>
                     </div>
                     <FormMessage />
                   </FormItem>

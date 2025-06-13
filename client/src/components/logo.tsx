@@ -176,9 +176,13 @@ function LogoWithText() {
         <Logo />
       </div>
       <div className="bg-muted h-full pl-2.5 pr-4  grid place-items-center">
-				<h1 className="text-lg font-bold leading-none uppercase tracking-[0.25rem]">{VITE_APP_NAME}</h1>
-				<p className="text-xs font-light tracking-tight leading-none -mt-1.5">{VITE_APP_DESCRIPTION}</p>
-				</div>
+        <h1 className="text-lg font-bold leading-none uppercase tracking-[0.25rem]">
+          {VITE_APP_NAME}
+        </h1>
+        <p className="text-xs font-light tracking-tight leading-none -mt-1.5">
+          {VITE_APP_DESCRIPTION}
+        </p>
+      </div>
     </div>
   );
 }

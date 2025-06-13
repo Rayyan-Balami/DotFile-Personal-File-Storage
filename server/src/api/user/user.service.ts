@@ -1,3 +1,5 @@
+import fileService from "@api/file/file.service.js";
+import folderService from "@api/folder/folder.service.js";
 import userDAO from "@api/user/user.dao.js";
 import {
   AdminSetPasswordDTO,
@@ -13,20 +15,18 @@ import {
 } from "@api/user/user.dto.js";
 import { IUser } from "@api/user/user.model.js";
 import {
-  REFRESH_TOKEN_SECRET,
   DEFAULT_USER_AVATAR_URL,
+  REFRESH_TOKEN_SECRET,
 } from "@config/constants.js";
 import { ApiError } from "@utils/apiError.utils.js";
+import logger from "@utils/logger.utils.js";
 import {
   createUserDirectory,
   getUserDirectoryPath,
   removeDirectory,
 } from "@utils/mkdir.utils.js";
 import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
-import logger from "@utils/logger.utils.js";
 import jwt from "jsonwebtoken";
-import fileService from "@api/file/file.service.js";
-import folderService from "@api/folder/folder.service.js";
 
 /**
  * Business logic layer for user operations
@@ -394,7 +394,9 @@ class UserService {
     includeDeleted: boolean = false
   ): Promise<UserResponseDTO> {
     // First check if user exists (include deleted users if specified)
-    const user = await userDAO.getUserById(userId, { deletedAt: includeDeleted });
+    const user = await userDAO.getUserById(userId, {
+      deletedAt: includeDeleted,
+    });
     if (!user) {
       throw new ApiError(404, [{ id: "User not found" }]);
     }
@@ -403,9 +405,13 @@ class UserService {
     const newStorageUsed = Math.max(0, user.storageUsed + bytesToAdd);
 
     // Update storage calculation (include deleted users if specified)
-    const updatedUser = await userDAO.updateUser(userId, {
-      storageUsed: newStorageUsed,
-    }, includeDeleted);
+    const updatedUser = await userDAO.updateUser(
+      userId,
+      {
+        storageUsed: newStorageUsed,
+      },
+      includeDeleted
+    );
 
     if (!updatedUser) {
       throw new ApiError(500, [{ storage: "Failed to update storage usage" }]);

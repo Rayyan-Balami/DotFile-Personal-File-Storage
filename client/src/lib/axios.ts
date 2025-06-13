@@ -1,5 +1,6 @@
 import { VITE_API_BASE_URL, VITE_API_TIMEOUT } from "@/config/constants";
 import { useAuthStore } from "@/stores/authStore";
+import { logger } from "@/utils/logger";
 import axios, { InternalAxiosRequestConfig } from "axios";
 
 const API = axios.create({
@@ -56,42 +57,42 @@ API.interceptors.response.use(
       !originalRequest._retry &&
       useAuthStore.getState().accessToken &&
       // Don't try to refresh if we're already on the refresh token endpoint
-      !originalRequest.url?.includes('/auth/refresh-token')
+      !originalRequest.url?.includes("/auth/refresh-token")
     ) {
       originalRequest._retry = true;
 
       if (!isRefreshing) {
         isRefreshing = true;
         try {
-            // Use axios directly instead of userApi to avoid circular dependency
-            const response = await axios.post(
-              `${VITE_API_BASE_URL}/auth/refresh-token`, 
-              {}, 
-              { 
-                withCredentials: true,
-                headers: {
-                  'Authorization': `Bearer ${useAuthStore.getState().accessToken}`
-                }
-              }
-            );
-            
-            // Extract data based on server controller response structure
-            const { accessToken } = response.data.data;
-            
-            if (!accessToken) {
-              throw new Error("No access token received in refresh response");
+          // Use axios directly instead of userApi to avoid circular dependency
+          const response = await axios.post(
+            `${VITE_API_BASE_URL}/auth/refresh-token`,
+            {},
+            {
+              withCredentials: true,
+              headers: {
+                Authorization: `Bearer ${useAuthStore.getState().accessToken}`,
+              },
             }
+          );
 
-            // Update auth store with new token
-            useAuthStore.getState().setAccessToken(accessToken);
+          // Extract data based on server controller response structure
+          const { accessToken } = response.data.data;
 
-            // Update the failed request with new token and retry
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-            onRefreshed(accessToken);
-            isRefreshing = false;
+          if (!accessToken) {
+            throw new Error("No access token received in refresh response");
+          }
 
-            // Retry the original request
-            return API(originalRequest);
+          // Update auth store with new token
+          useAuthStore.getState().setAccessToken(accessToken);
+
+          // Update the failed request with new token and retry
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          onRefreshed(accessToken);
+          isRefreshing = false;
+
+          // Retry the original request
+          return API(originalRequest);
         } catch (refreshError) {
           console.error("Token refresh failed:", refreshError);
           isRefreshing = false;
@@ -113,13 +114,13 @@ API.interceptors.response.use(
       // If token refresh failed
       (status === 401 && originalRequest._retry) ||
       // If accessing protected route fails after token refresh
-      (status === 403 && originalRequest.url?.includes('/users/me')) ||
+      (status === 403 && originalRequest.url?.includes("/users/me")) ||
       // If refresh token endpoint fails
-      (status === 401 && originalRequest.url?.includes('/auth/refresh-token'))
+      (status === 401 && originalRequest.url?.includes("/auth/refresh-token"))
     ) {
-      console.log('Authentication failed, redirecting to login...');
+      logger.info("Authentication failed, redirecting to login...");
       handleAuthFailure();
-      return Promise.reject(new Error('Authentication failed'));
+      return Promise.reject(new Error("Authentication failed"));
     }
 
     return Promise.reject(error);

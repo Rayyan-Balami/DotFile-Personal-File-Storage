@@ -14,10 +14,11 @@ export const restrictTo = (allowedRoles: UserRole[]) =>
 
     // Allow access if user's role is in the allowed list
     if (!allowedRoles.includes(userRole)) {
-      throw new ApiError(
-        403,
-        [{ authorization: `Access denied. Required role: ${allowedRoles.join(" or ")}` }]
-      );
+      throw new ApiError(403, [
+        {
+          authorization: `Access denied. Required role: ${allowedRoles.join(" or ")}`,
+        },
+      ]);
     }
 
     next();

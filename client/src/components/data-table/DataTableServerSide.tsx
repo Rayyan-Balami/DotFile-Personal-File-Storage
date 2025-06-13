@@ -1,5 +1,3 @@
-"use client";
-
 import {
   ColumnDef,
   PaginationState,
@@ -10,6 +8,11 @@ import {
 } from "@tanstack/react-table";
 import * as React from "react";
 
+import { DataTableActionDialog } from "@/components/data-table/DataTableActionDialog";
+import { TableFilters } from "@/components/data-table/DataTableFilters";
+import { DataTablePagination } from "@/components/data-table/DataTablePagination";
+import { DataTableSearch } from "@/components/data-table/DataTableSearch";
+import { DataTableViewOptions } from "@/components/data-table/DataTableViewOptions";
 import {
   Table,
   TableBody,
@@ -18,11 +21,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DataTableActionDialog } from "./DataTableActionDialog";
-import { TableFilters } from "./DataTableFilters";
-import { DataTablePagination } from "./DataTablePagination";
-import { DataTableSearch } from "./DataTableSearch";
-import { DataTableViewOptions } from "./DataTableViewOptions";
 
 interface FilterOption {
   column: string;
@@ -92,7 +90,8 @@ export function DataTableServerSide<TData, TValue>({
   filterValues = {},
   actionDialogs = {},
 }: DataTableServerSideProps<TData, TValue>) {
-  const [internalSorting, setInternalSorting] = React.useState<SortingState>(sorting);
+  const [internalSorting, setInternalSorting] =
+    React.useState<SortingState>(sorting);
   const [rowSelection, setRowSelection] = React.useState({});
 
   const table = useReactTable({
@@ -107,15 +106,16 @@ export function DataTableServerSide<TData, TValue>({
       },
       rowSelection,
       columnPinning: {
-        left: ['select'],
-        right: ['actions'],
+        left: ["select"],
+        right: ["actions"],
       },
     },
     enableRowSelection: true,
     enableColumnPinning: true,
     onRowSelectionChange: setRowSelection,
     onSortingChange: (updater) => {
-      const newSorting = typeof updater === 'function' ? updater(internalSorting) : updater;
+      const newSorting =
+        typeof updater === "function" ? updater(internalSorting) : updater;
       setInternalSorting(newSorting);
       onSortingChange?.(newSorting);
     },
@@ -124,7 +124,8 @@ export function DataTableServerSide<TData, TValue>({
         pageIndex: pagination.page - 1,
         pageSize: pagination.pageSize,
       };
-      const newPagination = typeof updater === 'function' ? updater(currentPagination) : updater;
+      const newPagination =
+        typeof updater === "function" ? updater(currentPagination) : updater;
       onPaginationChange({
         pageIndex: newPagination.pageIndex,
         pageSize: newPagination.pageSize,
@@ -136,7 +137,7 @@ export function DataTableServerSide<TData, TValue>({
   });
 
   const handleSearchChange = (value: string) => {
-    const searchFields = searchColumns.map(col => col.column);
+    const searchFields = searchColumns.map((col) => col.column);
     onSearchChange?.(value, searchFields);
   };
 
@@ -167,13 +168,13 @@ export function DataTableServerSide<TData, TValue>({
         <div className="ml-auto flex items-center gap-2">
           {Object.entries(actionDialogs).map(([key, dialog]) => (
             <DataTableActionDialog
-            key={key}
-            table={table}
-            title={dialog.title}
-            description={dialog.description}
-            confirmButtonText={dialog.confirmButtonText}
-            trigger={dialog.trigger}
-            onConfirm={dialog.onConfirm}
+              key={key}
+              table={table}
+              title={dialog.title}
+              description={dialog.description}
+              confirmButtonText={dialog.confirmButtonText}
+              trigger={dialog.trigger}
+              onConfirm={dialog.onConfirm}
             />
           ))}
           <DataTableViewOptions table={table} />
@@ -185,14 +186,14 @@ export function DataTableServerSide<TData, TValue>({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
-                  const isPinnedLeft = header.column.getIsPinned() === 'left';
-                  const isPinnedRight = header.column.getIsPinned() === 'right';
-                  
+                  const isPinnedLeft = header.column.getIsPinned() === "left";
+                  const isPinnedRight = header.column.getIsPinned() === "right";
+
                   return (
-                    <TableHead 
-                      key={header.id} 
+                    <TableHead
+                      key={header.id}
                       colSpan={header.colSpan}
-                      className={`${isPinnedLeft ? 'sticky left-0' : ''} ${isPinnedRight ? 'sticky right-0' : ''}`}
+                      className={`${isPinnedLeft ? "sticky left-0" : ""} ${isPinnedRight ? "sticky right-0" : ""}`}
                     >
                       {header.isPlaceholder
                         ? null
@@ -223,13 +224,13 @@ export function DataTableServerSide<TData, TValue>({
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => {
-                    const isPinnedLeft = cell.column.getIsPinned() === 'left';
-                    const isPinnedRight = cell.column.getIsPinned() === 'right';
-                    
+                    const isPinnedLeft = cell.column.getIsPinned() === "left";
+                    const isPinnedRight = cell.column.getIsPinned() === "right";
+
                     return (
-                      <TableCell 
+                      <TableCell
                         key={cell.id}
-                        className={`${isPinnedLeft ? 'sticky left-0' : ''} ${isPinnedRight ? 'sticky right-0' : ''}`}
+                        className={`${isPinnedLeft ? "sticky left-0" : ""} ${isPinnedRight ? "sticky right-0" : ""}`}
                       >
                         {flexRender(
                           cell.column.columnDef.cell,
@@ -253,9 +254,7 @@ export function DataTableServerSide<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      <DataTablePagination 
-        table={table}
-      />
+      <DataTablePagination table={table} />
     </>
   );
 }

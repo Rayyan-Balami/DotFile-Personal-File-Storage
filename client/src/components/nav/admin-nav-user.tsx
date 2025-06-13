@@ -16,9 +16,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { VITE_API_URL } from "@/config/constants";
-import { getInitials } from "@/utils/getInitials";
 import { useAuthStore } from "@/stores/authStore";
 import { getErrorMessage } from "@/utils/apiErrorHandler";
+import { getInitials } from "@/utils/getInitials";
 import { toast } from "sonner";
 
 export function AdminNavUser() {
@@ -53,7 +53,7 @@ export function AdminNavUser() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="relative size-8 p-0 rounded-full hover:bg-accent"
+          className="relative size-8 p-0 rounded-full hover:bg-accent ml-auto"
         >
           <Avatar className="size-8 rounded-full border">
             <AvatarImage
@@ -117,7 +117,10 @@ export function AdminNavUser() {
         {/* Settings and logout */}
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
-            <Link to="/admin/setting/profile" className="flex items-center gap-2">
+            <Link
+              to="/admin/setting/profile"
+              className="flex items-center gap-2"
+            >
               <Settings2 className="mr-1 h-4 w-4" />
               Settings
             </Link>

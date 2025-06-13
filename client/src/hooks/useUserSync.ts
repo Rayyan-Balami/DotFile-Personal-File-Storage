@@ -8,4 +8,4 @@ import { useGetCurrentUser } from "@/api/user/user.query";
 export function useUserSync() {
   // Subscribe to user data updates
   useGetCurrentUser();
-} 
+}

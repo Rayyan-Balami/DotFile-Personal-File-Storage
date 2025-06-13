@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { logger } from "@/utils/logger";
 import { Table } from "@tanstack/react-table";
 import { useState } from "react";
 
@@ -28,7 +29,10 @@ export function DataTableActionDialog<TData>({
   // Log selected rows when dialog opens/closes
   const handleOpenChange = (open: boolean) => {
     if (open) {
-      console.log('Selected row IDs:', selectedRows.map(row => (row.original as any).id));
+      logger.info(
+        "Selected row IDs:",
+        selectedRows.map((row) => (row.original as any).id)
+      );
     }
     setOpen(open);
   };
@@ -36,14 +40,14 @@ export function DataTableActionDialog<TData>({
   const handleConfirm = async () => {
     try {
       setLoading(true);
-      const selectedIds = selectedRows.map(row => (row.original as any).id);
-      console.log('Confirming action for IDs:', selectedIds);
+      const selectedIds = selectedRows.map((row) => (row.original as any).id);
+      logger.info("Confirming action for IDs:", selectedIds);
       await onConfirm(selectedIds);
       setOpen(false);
       // Clear row selection after successful action
       table.toggleAllRowsSelected(false);
     } catch (error) {
-      console.error('Action failed:', error);
+      console.error("Action failed:", error);
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,3 @@
-"use client";
-
 import { DataTableColumnHeader } from "@/components/data-table/DataTableColumnHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +24,7 @@ import {
   Edit3,
   MoreHorizontal,
   Redo,
-  Trash2
+  Trash2,
 } from "lucide-react";
 
 type AccountActionType = "soft-delete" | "restore" | "permanent-delete";
@@ -180,7 +178,7 @@ export const AdminManageAdminColumns: ColumnDef<User>[] = [
                   <DropdownMenuSeparator />
                   {isDeleted ? (
                     <>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={() => handleAction("restore")}
                         className="text-green-600 focus:text-green-600 focus:bg-green-700/20"
                       >
@@ -203,7 +201,7 @@ export const AdminManageAdminColumns: ColumnDef<User>[] = [
                           Edit Admin
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={() => handleAction("soft-delete")}
                         className="text-yellow-600 focus:text-yellow-600 focus:bg-yellow-700/20"
                       >

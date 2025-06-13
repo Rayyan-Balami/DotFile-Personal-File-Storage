@@ -1,5 +1,3 @@
-"use client";
-
 import * as React from "react";
 import { Label, Pie, PieChart } from "recharts";
 
@@ -185,7 +183,8 @@ export function AdminFileTypeChart() {
       <CardFooter className="flex-col items-center gap-2 text-sm">
         {topFileType && (
           <div className="flex gap-2 leading-none font-medium">
-            Most files are {topFileType.label} format with {topFileType.count} files
+            Most files are {topFileType.label} format with {topFileType.count}{" "}
+            files
           </div>
         )}
         <div className="text-muted-foreground leading-none">

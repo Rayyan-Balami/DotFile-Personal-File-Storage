@@ -50,19 +50,25 @@ export const verifyAuth = asyncHandler(
       });
 
       if (!user) {
-        throw new ApiError(401, [{ user: "User not found. Please login again." }]);
+        throw new ApiError(401, [
+          { user: "User not found. Please login again." },
+        ]);
       }
 
       if (user.refreshToken !== refreshToken) {
         clearAuthCookies(res);
-        throw new ApiError(401, [{ session: "Session expired. Please login again." }]);
+        throw new ApiError(401, [
+          { session: "Session expired. Please login again." },
+        ]);
       }
 
       req.user = user;
       next();
     } catch (error) {
       if (error instanceof jwt.TokenExpiredError) {
-        throw new ApiError(401, [{ token: "Session expired, please login again" }]);
+        throw new ApiError(401, [
+          { token: "Session expired, please login again" },
+        ]);
       }
       if (error instanceof jwt.JsonWebTokenError) {
         throw new ApiError(401, [{ token: "Invalid token" }]);

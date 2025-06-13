@@ -1,5 +1,5 @@
+import { UserRole } from "@api/user/user.dto.js";
 import { z } from "zod";
-import { UserRole } from "./user.dto.js";
 
 /**
  * Strong password rules: 8-24 chars, upper, number, special
@@ -123,42 +123,60 @@ const adminSetPasswordSchema = z
  * Admin: Set user storage quota (bytes)
  */
 const updateStorageLimitSchema = z.object({
-  maxStorageLimit: z.number().min(0, { message: "Storage limit cannot be negative" }),
+  maxStorageLimit: z
+    .number()
+    .min(0, { message: "Storage limit cannot be negative" }),
 });
 
 /**
  * Account deletion: Require password confirmation for security
  */
 const deleteUserAccountSchema = z.object({
-  password: z.string().min(1, { message: "Password is required to delete account" }),
+  password: z
+    .string()
+    .min(1, { message: "Password is required to delete account" }),
 });
 
 /**
  * User pagination query validation
  */
 const userPaginationQuerySchema = z.object({
-  page: z.string().transform(val => parseInt(val, 10)).refine(val => val > 0, {
-    message: "Page must be a positive number"
-  }).optional(),
-  pageSize: z.string().transform(val => parseInt(val, 10)).refine(val => val > 0 && val <= 100, {
-    message: "Page size must be between 1 and 100"
-  }).optional(),
+  page: z
+    .string()
+    .transform((val) => parseInt(val, 10))
+    .refine((val) => val > 0, {
+      message: "Page must be a positive number",
+    })
+    .optional(),
+  pageSize: z
+    .string()
+    .transform((val) => parseInt(val, 10))
+    .refine((val) => val > 0 && val <= 100, {
+      message: "Page size must be between 1 and 100",
+    })
+    .optional(),
   sortBy: z.string().optional(),
-  sortOrder: z.enum(['asc', 'desc']).optional(),
+  sortOrder: z.enum(["asc", "desc"]).optional(),
   search: z.string().optional(),
   searchFields: z.string().optional(),
   filters: z.string().optional(),
   // Date range filter support
-  createdAtStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
-    message: "createdAtStart must be in YYYY-MM-DD format"
-  }).optional(),
-  createdAtEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, {
-    message: "createdAtEnd must be in YYYY-MM-DD format"
-  }).optional()
+  createdAtStart: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, {
+      message: "createdAtStart must be in YYYY-MM-DD format",
+    })
+    .optional(),
+  createdAtEnd: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, {
+      message: "createdAtEnd must be in YYYY-MM-DD format",
+    })
+    .optional(),
 });
 
 const userIdSchema = z.object({
-  userIds: z.array(z.string())
+  userIds: z.array(z.string()),
 });
 
 export {
@@ -171,6 +189,6 @@ export {
   updateUserPasswordSchema,
   updateUserRoleSchema,
   updateUserSchema,
-  userPaginationQuerySchema,
   userIdSchema,
+  userPaginationQuerySchema,
 };

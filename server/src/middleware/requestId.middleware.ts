@@ -18,7 +18,11 @@ declare global {
  * - Stores the ID in req.requestId
  * - Adds the ID to the response header as 'X-Request-ID'
  */
-export const addRequestId = (req: Request, res: Response, next: NextFunction): void => {
+export const addRequestId = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
   // Generate a new UUID (version 4)
   const requestId = randomUUID();
 

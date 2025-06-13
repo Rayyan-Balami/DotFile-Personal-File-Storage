@@ -1,5 +1,14 @@
 import apiRoutes from "@api/api.routes.js";
-import { $dirname, $filename, API_PREFIX, API_VERSION, CLIENT_ORIGIN, PORT, ROOT_DIR, UPLOADS_DIR } from "@config/constants.js";
+import {
+  $dirname,
+  $filename,
+  API_PREFIX,
+  API_VERSION,
+  CLIENT_ORIGIN,
+  PORT,
+  ROOT_DIR,
+  UPLOADS_DIR,
+} from "@config/constants.js";
 import { connectDatabase } from "@database/connection.js";
 import { errorHandler } from "@middleware/errorHandler.middleware.js";
 import { addRequestId } from "@middleware/requestId.middleware.js";
@@ -42,10 +51,10 @@ app.use(`${API_PREFIX}/${API_VERSION}`, apiRoutes);
 app.use(errorHandler);
 
 // Log key paths at startup
-logger.info('File path:', $filename);
-logger.info('Directory path:', $dirname);
-logger.info('Root directory:', ROOT_DIR);
-logger.info('Uploads directory:', UPLOADS_DIR);
+logger.info("File path:", $filename);
+logger.info("Directory path:", $dirname);
+logger.info("Root directory:", ROOT_DIR);
+logger.info("Uploads directory:", UPLOADS_DIR);
 
 // Start server
 app.listen(PORT, () => {

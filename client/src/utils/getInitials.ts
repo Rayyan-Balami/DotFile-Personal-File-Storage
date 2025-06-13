@@ -5,12 +5,12 @@
  */
 export const getInitials = (name: string): string => {
   if (!name) return "";
-  
+
   return name
-    .split(' ')
-    .filter(word => word.length > 0)
+    .split(" ")
+    .filter((word) => word.length > 0)
     .slice(0, 2) // Take only first 2 words
-    .map(word => word[0])
-    .join('')
+    .map((word) => word[0])
+    .join("")
     .toUpperCase();
 };

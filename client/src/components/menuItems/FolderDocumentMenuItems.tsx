@@ -1,8 +1,8 @@
 import {
+  useDownloadFile,
   useRestoreFile,
   useUpdateFile,
   useUploadFiles,
-  useDownloadFile,
 } from "@/api/file/file.query";
 import { useRestoreFolder, useUpdateFolder } from "@/api/folder/folder.query";
 import {
@@ -31,11 +31,11 @@ import { toast } from "sonner";
 // Utility function to format timestamps consistently
 const formatTimestamp = (timestamp?: string | Date | null): string => {
   if (!timestamp) return "Unknown";
-  
+
   const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
-  
+
   if (isNaN(date.getTime())) return "Invalid date";
-  
+
   return date.toLocaleString("en-US", {
     year: "numeric",
     month: "short",
@@ -47,51 +47,63 @@ const formatTimestamp = (timestamp?: string | Date | null): string => {
 };
 
 // Timestamps submenu component that works with both dropdown and context menus
-const TimestampsSubmenu = React.memo(({
-  createdAt,
-  updatedAt,
-  deletedAt,
-  itemComponent: Item,
-  subComponent: Sub,
-  subTriggerComponent: SubTrigger,
-  subContentComponent: SubContent,
-}: {
-  createdAt?: string | Date;
-  updatedAt?: string | Date;
-  deletedAt?: string | Date | null;
-  itemComponent: typeof ContextMenuItem | typeof DropdownMenuItem;
-  subComponent: typeof ContextMenuSub | typeof DropdownMenuSub;
-  subTriggerComponent: typeof ContextMenuSubTrigger | typeof DropdownMenuSubTrigger;
-  subContentComponent: typeof ContextMenuSubContent | typeof DropdownMenuSubContent;
-}) => (
-  <Sub>
-    <SubTrigger className="text-blue-600 focus:text-blue-600 focus:bg-blue-700/20">
-      Timestamps
-    </SubTrigger>
-    <SubContent>
-      <Item disabled>
-        <div className="flex flex-col gap-1 py-1">
-          <div className="text-xs font-medium text-muted-foreground">Created</div>
-          <div className="text-sm">{formatTimestamp(createdAt)}</div>
-        </div>
-      </Item>
-      <Item disabled>
-        <div className="flex flex-col gap-1 py-1">
-          <div className="text-xs font-medium text-muted-foreground">Modified</div>
-          <div className="text-sm">{formatTimestamp(updatedAt)}</div>
-        </div>
-      </Item>
-      {deletedAt && (
+const TimestampsSubmenu = React.memo(
+  ({
+    createdAt,
+    updatedAt,
+    deletedAt,
+    itemComponent: Item,
+    subComponent: Sub,
+    subTriggerComponent: SubTrigger,
+    subContentComponent: SubContent,
+  }: {
+    createdAt?: string | Date;
+    updatedAt?: string | Date;
+    deletedAt?: string | Date | null;
+    itemComponent: typeof ContextMenuItem | typeof DropdownMenuItem;
+    subComponent: typeof ContextMenuSub | typeof DropdownMenuSub;
+    subTriggerComponent:
+      | typeof ContextMenuSubTrigger
+      | typeof DropdownMenuSubTrigger;
+    subContentComponent:
+      | typeof ContextMenuSubContent
+      | typeof DropdownMenuSubContent;
+  }) => (
+    <Sub>
+      <SubTrigger className="text-blue-600 focus:text-blue-600 focus:bg-blue-700/20">
+        Timestamps
+      </SubTrigger>
+      <SubContent>
         <Item disabled>
           <div className="flex flex-col gap-1 py-1">
-            <div className="text-xs font-medium text-muted-foreground">Deleted</div>
-            <div className="text-sm">{formatTimestamp(deletedAt)}</div>
+            <div className="text-xs font-medium text-muted-foreground">
+              Created
+            </div>
+            <div className="text-sm">{formatTimestamp(createdAt)}</div>
           </div>
         </Item>
-      )}
-    </SubContent>
-  </Sub>
-));
+        <Item disabled>
+          <div className="flex flex-col gap-1 py-1">
+            <div className="text-xs font-medium text-muted-foreground">
+              Modified
+            </div>
+            <div className="text-sm">{formatTimestamp(updatedAt)}</div>
+          </div>
+        </Item>
+        {deletedAt && (
+          <Item disabled>
+            <div className="flex flex-col gap-1 py-1">
+              <div className="text-xs font-medium text-muted-foreground">
+                Deleted
+              </div>
+              <div className="text-sm">{formatTimestamp(deletedAt)}</div>
+            </div>
+          </Item>
+        )}
+      </SubContent>
+    </Sub>
+  )
+);
 
 interface MenuProps {
   cardType: "folder" | "document";
@@ -112,8 +124,10 @@ const useMenuActions = ({
   deletedAt,
   hasDeletedAncestor,
   color,
-}: Pick<MenuProps, "cardType" | "title" | "id" | "deletedAt" | "hasDeletedAncestor" | "color">
-) => {
+}: Pick<
+  MenuProps,
+  "cardType" | "title" | "id" | "deletedAt" | "hasDeletedAncestor" | "color"
+>) => {
   const {
     openCreateFolderDialog,
     openRenameDialog,
@@ -297,9 +311,9 @@ const useMenuActions = ({
           const documentItem = {
             id,
             name: title,
-            type: 'application/octet-stream', // We don't have the actual type here
-            extension: '', // We don't have the actual extension here
-            cardType: 'document' as const
+            type: "application/octet-stream", // We don't have the actual type here
+            extension: "", // We don't have the actual extension here
+            cardType: "document" as const,
           };
           openFilePreviewDialog([documentItem], 0);
         }
@@ -314,7 +328,10 @@ const useMenuActions = ({
       download: async () => {
         if (cardType === "document") {
           try {
-            const result = await downloadFile.mutateAsync({ fileId: id, fallbackFilename: title });
+            const result = await downloadFile.mutateAsync({
+              fileId: id,
+              fallbackFilename: title,
+            });
             toast.success(`Downloaded "${result.filename}"`);
           } catch (error) {
             toast.error("Failed to download file");
@@ -378,9 +395,19 @@ const MenuItems = React.memo(
             updatedAt={updatedAt}
             deletedAt={deletedAt}
             itemComponent={Item}
-            subComponent={Item === ContextMenuItem ? ContextMenuSub : DropdownMenuSub}
-            subTriggerComponent={Item === ContextMenuItem ? ContextMenuSubTrigger : DropdownMenuSubTrigger}
-            subContentComponent={Item === ContextMenuItem ? ContextMenuSubContent : DropdownMenuSubContent}
+            subComponent={
+              Item === ContextMenuItem ? ContextMenuSub : DropdownMenuSub
+            }
+            subTriggerComponent={
+              Item === ContextMenuItem
+                ? ContextMenuSubTrigger
+                : DropdownMenuSubTrigger
+            }
+            subContentComponent={
+              Item === ContextMenuItem
+                ? ContextMenuSubContent
+                : DropdownMenuSubContent
+            }
           />
           <Separator />
           {deletedAt && !hasDeletedAncestor && (
@@ -426,9 +453,19 @@ const MenuItems = React.memo(
           updatedAt={updatedAt}
           deletedAt={deletedAt}
           itemComponent={Item}
-          subComponent={Item === ContextMenuItem ? ContextMenuSub : DropdownMenuSub}
-          subTriggerComponent={Item === ContextMenuItem ? ContextMenuSubTrigger : DropdownMenuSubTrigger}
-          subContentComponent={Item === ContextMenuItem ? ContextMenuSubContent : DropdownMenuSubContent}
+          subComponent={
+            Item === ContextMenuItem ? ContextMenuSub : DropdownMenuSub
+          }
+          subTriggerComponent={
+            Item === ContextMenuItem
+              ? ContextMenuSubTrigger
+              : DropdownMenuSubTrigger
+          }
+          subContentComponent={
+            Item === ContextMenuItem
+              ? ContextMenuSubContent
+              : DropdownMenuSubContent
+          }
         />
         <Separator />
         <Item

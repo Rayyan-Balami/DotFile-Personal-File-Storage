@@ -120,7 +120,7 @@ export interface PaginationDTO {
   page: number;
   pageSize: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
   search?: string;
   searchFields?: string[];
   filters?: Record<string, any>;
@@ -147,8 +147,8 @@ export interface PaginatedResponseDTO<T> {
 export interface UserPaginationDTO extends PaginationDTO {
   filters?: {
     role?: UserRole;
-    status?: 'active' | 'deleted';
+    status?: "active" | "deleted";
     includeDeleted?: boolean;
   };
-  searchFields?: ('name' | 'email')[];
+  searchFields?: ("name" | "email")[];
 }

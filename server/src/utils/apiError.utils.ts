@@ -28,9 +28,9 @@ export class ApiError extends Error {
     const message = defaultMessages[statusCode] || "Error";
     super(message);
 
-    this.success = false;             // Indicate failure
-    this.statusCode = statusCode;     // Store HTTP status
-    this.errors = errors;             // Store validation or other errors
+    this.success = false; // Indicate failure
+    this.statusCode = statusCode; // Store HTTP status
+    this.errors = errors; // Store validation or other errors
     this.timestamp = new Date().toISOString(); // Timestamp error creation
 
     // Fix prototype chain for instanceof checks

@@ -27,7 +27,6 @@ const actionConfigs = {
       `Are you sure you want to restore this ${label.toLowerCase()} (${name} - ${email})? They will be moved back to active status.`,
   },
   "permanent-delete": {
-
     confirmText: "Delete Permanently",
     confirmVariant: "destructive" as const,
     confirmClass: "",
@@ -60,8 +59,8 @@ export function AccountActionDialog() {
         actionType === "soft-delete"
           ? softDelete
           : actionType === "restore"
-          ? restore
-          : permanentDelete;
+            ? restore
+            : permanentDelete;
 
       const result = await mutation.mutateAsync([account.id]);
       const { summary } = result.data;
@@ -70,8 +69,8 @@ export function AccountActionDialog() {
         actionType === "soft-delete"
           ? "soft deleted"
           : actionType === "restore"
-          ? "restored"
-          : "permanently deleted";
+            ? "restored"
+            : "permanently deleted";
 
       const verb = pastTense.split(" ")[0];
 
@@ -103,10 +102,10 @@ export function AccountActionDialog() {
       bodyClassName="p-6 md:p-8 gap-8"
     >
       <div className="flex justify-end gap-2">
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={closeAccountActionDialog} 
+        <Button
+          type="button"
+          variant="outline"
+          onClick={closeAccountActionDialog}
           disabled={isPending}
         >
           Cancel

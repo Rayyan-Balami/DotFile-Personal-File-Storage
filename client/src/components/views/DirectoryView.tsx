@@ -1,29 +1,29 @@
-import React, { useEffect, useMemo, lazy, Suspense } from "react";
-import { useNavigate } from "@tanstack/react-router";
-import {
-  useSelectionStore,
-  useKeyboardShortcuts,
-} from "@/stores/useSelectionStore";
-import { useSortPreferencesStore } from "@/stores/useSortPreferencesStore";
-import { useViewPreferencesStore } from "@/stores/useViewPreferencesStore";
-import { useDialogStore } from "@/stores/useDialogStore";
-import {
-  useSortedItems,
-  getMimeCategory,
-  groupItemsByDate,
-} from "@/utils/sortUtils";
+import { FileDropZone } from "@/components/dnd/FileDropZone";
 import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { Loader2 } from "lucide-react";
-import { FileDropZone } from "../dnd/FileDropZone";
-import { CardGrid } from "./CardGrid";
-import { FileSystemItem, DocumentItem } from "@/types/folderDocumnet";
-import { mapToFileSystemItem } from "@/utils/itemMapper";
+import { CardGrid } from "@/components/views/CardGrid";
+import { useDialogStore } from "@/stores/useDialogStore";
 import { useFileSystemStore } from "@/stores/useFileSystemStore";
+import {
+  useKeyboardShortcuts,
+  useSelectionStore,
+} from "@/stores/useSelectionStore";
+import { useSortPreferencesStore } from "@/stores/useSortPreferencesStore";
+import { useViewPreferencesStore } from "@/stores/useViewPreferencesStore";
+import { DocumentItem, FileSystemItem } from "@/types/folderDocumnet";
+import { mapToFileSystemItem } from "@/utils/itemMapper";
+import {
+  getMimeCategory,
+  groupItemsByDate,
+  useSortedItems,
+} from "@/utils/sortUtils";
+import { useNavigate } from "@tanstack/react-router";
+import { Loader2 } from "lucide-react";
+import React, { lazy, Suspense, useEffect, useMemo } from "react";
 
 // Lazy load context menu items
 const LazyGlobalMenuItems = lazy(() =>

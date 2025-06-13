@@ -1,4 +1,9 @@
 import { Logo } from "@/components/logo";
+import { NavColors } from "@/components/nav/nav-colors";
+import { NavMain } from "@/components/nav/nav-main";
+import { NavPins } from "@/components/nav/nav-pins";
+import { NavUpload } from "@/components/nav/nav-upload";
+import { NavUser } from "@/components/nav/nav-user";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -12,11 +17,6 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { NavColors } from "@/components/nav/nav-colors";
-import { NavMain } from "@/components/nav/nav-main";
-import { NavPins } from "@/components/nav/nav-pins";
-import { NavUpload } from "@/components/nav/nav-upload";
-import { NavUser } from "@/components/nav/nav-user";
 import {
   VITE_APP_DESCRIPTION,
   VITE_APP_NAME,
@@ -72,11 +72,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain />
         <NavPins />
       </SidebarContent>
-      <SidebarFooter className="min-h-(--footer-height)">
+      <SidebarFooter className="min-h-(--footer-height) p-0">
         <NavColors />
         {/* copyright */}
         {(state !== "collapsed" || isTablet) && (
-          <div className="text-muted-foreground text-[11px] text-center w-full block leading-tight pb-2">
+          <div className="text-muted-foreground text-[11px] text-center w-full block leading-tight pb-4">
             © {new Date().getFullYear()}{" "}
             <span className="font-semibold text-foreground">
               {VITE_APP_NAME}

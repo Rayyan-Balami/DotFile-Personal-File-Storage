@@ -1,7 +1,7 @@
+import { AccountActionDialog } from "@/components/dialogs/AccountActionDialog";
+import SiteAdminHeader from "@/components/header/site-admin-header";
 import { useAuthStore } from "@/stores/authStore";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import SiteAdminHeader from "@/components/header/site-admin-header";
-import { AccountActionDialog } from "@/components/dialogs/AccountActionDialog";
 
 export const Route = createFileRoute("/(admin)")({
   beforeLoad: () => {

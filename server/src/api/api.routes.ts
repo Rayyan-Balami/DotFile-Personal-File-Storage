@@ -1,10 +1,10 @@
-import { Router } from "express";
+import analyticsRoutes from "@api/analytics/analytics.routes.js";
+import fileRoutes from "@api/file/file.routes.js";
+import folderRoutes from "@api/folder/folder.routes.js";
+import userRoutes from "@api/user/user.routes.js";
 import { NODE_ENV } from "@config/constants.js";
 import { ApiResponse } from "@utils/apiResponse.utils.js";
-import fileRoutes from "@api/file/file.routes.js";
-import folderRoutes from "./folder/folder.routes.js";
-import userRoutes from "./user/user.routes.js";
-import analyticsRoutes from "./analytics/analytics.routes.js";
+import { Router } from "express";
 
 const apiRoutes = Router();
 
@@ -47,6 +47,5 @@ apiRoutes.get("/health", (_, res) => {
  * Mount sub-routes: /auth, /users, /admin/users, /files, /folders, /analytics
  */
 apiRoutes.use("/", userRoutes, fileRoutes, folderRoutes, analyticsRoutes);
-
 
 export default apiRoutes;

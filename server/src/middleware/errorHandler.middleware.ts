@@ -1,6 +1,6 @@
-import { ApiError } from '@utils/apiError.utils.js';
-import logger from '@utils/logger.utils.js';
-import { NextFunction, Request, Response } from 'express';
+import { ApiError } from "@utils/apiError.utils.js";
+import logger from "@utils/logger.utils.js";
+import { NextFunction, Request, Response } from "express";
 
 /**
  * Middleware: Global error handler
@@ -22,7 +22,7 @@ export const errorHandler = (
 
   // Default response structure
   let statusCode = 500;
-  let message = 'Something went wrong';
+  let message = "Something went wrong";
   let errors: Record<string, string>[] | undefined;
 
   // Handle known (custom) ApiErrors
@@ -32,8 +32,8 @@ export const errorHandler = (
     errors = err.errors;
   } else {
     // Handle unknown (generic) errors
-    message = err.message || 'Internal Server Error';
-    errors = [{ error: err.name || 'Error' }];
+    message = err.message || "Internal Server Error";
+    errors = [{ error: err.name || "Error" }];
   }
 
   // Send formatted error response

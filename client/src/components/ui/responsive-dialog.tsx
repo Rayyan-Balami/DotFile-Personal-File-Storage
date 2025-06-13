@@ -61,7 +61,10 @@ export function ResponsiveDialog({
   const { isMobile } = useBreakpoint();
 
   const triggerNode = trigger ? (
-    <span aria-disabled={disabled} className={disabled ? "pointer-events-none opacity-50" : ""}>
+    <span
+      aria-disabled={disabled}
+      className={disabled ? "pointer-events-none opacity-50" : ""}
+    >
       {trigger}
     </span>
   ) : null;
@@ -71,13 +74,19 @@ export function ResponsiveDialog({
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogTrigger asChild>{triggerNode}</DialogTrigger>
         <DialogContent className={cn("p-0 sm:max-w-lg", contentClassName)}>
-          <DialogHeader className={cn("sticky top-0 bg-inherit", headerClassName)}>
+          <DialogHeader
+            className={cn("sticky top-0 bg-inherit", headerClassName)}
+          >
             <DialogTitle>{title}</DialogTitle>
-            {description && <DialogDescription>{description}</DialogDescription>}
+            {description && (
+              <DialogDescription>{description}</DialogDescription>
+            )}
           </DialogHeader>
           <div className={bodyClassName}>{children}</div>
           {showCancel && (
-            <DialogFooter className={cn("sticky bottom-0 bg-inherit", footerClassName)}>
+            <DialogFooter
+              className={cn("sticky bottom-0 bg-inherit", footerClassName)}
+            >
               <DialogClose asChild>
                 <Button variant="outline">Cancel</Button>
               </DialogClose>
@@ -92,13 +101,17 @@ export function ResponsiveDialog({
     <Drawer open={dialogOpen} onOpenChange={setDialogOpen}>
       <DrawerTrigger asChild>{triggerNode}</DrawerTrigger>
       <DrawerContent className={cn("", contentClassName)}>
-        <DrawerHeader className={cn("sticky top-0 bg-inherit", headerClassName)}>
+        <DrawerHeader
+          className={cn("sticky top-0 bg-inherit", headerClassName)}
+        >
           <DrawerTitle>{title}</DrawerTitle>
           {description && <DrawerDescription>{description}</DrawerDescription>}
         </DrawerHeader>
         <div className={bodyClassName}>{children}</div>
         {showCancel && (
-          <DrawerFooter className={cn("sticky bottom-0 bg-inherit", footerClassName)}>
+          <DrawerFooter
+            className={cn("sticky bottom-0 bg-inherit", footerClassName)}
+          >
             <DrawerClose asChild>
               <Button variant="outline">Cancel</Button>
             </DrawerClose>

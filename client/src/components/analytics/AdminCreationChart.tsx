@@ -19,13 +19,13 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { Form, FormControl, FormField } from "@/components/ui/form";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { useDebounce } from "@/hooks/use-debounce";
 import { CreationAnalyticsItem } from "@/types/analytics.dto";
 import { formatDateString } from "@/utils/formatUtils";
 import { creationAnalyticsSchema } from "@/validation/analytics.validaton";
-import { DateRangePicker } from "../ui/DateRangePicker";
 
 const chartConfig = {
   creation: {
@@ -101,7 +101,10 @@ export function AdminCreationChart() {
     try {
       const validatedData = creationAnalyticsSchema.parse(debouncedDateRange);
       // Only update if the range has actually changed
-      if (validatedData.startDate !== dateRange.startDate || validatedData.endDate !== dateRange.endDate) {
+      if (
+        validatedData.startDate !== dateRange.startDate ||
+        validatedData.endDate !== dateRange.endDate
+      ) {
         setDateRange(validatedData);
       }
     } catch (error) {
@@ -193,7 +196,6 @@ export function AdminCreationChart() {
                   }}
                 />
               </FormControl>
-              
             )}
           />
         </Form>

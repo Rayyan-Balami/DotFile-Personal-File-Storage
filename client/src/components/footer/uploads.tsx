@@ -97,9 +97,7 @@ function UploadCard({
           </span>
           {(status === "uploading" || status === "creating-zip") &&
             progress > 0 && (
-              <span className="text-muted-foreground ml-auto">
-                {progress}%
-              </span>
+              <span className="text-muted-foreground ml-auto">{progress}%</span>
             )}
           {status === "error" && (
             <span className="text-destructive ml-auto flex items-center gap-1">
@@ -167,7 +165,7 @@ export function Uploads() {
       <Button
         className="group shadow-none text-sidebar-foreground hover:text-primary  hover:border-border bg-background/70 size-10"
         variant="outline"
-        size={ "icon"}
+        size={"icon"}
         onClick={handleClose}
         disabled={hasActiveUploads}
         title={

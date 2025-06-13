@@ -25,6 +25,7 @@ function RouteComponent() {
       itemType: debouncedFilters.itemType,
       fileTypes: debouncedFilters.fileType,
       isPinned: debouncedFilters.isPinned,
+      colors: debouncedFilters.colors,
       dateFrom: debouncedFilters.dateRange.from?.toISOString(),
       dateTo: debouncedFilters.dateRange.to?.toISOString(),
     }),
@@ -58,16 +59,17 @@ function RouteComponent() {
     debouncedFilters.fileType.length === 0 &&
     !debouncedFilters.dateRange.from &&
     !debouncedFilters.dateRange.to &&
-    !debouncedFilters.isPinned;
+    !debouncedFilters.isPinned &&
+    debouncedFilters.colors.length === 0;
 
   // Handle different states
   if (shouldShowPrompt) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
         <div className="max-w-md">
-          <h2 className="text-2xl font-semibold mb-4">Search your files</h2>
+          <h2 className="text-2xl font-semibold mb-4">Search Your Files</h2>
           <p className="text-sm">
-            Enter a search term or apply filters to find your files and folders.
+            Enter a search term or apply filters.
           </p>
         </div>
       </div>
@@ -79,7 +81,6 @@ function RouteComponent() {
       <div className="flex items-center justify-center h-full">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Searching...</p>
         </div>
       </div>
     );
@@ -90,15 +91,15 @@ function RouteComponent() {
       <div className="flex items-center justify-center h-full">
         <div className="text-center text-destructive">
           <h2 className="text-lg font-semibold mb-2">Search Error</h2>
-          <p className="text-sm">Failed to search. Please try again.</p>
+          <p className="text-sm">We encountered an error while searching.</p>
         </div>
       </div>
     );
   }
 
   const searchTitle = debouncedQuery
-    ? `Search results for "${debouncedQuery}"`
-    : "Filtered results";
+    ? "Search Results"
+    : "Filtered Results";
 
   return (
     <Suspense

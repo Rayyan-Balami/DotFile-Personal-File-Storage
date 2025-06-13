@@ -1,15 +1,18 @@
-import { CreationAnalyticsDto, CreationAnalyticsRequestDto, CreationAnalyticsResponseDto, SummaryAnalyticsItemDto, FileTypeAnalyticsDto, UserStorageConsumptionAnalyticsDto } from "@api/analytics/analytics.dto.js";
+import {
+  CreationAnalyticsResponseDto,
+  FileTypeAnalyticsDto,
+  SummaryAnalyticsItemDto,
+  UserStorageConsumptionAnalyticsDto,
+} from "@api/analytics/analytics.dto.js";
 import fileService from "@api/file/file.service.js";
 import folderService from "@api/folder/folder.service.js";
 import userService from "@api/user/user.service.js";
-import { ApiError } from "@utils/apiError.utils.js";
 import logger from "@utils/logger.utils.js";
 
 /**
  * Analytics service to generate creation analytics for files and folders
  */
 class AnalyticsService {
-
   /**
    * Get combined creation analytics for files and folders by date range
    * @param startDate - Start date for analytics (YYYY-MM-DD format)
@@ -25,46 +28,50 @@ class AnalyticsService {
     // Get both file and folder analytics in parallel
     const [fileAnalytics, folderAnalytics] = await Promise.all([
       fileService.getFileCreationAnalytics(startDate, endDate),
-      folderService.getFolderCreationAnalytics(startDate, endDate)
+      folderService.getFolderCreationAnalytics(startDate, endDate),
     ]);
 
     // Create a map to combine the data by date
     const combinedData = new Map<string, { file: number; folder: number }>();
 
     // Process file analytics
-    fileAnalytics.forEach(item => {
+    fileAnalytics.forEach((item) => {
       combinedData.set(item.date, {
         file: item.count,
-        folder: 0
+        folder: 0,
       });
     });
 
     // Process folder analytics
-    folderAnalytics.forEach(item => {
+    folderAnalytics.forEach((item) => {
       const existing = combinedData.get(item.date);
       if (existing) {
         existing.folder = item.count;
       } else {
         combinedData.set(item.date, {
           file: 0,
-          folder: item.count
+          folder: item.count,
         });
       }
     });
 
     // Convert map to array and sort by date
-    const result: CreationAnalyticsResponseDto[] = Array.from(combinedData.entries())
+    const result: CreationAnalyticsResponseDto[] = Array.from(
+      combinedData.entries()
+    )
       .map(([date, counts]) => ({
         date,
         file: counts.file,
         folder: counts.folder,
-        total: counts.file + counts.folder
+        total: counts.file + counts.folder,
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
     // Return empty array instead of throwing error when no data found
     // This is better UX - no data is a valid state, not an error
-    logger.debug(`Retrieved combined creation analytics: ${result.length} data points`);
+    logger.debug(
+      `Retrieved combined creation analytics: ${result.length} data points`
+    );
     return result;
   }
 
@@ -77,8 +84,20 @@ class AnalyticsService {
 
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const previousMonthStart = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1
+    );
+    const currentMonthEnd = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999
+    );
 
     // Helper function to calculate growth rate
     const calculateGrowthRate = (current: number, previous: number): number => {
@@ -95,54 +114,75 @@ class AnalyticsService {
       currentMonthStorage,
       previousMonthStorage,
       currentActiveUsers,
-      previousActiveUsers
+      previousActiveUsers,
     ] = await Promise.all([
       // User statistics
       userService.getUserCountByDateRange(currentMonthStart, currentMonthEnd),
-      userService.getUserCountByDateRange(previousMonthStart, currentMonthStart),
-      
+      userService.getUserCountByDateRange(
+        previousMonthStart,
+        currentMonthStart
+      ),
+
       // File statistics
       fileService.getFileCountByDateRange(currentMonthStart, currentMonthEnd),
-      fileService.getFileCountByDateRange(previousMonthStart, currentMonthStart),
-      
+      fileService.getFileCountByDateRange(
+        previousMonthStart,
+        currentMonthStart
+      ),
+
       // Storage statistics
       fileService.getStorageSizeByDateRange(currentMonthStart, currentMonthEnd),
-      fileService.getStorageSizeByDateRange(previousMonthStart, currentMonthStart),
-      
+      fileService.getStorageSizeByDateRange(
+        previousMonthStart,
+        currentMonthStart
+      ),
+
       // Active users statistics
-      userService.getActiveUsersCountByDateRange(currentMonthStart, currentMonthEnd),
-      userService.getActiveUsersCountByDateRange(previousMonthStart, currentMonthStart)
+      userService.getActiveUsersCountByDateRange(
+        currentMonthStart,
+        currentMonthEnd
+      ),
+      userService.getActiveUsersCountByDateRange(
+        previousMonthStart,
+        currentMonthStart
+      ),
     ]);
 
     const summaryAnalytics: SummaryAnalyticsItemDto[] = [
       {
-        type: 'users',
-        label: 'Total Users',
+        type: "users",
+        label: "Total Users",
         currentMonth: currentMonthUsers,
         previousMonth: previousMonthUsers,
-        growthRate: calculateGrowthRate(currentMonthUsers, previousMonthUsers)
+        growthRate: calculateGrowthRate(currentMonthUsers, previousMonthUsers),
       },
       {
-        type: 'files',
-        label: 'Total Files',
+        type: "files",
+        label: "Total Files",
         currentMonth: currentMonthFiles,
         previousMonth: previousMonthFiles,
-        growthRate: calculateGrowthRate(currentMonthFiles, previousMonthFiles)
+        growthRate: calculateGrowthRate(currentMonthFiles, previousMonthFiles),
       },
       {
-        type: 'storage',
-        label: 'Storage Used',
+        type: "storage",
+        label: "Storage Used",
         currentMonth: currentMonthStorage,
         previousMonth: previousMonthStorage,
-        growthRate: calculateGrowthRate(currentMonthStorage, previousMonthStorage)
+        growthRate: calculateGrowthRate(
+          currentMonthStorage,
+          previousMonthStorage
+        ),
       },
       {
-        type: 'activity',
-        label: 'Active Users',
+        type: "activity",
+        label: "Active Users",
         currentMonth: currentActiveUsers,
         previousMonth: previousActiveUsers,
-        growthRate: calculateGrowthRate(currentActiveUsers, previousActiveUsers)
-      }
+        growthRate: calculateGrowthRate(
+          currentActiveUsers,
+          previousActiveUsers
+        ),
+      },
     ];
 
     logger.debug(`Retrieved summary analytics:`, summaryAnalytics);
@@ -160,15 +200,19 @@ class AnalyticsService {
     const fileTypeCounts = await fileService.getFileTypeDistribution();
 
     // Transform object to array format suitable for pie chart
-    const fileTypeAnalytics: FileTypeAnalyticsDto[] = Object.entries(fileTypeCounts).map(([type, count]) => ({
+    const fileTypeAnalytics: FileTypeAnalyticsDto[] = Object.entries(
+      fileTypeCounts
+    ).map(([type, count]) => ({
       type,
-      count
+      count,
     }));
 
     // Sort by count in descending order for better visualization
     fileTypeAnalytics.sort((a, b) => b.count - a.count);
 
-    logger.debug(`Retrieved file type analytics: ${fileTypeAnalytics.length} types`);
+    logger.debug(
+      `Retrieved file type analytics: ${fileTypeAnalytics.length} types`
+    );
     return fileTypeAnalytics;
   }
 
@@ -176,25 +220,38 @@ class AnalyticsService {
    * Get user storage consumption distribution analytics
    * @returns Array of storage consumption categories with user counts
    */
-  async getUserStorageConsumptionAnalytics(): Promise<UserStorageConsumptionAnalyticsDto[]> {
+  async getUserStorageConsumptionAnalytics(): Promise<
+    UserStorageConsumptionAnalyticsDto[]
+  > {
     logger.info("Getting user storage consumption analytics");
 
     // Get storage consumption data from user service
     const storageConsumption = await userService.getUserStorageConsumption();
 
     // Define all possible categories to ensure complete data
-    const allCategories: UserStorageConsumptionAnalyticsDto["label"][] = ["0%", "25%", "50%", "75%", "100%"];
-    
-    // Map database results to DTO format, filling in missing categories with 0
-    const consumptionAnalytics: UserStorageConsumptionAnalyticsDto[] = allCategories.map(label => {
-      const found = storageConsumption.find(item => item.category === label);
-      return {
-        label,
-        count: found ? found.count : 0
-      };
-    });
+    const allCategories: UserStorageConsumptionAnalyticsDto["label"][] = [
+      "0%",
+      "25%",
+      "50%",
+      "75%",
+      "100%",
+    ];
 
-    logger.debug(`Retrieved user storage consumption analytics: ${consumptionAnalytics.length} categories`);
+    // Map database results to DTO format, filling in missing categories with 0
+    const consumptionAnalytics: UserStorageConsumptionAnalyticsDto[] =
+      allCategories.map((label) => {
+        const found = storageConsumption.find(
+          (item) => item.category === label
+        );
+        return {
+          label,
+          count: found ? found.count : 0,
+        };
+      });
+
+    logger.debug(
+      `Retrieved user storage consumption analytics: ${consumptionAnalytics.length} categories`
+    );
     return consumptionAnalytics;
   }
 
@@ -202,15 +259,19 @@ class AnalyticsService {
    * Get monthly user registrations analytics for the current year
    * @returns Array of monthly user registration counts for current year
    */
-  async getMonthlyUserRegistrationsAnalytics(): Promise<{ month: string; count: number }[]> {
+  async getMonthlyUserRegistrationsAnalytics(): Promise<
+    { month: string; count: number }[]
+  > {
     logger.info("Getting monthly user registrations analytics");
 
-    const monthlyRegistrations = await userService.getMonthlyUserRegistrations();
+    const monthlyRegistrations =
+      await userService.getMonthlyUserRegistrations();
 
-    logger.debug(`Retrieved monthly user registrations: ${monthlyRegistrations.length} months`);
+    logger.debug(
+      `Retrieved monthly user registrations: ${monthlyRegistrations.length} months`
+    );
     return monthlyRegistrations;
   }
-
 }
 
 export default new AnalyticsService();

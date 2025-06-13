@@ -1,7 +1,5 @@
 import analyticsApi from "@/api/analytics/analytics.api";
-import {
-  CreationAnalyticsParams,
-} from "@/types/analytics.dto";
+import { CreationAnalyticsParams } from "@/types/analytics.dto";
 import { useQuery } from "@tanstack/react-query";
 
 // Query keys
@@ -11,8 +9,10 @@ export const ANALYTICS_KEYS = {
     [...ANALYTICS_KEYS.all, "creation", params] as const,
   summary: () => [...ANALYTICS_KEYS.all, "summary"] as const,
   fileTypes: () => [...ANALYTICS_KEYS.all, "fileTypes"] as const,
-  userStorageConsumption: () => [...ANALYTICS_KEYS.all, "userStorageConsumption"] as const,
-  monthlyUserRegistrations: () => [...ANALYTICS_KEYS.all, "monthlyUserRegistrations"] as const,
+  userStorageConsumption: () =>
+    [...ANALYTICS_KEYS.all, "userStorageConsumption"] as const,
+  monthlyUserRegistrations: () =>
+    [...ANALYTICS_KEYS.all, "monthlyUserRegistrations"] as const,
   userGrowth: (params?: { startDate?: string; endDate?: string }) =>
     [...ANALYTICS_KEYS.all, "users", params] as const,
   comprehensive: (params?: { startDate?: string; endDate?: string }) =>
@@ -26,9 +26,7 @@ export const useCreationAnalytics = (params: CreationAnalyticsParams) =>
   useQuery({
     queryKey: ANALYTICS_KEYS.creation(params),
     queryFn: () =>
-      analyticsApi
-        .getCreationAnalytics(params)
-        .then((res) => res.data),
+      analyticsApi.getCreationAnalytics(params).then((res) => res.data),
     enabled: !!params.startDate && !!params.endDate,
   });
 
@@ -38,10 +36,7 @@ export const useCreationAnalytics = (params: CreationAnalyticsParams) =>
 export const useSummaryAnalytics = () =>
   useQuery({
     queryKey: ANALYTICS_KEYS.summary(),
-    queryFn: () =>
-      analyticsApi
-        .getSummaryAnalytics()
-        .then((res) => res.data),
+    queryFn: () => analyticsApi.getSummaryAnalytics().then((res) => res.data),
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     refetchInterval: 30 * 60 * 1000, // Auto-refetch every 30 minutes
   });
@@ -52,10 +47,7 @@ export const useSummaryAnalytics = () =>
 export const useFileTypeAnalytics = () =>
   useQuery({
     queryKey: ANALYTICS_KEYS.fileTypes(),
-    queryFn: () =>
-      analyticsApi
-        .getFileTypeAnalytics()
-        .then((res) => res.data),
+    queryFn: () => analyticsApi.getFileTypeAnalytics().then((res) => res.data),
     staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
     refetchInterval: 60 * 60 * 1000, // Auto-refetch every hour
   });
@@ -67,9 +59,7 @@ export const useUserStorageConsumptionAnalytics = () =>
   useQuery({
     queryKey: ANALYTICS_KEYS.userStorageConsumption(),
     queryFn: () =>
-      analyticsApi
-        .getUserStorageConsumptionAnalytics()
-        .then((res) => res.data),
+      analyticsApi.getUserStorageConsumptionAnalytics().then((res) => res.data),
     staleTime: 10 * 60 * 1000, // Consider data fresh for 10 minutes
     refetchInterval: 60 * 60 * 1000, // Auto-refetch every hour
   });

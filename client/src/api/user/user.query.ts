@@ -117,7 +117,7 @@ export const useGetUsersPaginated = (params?: {
   page?: number;
   pageSize?: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
   search?: string;
   searchFields?: string[];
   filters?: Record<string, any>;

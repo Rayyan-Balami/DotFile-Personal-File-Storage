@@ -1,4 +1,4 @@
-import { FileResponseDto } from "./file.dto";
+import { FileResponseDto } from "@/types/file.dto";
 
 export interface CreateFolderDto {
   name: string;

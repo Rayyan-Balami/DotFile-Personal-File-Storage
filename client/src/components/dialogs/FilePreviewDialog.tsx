@@ -131,9 +131,9 @@ export default function FilePreviewDialog() {
   const handleDownload = async () => {
     if (!currentFile) return;
     try {
-      const result = await downloadFile.mutateAsync({ 
-        fileId: currentFile.id, 
-        fallbackFilename: `${currentFile.name}.${currentFile.extension}` 
+      const result = await downloadFile.mutateAsync({
+        fileId: currentFile.id,
+        fallbackFilename: `${currentFile.name}.${currentFile.extension}`,
       });
       toast.success(`Downloaded "${result.filename}"`);
     } catch (error) {

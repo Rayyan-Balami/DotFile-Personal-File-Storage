@@ -37,7 +37,12 @@ import {
 import { useDialogStore } from "@/stores/useDialogStore";
 import type { FileResponseDto } from "@/types/file.dto";
 import type { FolderResponseDto } from "@/types/folder.dto";
-import { Link, useLocation, useNavigate, useMatchRoute } from "@tanstack/react-router";
+import {
+  Link,
+  useLocation,
+  useMatchRoute,
+  useNavigate,
+} from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -197,15 +202,15 @@ export function NavPins() {
   const handleFileClick = (e: React.MouseEvent, file: FileResponseDto) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Get all files from the pinned items
     const allFiles = allItems
-      .filter(item => item.type === "file")
-      .map(item => item.data);
-    
+      .filter((item) => item.type === "file")
+      .map((item) => item.data);
+
     // Find the current file index
-    const currentIndex = allFiles.findIndex(f => f.id === file.id);
-    
+    const currentIndex = allFiles.findIndex((f) => f.id === file.id);
+
     // Open file preview dialog with all pinned files
     openFilePreviewDialog(allFiles, currentIndex !== -1 ? currentIndex : 0);
   };
@@ -254,18 +259,19 @@ export function NavPins() {
   }, [pinContents, location.pathname]);
 
   // Update folder icons when location changes
-  useEffect(() => {      setAllItems((prev) =>
-        prev.map((item) => {
-          if (item.type === "folder") {
-            const isCurrentFolder = location.pathname === `/folder/${item.id}`;
-            return {
-              ...item,
-              icon: isCurrentFolder ? FolderOpen : Folder,
-            };
-          }
-          return item;
-        })
-      );
+  useEffect(() => {
+    setAllItems((prev) =>
+      prev.map((item) => {
+        if (item.type === "folder") {
+          const isCurrentFolder = location.pathname === `/folder/${item.id}`;
+          return {
+            ...item,
+            icon: isCurrentFolder ? FolderOpen : Folder,
+          };
+        }
+        return item;
+      })
+    );
   }, [location.pathname]);
 
   // Show only first 10 items unless expanded
@@ -309,12 +315,16 @@ export function NavPins() {
 
         {displayItems.map((item) => {
           const isActive = !!matchRoute({ to: item.url, fuzzy: true });
-          
+
           return (
             <ContextMenu key={item.id}>
               <ContextMenuTrigger asChild>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild tooltip={item.name} isActive={isActive}>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={item.name}
+                    isActive={isActive}
+                  >
                     {item.type === "file" ? (
                       <button
                         onClick={(e) => handleFileClick(e, item.data)}

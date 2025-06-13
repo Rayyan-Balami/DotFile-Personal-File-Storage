@@ -1,4 +1,3 @@
-
 /**
  * Extracts field errors from API error response
  * @param error The error object from API response

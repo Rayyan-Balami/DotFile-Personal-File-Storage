@@ -1,9 +1,9 @@
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import { Database, Menu, ShieldUser, UsersRound } from "lucide-react";
 
+import { Logo, LogoWithText } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Logo, LogoWithText } from "../logo";
 
 const adminNavItems = [
   {
@@ -44,7 +44,9 @@ function AdminAppSidebar() {
         >
           <item.icon className="h-4 w-4" />
           {item.title}
-          <span className={`absolute bottom-0 left-0 right-0 bg-foreground rounded-t-full ${isActive ? "h-[2px]" : "h-0"} bg-primary transition-all ease-in`} />
+          <span
+            className={`absolute bottom-0 left-0 right-0 bg-foreground rounded-t-full ${isActive ? "h-[2px]" : "h-0"} bg-primary transition-all ease-in`}
+          />
         </Link>
       );
     });
@@ -52,23 +54,24 @@ function AdminAppSidebar() {
 
   return (
     <>
-      <nav
-        className="hidden font-medium md:flex items-center md:gap-4 md:text-sm lg:gap-6 h-full relative"
+      <Link
+        to="/admin"
+        className="flex items-center justify-center bg-primary size-8 rounded-full"
       >
-        <Link
-          to="/admin"
-          className="flex items-center justify-center gap-2 text-lg font-semibold md:text-base bg-primary size-8 rounded-full"
-        >
-          <Logo />
-        </Link>
-
+        <Logo />
+      </Link>
+      <nav className="hidden font-medium md:flex items-center md:gap-4 md:text-sm lg:gap-6 h-full relative">
         {renderNavItems(adminNavItems)}
       </nav>
 
       {/* Mobile Sheet menu remains unchanged */}
       <Sheet>
         <SheetTrigger asChild>
-          <Button variant="outline" size="icon" className="shrink-0 md:hidden">
+          <Button
+            variant="outline"
+            size="icon"
+            className="shrink-0 md:hidden order-1"
+          >
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle navigation menu</span>
           </Button>

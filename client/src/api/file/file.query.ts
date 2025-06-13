@@ -3,6 +3,7 @@ import { FOLDER_KEYS } from "@/api/folder/folder.query";
 import { useDialogStore } from "@/stores/useDialogStore";
 import { useUploadStore } from "@/stores/useUploadStore";
 import { MoveFileDto, RenameFileDto, UpdateFileDto } from "@/types/file.dto";
+import { logger } from "@/utils/logger";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Query keys
@@ -74,13 +75,13 @@ export const useUploadFiles = () => {
         );
         return response.data;
       } catch (error: any) {
-        console.log("🚨 Upload error:", error);
+        logger.info("🚨 Upload error:", error);
         // Check if this was an abort error
         if (
           error instanceof Error &&
           (error.name === "AbortError" || error.name === "CanceledError")
         ) {
-          console.log("🛑 Upload was cancelled");
+          logger.info("🛑 Upload was cancelled");
           // Set status to cancelled
           setUploadStatus(uploadId, "cancelled");
           // Re-throw as cancelled error
@@ -117,42 +118,42 @@ export const useUploadFiles = () => {
         }
 
         // For other errors, set error status
-        console.log("❌ Setting error status");
+        logger.info("❌ Setting error status");
         setUploadStatus(uploadId, "error");
         throw error;
       }
     },
     onSuccess: (data, variables) => {
-      console.log("🚀 File Upload Success - Starting cache invalidation");
+      logger.info("🚀 File Upload Success - Starting cache invalidation");
 
       // Invalidate all folder queries to ensure UI updates with new folders/files
       queryClient.invalidateQueries({
         queryKey: FOLDER_KEYS.all,
       });
-      console.log("📂 Invalidated folder queries");
+      logger.info("📂 Invalidated folder queries");
 
       // If files were uploaded to a specific folder, also invalidate that folder's contents
       if (variables.folderData?.folderId) {
         queryClient.invalidateQueries({
           queryKey: FOLDER_KEYS.contents(variables.folderData.folderId),
         });
-        console.log("📁 Invalidated specific folder contents");
+        logger.info("📁 Invalidated specific folder contents");
       } else {
         // Otherwise invalidate root contents
         queryClient.invalidateQueries({
           queryKey: FOLDER_KEYS.contents(),
         });
-        console.log("📁 Invalidated root folder contents");
+        logger.info("📁 Invalidated root folder contents");
       }
 
       // Refresh user data to update storage usage
-      console.log("🔄 Invalidating currentUser query");
+      logger.info("🔄 Invalidating currentUser query");
       queryClient.invalidateQueries({
         queryKey: ["currentUser"],
       });
 
       // Force an immediate refetch of current user data
-      console.log("🔄 Forcing currentUser refetch");
+      logger.info("🔄 Forcing currentUser refetch");
       queryClient.refetchQueries({
         queryKey: ["currentUser"],
       });
@@ -326,14 +327,20 @@ export const useViewFile = (fileId: string) =>
  */
 export const useDownloadFile = () => {
   return useMutation({
-    mutationFn: async ({ fileId, fallbackFilename }: { fileId: string; fallbackFilename?: string }) => {
+    mutationFn: async ({
+      fileId,
+      fallbackFilename,
+    }: {
+      fileId: string;
+      fallbackFilename?: string;
+    }) => {
       const response = await fileApi.downloadFile(fileId);
       const blob = response.data;
-      
+
       // Get filename from Content-Disposition header or use fallback
-      const contentDisposition = response.headers['content-disposition'];
+      const contentDisposition = response.headers["content-disposition"];
       let filename = fallbackFilename || `file_${fileId}`;
-      
+
       if (contentDisposition) {
         // First try to extract UTF-8 encoded filename
         const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/);
@@ -343,23 +350,23 @@ export const useDownloadFile = () => {
           // Fallback to regular filename extraction
           const regularMatch = contentDisposition.match(/filename=([^;]+)/);
           if (regularMatch) {
-            filename = regularMatch[1].replace(/['"]/g, '');
+            filename = regularMatch[1].replace(/['"]/g, "");
           }
         }
       }
-      
+
       // Create blob URL and trigger download
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
       link.download = filename;
       document.body.appendChild(link);
       link.click();
-      
+
       // Clean up
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
       return { success: true, filename };
     },
   });

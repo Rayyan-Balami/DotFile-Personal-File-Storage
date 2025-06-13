@@ -1,22 +1,22 @@
-import { Router } from "express";
 import FileController from "@api/file/file.controller.js";
 import {
   moveFileSchema,
   renameFileSchema,
   updateFileSchema,
 } from "@api/file/file.validator.js";
+import { UserRole } from "@api/user/user.dto.js";
+import { restrictTo } from "@middleware/accessControl.middleware.js";
 import { verifyAuth } from "@middleware/auth.middleware.js";
-import { validateData } from "@middleware/validate.middleware.js";
+import { encryptFiles } from "@middleware/fileEncryption.middleware.js";
 import {
-  upload,
-  validateFileSize,
+  handleAbortedUploads,
   processZipFiles,
   updateUserStorageUsage,
-  handleAbortedUploads,
+  upload,
+  validateFileSize,
 } from "@middleware/multer.middleware.js";
-import { encryptFiles } from "@middleware/fileEncryption.middleware.js";
-import { restrictTo } from "@middleware/accessControl.middleware.js";
-import { UserRole } from "@api/user/user.dto.js";
+import { validateData } from "@middleware/validate.middleware.js";
+import { Router } from "express";
 
 //=========================//
 // Init router and auth

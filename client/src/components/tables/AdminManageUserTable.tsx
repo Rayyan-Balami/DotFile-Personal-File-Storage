@@ -1,5 +1,3 @@
-"use client";
-
 import {
   useBulkPermanentDeleteUsers,
   useBulkRestoreUsers,
@@ -218,7 +216,7 @@ export default function AdminManageUserTable({
         }
       },
     },
-        delete: {
+    delete: {
       title: "Permanently Delete Users",
       description:
         "Are you sure you want to permanently delete the selected users? This action cannot be undone and will remove all their data.",

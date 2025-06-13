@@ -1,30 +1,25 @@
-"use client"
+import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
+import { Table } from "@tanstack/react-table";
+import { Table2 } from "lucide-react";
 
-import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu"
-import { Table } from "@tanstack/react-table"
-import { Table2 } from "lucide-react"
-
-import { Button } from "../ui/button"
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-} from "../ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 
 export function DataTableViewOptions<TData>({
   table,
 }: {
-  table: Table<TData>
+  table: Table<TData>;
 }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="icon"
-        >
+        <Button variant="outline" size="icon">
           <Table2 />
         </Button>
       </DropdownMenuTrigger>
@@ -47,9 +42,9 @@ export function DataTableViewOptions<TData>({
               >
                 {column.id}
               </DropdownMenuCheckboxItem>
-            )
+            );
           })}
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

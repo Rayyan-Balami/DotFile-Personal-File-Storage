@@ -180,4 +180,7 @@ export default defineConfig({
     minify: 'esbuild', // Use esbuild for faster builds
     target: 'esnext', // Target modern browsers for smaller bundles
   },
+  esbuild: {
+    drop: ['console', 'debugger'], // Remove console and debugger statements in production
+  },
 });

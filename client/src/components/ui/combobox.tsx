@@ -1,6 +1,3 @@
-import * as React from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -15,6 +12,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { Check, ChevronsUpDown } from "lucide-react";
+import * as React from "react";
 
 interface ComboboxProps {
   list: { value: string; label: string; disabled?: boolean }[];
@@ -28,7 +28,15 @@ interface ComboboxProps {
 
 const Combobox = React.forwardRef<HTMLButtonElement, ComboboxProps>(
   (
-    { list, value, onChange, placeholder = "Select Item", className, multiple = false, disabled = false },
+    {
+      list,
+      value,
+      onChange,
+      placeholder = "Select Item",
+      className,
+      multiple = false,
+      disabled = false,
+    },
     _ref
   ) => {
     const [open, setOpen] = React.useState(false);
@@ -59,13 +67,20 @@ const Combobox = React.forwardRef<HTMLButtonElement, ComboboxProps>(
 
     const displayValue = (): string => {
       if (multiple) {
-        return Array.isArray(value) && value.length > 0 ? `${value.length} selected` : placeholder;
+        return Array.isArray(value) && value.length > 0
+          ? `${value.length} selected`
+          : placeholder;
       }
-      return typeof value === "string" && value ? list.find((item) => item.value === value)?.label || placeholder : placeholder;
+      return typeof value === "string" && value
+        ? list.find((item) => item.value === value)?.label || placeholder
+        : placeholder;
     };
 
     return (
-      <Popover open={open} onOpenChange={(state) => !disabled && setOpen(state)}>
+      <Popover
+        open={open}
+        onOpenChange={(state) => !disabled && setOpen(state)}
+      >
         <PopoverTrigger asChild>
           <Button
             ref={triggerRef}
@@ -78,11 +93,16 @@ const Combobox = React.forwardRef<HTMLButtonElement, ComboboxProps>(
             )}
             onClick={() => !disabled && setOpen(!open)}
           >
-            <span className="whitespace-pre-line line-clamp-1 text-left">{displayValue()}</span>
+            <span className="whitespace-pre-line line-clamp-1 text-left">
+              {displayValue()}
+            </span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="p-0 overflow-hidden" style={{ minWidth: triggerWidth }}>
+        <PopoverContent
+          className="p-0 overflow-hidden"
+          style={{ minWidth: triggerWidth }}
+        >
           <Command>
             <CommandInput placeholder="Search..." disabled={disabled} />
             {/* clear button */}
@@ -104,8 +124,8 @@ const Combobox = React.forwardRef<HTMLButtonElement, ComboboxProps>(
                             ? "opacity-100"
                             : "opacity-0"
                           : item.value === value
-                          ? "opacity-100"
-                          : "opacity-0"
+                            ? "opacity-100"
+                            : "opacity-0"
                       )}
                     />
                     <span className="truncate capitalize">{item.label}</span>

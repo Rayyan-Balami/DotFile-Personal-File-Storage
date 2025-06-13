@@ -1,13 +1,16 @@
-import { MASTER_KEY } from '@config/constants.js';
-import { encrypt, decrypt } from './simpleAes.utils.js';
-import { compressBuffer, decompressBuffer } from './huffmanCompression.utils.js';
-import logger from './logger.utils.js';
+import { MASTER_KEY } from "@config/constants.js";
+import {
+  compressBuffer,
+  decompressBuffer,
+} from "@utils/huffmanCompression.utils.js";
+import logger from "@utils/logger.utils.js";
+import { decrypt, encrypt } from "@utils/AES.js";
 
 /**
  * Derives a user-specific encryption key from userId and MASTER_KEY.
  * Uses AES encryption on userId bytes, then trims result to 32 hex chars.
  * Falls back to a simple concatenation on error.
- * 
+ *
  * @param userId - Unique identifier of user
  * @returns 32-character hex string as user key
  */
@@ -15,9 +18,9 @@ export function deriveUserKey(userId: string): string {
   try {
     const userIdBytes = Buffer.from(userId);
     const encrypted = encrypt(userIdBytes, MASTER_KEY);
-    return encrypted.toString('hex').substring(0, 32);
+    return encrypted.toString("hex").substring(0, 32);
   } catch (error) {
-    logger.error('Failed to derive user key:', error);
+    logger.error("Failed to derive user key:", error);
     return `${MASTER_KEY}-${userId}`.substring(0, 32);
   }
 }
@@ -28,7 +31,7 @@ const USE_COMPRESSION = true;
 /**
  * Encrypts a file buffer using the user-specific key.
  * Compresses the file first using Huffman coding if compression enabled and file size > 100 bytes.
- * 
+ *
  * @param file - Raw file data as Buffer
  * @param userId - User ID to derive encryption key
  * @returns Encrypted Buffer (compressed if applicable)
@@ -43,14 +46,14 @@ export function encryptFileBuffer(file: Buffer, userId: string): Buffer {
         processedBuffer = compressBuffer(file);
         logger.debug(`Compressed size: ${processedBuffer.length} bytes`);
       } else {
-        logger.debug('File too small for compression, skipping');
+        logger.debug("File too small for compression, skipping");
       }
     }
 
     const userKey = deriveUserKey(userId);
     return encrypt(processedBuffer, userKey);
   } catch (error) {
-    logger.error('Error in encryptFileBuffer:', error);
+    logger.error("Error in encryptFileBuffer:", error);
 
     // Fallback: encrypt original file without compression
     const userKey = deriveUserKey(userId);
@@ -62,7 +65,7 @@ export function encryptFileBuffer(file: Buffer, userId: string): Buffer {
  * Decrypts an encrypted file buffer using user-specific key.
  * If compression is enabled, tries to decompress the decrypted buffer.
  * Uses simple header check to guess if buffer is compressed.
- * 
+ *
  * @param file - Encrypted file data as Buffer
  * @param userId - User ID to derive decryption key
  * @returns Decrypted (and decompressed if applicable) Buffer
@@ -81,18 +84,20 @@ export function decryptFileBuffer(file: Buffer, userId: string): Buffer {
 
           // Validate length (must be positive and reasonably small)
           if (originalLength > 0 && originalLength < 100 * 1024 * 1024) {
-            logger.debug(`Decompressing buffer of size ${decryptedBuffer.length} bytes`);
+            logger.debug(
+              `Decompressing buffer of size ${decryptedBuffer.length} bytes`
+            );
             return decompressBuffer(decryptedBuffer);
           }
         }
       } catch {
-        logger.debug('Decompression failed, assuming file was not compressed');
+        logger.debug("Decompression failed, assuming file was not compressed");
       }
     }
 
     return decryptedBuffer;
   } catch (error) {
-    logger.error('Error in decryptFileBuffer:', error);
+    logger.error("Error in decryptFileBuffer:", error);
     throw error;
   }
 }

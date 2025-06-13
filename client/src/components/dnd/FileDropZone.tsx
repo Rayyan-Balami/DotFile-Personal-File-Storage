@@ -3,6 +3,7 @@ import { useFileSystemStore } from "@/stores/useFileSystemStore";
 import { useUploadStore } from "@/stores/useUploadStore";
 import { DocumentItem } from "@/types/folderDocumnet";
 import { getDetailedErrorInfo } from "@/utils/apiErrorHandler";
+import { logger } from "@/utils/logger";
 import {
   collectFilesFromDirectory,
   createZipFromFiles,
@@ -121,7 +122,7 @@ export function FileDropZone({ children }: FileDropZoneProps) {
     for (const dirEntry of directories) {
       const dirFiles = await collectFilesFromDirectory(dirEntry);
       if (dirFiles.length === 0) {
-        console.log(`Skipping empty folder: ${dirEntry.name}`);
+        logger.info(`Skipping empty folder: ${dirEntry.name}`);
         continue;
       }
 

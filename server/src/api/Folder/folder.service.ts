@@ -12,12 +12,12 @@ import {
   UpdateFolderDto,
 } from "@api/folder/folder.dto.js";
 import { IFolder } from "@api/folder/folder.model.js";
+import userService from "@api/user/user.service.js";
 import { ApiError } from "@utils/apiError.utils.js";
 import logger from "@utils/logger.utils.js";
 import { sanitizeFilename } from "@utils/sanitize.utils.js";
 import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
 import mongoose, { Types } from "mongoose";
-import userService from "@api/user/user.service.js";
 
 /**
  * Business logic for folder operations
@@ -34,13 +34,19 @@ class FolderService {
     const sanitizedName = sanitizeFilename(folderData.name);
 
     // Check if folder exists
-    const existingFolder = await folderDao.findFolderByName(sanitizedName, userId, folderData.parent || null);
+    const existingFolder = await folderDao.findFolderByName(
+      sanitizedName,
+      userId,
+      folderData.parent || null
+    );
 
     if (existingFolder) {
       if (!duplicateAction) {
-        throw new ApiError(409, [{ 
-          name: `A folder with the name "${sanitizedName}" already exists in this location` 
-        }]);
+        throw new ApiError(409, [
+          {
+            name: `A folder with the name "${sanitizedName}" already exists in this location`,
+          },
+        ]);
       }
 
       if (duplicateAction === "replace") {
@@ -49,7 +55,13 @@ class FolderService {
       } else if (duplicateAction === "keepBoth") {
         // Find a unique name by appending a number
         let counter = 1;
-        while (await this.checkFolderNameExists(`${sanitizedName} (${counter})`, userId, folderData.parent || null)) {
+        while (
+          await this.checkFolderNameExists(
+            `${sanitizedName} (${counter})`,
+            userId,
+            folderData.parent || null
+          )
+        ) {
           counter++;
         }
         folderData.name = `${sanitizedName} (${counter})`;
@@ -148,21 +160,29 @@ class FolderService {
   ): Promise<FolderResponseWithFilesDto> {
     // Build path segments for the breadcrumb navigation
     const pathSegments = await this.buildPathSegments(folderId, userId);
-    
+
     // If folderId is null, return only folders with parent null and files with folder null
     if (!folderId) {
-      const rootFolders = await folderDao.getUserFoldersWithCounts(userId, null, includeDeleted);
-      const rootFiles = await fileService.getUserFilesByFolders(userId, null, includeDeleted);
+      const rootFolders = await folderDao.getUserFoldersWithCounts(
+        userId,
+        null,
+        includeDeleted
+      );
+      const rootFiles = await fileService.getUserFilesByFolders(
+        userId,
+        null,
+        includeDeleted
+      );
       return {
         folders: rootFolders.map((folder) => ({
           ...this.sanitizeFolder(folder),
-          hasDeletedAncestor: false // Root folders can't have deleted ancestors
+          hasDeletedAncestor: false, // Root folders can't have deleted ancestors
         })),
-        files: rootFiles.map(file => ({
+        files: rootFiles.map((file) => ({
           ...file,
-          hasDeletedAncestor: false // Root files can't have deleted ancestors
+          hasDeletedAncestor: false, // Root files can't have deleted ancestors
         })),
-        pathSegments
+        pathSegments,
       };
     }
 
@@ -184,22 +204,31 @@ class FolderService {
     const shouldIncludeDeleted = includeDeleted || folder.deletedAt !== null;
 
     // Get only immediate children: folders with parent = folderId, files with folder = folderId
-    const folders = await folderDao.getUserFoldersWithCounts(userId, folderId, shouldIncludeDeleted);
-    const files = await fileService.getUserFilesByFolders(userId, folderId, shouldIncludeDeleted);
+    const folders = await folderDao.getUserFoldersWithCounts(
+      userId,
+      folderId,
+      shouldIncludeDeleted
+    );
+    const files = await fileService.getUserFilesByFolders(
+      userId,
+      folderId,
+      shouldIncludeDeleted
+    );
 
     // Check if any ancestor is deleted OR if the current folder itself is deleted
-    const hasDeletedAncestor = folder.deletedAt !== null || await this.hasDeletedAncestor(folderId);
+    const hasDeletedAncestor =
+      folder.deletedAt !== null || (await this.hasDeletedAncestor(folderId));
 
     return {
       folders: folders.map((folder) => ({
         ...this.sanitizeFolder(folder),
-        hasDeletedAncestor // Pass the ancestor check result to all children
+        hasDeletedAncestor, // Pass the ancestor check result to all children
       })),
-      files: files.map(file => ({
+      files: files.map((file) => ({
         ...file,
-        hasDeletedAncestor // Pass the ancestor check result to all children
+        hasDeletedAncestor, // Pass the ancestor check result to all children
       })),
-      pathSegments
+      pathSegments,
     };
   }
 
@@ -219,26 +248,30 @@ class FolderService {
    * @param includeDeleted - Include trashed
    * @throws Not found or unauthorized
    */
-  async getFolderById(folderId: string, userId: string): Promise<FolderResponseDto> {
+  async getFolderById(
+    folderId: string,
+    userId: string
+  ): Promise<FolderResponseDto> {
     // Verify folder exists and belongs to user
     const folder = await folderDao.getFolderWithCount(folderId);
-    
+
     if (!folder) {
       throw new ApiError(404, [{ folder: "Folder not found" }]);
     }
-    
+
     if (folder.owner.toString() !== userId) {
       throw new ApiError(403, [
         { authentication: "You do not have permission to access this folder" },
       ]);
     }
-    
+
     // Check if any ancestor is deleted OR if the current folder itself is deleted
-    const hasDeletedAncestor = folder.deletedAt !== null || await this.hasDeletedAncestor(folderId);
+    const hasDeletedAncestor =
+      folder.deletedAt !== null || (await this.hasDeletedAncestor(folderId));
 
     return {
       ...this.sanitizeFolder(folder),
-      hasDeletedAncestor
+      hasDeletedAncestor,
     };
   }
 
@@ -259,7 +292,11 @@ class FolderService {
       }
     }
 
-    const existingFolder = await folderDao.findFolderByName(name, userId, parentId);
+    const existingFolder = await folderDao.findFolderByName(
+      name,
+      userId,
+      parentId
+    );
     return !!existingFolder;
   }
 
@@ -289,11 +326,17 @@ class FolderService {
     }
 
     // Check if a folder with the new name already exists
-    const existingFolder = await folderDao.findFolderByName(renameData.name, userId, folder.parent);
+    const existingFolder = await folderDao.findFolderByName(
+      renameData.name,
+      userId,
+      folder.parent
+    );
 
     if (existingFolder) {
       if (!duplicateAction) {
-        throw new ApiError(409, [{ name: "A folder with this name already exists" }]);
+        throw new ApiError(409, [
+          { name: "A folder with this name already exists" },
+        ]);
       }
 
       if (duplicateAction === "replace") {
@@ -365,11 +408,13 @@ class FolderService {
 
     if (existingFolder) {
       if (!moveData.duplicateAction) {
-        throw new ApiError(409, [{ 
-          name: `A folder with the name "${folder.name}" already exists in this location`,
-          type: "folder",
-          folderName: folder.name
-        }]);
+        throw new ApiError(409, [
+          {
+            name: `A folder with the name "${folder.name}" already exists in this location`,
+            type: "folder",
+            folderName: folder.name,
+          },
+        ]);
       }
 
       if (moveData.duplicateAction === "replace") {
@@ -382,17 +427,17 @@ class FolderService {
           userId,
           moveData.parent
         );
-        
+
         // Move the folder with the unique name
         const updatedFolder = await folderDao.moveFolder(folderId, {
           ...moveData,
           name: uniqueName,
         });
-        
+
         if (!updatedFolder) {
           throw new ApiError(404, [{ folder: "Folder not found" }]);
         }
-        
+
         return this.sanitizeFolder(updatedFolder);
       }
     }
@@ -470,7 +515,7 @@ class FolderService {
    * @returns Path segments to root
    */
   private async buildPathSegments(
-    folderId: string | null, 
+    folderId: string | null,
     userId: string
   ): Promise<PathSegment[]> {
     // If we're getting trash contents, use a different path
@@ -478,10 +523,10 @@ class FolderService {
       // If we're at root, return the root segment
       return [{ id: null, name: "Root" }];
     }
-    
+
     let currentFolder = await folderDao.getFolderById(folderId, true); // Include deleted folders
     logger.info("Initial folder:", currentFolder);
-    
+
     if (!currentFolder) {
       logger.info("Initial folder not found");
       return [{ id: null, name: "Root" }];
@@ -489,46 +534,48 @@ class FolderService {
 
     // Check if the current folder is deleted or has deleted ancestors
     const isDeleted = currentFolder.deletedAt !== null;
-    const hasDeletedAncestor = isDeleted || await this.hasDeletedAncestor(folderId);
-    
+    const hasDeletedAncestor =
+      isDeleted || (await this.hasDeletedAncestor(folderId));
+
     // If the folder or any of its ancestors is in trash, we should show Trash in the breadcrumb path
     if (isDeleted || hasDeletedAncestor) {
-      const pathSegments: PathSegment[] = [
-        { id: null, name: "Trash" }
-      ];
-      
+      const pathSegments: PathSegment[] = [{ id: null, name: "Trash" }];
+
       // For deleted folders, only show the folder itself without ancestors
       if (isDeleted) {
         pathSegments.push({
           id: currentFolder._id.toString(),
-          name: currentFolder.name
+          name: currentFolder.name,
         });
-        
+
         logger.info("Folder is in trash, path segments:", pathSegments);
         return pathSegments;
       }
 
       // For folders with deleted ancestors, create path starting from the Trash
       const folderSegments: PathSegment[] = [];
-      
+
       // Add the current folder
       folderSegments.unshift({
         id: currentFolder._id.toString(),
-        name: currentFolder.name
+        name: currentFolder.name,
       });
-      
+
       // Find the first deleted ancestor to represent the trash root
       let trashRootFolder = null;
       let tempFolder = currentFolder;
-      
+
       while (tempFolder && tempFolder.parent) {
         // Get parent folder
-        const parentId = typeof tempFolder.parent === 'string' ? 
-          tempFolder.parent : 
-          (tempFolder.parent._id ? tempFolder.parent._id.toString() : tempFolder.parent.toString());
-        
+        const parentId =
+          typeof tempFolder.parent === "string"
+            ? tempFolder.parent
+            : tempFolder.parent._id
+              ? tempFolder.parent._id.toString()
+              : tempFolder.parent.toString();
+
         const parentFolder = await folderDao.getFolderById(parentId, true);
-        
+
         if (!parentFolder) {
           break;
         }
@@ -538,59 +585,61 @@ class FolderService {
           trashRootFolder = parentFolder;
           break;
         }
-        
+
         // Add this ancestor to the path and continue up
         folderSegments.unshift({
           id: parentFolder._id.toString(),
-          name: parentFolder.name
+          name: parentFolder.name,
         });
-        
+
         tempFolder = parentFolder;
       }
-      
+
       // Add the trash root folder if found
       if (trashRootFolder) {
         pathSegments.push({
           id: trashRootFolder._id.toString(),
-          name: trashRootFolder.name
+          name: trashRootFolder.name,
         });
       }
-      
+
       // Add the rest of the folders
       const finalPath = [...pathSegments, ...folderSegments];
       logger.info("Final trash path segments:", finalPath);
       return finalPath;
     }
-    
+
     // Regular case: folder is not in trash
-    const pathSegments: PathSegment[] = [
-      { id: null, name: "Root" }
-    ];
-    
+    const pathSegments: PathSegment[] = [{ id: null, name: "Root" }];
+
     const folderSegments: PathSegment[] = [];
-    
+
     // Build the path by traversing up the folder hierarchy
     while (currentFolder) {
       logger.info("Current folder in path:", {
         id: currentFolder._id.toString(),
         name: currentFolder.name,
-        parent: currentFolder.parent
+        parent: currentFolder.parent,
       });
-      
+
       // Add the current folder to segments
       folderSegments.unshift({
         id: currentFolder._id.toString(),
-        name: currentFolder.name
+        name: currentFolder.name,
       });
-      
+
       // If no parent, we've reached the root
       if (!currentFolder.parent) {
         logger.info("Reached root folder");
         break;
       }
-      
+
       // If parent is populated (an object), use it directly
-      if (typeof currentFolder.parent === 'object' && currentFolder.parent !== null && 'name' in currentFolder.parent) {
+      if (
+        typeof currentFolder.parent === "object" &&
+        currentFolder.parent !== null &&
+        "name" in currentFolder.parent
+      ) {
         // Cast to unknown first to avoid type errors
         currentFolder = currentFolder.parent as unknown as IFolder;
       } else {
@@ -599,14 +648,14 @@ class FolderService {
         logger.info("Getting parent folder:", parentId);
         currentFolder = await folderDao.getFolderById(parentId, true);
       }
-      
+
       // If parent doesn't exist, stop traversing
       if (!currentFolder) {
         logger.info("Parent folder not found");
         break;
       }
     }
-    
+
     // Combine the root segment with folder segments
     const finalPath = [...pathSegments, ...folderSegments];
     logger.info("Final path segments:", finalPath);
@@ -636,7 +685,7 @@ class FolderService {
         { authorization: "You do not have permission to access this folder" },
       ]);
     }
-    
+
     // macOS behavior: Only move the folder itself to trash, not its contents
     // The contents remain nested inside the folder and will only appear in trash
     // if they were deleted separately before the parent folder was deleted
@@ -663,24 +712,29 @@ class FolderService {
     } catch (error) {
       // If folder is not found during bulk delete, it may have already been deleted
       if (error instanceof ApiError && error.statusCode === 404) {
-        logger.info(`Folder ${folderId} not found during permanent delete - may already be deleted`);
+        logger.info(
+          `Folder ${folderId} not found during permanent delete - may already be deleted`
+        );
         return; // Exit gracefully since folder is already gone
       }
       // Re-throw other errors (like permission errors)
       throw error;
     }
-    
+
     if (!folder) {
       // Folder doesn't exist, nothing to delete
       return;
     }
 
     // Get all descendant folders recursively
-    const descendantFolderIds = await folderDao.getAllDescendantFolders(folderId, true);
-    
+    const descendantFolderIds = await folderDao.getAllDescendantFolders(
+      folderId,
+      true
+    );
+
     // Include the target folder itself
     const allFolderIds = [folderId, ...descendantFolderIds];
-    
+
     // For each folder (including target and descendants):
     // 1. Get all files in the folder
     // 2. Delete files from storage and DB
@@ -688,13 +742,17 @@ class FolderService {
     for (const curFolderId of allFolderIds) {
       try {
         // Get all files in this folder
-        const files = await fileService.getUserFilesByFolders(userId, curFolderId, true);
-        
+        const files = await fileService.getUserFilesByFolders(
+          userId,
+          curFolderId,
+          true
+        );
+
         // Delete each file (both storage and DB)
         for (const file of files) {
           await fileService.permanentDeleteFile(file.id, userId);
         }
-        
+
         // Delete the folder from DB
         const result = await folderDao.permanentDeleteFolder(curFolderId);
         if (!result) {
@@ -739,9 +797,12 @@ class FolderService {
     if (folder.parent) {
       try {
         // Get the parent ID correctly, handling both string and object cases
-        const parentId = typeof folder.parent === 'string' ? 
-          folder.parent : 
-          (folder.parent._id ? folder.parent._id.toString() : folder.parent.toString());
+        const parentId =
+          typeof folder.parent === "string"
+            ? folder.parent
+            : folder.parent._id
+              ? folder.parent._id.toString()
+              : folder.parent.toString();
 
         // Include deleted folders in the search to properly check the parent's state
         const parentFolder = await folderDao.getFolderById(parentId, true);
@@ -749,31 +810,41 @@ class FolderService {
           folderId,
           parentId,
           parentExists: !!parentFolder,
-          parentDeletedAt: parentFolder?.deletedAt
+          parentDeletedAt: parentFolder?.deletedAt,
         });
-        
+
         if (!parentFolder || parentFolder.deletedAt !== null) {
-          // macOS behavior: If original parent doesn't exist or is deleted, 
+          // macOS behavior: If original parent doesn't exist or is deleted,
           // prevent restoration with error message
-          throw new ApiError(400, [{ 
-            folder: `Cannot restore '${folder.name}' because the original location no longer exists or has been moved to Trash.` 
-          }]);
+          throw new ApiError(400, [
+            {
+              folder: `Cannot restore '${folder.name}' because the original location no longer exists or has been moved to Trash.`,
+            },
+          ]);
         }
       } catch (error) {
         if (error instanceof ApiError) {
           throw error; // Re-throw our custom error
         }
         // If there's an unexpected error checking the parent, prevent restoration
-        logger.error(`Error checking parent folder ${folder.parent} for folder ${folderId}:`, error);
-        throw new ApiError(400, [{ 
-          folder: `Cannot restore '${folder.name}' because the original location cannot be verified.` 
-        }]);
+        logger.error(
+          `Error checking parent folder ${folder.parent} for folder ${folderId}:`,
+          error
+        );
+        throw new ApiError(400, [
+          {
+            folder: `Cannot restore '${folder.name}' because the original location cannot be verified.`,
+          },
+        ]);
       }
     }
 
     // Restore the folder to its original location
     // Note: We don't automatically restore child folders/files - they must be restored separately
-    const restoredFolder = await folderDao.restoreDeletedFolder(folderId, shouldMoveToRoot);
+    const restoredFolder = await folderDao.restoreDeletedFolder(
+      folderId,
+      shouldMoveToRoot
+    );
 
     if (!restoredFolder) {
       throw new ApiError(500, [{ folder: "Failed to restore folder" }]);
@@ -800,13 +871,20 @@ class FolderService {
     // For each deleted folder, delete it and all its descendants (like permanentDeleteFolder does)
     for (const folder of deletedFolders) {
       const folderId = folder._id.toString();
-      
+
       // Get all descendant folders (including those without deletedAt)
-      const descendants = await folderDao.getAllDescendantFolders(folderId, true);
+      const descendants = await folderDao.getAllDescendantFolders(
+        folderId,
+        true
+      );
 
       // Delete all files in this folder and descendant folders
       for (const descendantId of [...descendants, folderId]) {
-        const files = await fileService.getUserFilesByFolders(userId, descendantId, true); // Include deleted files
+        const files = await fileService.getUserFilesByFolders(
+          userId,
+          descendantId,
+          true
+        ); // Include deleted files
         for (const file of files) {
           try {
             totalSizeFreed += file.size;
@@ -854,39 +932,41 @@ class FolderService {
   async getTrashContents(userId: string): Promise<FolderResponseWithFilesDto> {
     // Get all deleted folders for this user
     const allDeletedFolders = await folderDao.getUserDeletedFolders(userId);
-    
+
     // Get all deleted files for this user
     const allDeletedFiles = await fileService.getAllDeletedFiles(userId);
 
     // macOS behavior: Show flat list of deleted items
     // Only show items that were directly deleted, not items that became inaccessible
     // due to parent folder deletion
-    
+
     // For folders: only show folders that were explicitly deleted
     // (not folders that became unreachable due to parent deletion)
-    const directlyDeletedFolders = allDeletedFolders.filter(folder => {
+    const directlyDeletedFolders = allDeletedFolders.filter((folder) => {
       // A folder is "directly deleted" if it has a deletedAt timestamp
       return folder.deletedAt !== null;
     });
 
     // For files: only show files that were explicitly deleted
     // (not files that became unreachable due to folder deletion)
-    const directlyDeletedFiles = allDeletedFiles.filter(file => {
+    const directlyDeletedFiles = allDeletedFiles.filter((file) => {
       // A file is "directly deleted" if it has a deletedAt timestamp
       return file.deletedAt !== null;
     });
 
     // Get item counts for all deleted folders
-    const itemsMap = await folderDao.getFolderCounts(directlyDeletedFolders.map(f => f._id.toString()));
+    const itemsMap = await folderDao.getFolderCounts(
+      directlyDeletedFolders.map((f) => f._id.toString())
+    );
 
     // Return flat list - no hierarchy in trash
     return {
       folders: directlyDeletedFolders.map((folder) => ({
         ...this.sanitizeFolder(folder),
-        items: itemsMap.get(folder._id.toString()) || 0
+        items: itemsMap.get(folder._id.toString()) || 0,
       })),
       files: directlyDeletedFiles,
-      pathSegments: [{ id: null, name: "Trash" }]
+      pathSegments: [{ id: null, name: "Trash" }],
     };
   }
 
@@ -898,38 +978,53 @@ class FolderService {
    * @returns Pinned files and folders in flat list
    */
   async getPinContents(
-    userId: string, 
-    offset: number = 0, 
+    userId: string,
+    offset: number = 0,
     limit: number = 10
   ): Promise<PaginatedPinContentsDto> {
     // Get pinned folders for this user
-    const allPinnedFolders = await folderDao.getUserFolders(userId, undefined, false);
-    const pinnedFolders = allPinnedFolders.filter(folder => folder.isPinned);
-    
+    const allPinnedFolders = await folderDao.getUserFolders(
+      userId,
+      undefined,
+      false
+    );
+    const pinnedFolders = allPinnedFolders.filter((folder) => folder.isPinned);
+
     // Get pinned files for this user
-    const allPinnedFiles = await fileService.getUserFilesByFolders(userId, undefined, false);
-    const pinnedFiles = allPinnedFiles.filter(file => file.isPinned);
+    const allPinnedFiles = await fileService.getUserFilesByFolders(
+      userId,
+      undefined,
+      false
+    );
+    const pinnedFiles = allPinnedFiles.filter((file) => file.isPinned);
 
     // Combine and sort by updatedAt (most recent first)
     const allPinnedItems = [
-      ...pinnedFolders.map(folder => ({ ...this.sanitizeFolder(folder), itemType: 'folder' as const, updatedAt: folder.updatedAt })),
-      ...pinnedFiles.map(file => ({ ...file, itemType: 'file' as const }))
-    ].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      ...pinnedFolders.map((folder) => ({
+        ...this.sanitizeFolder(folder),
+        itemType: "folder" as const,
+        updatedAt: folder.updatedAt,
+      })),
+      ...pinnedFiles.map((file) => ({ ...file, itemType: "file" as const })),
+    ].sort(
+      (a, b) =>
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    );
 
     // Apply pagination
     const paginatedItems = allPinnedItems.slice(offset, offset + limit);
 
     // Separate back into folders and files
     const resultFolders = paginatedItems
-      .filter(item => item.itemType === 'folder')
-      .map(item => {
+      .filter((item) => item.itemType === "folder")
+      .map((item) => {
         const { itemType, ...folder } = item;
         return folder;
       });
-    
+
     const resultFiles = paginatedItems
-      .filter(item => item.itemType === 'file')
-      .map(item => {
+      .filter((item) => item.itemType === "file")
+      .map((item) => {
         const { itemType, ...file } = item;
         return file;
       });
@@ -939,7 +1034,7 @@ class FolderService {
       files: resultFiles,
       pathSegments: [{ id: null, name: "Pinned" }],
       totalCount: allPinnedItems.length,
-      hasMore: offset + limit < allPinnedItems.length
+      hasMore: offset + limit < allPinnedItems.length,
     };
   }
 
@@ -954,7 +1049,11 @@ class FolderService {
     parentId?: string | null,
     includeDeleted: boolean = false
   ): Promise<FolderResponseDto[]> {
-    const folders = await folderDao.getUserFolders(userId, parentId, includeDeleted);
+    const folders = await folderDao.getUserFolders(
+      userId,
+      parentId,
+      includeDeleted
+    );
     return folders.map((folder) => this.sanitizeFolder(folder));
   }
 
@@ -989,19 +1088,23 @@ class FolderService {
     startDate: string,
     endDate: string
   ): Promise<{ date: string; count: number }[]> {
+    const analytics = await folderDao.getFolderCreationAnalytics(
+      startDate,
+      endDate
+    );
 
-    const analytics = await folderDao.getFolderCreationAnalytics(startDate, endDate);
-    
     // Return empty array instead of throwing error when no data found
     // This is better UX - no data is a valid state, not an error
     if (!analytics || analytics.length === 0) {
-      logger.debug(`No folder creation analytics found for date range ${startDate} to ${endDate}`);
+      logger.debug(
+        `No folder creation analytics found for date range ${startDate} to ${endDate}`
+      );
       return [];
     }
 
-    return analytics.map(item => ({
+    return analytics.map((item) => ({
       date: item.date,
-      count: item.count
+      count: item.count,
     }));
   }
 
@@ -1043,12 +1146,18 @@ class FolderService {
 
       if (targetFolder.owner.toString() !== userId) {
         throw new ApiError(403, [
-          { authorization: "You do not have permission to access the target folder" },
+          {
+            authorization:
+              "You do not have permission to access the target folder",
+          },
         ]);
       }
 
       // Prevent moving folder into itself or its descendants
-      const descendants = await folderDao.getAllDescendantFolders(folderId, true);
+      const descendants = await folderDao.getAllDescendantFolders(
+        folderId,
+        true
+      );
       if (newParentId === folderId || descendants.includes(newParentId)) {
         throw new ApiError(400, [
           { folder: "Cannot move a folder into itself or its descendants" },
@@ -1057,13 +1166,19 @@ class FolderService {
     }
 
     // Restore the folder and move it to the new location in one operation
-    const restoredFolder = await folderDao.restoreDeletedFolder(folderId, false);
+    const restoredFolder = await folderDao.restoreDeletedFolder(
+      folderId,
+      false
+    );
     if (!restoredFolder) {
       throw new ApiError(500, [{ folder: "Failed to restore folder" }]);
     }
 
     // Update the parent
-    const movedFolder = await folderDao.moveFolder(folderId, { parent: newParentId, name: folder.name });
+    const movedFolder = await folderDao.moveFolder(folderId, {
+      parent: newParentId,
+      name: folder.name,
+    });
     if (!movedFolder) {
       throw new ApiError(500, [{ folder: "Failed to move folder" }]);
     }
@@ -1078,24 +1193,27 @@ class FolderService {
    */
   async hasDeletedAncestor(folderId: string): Promise<boolean> {
     let currentFolder = await folderDao.getFolderById(folderId, true);
-    
+
     while (currentFolder && currentFolder.parent) {
       // Get parent folder first
-      const parentId = typeof currentFolder.parent === 'string' ? 
-        currentFolder.parent : 
-        (currentFolder.parent._id ? currentFolder.parent._id.toString() : currentFolder.parent.toString());
-      
+      const parentId =
+        typeof currentFolder.parent === "string"
+          ? currentFolder.parent
+          : currentFolder.parent._id
+            ? currentFolder.parent._id.toString()
+            : currentFolder.parent.toString();
+
       const parentFolder = await folderDao.getFolderById(parentId, true);
-      
+
       // If parent doesn't exist or is deleted, return true
       if (!parentFolder || parentFolder.deletedAt !== null) {
         return true;
       }
-      
+
       // Move up to parent for next iteration
       currentFolder = parentFolder;
     }
-    
+
     return false;
   }
 
@@ -1105,13 +1223,17 @@ class FolderService {
    * @param searchParams - Search parameters
    * @returns Search results
    */
-  async searchContents(userId: string, searchParams: SearchContentsDto): Promise<FolderResponseWithFilesDto> {
-    const { query, itemType, fileTypes, isPinned, dateFrom, dateTo } = searchParams;
-    
+  async searchContents(
+    userId: string,
+    searchParams: SearchContentsDto
+  ): Promise<FolderResponseWithFilesDto> {
+    const { query, itemType, fileTypes, colors, isPinned, dateFrom, dateTo } =
+      searchParams;
+
     // Convert date strings to Date objects
     const dateFromObj = dateFrom ? new Date(dateFrom) : undefined;
     const dateToObj = dateTo ? new Date(dateTo) : undefined;
-    
+
     let folders: FolderResponseDto[] = [];
     let files: any[] = [];
     let pathSegments: PathSegment[] = [];
@@ -1125,10 +1247,11 @@ class FolderService {
         userId,
         query,
         isPinned,
+        colors,
         dateFromObj,
         dateToObj
       );
-      folders = folderResults.map(folder => this.sanitizeFolder(folder));
+      folders = folderResults.map((folder) => this.sanitizeFolder(folder));
     }
 
     // Search files (unless itemType is specifically "folder")
@@ -1146,7 +1269,7 @@ class FolderService {
     return {
       folders,
       files,
-      pathSegments
+      pathSegments,
     };
   }
 
@@ -1155,10 +1278,12 @@ class FolderService {
    * @param userId - Target user
    * @returns All folders for the user
    */
-  private async getAllUserFolders(userId: string): Promise<FolderResponseDto[]> {
+  private async getAllUserFolders(
+    userId: string
+  ): Promise<FolderResponseDto[]> {
     // Get all non-deleted folders for the user
     const allFolders = await folderDao.getUserFolders(userId, undefined, false);
-    return allFolders.map(folder => this.sanitizeFolder(folder));
+    return allFolders.map((folder) => this.sanitizeFolder(folder));
   }
 }
 

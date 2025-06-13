@@ -5,14 +5,14 @@
  */
 export function formatFileSize(bytes: number | string): string {
   // Convert to number if it's a string
-  const size = typeof bytes === 'string' ? parseFloat(bytes) : bytes;
-  
-  if (isNaN(size)) return '0 B';
-  
-  if (size < 1024) return size + ' B';
-  else if (size < 1048576) return (size / 1024).toFixed(2) + ' KB';
-  else if (size < 1073741824) return (size / 1048576).toFixed(2) + ' MB';
-  else return (size / 1073741824).toFixed(2) + ' GB';
+  const size = typeof bytes === "string" ? parseFloat(bytes) : bytes;
+
+  if (isNaN(size)) return "0 B";
+
+  if (size < 1024) return size + " B";
+  else if (size < 1048576) return (size / 1024).toFixed(2) + " KB";
+  else if (size < 1073741824) return (size / 1048576).toFixed(2) + " MB";
+  else return (size / 1073741824).toFixed(2) + " GB";
 }
 
 /**
@@ -21,8 +21,8 @@ export function formatFileSize(bytes: number | string): string {
  * @returns Formatted string like "3 items" or "1 item"
  */
 export function formatChildCount(count: number): string {
-  if (count === 0) return 'Empty';
-  return `${count} ${count === 1 ? 'item' : 'items'}`;
+  if (count === 0) return "Empty";
+  return `${count} ${count === 1 ? "item" : "items"}`;
 }
 
 /**
@@ -30,8 +30,12 @@ export function formatChildCount(count: number): string {
  * @param item The file system item with cardType and counts
  * @returns Formatted string representation of the count
  */
-export function formatItemCount(item: { cardType: 'folder' | 'document', childCount?: number, byteCount?: number }): string {
-  if (item.cardType === 'folder') {
+export function formatItemCount(item: {
+  cardType: "folder" | "document";
+  childCount?: number;
+  byteCount?: number;
+}): string {
+  if (item.cardType === "folder") {
     return formatChildCount(item.childCount || 0);
   } else {
     return formatFileSize(item.byteCount || 0);
@@ -44,8 +48,11 @@ export function formatItemCount(item: { cardType: 'folder' | 'document', childCo
  * @param withTime Whether to include the time part
  * @returns Formatted human-friendly date
  */
-export function formatDate(date: string | Date | null | undefined, withTime = false): string {
-  if (!date) return '';
+export function formatDate(
+  date: string | Date | null | undefined,
+  withTime = false
+): string {
+  if (!date) return "";
   const d = new Date(date);
   const now = new Date();
 
@@ -55,34 +62,33 @@ export function formatDate(date: string | Date | null | undefined, withTime = fa
   yesterday.setDate(now.getDate() - 1);
   const isYesterday = d.toDateString() === yesterday.toDateString();
 
-  const timeString = d.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit'
+  const timeString = d.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
   });
 
   if (isToday) {
-    return withTime ? `Today at ${timeString}` : 'Today';
+    return withTime ? `Today at ${timeString}` : "Today";
   } else if (isYesterday) {
-    return withTime ? `Yesterday at ${timeString}` : 'Yesterday';
+    return withTime ? `Yesterday at ${timeString}` : "Yesterday";
   } else {
-    const dateString = d.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    const dateString = d.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
     return withTime ? `${dateString} at ${timeString}` : dateString;
   }
 }
 
-
 // Helper function to format date to YYYY-MM-DD without timezone issues
 export function formatDateString(dateString: string | Date): string {
-  const date = new Date(dateString)
+  const date = new Date(dateString);
 
-  const year = date.toLocaleString('default', { year: 'numeric' })
-  const month = date.toLocaleString('default', { month: '2-digit' })
-  const day = date.toLocaleString('default', { day: '2-digit' })
+  const year = date.toLocaleString("default", { year: "numeric" });
+  const month = date.toLocaleString("default", { month: "2-digit" });
+  const day = date.toLocaleString("default", { day: "2-digit" });
 
   // Generate yyyy-mm-dd date string
-  return year + '-' + month + '-' + day
+  return year + "-" + month + "-" + day;
 }

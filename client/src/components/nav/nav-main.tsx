@@ -64,11 +64,15 @@ export function NavMain({
       <SidebarMenu>
         {items.map((item) => {
           const isActive = !!matchRoute({ to: item.url, fuzzy: true });
-          
+
           return (
             <Collapsible key={item.title} asChild defaultOpen={isActive}>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip={item.title} isActive={isActive}>
+                <SidebarMenuButton
+                  asChild
+                  tooltip={item.title}
+                  isActive={isActive}
+                >
                   <Link to={item.url}>
                     <item.icon />
                     <span>{item.title}</span>

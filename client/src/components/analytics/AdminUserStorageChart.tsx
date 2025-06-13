@@ -1,5 +1,3 @@
-"use client";
-
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
 
 import { useUserStorageConsumptionAnalytics } from "@/api/analytics/analytics.query";
@@ -50,12 +48,12 @@ const chartConfig = {
 const transformDataForChart = (data: UserStorageConsumptionAnalyticsItem[]) => {
   const colorMap: Record<string, string> = {
     "0%": "var(--chart-1)",
-    "25%": "var(--chart-2)", 
+    "25%": "var(--chart-2)",
     "50%": "var(--chart-3)",
     "75%": "var(--chart-4)",
     "100%": "var(--chart-5)",
   };
-  
+
   return data.map((item) => ({
     storage: item.label,
     count: item.count,
@@ -72,7 +70,9 @@ export function AdminUserStorageChart() {
       <Card className="flex flex-col">
         <CardHeader className="items-center pb-0">
           <CardTitle>User Storage Consumption</CardTitle>
-          <CardDescription>Distribution by storage usage percentage</CardDescription>
+          <CardDescription>
+            Distribution by storage usage percentage
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex-1 pb-0">
           <div className="flex h-[250px] items-center justify-center text-muted-foreground">
@@ -87,8 +87,8 @@ export function AdminUserStorageChart() {
   const totalUsers = chartData.reduce((acc, curr) => acc + curr.count, 0);
 
   // Find the category with the most users
-  const maxCategory = chartData.reduce((max, item) => 
-    item.count > max.count ? item : max, 
+  const maxCategory = chartData.reduce(
+    (max, item) => (item.count > max.count ? item : max),
     chartData[0]
   );
 

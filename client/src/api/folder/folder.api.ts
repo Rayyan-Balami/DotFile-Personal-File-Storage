@@ -60,13 +60,15 @@ const folderApi = {
     itemType?: string;
     fileTypes?: string[];
     isPinned?: boolean;
+    colors?: string[];
     dateFrom?: string;
     dateTo?: string;
   }) => {
-    // Convert fileTypes array to comma-separated string for query params
+    // Convert arrays to comma-separated strings for query params
     const searchParams = {
       ...params,
-      fileTypes: params.fileTypes?.join(',')
+      fileTypes: params.fileTypes?.join(","),
+      colors: params.colors?.join(","),
     };
     return API.get("/folders/search/contents", { params: searchParams });
   },

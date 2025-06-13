@@ -34,17 +34,17 @@ export class UserDAO {
   ): Promise<IUser | null> {
     if (!mongoose.Types.ObjectId.isValid(userId)) return null;
     const { includeRefreshToken = false, deletedAt = false } = options;
-    
+
     const query = User.findOne({
       _id: userId,
       ...(deletedAt ? {} : { deletedAt: null }),
     });
-    
+
     // Either exclude refreshToken or include all fields
     if (includeRefreshToken) {
       query.select("+refreshToken");
     }
-    
+
     return await query;
   }
 
@@ -64,7 +64,7 @@ export class UserDAO {
       email,
       ...(deletedAt ? {} : { deletedAt: null }),
     });
-    
+
     // Either exclude password or include it, but don't restrict other fields
     if (includePassword) {
       query.select("+password");
@@ -198,9 +198,7 @@ export class UserDAO {
    * @param userId - User's MongoDB ID
    * @returns Updated user or null
    */
-  async clearUserRefreshToken(
-    userId: string
-  ): Promise<IUser | null> {
+  async clearUserRefreshToken(userId: string): Promise<IUser | null> {
     if (!mongoose.Types.ObjectId.isValid(userId)) return null;
     return await User.findOneAndUpdate(
       { _id: userId },
@@ -215,10 +213,7 @@ export class UserDAO {
    * @param role - New role to assign
    * @returns Updated user or null
    */
-  async updateUserRole(
-    userId: string,
-    role: UserRole
-  ): Promise<IUser | null> {
+  async updateUserRole(userId: string, role: UserRole): Promise<IUser | null> {
     if (!mongoose.Types.ObjectId.isValid(userId)) return null;
     return await User.findOneAndUpdate(
       { _id: userId, deletedAt: null },
@@ -265,12 +260,12 @@ export class UserDAO {
     page: number;
     pageSize: number;
     sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
+    sortOrder?: "asc" | "desc";
     search?: string;
     searchFields?: string[];
     filters?: {
       role?: string;
-      status?: 'active' | 'deleted';
+      status?: "active" | "deleted";
       includeDeleted?: boolean;
     };
     dateRanges?: {
@@ -287,21 +282,21 @@ export class UserDAO {
     const {
       page,
       pageSize,
-      sortBy = 'createdAt',
-      sortOrder = 'desc',
+      sortBy = "createdAt",
+      sortOrder = "desc",
       search,
-      searchFields = ['name', 'email'],
+      searchFields = ["name", "email"],
       filters = {},
-      dateRanges = {}
+      dateRanges = {},
     } = options;
 
     // Build match stage for aggregation
     const matchStage: any = {};
 
     // Handle deleted users filter
-    if (filters.status === 'deleted') {
+    if (filters.status === "deleted") {
       matchStage.deletedAt = { $ne: null };
-    } else if (filters.status === 'active') {
+    } else if (filters.status === "active") {
       matchStage.deletedAt = null;
     }
 
@@ -313,12 +308,12 @@ export class UserDAO {
     // Handle date range filtering for createdAt
     if (dateRanges.createdAtStart || dateRanges.createdAtEnd) {
       matchStage.createdAt = {};
-      
+
       if (dateRanges.createdAtStart) {
         const startDate = new Date(dateRanges.createdAtStart);
         matchStage.createdAt.$gte = startDate;
       }
-      
+
       if (dateRanges.createdAtEnd) {
         const endDate = new Date(dateRanges.createdAtEnd);
         // Add 23:59:59.999 to include the entire end date
@@ -329,15 +324,15 @@ export class UserDAO {
 
     // Handle search
     if (search && searchFields.length > 0) {
-      const searchRegex = new RegExp(search, 'i');
-      matchStage.$or = searchFields.map(field => ({
-        [field]: searchRegex
+      const searchRegex = new RegExp(search, "i");
+      matchStage.$or = searchFields.map((field) => ({
+        [field]: searchRegex,
       }));
     }
 
     // Build sort stage
     const sortStage: any = {};
-    sortStage[sortBy] = sortOrder === 'asc' ? 1 : -1;
+    sortStage[sortBy] = sortOrder === "asc" ? 1 : -1;
 
     // Calculate skip value
     const skip = (page - 1) * pageSize;
@@ -347,16 +342,10 @@ export class UserDAO {
       { $match: matchStage },
       {
         $facet: {
-          data: [
-            { $sort: sortStage },
-            { $skip: skip },
-            { $limit: pageSize }
-          ],
-          totalCount: [
-            { $count: "count" }
-          ]
-        }
-      }
+          data: [{ $sort: sortStage }, { $skip: skip }, { $limit: pageSize }],
+          totalCount: [{ $count: "count" }],
+        },
+      },
     ];
 
     const result = await User.aggregate(pipeline);
@@ -369,7 +358,7 @@ export class UserDAO {
       totalItems,
       totalPages,
       hasNextPage: page < totalPages,
-      hasPreviousPage: page > 1
+      hasPreviousPage: page > 1,
     };
   }
 
@@ -398,10 +387,13 @@ export class UserDAO {
    * @param endDate - End date for counting users
    * @returns Number of users created in the date range
    */
-  async getUserCountByDateRange(startDate: Date, endDate: Date): Promise<number> {
+  async getUserCountByDateRange(
+    startDate: Date,
+    endDate: Date
+  ): Promise<number> {
     return await User.countDocuments({
       createdAt: { $gte: startDate, $lt: endDate },
-      deletedAt: null
+      deletedAt: null,
     });
   }
 
@@ -411,29 +403,32 @@ export class UserDAO {
    * @param endDate - End date for counting active users
    * @returns Number of active users in the date range
    */
-  async getActiveUsersCountByDateRange(startDate: Date, endDate: Date): Promise<number> {
+  async getActiveUsersCountByDateRange(
+    startDate: Date,
+    endDate: Date
+  ): Promise<number> {
     const result = await User.aggregate([
       {
         $lookup: {
           from: "files",
           localField: "_id",
           foreignField: "owner",
-          as: "files"
-        }
+          as: "files",
+        },
       },
       {
         $match: {
           deletedAt: null,
           "files.createdAt": { $gte: startDate, $lt: endDate },
-          "files.deletedAt": null
-        }
+          "files.deletedAt": null,
+        },
       },
       {
         $group: {
           _id: null,
-          count: { $sum: 1 }
-        }
-      }
+          count: { $sum: 1 },
+        },
+      },
     ]);
 
     return result[0]?.count || 0;
@@ -443,7 +438,9 @@ export class UserDAO {
    * Get user storage consumption distribution
    * @returns Array of storage consumption categories with user counts
    */
-  async getUserStorageConsumption(): Promise<{ category: string; count: number }[]> {
+  async getUserStorageConsumption(): Promise<
+    { category: string; count: number }[]
+  > {
     const result = await User.aggregate([
       {
         $addFields: {
@@ -454,12 +451,12 @@ export class UserDAO {
               else: {
                 $multiply: [
                   { $divide: ["$storageUsed", "$maxStorageLimit"] },
-                  100
-                ]
-              }
-            }
-          }
-        }
+                  100,
+                ],
+              },
+            },
+          },
+        },
       },
       {
         $addFields: {
@@ -467,34 +464,58 @@ export class UserDAO {
             $switch: {
               branches: [
                 { case: { $eq: ["$storagePercentage", 0] }, then: "0%" },
-                { case: { $and: [{ $gt: ["$storagePercentage", 0] }, { $lte: ["$storagePercentage", 25] }] }, then: "25%" },
-                { case: { $and: [{ $gt: ["$storagePercentage", 25] }, { $lte: ["$storagePercentage", 50] }] }, then: "50%" },
-                { case: { $and: [{ $gt: ["$storagePercentage", 50] }, { $lte: ["$storagePercentage", 75] }] }, then: "75%" },
-                { case: { $gt: ["$storagePercentage", 75] }, then: "100%" }
+                {
+                  case: {
+                    $and: [
+                      { $gt: ["$storagePercentage", 0] },
+                      { $lte: ["$storagePercentage", 25] },
+                    ],
+                  },
+                  then: "25%",
+                },
+                {
+                  case: {
+                    $and: [
+                      { $gt: ["$storagePercentage", 25] },
+                      { $lte: ["$storagePercentage", 50] },
+                    ],
+                  },
+                  then: "50%",
+                },
+                {
+                  case: {
+                    $and: [
+                      { $gt: ["$storagePercentage", 50] },
+                      { $lte: ["$storagePercentage", 75] },
+                    ],
+                  },
+                  then: "75%",
+                },
+                { case: { $gt: ["$storagePercentage", 75] }, then: "100%" },
               ],
-              default: "0%"
-            }
-          }
-        }
+              default: "0%",
+            },
+          },
+        },
       },
       {
         $group: {
           _id: "$category",
-          count: { $sum: 1 }
-        }
+          count: { $sum: 1 },
+        },
       },
       {
         $project: {
           _id: 0,
           category: "$_id",
-          count: 1
-        }
+          count: 1,
+        },
       },
       {
         $sort: {
-          category: 1
-        }
-      }
+          category: 1,
+        },
+      },
     ]);
 
     return result;
@@ -504,7 +525,9 @@ export class UserDAO {
    * Get user registrations by month for the current year
    * @returns Array of monthly user registration counts for current year
    */
-  async getMonthlyUserRegistrations(): Promise<{ month: string; count: number }[]> {
+  async getMonthlyUserRegistrations(): Promise<
+    { month: string; count: number }[]
+  > {
     const currentYear = new Date().getFullYear();
     const startOfYear = new Date(currentYear, 0, 1);
     const endOfYear = new Date(currentYear + 1, 0, 1);
@@ -513,38 +536,50 @@ export class UserDAO {
       {
         $match: {
           createdAt: { $gte: startOfYear, $lt: endOfYear },
-          deletedAt: null
-        }
+          deletedAt: null,
+        },
       },
       {
         $group: {
           _id: { $month: "$createdAt" },
-          count: { $sum: 1 }
-        }
+          count: { $sum: 1 },
+        },
       },
       {
         $project: {
           _id: 0,
           monthNumber: "$_id",
-          count: 1
-        }
+          count: 1,
+        },
       },
       {
-        $sort: { monthNumber: 1 }
-      }
+        $sort: { monthNumber: 1 },
+      },
     ]);
 
     // Create a complete array with all 12 months (abbreviated)
     const months = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
     ];
 
     const completeResult = months.map((month, index) => {
-      const existingMonth = result.find(item => item.monthNumber === index + 1);
+      const existingMonth = result.find(
+        (item) => item.monthNumber === index + 1
+      );
       return {
         month,
-        count: existingMonth ? existingMonth.count : 0
+        count: existingMonth ? existingMonth.count : 0,
       };
     });
 
@@ -579,32 +614,34 @@ export class UserDAO {
 
     try {
       // Use bulkWrite for atomic operations
-      const bulkOps = validIds.map(userId => ({
+      const bulkOps = validIds.map((userId) => ({
         updateOne: {
           filter: { _id: userId, deletedAt: null },
-          update: { deletedAt: new Date() }
-        }
+          update: { deletedAt: new Date() },
+        },
       }));
 
       const bulkResult = await User.bulkWrite(bulkOps);
-      
+
       // Get the successfully updated users
       if (bulkResult.modifiedCount > 0) {
         const updatedUsers = await User.find({
           _id: { $in: validIds },
-          deletedAt: { $ne: null }
+          deletedAt: { $ne: null },
         });
         successful.push(...updatedUsers);
       }
 
       // Identify failed operations
-      const successfulIds = successful.map(user => user._id.toString());
-      const failedIds = validIds.filter(id => !successfulIds.includes(id));
-      
-      for (const failedId of failedIds) {
-        failed.push({ id: failedId, error: "User not found or already deleted" });
-      }
+      const successfulIds = successful.map((user) => user._id.toString());
+      const failedIds = validIds.filter((id) => !successfulIds.includes(id));
 
+      for (const failedId of failedIds) {
+        failed.push({
+          id: failedId,
+          error: "User not found or already deleted",
+        });
+      }
     } catch (error) {
       // If bulk operation fails, fall back to marking all as failed
       for (const userId of validIds) {
@@ -643,32 +680,31 @@ export class UserDAO {
 
     try {
       // Use bulkWrite for atomic operations
-      const bulkOps = validIds.map(userId => ({
+      const bulkOps = validIds.map((userId) => ({
         updateOne: {
           filter: { _id: userId, deletedAt: { $ne: null } },
-          update: { deletedAt: null }
-        }
+          update: { deletedAt: null },
+        },
       }));
 
       const bulkResult = await User.bulkWrite(bulkOps);
-      
+
       // Get the successfully updated users
       if (bulkResult.modifiedCount > 0) {
         const updatedUsers = await User.find({
           _id: { $in: validIds },
-          deletedAt: null
+          deletedAt: null,
         });
         successful.push(...updatedUsers);
       }
 
       // Identify failed operations
-      const successfulIds = successful.map(user => user._id.toString());
-      const failedIds = validIds.filter(id => !successfulIds.includes(id));
-      
+      const successfulIds = successful.map((user) => user._id.toString());
+      const failedIds = validIds.filter((id) => !successfulIds.includes(id));
+
       for (const failedId of failedIds) {
         failed.push({ id: failedId, error: "User not found or not deleted" });
       }
-
     } catch (error) {
       // If bulk operation fails, fall back to marking all as failed
       for (const userId of validIds) {
@@ -708,10 +744,10 @@ export class UserDAO {
     try {
       // First, get all users that exist to track which ones we can delete
       const existingUsers = await User.find({
-        _id: { $in: validIds }
-      }).select('_id');
+        _id: { $in: validIds },
+      }).select("_id");
 
-      const existingIds = existingUsers.map(user => user._id.toString());
+      const existingIds = existingUsers.map((user) => user._id.toString());
 
       // Mark non-existing users as failed
       for (const userId of validIds) {
@@ -723,7 +759,7 @@ export class UserDAO {
       // Delete existing users
       if (existingIds.length > 0) {
         const deleteResult = await User.deleteMany({
-          _id: { $in: existingIds }
+          _id: { $in: existingIds },
         });
 
         if (deleteResult.acknowledged) {
@@ -731,11 +767,13 @@ export class UserDAO {
         } else {
           // If delete operation failed, mark all as failed
           for (const userId of existingIds) {
-            failed.push({ id: userId, error: "Failed to delete from database" });
+            failed.push({
+              id: userId,
+              error: "Failed to delete from database",
+            });
           }
         }
       }
-
     } catch (error) {
       // If bulk operation fails, fall back to marking all as failed
       for (const userId of validIds) {

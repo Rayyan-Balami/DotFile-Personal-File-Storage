@@ -15,13 +15,13 @@ export const jwtTimeToMs = (timeString: string): number => {
   const value = parseInt(timeString.slice(0, -1)); // Extract numeric value
 
   switch (unit) {
-    case 'd': // Convert days to milliseconds
+    case "d": // Convert days to milliseconds
       return value * 24 * 60 * 60 * 1000;
-    case 'h': // Convert hours to milliseconds
+    case "h": // Convert hours to milliseconds
       return value * 60 * 60 * 1000;
-    case 'm': // Convert minutes to milliseconds
+    case "m": // Convert minutes to milliseconds
       return value * 60 * 1000;
-    case 's': // Convert seconds to milliseconds
+    case "s": // Convert seconds to milliseconds
       return value * 1000;
     default:
       // Fallback: default to 7 days in milliseconds if unknown format

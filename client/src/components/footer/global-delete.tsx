@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useDialogStore } from "@/stores/useDialogStore";
 import { useSelectionStore } from "@/stores/useSelectionStore";
+import { logger } from "@/utils/logger";
 import { Trash2 } from "lucide-react";
 import { ComponentProps } from "react";
 
@@ -11,7 +12,7 @@ export function GlobalDelete(props: ComponentProps<typeof Button>) {
 
   const handleDelete = () => {
     const selectedItems = getSelectedItems();
-    console.log("Global Delete - Selected Items:", {
+    logger.info("Global Delete - Selected Items:", {
       count: selectedItems.length,
       items: selectedItems.map((item) => ({
         id: item.id,
@@ -26,7 +27,7 @@ export function GlobalDelete(props: ComponentProps<typeof Button>) {
     const folders = selectedItems.filter((item) => item.cardType === "folder");
     const files = selectedItems.filter((item) => item.cardType === "document");
 
-    console.log("Global Delete - Grouped Items:", {
+    logger.info("Global Delete - Grouped Items:", {
       folders: folders.map((f) => ({ id: f.id, name: f.name })),
       files: files.map((f) => ({ id: f.id, name: f.name })),
     });

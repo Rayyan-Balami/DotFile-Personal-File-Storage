@@ -21,7 +21,7 @@ export interface CreationAnalyticsResponseDto {
 }
 
 export interface SummaryAnalyticsItemDto {
-  type: 'users' | 'files' | 'storage' | 'activity';
+  type: "users" | "files" | "storage" | "activity";
   label: string;
   currentMonth: number;
   previousMonth: number;
@@ -42,4 +42,3 @@ export interface UserGrowthAnalytics {
   month: string; // Abbreviated month name (e.g., "Jan", "Feb", "Mar")
   count: number; // Number of new users in this month
 }
-

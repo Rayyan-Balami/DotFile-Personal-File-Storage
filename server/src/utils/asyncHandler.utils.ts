@@ -34,10 +34,9 @@ export const asyncHandler = (
       }
 
       // Wrap unknown errors as ApiError with status 500 (Internal Server Error)
-      const apiError = new ApiError(
-        500,
-        [{ error: error instanceof Error ? error.message : "Unknown error" }]
-      );
+      const apiError = new ApiError(500, [
+        { error: error instanceof Error ? error.message : "Unknown error" },
+      ]);
 
       return next(apiError);
     }

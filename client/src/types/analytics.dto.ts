@@ -15,7 +15,7 @@ export interface CreationAnalyticsParams {
 }
 
 export interface SummaryAnalyticsItem {
-  type: 'users' | 'files' | 'storage' | 'activity';
+  type: "users" | "files" | "storage" | "activity";
   label: string;
   currentMonth: number;
   previousMonth: number;

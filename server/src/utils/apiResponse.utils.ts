@@ -5,7 +5,7 @@ export class ApiResponse {
   public success: boolean;
   public statusCode: number;
   public message: string;
-  public data?: any;          // Optional payload
+  public data?: any; // Optional payload
   public timestamp: string;
 
   /**
@@ -19,7 +19,8 @@ export class ApiResponse {
     this.success = statusCode >= 200 && statusCode < 300;
     this.statusCode = statusCode;
     // Use provided message or default based on success
-    this.message = message || (this.success ? "Success" : "Something went wrong");
+    this.message =
+      message || (this.success ? "Success" : "Something went wrong");
     this.data = data;
     this.timestamp = new Date().toISOString(); // Response creation time
   }

@@ -1,4 +1,9 @@
-import { CreateFileDto, MoveFileDto, RenameFileDto, UpdateFileDto } from "@api/file/file.dto.js";
+import {
+  CreateFileDto,
+  MoveFileDto,
+  RenameFileDto,
+  UpdateFileDto,
+} from "@api/file/file.dto.js";
 import File, { IFile } from "@api/file/file.model.js";
 import { Types } from "mongoose";
 
@@ -15,7 +20,7 @@ class FileDao {
     const newFile = new File({
       ...data,
       owner: new Types.ObjectId(data.owner.toString()),
-      folder: data.folder ? new Types.ObjectId(data.folder.toString()) : null
+      folder: data.folder ? new Types.ObjectId(data.folder.toString()) : null,
     });
     return await newFile.save();
   }
@@ -37,9 +42,7 @@ class FileDao {
       query.deletedAt = null;
     }
 
-    return await File.findOne(query)
-      .populate("owner")
-      .populate("folder");
+    return await File.findOne(query).populate("owner").populate("folder");
   }
 
   /**
@@ -67,10 +70,7 @@ class FileDao {
    * @param data - Rename data with new file name
    * @returns Updated file document or null if not found
    */
-  async renameFile(
-    id: string,
-    data: RenameFileDto
-  ): Promise<IFile | null> {
+  async renameFile(id: string, data: RenameFileDto): Promise<IFile | null> {
     if (!Types.ObjectId.isValid(id)) return null;
     return await File.findByIdAndUpdate(id, data, { new: true })
       .populate("owner")
@@ -83,10 +83,7 @@ class FileDao {
    * @param data - Move data with target folder ID
    * @returns Updated file document or null if not found
    */
-  async moveFile(
-    id: string,
-    data: MoveFileDto
-  ): Promise<IFile | null> {
+  async moveFile(id: string, data: MoveFileDto): Promise<IFile | null> {
     if (!Types.ObjectId.isValid(id)) return null;
     return await File.findByIdAndUpdate(id, data, { new: true })
       .populate("owner")
@@ -117,11 +114,7 @@ class FileDao {
    */
   async restoreDeletedFile(id: string): Promise<IFile | null> {
     if (!Types.ObjectId.isValid(id)) return null;
-    return await File.findByIdAndUpdate(
-      id,
-      { deletedAt: null },
-      { new: true }
-    )
+    return await File.findByIdAndUpdate(id, { deletedAt: null }, { new: true })
       .populate("owner")
       .populate("folder");
   }
@@ -211,12 +204,12 @@ class FileDao {
    */
   async getDeletedUserFilesByFolders(
     userId: string,
-    folderId: string,
+    folderId: string
   ): Promise<IFile[]> {
     if (!Types.ObjectId.isValid(folderId)) {
       return [];
     }
-    
+
     const query = {
       owner: userId,
       folder: folderId,
@@ -234,9 +227,7 @@ class FileDao {
    * @param userId - MongoDB ObjectId string of the user
    * @returns Array of all deleted files sorted by updated date
    */
-  async getAllDeletedFiles(
-    userId: string
-  ): Promise<IFile[]> {
+  async getAllDeletedFiles(userId: string): Promise<IFile[]> {
     return await File.find({
       owner: userId,
       deletedAt: { $ne: null },
@@ -270,9 +261,7 @@ class FileDao {
    * @param userId - MongoDB ObjectId string of the user
    * @returns Array of recent files sorted by updated date
    */
-  async getRecentFiles(
-    userId: string
-  ): Promise<IFile[]> {
+  async getRecentFiles(userId: string): Promise<IFile[]> {
     // Get files updated in the last month
     const oneMonthAgo = new Date();
     oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
@@ -280,7 +269,7 @@ class FileDao {
     return await File.find({
       owner: userId,
       deletedAt: null, // Exclude deleted files
-      updatedAt: { $gte: oneMonthAgo } // Only files updated in last month
+      updatedAt: { $gte: oneMonthAgo }, // Only files updated in last month
     })
       .populate("owner")
       .populate("folder")
@@ -302,31 +291,31 @@ class FileDao {
 
     const result = await File.aggregate([
       {
-      $match: {
-        createdAt: { $gte: start, $lte: end }
-      }
-      },
-      {
-      $group: {
-        _id: {
-        $dateToString: {
-          format: "%Y-%m-%d",
-          date: "$createdAt"
-        }
+        $match: {
+          createdAt: { $gte: start, $lte: end },
         },
-        count: { $sum: 1 }
-      }
       },
       {
-      $sort: { _id: 1 }
+        $group: {
+          _id: {
+            $dateToString: {
+              format: "%Y-%m-%d",
+              date: "$createdAt",
+            },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $sort: { _id: 1 },
       },
       {
         $project: {
           _id: 0,
           date: "$_id",
-          count: 1
-        }
-      }
+          count: 1,
+        },
+      },
     ]);
 
     return result;
@@ -338,10 +327,13 @@ class FileDao {
    * @param endDate - End date for counting files
    * @returns Number of files created in the date range
    */
-  async getFileCountByDateRange(startDate: Date, endDate: Date): Promise<number> {
+  async getFileCountByDateRange(
+    startDate: Date,
+    endDate: Date
+  ): Promise<number> {
     return await File.countDocuments({
       createdAt: { $gte: startDate, $lt: endDate },
-      deletedAt: null
+      deletedAt: null,
     });
   }
 
@@ -351,45 +343,50 @@ class FileDao {
    * @param endDate - End date for calculating storage
    * @returns Total size in bytes for files created in the date range
    */
-  async getStorageSizeByDateRange(startDate: Date, endDate: Date): Promise<number> {
+  async getStorageSizeByDateRange(
+    startDate: Date,
+    endDate: Date
+  ): Promise<number> {
     const result = await File.aggregate([
       {
         $match: {
           createdAt: { $gte: startDate, $lt: endDate },
-          deletedAt: null
-        }
+          deletedAt: null,
+        },
       },
       {
         $group: {
           _id: null,
-          totalSize: { $sum: "$size" }
-        }
-      }
+          totalSize: { $sum: "$size" },
+        },
+      },
     ]);
 
     return result[0]?.totalSize || 0;
   }
 
-
   async getFileTypeCount(): Promise<{ [key: string]: number }> {
     const result = await File.aggregate([
       {
         $match: {
-          deletedAt: null
-        }
+          deletedAt: null,
+        },
       },
       {
         $group: {
           _id: "$type",
-          count: { $sum: 1 }
-        }
-      }
+          count: { $sum: 1 },
+        },
+      },
     ]);
 
-    return result.reduce((acc, item) => {
-      acc[item._id] = item.count;
-      return acc;
-    }, {} as { [key: string]: number });
+    return result.reduce(
+      (acc, item) => {
+        acc[item._id] = item.count;
+        return acc;
+      },
+      {} as { [key: string]: number }
+    );
   }
 
   /**
@@ -425,111 +422,131 @@ class FileDao {
     // Apply text search filter (handle both full filename and name only)
     if (query && query.trim()) {
       const trimmedQuery = query.trim();
-      
+
       // Check if query contains an extension
-      const hasExtension = trimmedQuery.includes('.');
-      
+      const hasExtension = trimmedQuery.includes(".");
+
       if (hasExtension) {
         // Split filename and extension for exact matching
-        const lastDotIndex = trimmedQuery.lastIndexOf('.');
+        const lastDotIndex = trimmedQuery.lastIndexOf(".");
         const nameQuery = trimmedQuery.substring(0, lastDotIndex);
         const extensionQuery = trimmedQuery.substring(lastDotIndex + 1);
-        
+
         searchQuery.$or = [
           // Match full filename (name + extension)
           {
             $and: [
-              { name: { $regex: nameQuery, $options: 'i' } },
-              { extension: { $regex: extensionQuery, $options: 'i' } }
-            ]
+              { name: { $regex: nameQuery, $options: "i" } },
+              { extension: { $regex: extensionQuery, $options: "i" } },
+            ],
           },
           // Also match if query is contained in name only
-          { name: { $regex: trimmedQuery, $options: 'i' } }
+          { name: { $regex: trimmedQuery, $options: "i" } },
         ];
       } else {
         // Search in name only
-        searchQuery.name = { $regex: trimmedQuery, $options: 'i' };
+        searchQuery.name = { $regex: trimmedQuery, $options: "i" };
       }
     }
 
     // Apply file type filters
     if (fileTypes && fileTypes.length > 0) {
       const typeFilters: any[] = [];
-      
+
       for (const fileType of fileTypes) {
         switch (fileType.toLowerCase()) {
-          case 'image':
-            typeFilters.push({ type: { $regex: '^image/', $options: 'i' } });
+          case "image":
+            typeFilters.push({ type: { $regex: "^image/", $options: "i" } });
             break;
-          case 'video':
-            typeFilters.push({ type: { $regex: '^video/', $options: 'i' } });
+          case "video":
+            typeFilters.push({ type: { $regex: "^video/", $options: "i" } });
             break;
-          case 'audio':
-            typeFilters.push({ type: { $regex: '^audio/', $options: 'i' } });
+          case "audio":
+            typeFilters.push({ type: { $regex: "^audio/", $options: "i" } });
             break;
-          case 'document':
+          case "document":
             typeFilters.push({
               $or: [
-                { type: { $regex: '^application/pdf', $options: 'i' } },
-                { type: { $regex: 'document', $options: 'i' } },
-                { type: { $regex: 'text/', $options: 'i' } },
-                { extension: { $in: ['doc', 'docx', 'pdf', 'txt', 'rtf'] } }
-              ]
+                { type: { $regex: "^application/pdf", $options: "i" } },
+                { type: { $regex: "document", $options: "i" } },
+                { type: { $regex: "text/", $options: "i" } },
+                { extension: { $in: ["doc", "docx", "pdf", "txt", "rtf"] } },
+              ],
             });
             break;
-          case 'spreadsheet':
+          case "spreadsheet":
             typeFilters.push({
               $or: [
-                { type: { $regex: 'spreadsheet', $options: 'i' } },
-                { extension: { $in: ['xls', 'xlsx', 'csv'] } }
-              ]
+                { type: { $regex: "spreadsheet", $options: "i" } },
+                { extension: { $in: ["xls", "xlsx", "csv"] } },
+              ],
             });
             break;
-          case 'presentation':
+          case "presentation":
             typeFilters.push({
               $or: [
-                { type: { $regex: 'presentation', $options: 'i' } },
-                { extension: { $in: ['ppt', 'pptx', 'odp'] } }
-              ]
+                { type: { $regex: "presentation", $options: "i" } },
+                { extension: { $in: ["ppt", "pptx", "odp"] } },
+              ],
             });
             break;
-          case 'archive':
+          case "archive":
             typeFilters.push({
               $or: [
-                { type: { $regex: 'zip', $options: 'i' } },
-                { type: { $regex: 'rar', $options: 'i' } },
-                { extension: { $in: ['zip', 'rar', '7z', 'tar', 'gz'] } }
-              ]
+                { type: { $regex: "zip", $options: "i" } },
+                { type: { $regex: "rar", $options: "i" } },
+                { extension: { $in: ["zip", "rar", "7z", "tar", "gz"] } },
+              ],
             });
             break;
-          case 'code':
+          case "code":
             typeFilters.push({
               $or: [
-                { extension: { $in: ['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb', 'go', 'rs', 'swift'] } },
-                { type: { $regex: 'text/', $options: 'i' } }
-              ]
+                {
+                  extension: {
+                    $in: [
+                      "js",
+                      "ts",
+                      "jsx",
+                      "tsx",
+                      "py",
+                      "java",
+                      "cpp",
+                      "c",
+                      "cs",
+                      "php",
+                      "rb",
+                      "go",
+                      "rs",
+                      "swift",
+                    ],
+                  },
+                },
+                { type: { $regex: "text/", $options: "i" } },
+              ],
             });
             break;
           default:
             // Treat as direct extension or MIME type
             typeFilters.push({
               $or: [
-                { extension: { $regex: fileType, $options: 'i' } },
-                { type: { $regex: fileType, $options: 'i' } }
-              ]
+                { extension: { $regex: fileType, $options: "i" } },
+                { type: { $regex: fileType, $options: "i" } },
+              ],
             });
         }
       }
-      
+
       if (typeFilters.length > 0) {
         searchQuery.$and = searchQuery.$and || [];
         searchQuery.$and.push({ $or: typeFilters });
       }
     }
 
-    // Apply pinned filter
-    if (isPinned !== undefined) {
-      searchQuery.isPinned = isPinned;
+    // Apply pinned filter - only filter when isPinned is true
+    // When false, we want to show all items (both pinned and unpinned)
+    if (isPinned === true) {
+      searchQuery.isPinned = true;
     }
 
     // Apply date range filter

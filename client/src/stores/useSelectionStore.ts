@@ -1,5 +1,6 @@
 import { useDialogStore } from "@/stores/useDialogStore";
 import type { FileSystemItem } from "@/types/folderDocumnet";
+import { logger } from "@/utils/logger";
 import { useEffect } from "react";
 import { create } from "zustand";
 
@@ -101,7 +102,7 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
 
   logSelection: () => {
     const selected = get().getSelectedItems();
-    if (!selected.length) return console.log("[LOG] No items selected");
+    if (!selected.length) return logger.info("[LOG] No items selected");
 
     console.group(`[LOG] ${selected.length} selected`);
     const folders = selected.filter((i) => i.cardType === "folder");
@@ -109,13 +110,13 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
 
     if (folders.length) {
       console.group(`Folders (${folders.length})`);
-      folders.forEach((f) => console.log(`- ${f.name}`));
+      folders.forEach((f) => logger.info(`- ${f.name}`));
       console.groupEnd();
     }
 
     if (documents.length) {
       console.group(`Documents (${documents.length})`);
-      documents.forEach((d) => console.log(`- ${d.name}`));
+      documents.forEach((d) => logger.info(`- ${d.name}`));
       console.groupEnd();
     }
 
@@ -126,13 +127,13 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
     const { selectedIds } = get();
     if (!selectedIds.size) return;
 
-    console.log(`[DELETE] ${selectedIds.size} item(s)`);
+    logger.info(`[DELETE] ${selectedIds.size} item(s)`);
     get().logSelection();
     set({ isDeleting: true });
 
     onDelete
       ? selectedIds.forEach((id) => onDelete(id))
-      : console.log("[DELETE] No callback");
+      : logger.info("[DELETE] No callback");
 
     set({
       selectedIds: new Set(),
@@ -213,7 +214,7 @@ export const useSelectionStore = create<SelectionStore>((set, get) => ({
   clear: () => {
     const { selectedIds } = get();
     if (!selectedIds.size) return;
-    console.log("[CLEAR] Selection cleared");
+    logger.info("[CLEAR] Selection cleared");
     set({
       selectedIds: new Set(),
       lastSelectedId: null,

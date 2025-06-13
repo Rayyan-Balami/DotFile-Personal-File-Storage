@@ -327,7 +327,10 @@ export function NavBreadcrumb() {
   const isInSearchContext = Boolean(searchMatch);
   const isInSettingsContext = Boolean(settingsMatch);
   const isReadOnlyContext =
-    isInTrashContext || isInRecentContext || isInSearchContext || isInSettingsContext;
+    isInTrashContext ||
+    isInRecentContext ||
+    isInSearchContext ||
+    isInSettingsContext;
 
   // Create array of all breadcrumb items for dropdown logic
   const allItems = [

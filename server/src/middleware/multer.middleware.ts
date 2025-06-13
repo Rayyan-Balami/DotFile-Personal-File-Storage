@@ -10,18 +10,18 @@ import {
   ZIP_NAME_PREFIX,
 } from "@config/constants.js";
 import { ApiError } from "@utils/apiError.utils.js";
+import { formatBytes } from "@utils/formatBytes.utils.js";
 import logger from "@utils/logger.utils.js";
 import { getUserDirectoryPath } from "@utils/mkdir.utils.js";
-import { formatBytes } from "@utils/formatBytes.utils.js";
 import AdmZip from "adm-zip";
 import crypto from "crypto";
 import { NextFunction, Request, Response } from "express";
 import fs from "fs";
 import * as fsPromises from "fs/promises";
 import mime from "mime-types";
+import { Types } from "mongoose";
 import multer, { FileFilterCallback, StorageEngine } from "multer";
 import path from "path";
-import { Types } from "mongoose";
 
 // --------------------- Types & Declarations ---------------------
 
@@ -278,23 +278,27 @@ export const upload = multer({
   limits: {
     fileSize: MAX_SIZE_PER_UPLOAD_BATCH,
   },
-}).array('files', MAX_FILES_PER_UPLOAD_BATCH);
+}).array("files", MAX_FILES_PER_UPLOAD_BATCH);
 
 // Handle aborted uploads and cleanup
-export const handleAbortedUploads = (req: Request, res: Response, next: NextFunction) => {
-    // Track if this was a real abort vs. connection issue
+export const handleAbortedUploads = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  // Track if this was a real abort vs. connection issue
   let isRealAbort = false;
-  
+
   // Handle actual client abort
-  req.on('abort', () => {
+  req.on("abort", () => {
     isRealAbort = true;
   });
 
   // Handle client disconnection
-  req.on('close', async () => {
+  req.on("close", async () => {
     // Only clean up if it was a real abort and we haven't sent headers yet
     if (isRealAbort && !res.headersSent) {
-      logger.warn('Upload aborted by client - cleaning up...');
+      logger.warn("Upload aborted by client - cleaning up...");
       await rollbackUploadedFiles(req);
     }
   });
@@ -303,10 +307,17 @@ export const handleAbortedUploads = (req: Request, res: Response, next: NextFunc
 };
 
 // Validate storage limits before processing files
-export const validateFileSize = async (req: Request, _res: Response, next: NextFunction) => {
+export const validateFileSize = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction
+) => {
   try {
     const userId = req.user?.id;
-    if (!userId) return next(new ApiError(401, [{ authentication: "User not authenticated" }]));
+    if (!userId)
+      return next(
+        new ApiError(401, [{ authentication: "User not authenticated" }])
+      );
 
     const files = req.files as Express.Multer.File[];
     if (!files || !Array.isArray(files) || files.length === 0) {
@@ -314,7 +325,8 @@ export const validateFileSize = async (req: Request, _res: Response, next: NextF
     }
 
     const currentUser = await userService.getUserById(userId);
-    const actualAvailableStorage = currentUser.maxStorageLimit - currentUser.storageUsed;
+    const actualAvailableStorage =
+      currentUser.maxStorageLimit - currentUser.storageUsed;
 
     // Calculate total size of all files in this batch
     const totalBatchSize = files.reduce((sum, file) => sum + file.size, 0);
@@ -322,7 +334,7 @@ export const validateFileSize = async (req: Request, _res: Response, next: NextF
     // Check if total batch size exceeds available storage
     if (totalBatchSize > actualAvailableStorage) {
       // Clean up uploaded files
-      files.forEach(file => {
+      files.forEach((file) => {
         try {
           fs.existsSync(file.path) && fs.unlinkSync(file.path);
         } catch (err) {
@@ -330,13 +342,17 @@ export const validateFileSize = async (req: Request, _res: Response, next: NextF
         }
       });
 
-      return next(new ApiError(400, [{
-        file: `Total upload size (${formatBytes(totalBatchSize)}) exceeds available storage space (${formatBytes(actualAvailableStorage)}). Upload cancelled.`
-      }]));
+      return next(
+        new ApiError(400, [
+          {
+            file: `Total upload size (${formatBytes(totalBatchSize)}) exceeds available storage space (${formatBytes(actualAvailableStorage)}). Upload cancelled.`,
+          },
+        ])
+      );
     }
 
     // Log validation details for each file
-    files.forEach(file => {
+    files.forEach((file) => {
       logger.info(`📁 File Upload Validation:
         File Name: ${file.originalname}
         Size: ${formatBytes(file.size)}
@@ -351,7 +367,7 @@ export const validateFileSize = async (req: Request, _res: Response, next: NextF
   } catch (err) {
     // Clean up any uploaded files on error
     if (req.files && Array.isArray(req.files)) {
-      req.files.forEach(file => {
+      req.files.forEach((file) => {
         try {
           fs.existsSync(file.path) && fs.unlinkSync(file.path);
         } catch (cleanupErr) {
@@ -371,7 +387,7 @@ export const processZipFiles = async (
   _res: Response,
   next: NextFunction
 ) => {
-  const zipFileCleanupPaths: string[] = [];  // Store paths of ZIP files to clean up
+  const zipFileCleanupPaths: string[] = []; // Store paths of ZIP files to clean up
   try {
     const userId = req.user?.id;
     if (!userId || !req.files) return next();
@@ -390,7 +406,7 @@ export const processZipFiles = async (
     }
 
     // Store paths of ZIP files for cleanup
-    zipFiles.forEach(file => {
+    zipFiles.forEach((file) => {
       zipFileCleanupPaths.push(file.path);
     });
 
@@ -411,7 +427,8 @@ export const processZipFiles = async (
     // CRITICAL FIX: Validate storage BEFORE extraction to prevent storage overflow
     // The fileFilter only checks compressed ZIP size, but extracted content can be much larger
     const currentUser = await userService.getUserById(userId);
-    const actualAvailableStorage = currentUser.maxStorageLimit - currentUser.storageUsed;
+    const actualAvailableStorage =
+      currentUser.maxStorageLimit - currentUser.storageUsed;
 
     for (const zipFile of zipFiles) {
       const zip = new AdmZip(zipFile.path);
@@ -420,7 +437,7 @@ export const processZipFiles = async (
       // Calculate extracted size for this ZIP
       entries.forEach((entry) => {
         if (entry.isDirectory) return;
-        
+
         const entryName = entry.entryName;
         const baseName = path.basename(entryName);
         if (
@@ -432,7 +449,7 @@ export const processZipFiles = async (
         ) {
           return;
         }
-        
+
         totalExtractedSizeAllZips += entry.header.size;
       });
     }
@@ -449,7 +466,9 @@ export const processZipFiles = async (
 
     // Check if all extracted files will fit in available storage
     if (totalExtractedSizeAllZips > actualAvailableStorage) {
-      logger.warn(`❌ ZIP batch rejected - Total extracted content exceeds available storage`);
+      logger.warn(
+        `❌ ZIP batch rejected - Total extracted content exceeds available storage`
+      );
       throw new ApiError(400, [
         {
           file: `ZIP files contain ${formatBytes(totalExtractedSizeAllZips)} of content, which exceeds available storage space (${formatBytes(actualAvailableStorage)}). Upload cancelled.`,
@@ -530,17 +549,22 @@ export const processZipFiles = async (
           if (existingFolder) {
             // If there's no duplicate action specified, throw 409 error
             if (!req.body.duplicateAction) {
-              throw new ApiError(409, [{
-                folder: `A folder with name "${folder.name}" already exists in this location.`,
-                type: "folder",
-                name: folder.name
-              }]);
+              throw new ApiError(409, [
+                {
+                  folder: `A folder with name "${folder.name}" already exists in this location.`,
+                  type: "folder",
+                  name: folder.name,
+                },
+              ]);
             }
 
             // Handle based on duplicate action
             if (req.body.duplicateAction === "replace") {
               // Delete the existing folder completely (including contents)
-              await folderService.permanentDeleteFolder(existingFolder.id, userId);
+              await folderService.permanentDeleteFolder(
+                existingFolder.id,
+                userId
+              );
               // Create new folder in its place
               const newFolder = await folderService.createFolder(
                 { name: folder.name, parent: parentId },
@@ -631,7 +655,7 @@ export const processZipFiles = async (
 
       req.fileToFolderMap = fileToFolderMap;
       req.virtualFolders = allVirtualFolders;
-      req.files = extractedFiles;  // Add the extracted files to req.files
+      req.files = extractedFiles; // Add the extracted files to req.files
       next();
     }
   } catch (error) {
@@ -706,13 +730,15 @@ export const rollbackUploadedFiles = async (req: Request) => {
     if (!userId) return;
 
     // Get all files that need to be cleaned up
-    const files = Array.isArray(req.files) 
-      ? req.files 
-      : req.files 
-        ? Object.values(req.files).flat() 
+    const files = Array.isArray(req.files)
+      ? req.files
+      : req.files
+        ? Object.values(req.files).flat()
         : [];
 
-    logger.info(`🧹 Starting cleanup for aborted/failed upload - ${files.length} files`);
+    logger.info(
+      `🧹 Starting cleanup for aborted/failed upload - ${files.length} files`
+    );
 
     // Delete each file
     for (const file of files) {
@@ -737,13 +763,13 @@ export const rollbackUploadedFiles = async (req: Request) => {
     if (fs.existsSync(userDir)) {
       const currentFiles = fs.readdirSync(userDir);
       const now = Date.now();
-      
+
       // Clean up any files that are incomplete/temporary (modified in the last minute)
       for (const file of currentFiles) {
         try {
           const filePath = path.join(userDir, file);
           const stats = fs.statSync(filePath);
-          
+
           // If file was modified in the last minute, it might be from this aborted upload
           if (now - stats.mtimeMs < 60000) {
             fs.unlinkSync(filePath);
@@ -755,7 +781,7 @@ export const rollbackUploadedFiles = async (req: Request) => {
       }
     }
 
-    logger.info('🧹 Upload cleanup completed');
+    logger.info("🧹 Upload cleanup completed");
   } catch (error) {
     logger.error("❌ Error in rollbackUploadedFiles:", error);
   }

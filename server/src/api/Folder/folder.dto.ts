@@ -90,6 +90,7 @@ export interface SearchContentsDto {
   query: string;
   itemType: string; // all, folder, file
   fileTypes: string[];
+  colors: string[];
   isPinned?: boolean;
   dateFrom?: string;
   dateTo?: string;

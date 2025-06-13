@@ -1,5 +1,7 @@
 import { useUploadFiles } from "@/api/file/file.query";
-import FolderDocumentCard, { CardVariant } from "@/components/cards/FolderDocumentCard";
+import FolderDocumentCard, {
+  CardVariant,
+} from "@/components/cards/FolderDocumentCard";
 import { cn } from "@/lib/utils";
 import { useFileSystemStore } from "@/stores/useFileSystemStore";
 import { useUploadStore } from "@/stores/useUploadStore";
@@ -54,7 +56,8 @@ export const DraggableFolderCard = memo(
     const isInSearchContext = matches.some((match) =>
       match.routeId.includes("/(user)/search")
     );
-    const isReadOnlyContext = isInTrashContext || isInRecentContext || isInSearchContext;
+    const isReadOnlyContext =
+      isInTrashContext || isInRecentContext || isInSearchContext;
 
     // Set up draggable functionality
     const {
@@ -81,10 +84,10 @@ export const DraggableFolderCard = memo(
           target.closest('[role="menuitem"]') ||
           target.closest('[role="menu"]') ||
           target.closest('[aria-label="More options"]') ||
-          target.closest('[data-radix-context-menu-item]') ||
-          target.closest('[data-radix-dropdown-menu-item]') ||
-          target.closest('[data-radix-context-menu-content]') ||
-          target.closest('[data-radix-dropdown-menu-content]')
+          target.closest("[data-radix-context-menu-item]") ||
+          target.closest("[data-radix-dropdown-menu-item]") ||
+          target.closest("[data-radix-context-menu-content]") ||
+          target.closest("[data-radix-dropdown-menu-content]")
         ) {
           return;
         }
@@ -98,10 +101,10 @@ export const DraggableFolderCard = memo(
           target.closest('[role="menuitem"]') ||
           target.closest('[role="menu"]') ||
           target.closest('[aria-label="More options"]') ||
-          target.closest('[data-radix-context-menu-item]') ||
-          target.closest('[data-radix-dropdown-menu-item]') ||
-          target.closest('[data-radix-context-menu-content]') ||
-          target.closest('[data-radix-dropdown-menu-content]')
+          target.closest("[data-radix-context-menu-item]") ||
+          target.closest("[data-radix-dropdown-menu-item]") ||
+          target.closest("[data-radix-context-menu-content]") ||
+          target.closest("[data-radix-dropdown-menu-content]")
         ) {
           return;
         }

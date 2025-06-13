@@ -1,10 +1,14 @@
 // Avatar Upload Middleware - Handles user avatar uploads with validation and cleanup
 
-import { AVATARS_DIR, MAX_AVATAR_SIZE, DEFAULT_USER_AVATAR_URL } from "@config/constants.js";
+import {
+  AVATARS_DIR,
+  DEFAULT_USER_AVATAR_URL,
+  MAX_AVATAR_SIZE,
+} from "@config/constants.js";
 import { ApiError } from "@utils/apiError.utils.js";
-import logger from "@utils/logger.utils.js";
 import { formatBytes } from "@utils/formatBytes.utils.js";
-import { Request, Response } from "express";
+import logger from "@utils/logger.utils.js";
+import { Request } from "express";
 import fs from "fs";
 import multer, { FileFilterCallback, StorageEngine } from "multer";
 import path from "path";
@@ -21,7 +25,10 @@ declare module "express-serve-static-core" {
 // --------------------- Helper Functions ---------------------
 
 // Generate user-specific avatar filename
-const generateAvatarFilename = (userId: string, originalFilename: string): string => {
+const generateAvatarFilename = (
+  userId: string,
+  originalFilename: string
+): string => {
   const ext = path.extname(originalFilename).toLowerCase();
   return `user-${userId}${ext}`;
 };
@@ -33,13 +40,13 @@ const getErrorMessage = (err: unknown): string =>
 // Check if image type is allowed
 const isAllowedImageType = (mimetype: string): boolean => {
   const allowedTypes = [
-    'image/jpeg',
-    'image/jpg', 
-    'image/png',
-    'image/gif',
-    'image/webp',
-    'image/bmp',
-    'image/tiff'
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "image/bmp",
+    "image/tiff",
   ];
   return allowedTypes.includes(mimetype.toLowerCase());
 };
@@ -96,7 +103,9 @@ const avatarFileFilter = (
 
     // Check if file is an image
     if (!isAllowedImageType(file.mimetype)) {
-      logger.warn(`❌ Avatar upload rejected - Invalid file type: ${file.mimetype}`);
+      logger.warn(
+        `❌ Avatar upload rejected - Invalid file type: ${file.mimetype}`
+      );
       return cb(
         new ApiError(400, [
           {
@@ -108,7 +117,9 @@ const avatarFileFilter = (
 
     // Check file size
     if (file.size > MAX_AVATAR_SIZE) {
-      logger.warn(`❌ Avatar upload rejected - File too large: ${formatBytes(file.size)}`);
+      logger.warn(
+        `❌ Avatar upload rejected - File too large: ${formatBytes(file.size)}`
+      );
       return cb(
         new ApiError(400, [
           {
@@ -139,13 +150,12 @@ export const avatarUpload = multer({
     fileSize: MAX_AVATAR_SIZE,
     files: 1, // Only allow one avatar file at a time
   },
-}).single('avatar'); // Field name should be 'avatar'
+}).single("avatar"); // Field name should be 'avatar'
 
 // --------------------- Helper: Delete Avatar File ---------------------
 
 // Helper function to delete an avatar file (exported for use in services)
 export const deleteAvatarFile = async (avatarUrl: string): Promise<void> => {
-  console.log(`🗑️ Attempting to delete avatar file: ${avatarUrl}`);
   try {
     // Don't delete the default avatar
     if (avatarUrl === DEFAULT_USER_AVATAR_URL || !avatarUrl) {

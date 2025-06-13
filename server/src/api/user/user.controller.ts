@@ -65,71 +65,62 @@ class UserController {
   /**
    * Get users with pagination, filtering, and search (admin)
    */
-  getAllUsersWithPagination = asyncHandler(async (req: Request, res: Response) => {
-    const {
-      page = 1,
-      pageSize = 10,
-      sortBy = 'createdAt',
-      sortOrder = 'desc',
-      search,
-      searchFields,
-      filters,
-      createdAtStart,
-      createdAtEnd
-    } = req.query;
+  getAllUsersWithPagination = asyncHandler(
+    async (req: Request, res: Response) => {
+      const {
+        page = 1,
+        pageSize = 10,
+        sortBy = "createdAt",
+        sortOrder = "desc",
+        search,
+        searchFields,
+        filters,
+        createdAtStart,
+        createdAtEnd,
+      } = req.query;
+      // Parse pagination parameters
+      const pageNum = parseInt(page as string, 10);
+      const pageSizeNum = parseInt(pageSize as string, 10);
 
-    console.log("Query parameters:", {
-      page,
-      pageSize,
-      sortBy,
-      sortOrder,
-      search,
-      searchFields,
-      filters,
-      createdAtStart,
-      createdAtEnd
-    });
-    // Parse pagination parameters
-    const pageNum = parseInt(page as string, 10);
-    const pageSizeNum = parseInt(pageSize as string, 10);
-    
-    // Parse search fields if provided
-    const searchFieldsArray = searchFields 
-      ? (searchFields as string).split(',').map(field => field.trim())
-      : undefined;
+      // Parse search fields if provided
+      const searchFieldsArray = searchFields
+        ? (searchFields as string).split(",").map((field) => field.trim())
+        : undefined;
 
-    // Parse filters if provided
-    let parsedFilters;
-    if (filters) {
-      try {
-        parsedFilters = typeof filters === 'string' ? JSON.parse(filters) : filters;
-      } catch (error) {
-        parsedFilters = {};
+      // Parse filters if provided
+      let parsedFilters;
+      if (filters) {
+        try {
+          parsedFilters =
+            typeof filters === "string" ? JSON.parse(filters) : filters;
+        } catch (error) {
+          parsedFilters = {};
+        }
       }
-    }
 
-    // Build date ranges object from query parameters
-    const dateRanges: { createdAtStart?: string; createdAtEnd?: string } = {};
-    if (createdAtStart) {
-      dateRanges.createdAtStart = createdAtStart as string;
-    }
-    if (createdAtEnd) {
-      dateRanges.createdAtEnd = createdAtEnd as string;
-    }
+      // Build date ranges object from query parameters
+      const dateRanges: { createdAtStart?: string; createdAtEnd?: string } = {};
+      if (createdAtStart) {
+        dateRanges.createdAtStart = createdAtStart as string;
+      }
+      if (createdAtEnd) {
+        dateRanges.createdAtEnd = createdAtEnd as string;
+      }
 
-    const result = await userService.getAllUsersWithPagination({
-      page: pageNum,
-      pageSize: pageSizeNum,
-      sortBy: sortBy as string,
-      sortOrder: sortOrder as 'asc' | 'desc',
-      search: search as string,
-      searchFields: searchFieldsArray,
-      filters: parsedFilters,
-      dateRanges: Object.keys(dateRanges).length > 0 ? dateRanges : undefined
-    });
+      const result = await userService.getAllUsersWithPagination({
+        page: pageNum,
+        pageSize: pageSizeNum,
+        sortBy: sortBy as string,
+        sortOrder: sortOrder as "asc" | "desc",
+        search: search as string,
+        searchFields: searchFieldsArray,
+        filters: parsedFilters,
+        dateRanges: Object.keys(dateRanges).length > 0 ? dateRanges : undefined,
+      });
 
-    res.json(new ApiResponse(200, result, "Users retrieved successfully"));
-  });
+      res.json(new ApiResponse(200, result, "Users retrieved successfully"));
+    }
+  );
 
   /**
    * Fetch single user profile
@@ -193,7 +184,7 @@ class UserController {
       throw new ApiError(403, [{ role: "You cannot update your own role" }]);
     }
     const updatedUser = await userService.updateUserRole(id, req.body);
-    
+
     res.json(
       new ApiResponse(
         200,
@@ -202,8 +193,6 @@ class UserController {
       )
     );
   });
-
-
 
   /**
    * End session and clear cookies
@@ -322,8 +311,6 @@ class UserController {
     );
   });
 
-
-
   /**
    * Permanently delete current user account
    */
@@ -333,7 +320,7 @@ class UserController {
     }
 
     await userService.deleteUserAccount(req.user.id, req.body);
-    
+
     // Clear session cookies after successful deletion
     res
       .status(200)
@@ -345,52 +332,53 @@ class UserController {
         httpOnly: true,
         secure: IS_PRODUCTION,
       })
-      .json(
-        new ApiResponse(
-          200,
-          null,
-          "Account deleted successfully"
-        )
-      );
+      .json(new ApiResponse(200, null, "Account deleted successfully"));
   });
 
   /**
    * Update current user avatar
    */
-  updateCurrentUserAvatar = asyncHandler(async (req: Request, res: Response) => {
-    if (!req.user) {
-      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
-    }
-
-    if (!req.file) {
-      throw new ApiError(400, [{ avatar: "No avatar file uploaded" }]);
-    }
-
-    try {
-      // Generate the avatar URL that will be stored in the database
-      const avatarUrl = `/avatars/${req.file.filename}`;
-      
-      // Update user avatar in the database
-      const updatedUser = await userService.updateUserAvatar(req.user.id, avatarUrl);
-      
-      res.json(
-        new ApiResponse(
-          200,
-          { user: updatedUser },
-          "Avatar updated successfully"
-        )
-      );
-    } catch (error) {
-      // Clean up uploaded file if database update fails
-      try {
-        const { rollbackAvatarUpload } = await import("@middleware/avatar.middleware.js");
-        await rollbackAvatarUpload(req);
-      } catch (cleanupError) {
-        logger.error("Failed to clean up avatar upload:", cleanupError);
+  updateCurrentUserAvatar = asyncHandler(
+    async (req: Request, res: Response) => {
+      if (!req.user) {
+        throw new ApiError(401, [{ authentication: "Unauthorized" }]);
       }
-      throw error;
+
+      if (!req.file) {
+        throw new ApiError(400, [{ avatar: "No avatar file uploaded" }]);
+      }
+
+      try {
+        // Generate the avatar URL that will be stored in the database
+        const avatarUrl = `/avatars/${req.file.filename}`;
+
+        // Update user avatar in the database
+        const updatedUser = await userService.updateUserAvatar(
+          req.user.id,
+          avatarUrl
+        );
+
+        res.json(
+          new ApiResponse(
+            200,
+            { user: updatedUser },
+            "Avatar updated successfully"
+          )
+        );
+      } catch (error) {
+        // Clean up uploaded file if database update fails
+        try {
+          const { rollbackAvatarUpload } = await import(
+            "@middleware/avatar.middleware.js"
+          );
+          await rollbackAvatarUpload(req);
+        } catch (cleanupError) {
+          logger.error("Failed to clean up avatar upload:", cleanupError);
+        }
+        throw error;
+      }
     }
-  });
+  );
 
   /**
    * Admin: Bulk soft delete users
@@ -402,13 +390,7 @@ class UserController {
 
     const { userIds } = req.body;
     const result = await userService.bulkSoftDeleteUsers(userIds, req.user.id);
-    res.json(
-      new ApiResponse(
-        200,
-        result,
-        "Users soft deleted successfully"
-      )
-    );
+    res.json(new ApiResponse(200, result, "Users soft deleted successfully"));
   });
 
   /**
@@ -421,33 +403,28 @@ class UserController {
 
     const { userIds } = req.body;
     const result = await userService.bulkRestoreUsers(userIds, req.user.id);
-    res.json(
-      new ApiResponse(
-        200,
-        result,
-        "Users restored successfully"
-      )
-    );
+    res.json(new ApiResponse(200, result, "Users restored successfully"));
   });
 
   /**
    * Admin: Bulk permanent delete users
    */
-  bulkPermanentDeleteUsers = asyncHandler(async (req: Request, res: Response) => {
-    if (!req.user) {
-      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
-    }
+  bulkPermanentDeleteUsers = asyncHandler(
+    async (req: Request, res: Response) => {
+      if (!req.user) {
+        throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+      }
 
-    const { userIds } = req.body;
-    const result = await userService.bulkPermanentDeleteUsers(userIds, req.user.id);
-    res.json(
-      new ApiResponse(
-        200,
-        result,
-        "Users permanently deleted successfully"
-      )
-    );
-  });
+      const { userIds } = req.body;
+      const result = await userService.bulkPermanentDeleteUsers(
+        userIds,
+        req.user.id
+      );
+      res.json(
+        new ApiResponse(200, result, "Users permanently deleted successfully")
+      );
+    }
+  );
 }
 
 export default new UserController();

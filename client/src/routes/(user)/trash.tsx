@@ -1,9 +1,9 @@
-import { useTrashContents } from '@/api/folder/folder.query';
-import DirectoryView from '@/components/views/DirectoryView';
-import { createFileRoute } from '@tanstack/react-router';
-import { Loader2 } from 'lucide-react';
+import { useTrashContents } from "@/api/folder/folder.query";
+import DirectoryView from "@/components/views/DirectoryView";
+import { createFileRoute } from "@tanstack/react-router";
+import { Loader2 } from "lucide-react";
 
-export const Route = createFileRoute('/(user)/trash')({
+export const Route = createFileRoute("/(user)/trash")({
   component: RouteComponent,
 });
 
@@ -11,7 +11,10 @@ function RouteComponent() {
   const { data, isLoading } = useTrashContents();
   const folderContents = data?.data?.folderContents;
 
-  const sortedItems = [...(folderContents?.folders || []), ...(folderContents?.files || [])].sort((a, b) => {
+  const sortedItems = [
+    ...(folderContents?.folders || []),
+    ...(folderContents?.files || []),
+  ].sort((a, b) => {
     if (!a.name || !b.name) return 0;
     return a.name.localeCompare(b.name);
   });
@@ -25,10 +28,6 @@ function RouteComponent() {
   }
 
   return (
-    <DirectoryView 
-      items={sortedItems} 
-      directoryName="Trash" 
-      parentId={null}
-    />
+    <DirectoryView items={sortedItems} directoryName="Trash" parentId={null} />
   );
 }

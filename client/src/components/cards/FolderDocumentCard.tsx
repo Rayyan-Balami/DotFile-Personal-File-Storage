@@ -1,3 +1,4 @@
+import { ImagePreview } from "@/components/cards/ImagePreview";
 import { Button } from "@/components/ui/button";
 import {
   ContextMenu,
@@ -12,7 +13,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { FolderIcon } from "@/components/ui/folder-icon";
-import { ImagePreview } from "@/components/cards/ImagePreview";
 import { ColorOption } from "@/config/colors";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { cn } from "@/lib/utils";
@@ -165,10 +165,11 @@ const FileOrFolderIcon = React.memo(
       cardType === "document" ? getIconStyles(fileExtension) : null;
 
     // Use ImagePreview directly for images
-    const isImage = cardType === "document" && 
-      fileId && 
-      fileType && 
-      typeof fileType === "string" && 
+    const isImage =
+      cardType === "document" &&
+      fileId &&
+      fileType &&
+      typeof fileType === "string" &&
       fileType.startsWith("image/");
 
     return (
@@ -182,7 +183,9 @@ const FileOrFolderIcon = React.memo(
         {cardType === "folder" && (
           <FolderIcon className="size-full" color={color as ColorOption} />
         )}
-        {isImage && <ImagePreview fileId={fileId} className="size-full object-cover" />}
+        {isImage && (
+          <ImagePreview fileId={fileId} className="size-full object-cover" />
+        )}
         {cardType === "document" && !isImage && iconStyles && (
           <FileIcon extension={fileExtension} {...iconStyles} />
         )}
