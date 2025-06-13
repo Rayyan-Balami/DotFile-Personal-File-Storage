@@ -36,13 +36,17 @@ export function NavUpload() {
   const isInRecentContext = matches.some((match) =>
     match.routeId.includes("/(user)/recent")
   );
+  const isInSearchContext = matches.some((match) =>
+    match.routeId.includes("/(user)/search")
+  );
 
   // Using readOnlyStates in our calculation ensures the component re-renders
   // when any folder's read-only state changes
   const isReadOnlyContext =
     (currentFolderId ? readOnlyStates[currentFolderId] || false : false) ||
     isInTrashContext ||
-    isInRecentContext;
+    isInRecentContext ||
+    isInSearchContext;
 
   // Logging for debugging
   useEffect(() => {

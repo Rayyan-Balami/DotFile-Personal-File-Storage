@@ -33,13 +33,16 @@ export function FileDropZone({ children }: FileDropZoneProps) {
   const isInRecentContext = matches.some((match) =>
     match.routeId.includes("/(user)/recent")
   );
+  const isInSearchContext = matches.some((match) =>
+    match.routeId.includes("/(user)/search")
+  );
 
   const getCurrentFolderId = () => params.id || null;
   const currentFolderId = getCurrentFolderId();
 
   const isReadOnlyContext = currentFolderId
     ? isFolderReadOnly(currentFolderId)
-    : false || isInTrashContext || isInRecentContext;
+    : false || isInTrashContext || isInRecentContext || isInSearchContext;
 
   const getCurrentFolderName = () => {
     const folderId = getCurrentFolderId();

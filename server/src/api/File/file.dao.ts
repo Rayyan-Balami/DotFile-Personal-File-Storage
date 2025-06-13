@@ -391,6 +391,174 @@ class FileDao {
       return acc;
     }, {} as { [key: string]: number });
   }
+
+  /**
+   * Search files by name/extension with filters
+   * @param userId - User who owns the files
+   * @param query - Search query (can be full filename with extension or just name)
+   * @param location - Location filter (myDrive, trash, recent)
+   * @param fileTypes - File type filters (extensions or MIME categories)
+   * @param isPinned - Pinned filter
+   * @param dateFrom - Start date filter
+   * @param dateTo - End date filter
+   * @returns Array of matching files
+   */
+  async searchFiles(
+    userId: string,
+    query?: string,
+    location?: string,
+    fileTypes?: string[],
+    isPinned?: boolean,
+    dateFrom?: Date,
+    dateTo?: Date
+  ): Promise<IFile[]> {
+    const searchQuery: any = {
+      owner: userId,
+    };
+
+    // Apply location filter
+    switch (location) {
+      case "trash":
+        searchQuery.deletedAt = { $ne: null };
+        break;
+      case "recent":
+        // Recent files (updated in last 30 days)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        searchQuery.updatedAt = { $gte: thirtyDaysAgo };
+        searchQuery.deletedAt = null;
+        break;
+      default: // myDrive
+        searchQuery.deletedAt = null;
+    }
+
+    // Apply text search filter (handle both full filename and name only)
+    if (query && query.trim()) {
+      const trimmedQuery = query.trim();
+      
+      // Check if query contains an extension
+      const hasExtension = trimmedQuery.includes('.');
+      
+      if (hasExtension) {
+        // Split filename and extension for exact matching
+        const lastDotIndex = trimmedQuery.lastIndexOf('.');
+        const nameQuery = trimmedQuery.substring(0, lastDotIndex);
+        const extensionQuery = trimmedQuery.substring(lastDotIndex + 1);
+        
+        searchQuery.$or = [
+          // Match full filename (name + extension)
+          {
+            $and: [
+              { name: { $regex: nameQuery, $options: 'i' } },
+              { extension: { $regex: extensionQuery, $options: 'i' } }
+            ]
+          },
+          // Also match if query is contained in name only
+          { name: { $regex: trimmedQuery, $options: 'i' } }
+        ];
+      } else {
+        // Search in name only
+        searchQuery.name = { $regex: trimmedQuery, $options: 'i' };
+      }
+    }
+
+    // Apply file type filters
+    if (fileTypes && fileTypes.length > 0) {
+      const typeFilters: any[] = [];
+      
+      for (const fileType of fileTypes) {
+        switch (fileType.toLowerCase()) {
+          case 'image':
+            typeFilters.push({ type: { $regex: '^image/', $options: 'i' } });
+            break;
+          case 'video':
+            typeFilters.push({ type: { $regex: '^video/', $options: 'i' } });
+            break;
+          case 'audio':
+            typeFilters.push({ type: { $regex: '^audio/', $options: 'i' } });
+            break;
+          case 'document':
+            typeFilters.push({
+              $or: [
+                { type: { $regex: '^application/pdf', $options: 'i' } },
+                { type: { $regex: 'document', $options: 'i' } },
+                { type: { $regex: 'text/', $options: 'i' } },
+                { extension: { $in: ['doc', 'docx', 'pdf', 'txt', 'rtf'] } }
+              ]
+            });
+            break;
+          case 'spreadsheet':
+            typeFilters.push({
+              $or: [
+                { type: { $regex: 'spreadsheet', $options: 'i' } },
+                { extension: { $in: ['xls', 'xlsx', 'csv'] } }
+              ]
+            });
+            break;
+          case 'presentation':
+            typeFilters.push({
+              $or: [
+                { type: { $regex: 'presentation', $options: 'i' } },
+                { extension: { $in: ['ppt', 'pptx', 'odp'] } }
+              ]
+            });
+            break;
+          case 'archive':
+            typeFilters.push({
+              $or: [
+                { type: { $regex: 'zip', $options: 'i' } },
+                { type: { $regex: 'rar', $options: 'i' } },
+                { extension: { $in: ['zip', 'rar', '7z', 'tar', 'gz'] } }
+              ]
+            });
+            break;
+          case 'code':
+            typeFilters.push({
+              $or: [
+                { extension: { $in: ['js', 'ts', 'jsx', 'tsx', 'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb', 'go', 'rs', 'swift'] } },
+                { type: { $regex: 'text/', $options: 'i' } }
+              ]
+            });
+            break;
+          default:
+            // Treat as direct extension or MIME type
+            typeFilters.push({
+              $or: [
+                { extension: { $regex: fileType, $options: 'i' } },
+                { type: { $regex: fileType, $options: 'i' } }
+              ]
+            });
+        }
+      }
+      
+      if (typeFilters.length > 0) {
+        searchQuery.$and = searchQuery.$and || [];
+        searchQuery.$and.push({ $or: typeFilters });
+      }
+    }
+
+    // Apply pinned filter
+    if (isPinned !== undefined) {
+      searchQuery.isPinned = isPinned;
+    }
+
+    // Apply date range filter
+    if (dateFrom || dateTo) {
+      const dateFilter: any = {};
+      if (dateFrom) dateFilter.$gte = dateFrom;
+      if (dateTo) {
+        const endOfDay = new Date(dateTo);
+        endOfDay.setHours(23, 59, 59, 999);
+        dateFilter.$lte = endOfDay;
+      }
+      searchQuery.createdAt = dateFilter;
+    }
+
+    return await File.find(searchQuery)
+      .populate("owner")
+      .populate("folder")
+      .sort({ isPinned: -1, updatedAt: -1 });
+  }
 }
 
 export default new FileDao();

@@ -36,8 +36,8 @@ export function NavigationControls() {
     if (currentPath === "/") {
       // Already at root, do nothing
       return;
-    } else if (currentPath === "/trash" || currentPath === "/recent") {
-      // From trash or recent, go to root
+    } else if (currentPath === "/trash" || currentPath === "/recent" || currentPath === "/search") {
+      // From trash, recent, or search, go to root
       navigate({ to: "/" });
       return;
     }

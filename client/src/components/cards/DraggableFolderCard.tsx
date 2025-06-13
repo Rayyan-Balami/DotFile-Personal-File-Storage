@@ -51,7 +51,10 @@ export const DraggableFolderCard = memo(
     const isInRecentContext = matches.some((match) =>
       match.routeId.includes("/(user)/recent")
     );
-    const isReadOnlyContext = isInTrashContext || isInRecentContext;
+    const isInSearchContext = matches.some((match) =>
+      match.routeId.includes("/(user)/search")
+    );
+    const isReadOnlyContext = isInTrashContext || isInRecentContext || isInSearchContext;
 
     // Set up draggable functionality
     const {

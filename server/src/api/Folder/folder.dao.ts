@@ -565,6 +565,72 @@ class FolderDao {
 
     return result;
   }
+
+  /**
+   * Search folders by name with filters
+   * @param userId - User who owns the folders
+   * @param query - Search query (folder name)
+   * @param location - Location filter (myDrive, trash, recent)
+   * @param isPinned - Pinned filter
+   * @param dateFrom - Start date filter
+   * @param dateTo - End date filter
+   * @returns Array of matching folders
+   */
+  async searchFolders(
+    userId: string,
+    query?: string,
+    location?: string,
+    isPinned?: boolean,
+    dateFrom?: Date,
+    dateTo?: Date
+  ): Promise<IFolder[]> {
+    const searchQuery: any = {
+      owner: userId,
+    };
+
+    // Apply location filter
+    switch (location) {
+      case "trash":
+        searchQuery.deletedAt = { $ne: null };
+        break;
+      case "recent":
+        // Recent folders (updated in last 30 days)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        searchQuery.updatedAt = { $gte: thirtyDaysAgo };
+        searchQuery.deletedAt = null;
+        break;
+      default: // myDrive
+        searchQuery.deletedAt = null;
+    }
+
+    // Apply text search filter
+    if (query && query.trim()) {
+      searchQuery.name = { $regex: query.trim(), $options: 'i' };
+    }
+
+    // Apply pinned filter
+    if (isPinned !== undefined) {
+      searchQuery.isPinned = isPinned;
+    }
+
+    // Apply date range filter
+    if (dateFrom || dateTo) {
+      const dateFilter: any = {};
+      if (dateFrom) dateFilter.$gte = dateFrom;
+      if (dateTo) {
+        const endOfDay = new Date(dateTo);
+        endOfDay.setHours(23, 59, 59, 999);
+        dateFilter.$lte = endOfDay;
+      }
+      searchQuery.createdAt = dateFilter;
+    }
+
+    return await Folder.find(searchQuery)
+      .populate("owner")
+      .populate("parent")
+      .sort({ isPinned: -1, updatedAt: -1 });
+  }
 }
 
 export default new FolderDao();

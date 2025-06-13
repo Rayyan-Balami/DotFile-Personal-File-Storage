@@ -34,10 +34,8 @@ const LazyGlobalMenuItems = lazy(() =>
 
 interface DirectoryViewProps {
   items?: FileSystemItem[];
-  currentPath?: string;
   directoryName?: string;
   parentId?: string | null;
-  forceReadOnly?: boolean;
 }
 
 export default function DirectoryView({

@@ -88,7 +88,7 @@ export interface PaginatedPinContentsDto {
  */
 export interface SearchContentsDto {
   query: string;
-  itemType: string; // all, folders, files
+  itemType: string; // all, folder, file
   fileTypes: string[];
   location: string; // myDrive, trash, recent
   isPinned?: boolean;

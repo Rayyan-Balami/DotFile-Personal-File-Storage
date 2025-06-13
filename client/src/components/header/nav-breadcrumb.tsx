@@ -26,6 +26,7 @@ import {
   Folder,
   FolderOpen,
   Home,
+  Search,
   Settings2,
   Trash2,
   UserRound,
@@ -250,6 +251,9 @@ export function NavBreadcrumb() {
   const recentMatch = matches.find((match) =>
     match.routeId.includes("/(user)/recent")
   );
+  const searchMatch = matches.find((match) =>
+    match.routeId.includes("/(user)/search")
+  );
   const settingsMatch = matches.find((match) =>
     match.routeId.includes("/(user)/setting")
   );
@@ -288,6 +292,11 @@ export function NavBreadcrumb() {
     icon = Clock;
     rootName = "Recent";
     rootPath = "/recent";
+  } else if (searchMatch) {
+    pathSegments = [];
+    icon = Search;
+    rootName = "Search";
+    rootPath = "/search";
   } else if (trashMatch && !folderMatch) {
     pathSegments = trashData?.data?.folderContents?.pathSegments || [
       { id: null, name: "Trash" },
@@ -315,9 +324,10 @@ export function NavBreadcrumb() {
   const isInTrashContext =
     Boolean(trashMatch) || pathSegments[0]?.name === "Trash";
   const isInRecentContext = Boolean(recentMatch);
+  const isInSearchContext = Boolean(searchMatch);
   const isInSettingsContext = Boolean(settingsMatch);
   const isReadOnlyContext =
-    isInTrashContext || isInRecentContext || isInSettingsContext;
+    isInTrashContext || isInRecentContext || isInSearchContext || isInSettingsContext;
 
   // Create array of all breadcrumb items for dropdown logic
   const allItems = [

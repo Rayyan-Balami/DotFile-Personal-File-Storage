@@ -907,6 +907,39 @@ class FileService {
   async getFileTypeDistribution(): Promise<{ [key: string]: number }> {
     return await fileDao.getFileTypeCount();
   }
+
+  /**
+   * Search files by name/extension with filters
+   * @param userId - User who owns the files
+   * @param query - Search query (can be full filename with extension or just name)
+   * @param location - Location filter (myDrive, trash, recent)
+   * @param fileTypes - File type filters (extensions or MIME categories)
+   * @param isPinned - Pinned filter
+   * @param dateFrom - Start date filter
+   * @param dateTo - End date filter
+   * @returns Array of matching file DTOs
+   */
+  async searchFiles(
+    userId: string,
+    query?: string,
+    location?: string,
+    fileTypes?: string[],
+    isPinned?: boolean,
+    dateFrom?: Date,
+    dateTo?: Date
+  ): Promise<FileResponseDto[]> {
+    const files = await fileDao.searchFiles(
+      userId,
+      query,
+      location,
+      fileTypes,
+      isPinned,
+      dateFrom,
+      dateTo
+    );
+    
+    return files.map(file => this.sanitizeFile(file));
+  }
 }
 
 export default new FileService();
