@@ -5,7 +5,6 @@ interface SearchFilters {
   fileType: string[];
   dateRange: { from: Date | undefined; to: Date | undefined };
   isPinned: boolean;
-  location: string;
 }
 
 interface SearchState {
@@ -33,7 +32,6 @@ const initialFilters: SearchFilters = {
   fileType: [],
   dateRange: { from: undefined, to: undefined },
   isPinned: false,
-  location: "myDrive",
 };
 
 export const useSearchStore = create<SearchState>((set, get) => ({
@@ -63,7 +61,6 @@ export const useSearchStore = create<SearchState>((set, get) => ({
     if (filters.fileType.length > 0) count++;
     if (filters.dateRange.from || filters.dateRange.to) count++;
     if (filters.isPinned) count++;
-    if (filters.location !== "myDrive") count++;
     
     return count;
   },

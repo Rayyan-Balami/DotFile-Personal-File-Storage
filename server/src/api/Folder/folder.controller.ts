@@ -295,7 +295,6 @@ class FolderController {
     const query = req.query.query as string || "";
     const itemType = req.query.itemType as string || "all"; // all, folders, files
     const fileTypes = req.query.fileTypes ? (req.query.fileTypes as string).split(',') : [];
-    const location = req.query.location as string || "myDrive"; // myDrive, trash, recent
     const isPinned = req.query.isPinned === 'true';
     const dateFrom = req.query.dateFrom as string;
     const dateTo = req.query.dateTo as string;
@@ -304,7 +303,6 @@ class FolderController {
       query,
       itemType,
       fileTypes,
-      location,
       isPinned,
       dateFrom,
       dateTo

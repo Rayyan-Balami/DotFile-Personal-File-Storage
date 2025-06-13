@@ -24,7 +24,6 @@ function RouteComponent() {
       query: debouncedQuery,
       itemType: debouncedFilters.itemType,
       fileTypes: debouncedFilters.fileType,
-      location: debouncedFilters.location,
       isPinned: debouncedFilters.isPinned,
       dateFrom: debouncedFilters.dateRange.from?.toISOString(),
       dateTo: debouncedFilters.dateRange.to?.toISOString(),
@@ -59,8 +58,7 @@ function RouteComponent() {
     debouncedFilters.fileType.length === 0 &&
     !debouncedFilters.dateRange.from &&
     !debouncedFilters.dateRange.to &&
-    !debouncedFilters.isPinned &&
-    debouncedFilters.location === "myDrive";
+    !debouncedFilters.isPinned;
 
   // Handle different states
   if (shouldShowPrompt) {

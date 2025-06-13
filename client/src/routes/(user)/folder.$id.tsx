@@ -49,7 +49,6 @@ function RouteComponent() {
       <DirectoryView 
         items={sortedItems} 
         directoryName={folderContents?.pathSegments?.[folderContents.pathSegments.length - 1]?.name || 'Loading...'}
-        currentPath={`/folder/${id}`}
         parentId={id}
       />
     </Suspense>

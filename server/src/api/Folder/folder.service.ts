@@ -1106,7 +1106,7 @@ class FolderService {
    * @returns Search results
    */
   async searchContents(userId: string, searchParams: SearchContentsDto): Promise<FolderResponseWithFilesDto> {
-    const { query, itemType, fileTypes, location, isPinned, dateFrom, dateTo } = searchParams;
+    const { query, itemType, fileTypes, isPinned, dateFrom, dateTo } = searchParams;
     
     // Convert date strings to Date objects
     const dateFromObj = dateFrom ? new Date(dateFrom) : undefined;
@@ -1116,24 +1116,14 @@ class FolderService {
     let files: any[] = [];
     let pathSegments: PathSegment[] = [];
 
-    // Set path segments based on location
-    switch (location) {
-      case "trash":
-        pathSegments = [{ id: null, name: "Trash Search Results" }];
-        break;
-      case "recent":
-        pathSegments = [{ id: null, name: "Recent Search Results" }];
-        break;
-      default: // myDrive
-        pathSegments = [{ id: null, name: "Search Results" }];
-    }
+    // Set path segments for search results
+    pathSegments = [{ id: null, name: "Search Results" }];
 
     // Search folders (unless itemType is specifically "file")
     if (itemType !== "file") {
       const folderResults = await folderDao.searchFolders(
         userId,
         query,
-        location,
         isPinned,
         dateFromObj,
         dateToObj
@@ -1146,7 +1136,6 @@ class FolderService {
       files = await fileService.searchFiles(
         userId,
         query,
-        location,
         fileTypes,
         isPinned,
         dateFromObj,

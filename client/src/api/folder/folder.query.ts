@@ -85,7 +85,6 @@ export const useSearchContents = (params: {
   query?: string;
   itemType?: string;
   fileTypes?: string[];
-  location?: string;
   isPinned?: boolean;
   dateFrom?: string;
   dateTo?: string;

@@ -922,7 +922,6 @@ class FileService {
   async searchFiles(
     userId: string,
     query?: string,
-    location?: string,
     fileTypes?: string[],
     isPinned?: boolean,
     dateFrom?: Date,
@@ -931,7 +930,6 @@ class FileService {
     const files = await fileDao.searchFiles(
       userId,
       query,
-      location,
       fileTypes,
       isPinned,
       dateFrom,

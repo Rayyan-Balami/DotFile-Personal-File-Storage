@@ -396,7 +396,6 @@ class FileDao {
    * Search files by name/extension with filters
    * @param userId - User who owns the files
    * @param query - Search query (can be full filename with extension or just name)
-   * @param location - Location filter (myDrive, trash, recent)
    * @param fileTypes - File type filters (extensions or MIME categories)
    * @param isPinned - Pinned filter
    * @param dateFrom - Start date filter
@@ -406,7 +405,6 @@ class FileDao {
   async searchFiles(
     userId: string,
     query?: string,
-    location?: string,
     fileTypes?: string[],
     isPinned?: boolean,
     dateFrom?: Date,
@@ -414,22 +412,14 @@ class FileDao {
   ): Promise<IFile[]> {
     const searchQuery: any = {
       owner: userId,
+      deletedAt: null, // Only search non-deleted files
     };
 
-    // Apply location filter
-    switch (location) {
-      case "trash":
-        searchQuery.deletedAt = { $ne: null };
-        break;
-      case "recent":
-        // Recent files (updated in last 30 days)
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        searchQuery.updatedAt = { $gte: thirtyDaysAgo };
-        searchQuery.deletedAt = null;
-        break;
-      default: // myDrive
-        searchQuery.deletedAt = null;
+    // If no date range is specified, default to last week
+    if (!dateFrom && !dateTo) {
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      dateFrom = oneWeekAgo;
     }
 
     // Apply text search filter (handle both full filename and name only)

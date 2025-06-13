@@ -31,13 +31,6 @@ function SearchOptions() {
     { label: "Other", value: "other" },
   ];
 
-  // Location options
-  const locationOptions = [
-    { label: "My Drive", value: "myDrive" },
-    { label: "Trash", value: "trash" },
-    { label: "Recent", value: "recent" },
-  ];
-
   const handleItemTypeChange = (value: string | string[]) => {
     const newValue = Array.isArray(value) ? value[0] : value;
     setFilters(prev => ({ ...prev, itemType: newValue }));
@@ -57,18 +50,12 @@ function SearchOptions() {
     setFilters(prev => ({ ...prev, isPinned: checked }));
   };
 
-  const handleLocationChange = (value: string | string[]) => {
-    const newValue = Array.isArray(value) ? value[0] : value;
-    setFilters(prev => ({ ...prev, location: newValue }));
-  };
-
   const clearFilters = () => {
     setFilters({
       itemType: 'all',
       fileType: [],
       dateRange: { from: undefined, to: undefined },
       isPinned: false,
-      location: 'myDrive',
     });
   };
 
@@ -77,8 +64,7 @@ function SearchOptions() {
     filters.fileType.length > 0 ||
     filters.dateRange.from || 
     filters.dateRange.to ||
-    filters.isPinned ||
-    filters.location !== 'myDrive';
+    filters.isPinned;
 
   // Debounce the filters to avoid too many rapid updates
   const debouncedFilters = useDebounce(filters, 500);
@@ -140,15 +126,6 @@ function SearchOptions() {
           Pinned Only
         </label>
       </div>
-
-      {/* Location Dropdown */}
-      <Combobox
-        list={locationOptions}
-        value={filters.location}
-        onChange={handleLocationChange}
-        placeholder="Location"
-        className="w-auto min-w-32"
-      />
     </section>
   );
 }

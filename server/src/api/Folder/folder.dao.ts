@@ -570,7 +570,6 @@ class FolderDao {
    * Search folders by name with filters
    * @param userId - User who owns the folders
    * @param query - Search query (folder name)
-   * @param location - Location filter (myDrive, trash, recent)
    * @param isPinned - Pinned filter
    * @param dateFrom - Start date filter
    * @param dateTo - End date filter
@@ -579,29 +578,20 @@ class FolderDao {
   async searchFolders(
     userId: string,
     query?: string,
-    location?: string,
     isPinned?: boolean,
     dateFrom?: Date,
     dateTo?: Date
   ): Promise<IFolder[]> {
     const searchQuery: any = {
       owner: userId,
+      deletedAt: null, // Only search non-deleted folders
     };
 
-    // Apply location filter
-    switch (location) {
-      case "trash":
-        searchQuery.deletedAt = { $ne: null };
-        break;
-      case "recent":
-        // Recent folders (updated in last 30 days)
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        searchQuery.updatedAt = { $gte: thirtyDaysAgo };
-        searchQuery.deletedAt = null;
-        break;
-      default: // myDrive
-        searchQuery.deletedAt = null;
+    // If no date range is specified, default to last week
+    if (!dateFrom && !dateTo) {
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      dateFrom = oneWeekAgo;
     }
 
     // Apply text search filter
