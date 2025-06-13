@@ -6,8 +6,10 @@ import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useSearchStore } from "@/stores/useSearchStore";
 import { Search } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 
 const searchSchema = z.object({
   query: z.string().min(1, "Type something to search"),
@@ -20,6 +22,12 @@ interface SearchFormProps {
 }
 
 export function SearchForm({ id }: SearchFormProps) {
+  const { query: storeQuery, setQuery } = useSearchStore();
+  const navigate = useNavigate();
+  const routerState = useRouterState();
+  const queryRef = useRef("");
+  const isInitialMount = useRef(true);
+  
   const form = useForm<SearchFormValues>({
     resolver: zodResolver(searchSchema),
     defaultValues: {
@@ -27,22 +35,49 @@ export function SearchForm({ id }: SearchFormProps) {
     },
   });
 
+  // Sync form with store query when store changes (e.g., when navigating to search page)
+  useEffect(() => {
+    if (storeQuery !== form.getValues().query) {
+      form.setValue("query", storeQuery, { shouldValidate: false });
+    }
+  }, [storeQuery, form]);
+
   // Watch the query field and debounce it
   const query = form.watch("query");
-  const debouncedQuery = useDebounce(query); // 300ms delay
+  const debouncedQuery = useDebounce(query, 300); // 300ms delay
 
-  // Handle the debounced search
+  // Handle the debounced search - update the store and navigate only when query actively changes
   useEffect(() => {
-    if (debouncedQuery.trim()) {
-      console.log("Debounced search query:", debouncedQuery);
-      // Here you would typically trigger the search API call
-      // or update a search store/context
+    // Skip on initial mount
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      queryRef.current = debouncedQuery;
+      setQuery(debouncedQuery);
+      return;
     }
-  }, [debouncedQuery]);
+
+    // Check if query actually changed
+    const queryChanged = queryRef.current !== debouncedQuery;
+    
+    if (queryChanged) {
+      queryRef.current = debouncedQuery;
+      setQuery(debouncedQuery);
+      
+      if (debouncedQuery.trim() && routerState.location.pathname !== '/search') {
+        navigate({ to: '/search' });
+      }
+    }
+    
+    console.log("Debounced search query:", debouncedQuery);
+  }, [debouncedQuery, setQuery, navigate, routerState.location.pathname]);
 
   const onSubmit = (data: SearchFormValues) => {
     console.log("Search submitted immediately:", data);
-    // Handle immediate search on form submission (Enter key)
+    setQuery(data.query);
+    
+    if (data.query.trim()) {
+      navigate({ to: '/search' });
+    }
   };
 
   return (

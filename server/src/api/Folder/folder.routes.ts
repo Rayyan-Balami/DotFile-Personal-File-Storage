@@ -28,6 +28,7 @@ userRoutes
   // Read
   .get("/contents", FolderController.getFolderContents) // Root folder contents
   .get("/contents/:id", FolderController.getFolderContents) // Folder contents by ID
+  .get("/search/contents", FolderController.searchContents) // Search contents
   .get("/:id", FolderController.getFolderById) // Get folder by ID
 
   // Update

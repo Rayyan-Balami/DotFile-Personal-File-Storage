@@ -54,6 +54,24 @@ const folderApi = {
   getPinContents: (offset: number = 0, limit: number = 10) =>
     API.get("/folders/pins/contents", { params: { offset, limit } }),
 
+  // Search contents
+  searchContents: (params: {
+    query?: string;
+    itemType?: string;
+    fileTypes?: string[];
+    location?: string;
+    isPinned?: boolean;
+    dateFrom?: string;
+    dateTo?: string;
+  }) => {
+    // Convert fileTypes array to comma-separated string for query params
+    const searchParams = {
+      ...params,
+      fileTypes: params.fileTypes?.join(',')
+    };
+    return API.get("/folders/search/contents", { params: searchParams });
+  },
+
   // Empty trash (delete all trashed folders)
   emptyTrash: () => API.post("/folders/trash/empty"),
 };

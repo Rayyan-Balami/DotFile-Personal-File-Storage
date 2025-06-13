@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -6,25 +5,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Combobox } from "@/components/ui/combobox";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useSearchStore } from "@/stores/useSearchStore";
 import { Undo } from "lucide-react";
-import { useState, useEffect } from "react";
-
-interface SearchFilters {
-  itemType: string; // 'all', 'folder', 'document'
-  fileType: string[]; // mime categories (multiple selection)
-  dateRange: { from: Date | undefined; to: Date | undefined };
-  isPinned: boolean;
-  location: string; // 'mydrive', 'trash', 'recent'
-}
+import { useEffect } from "react";
 
 function SearchOptions() {
-  const [filters, setFilters] = useState<SearchFilters>({
-    itemType: 'all',
-    fileType: [], // Empty array for multiple selection
-    dateRange: { from: undefined, to: undefined },
-    isPinned: false,
-    location: 'mydrive',
-  });
+  const { filters, setFilters } = useSearchStore();
 
   // Item type options
   const itemTypeOptions = [
@@ -47,7 +33,7 @@ function SearchOptions() {
 
   // Location options
   const locationOptions = [
-    { label: "My Drive", value: "mydrive" },
+    { label: "My Drive", value: "myDrive" },
     { label: "Trash", value: "trash" },
     { label: "Recent", value: "recent" },
   ];
@@ -79,50 +65,43 @@ function SearchOptions() {
   const clearFilters = () => {
     setFilters({
       itemType: 'all',
-      fileType: [], // Empty array for multiple selection
+      fileType: [],
       dateRange: { from: undefined, to: undefined },
       isPinned: false,
-      location: 'mydrive',
+      location: 'myDrive',
     });
   };
 
   const hasActiveFilters = 
     filters.itemType !== 'all' || 
-    filters.fileType.length > 0 || // Check if any file types are selected
+    filters.fileType.length > 0 ||
     filters.dateRange.from || 
     filters.dateRange.to ||
     filters.isPinned ||
-    filters.location !== 'mydrive';
+    filters.location !== 'myDrive';
 
   // Debounce the filters to avoid too many rapid updates
-  const debouncedFilters = useDebounce(filters, 500); // 500ms delay
+  const debouncedFilters = useDebounce(filters, 500);
 
   // Effect to handle debounced filter changes
   useEffect(() => {
     console.log('Debounced filters applied:', debouncedFilters);
-    // Here you would typically:
-    // 1. Trigger a search API call with the filters
-    // 2. Update a search context/store
-    // 3. Filter local data
   }, [debouncedFilters]);
-
-  // Console log the current filters state (immediate)
-  console.log('Current filters (immediate):', filters);
 
   return (
     <section className="min-w-full -order-1 flex items-center gap-2 overflow-x-auto flex-1 no-scrollbar">
-            {/* Clear Filters Button */}
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={clearFilters}
-          className="text-muted-foreground hover:text-foreground"
-          disabled={!hasActiveFilters}
+      {/* Clear Filters Button */}
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={clearFilters}
+        className="text-muted-foreground hover:text-foreground"
+        disabled={!hasActiveFilters}
+      >
+        <Undo className="size-4" />
+        <span className="sr-only">Clear Filters</span>
+      </Button>
 
-        >
-          <Undo className="size-4" />
-          <span className="sr-only">Clear Filters</span>
-        </Button>
       {/* Item Type Picker (folder/file) */}
       <Combobox
         list={itemTypeOptions}
@@ -141,7 +120,6 @@ function SearchOptions() {
         className="w-auto min-w-32"
         disabled={filters.itemType === 'folder'}
         multiple={true}
-         // Disable when only folders are selected
       />
 
       {/* Date Range Picker */}
@@ -158,9 +136,7 @@ function SearchOptions() {
           checked={filters.isPinned}
           onCheckedChange={handlePinnedToggle}
         />
-        <label 
-          htmlFor="pinned-filter" 
-        >
+        <label htmlFor="pinned-filter">
           Pinned Only
         </label>
       </div>

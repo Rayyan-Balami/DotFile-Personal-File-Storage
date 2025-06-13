@@ -82,3 +82,16 @@ export interface PaginatedPinContentsDto {
   totalCount: number;
   hasMore: boolean;
 }
+
+/**
+ * Search parameters for content search
+ */
+export interface SearchContentsDto {
+  query: string;
+  itemType: string; // all, folders, files
+  fileTypes: string[];
+  location: string; // myDrive, trash, recent
+  isPinned?: boolean;
+  dateFrom?: string;
+  dateTo?: string;
+}

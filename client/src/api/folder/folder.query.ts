@@ -79,6 +79,24 @@ export const usePinContents = (offset: number = 0, limit: number = 10) =>
   });
 
 /**
+ * Hook to search contents
+ */
+export const useSearchContents = (params: {
+  query?: string;
+  itemType?: string;
+  fileTypes?: string[];
+  location?: string;
+  isPinned?: boolean;
+  dateFrom?: string;
+  dateTo?: string;
+}) =>
+  useQuery({
+    queryKey: ["folders", "search", params],
+    queryFn: () => folderApi.searchContents(params).then((res) => res.data),
+    enabled: !!(params.query || params.itemType !== "all" || params.fileTypes?.length || params.isPinned !== undefined || params.dateFrom || params.dateTo),
+  });
+
+/**
  * Hook to create a new folder
  */
 export const useCreateFolder = () => {

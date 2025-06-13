@@ -279,6 +279,45 @@ class FolderController {
         }
       }, "Pin contents retrieved successfully"));
   });
+
+  /**
+   * Search for folders and files
+   */
+  searchContents = asyncHandler(async (req, res) => {
+    logger.info("Searching contents");
+    
+    if (!req.user) {
+      throw new ApiError(401, [{ authentication: "Unauthorized" }]);
+    }
+    const userId = req.user.id;
+    
+    // Parse search parameters
+    const query = req.query.query as string || "";
+    const itemType = req.query.itemType as string || "all"; // all, folders, files
+    const fileTypes = req.query.fileTypes ? (req.query.fileTypes as string).split(',') : [];
+    const location = req.query.location as string || "myDrive"; // myDrive, trash, recent
+    const isPinned = req.query.isPinned === 'true';
+    const dateFrom = req.query.dateFrom as string;
+    const dateTo = req.query.dateTo as string;
+    
+    const searchParams = {
+      query,
+      itemType,
+      fileTypes,
+      location,
+      isPinned,
+      dateFrom,
+      dateTo
+    };
+    
+    const searchResults = await folderService.searchContents(userId, searchParams);
+    
+    res
+      .status(200)
+      .json(new ApiResponse(200, { 
+        folderContents: searchResults
+      }, "Search completed successfully"));
+  });
 }
 
 export default new FolderController();

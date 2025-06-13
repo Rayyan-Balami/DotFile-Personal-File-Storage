@@ -8,6 +8,7 @@ import {
   PaginatedPinContentsDto,
   PathSegment,
   RenameFolderDto,
+  SearchContentsDto,
   UpdateFolderDto,
 } from "@api/folder/folder.dto.js";
 import { IFolder } from "@api/folder/folder.model.js";
@@ -1096,6 +1097,111 @@ class FolderService {
     }
     
     return false;
+  }
+
+  /**
+   * Search for folders and files based on filters
+   * @param userId - Target user
+   * @param searchParams - Search parameters
+   * @returns Search results
+   */
+  async searchContents(userId: string, searchParams: SearchContentsDto): Promise<FolderResponseWithFilesDto> {
+    const { query, itemType, fileTypes, location, isPinned, dateFrom, dateTo } = searchParams;
+    
+    let folders: FolderResponseDto[] = [];
+    let files: any[] = [];
+    let pathSegments: PathSegment[] = [];
+
+    // Determine the data source based on location
+    switch (location) {
+      case "trash":
+        const trashContents = await this.getTrashContents(userId);
+        folders = trashContents.folders;
+        files = trashContents.files;
+        pathSegments = [{ id: null, name: "Trash" }];
+        break;
+      
+      case "recent":
+        // Get recent files (last 30 days)
+        const recentFiles = await fileService.getRecentFiles(userId);
+        files = recentFiles;
+        pathSegments = [{ id: null, name: "Recent" }];
+        break;
+      
+      default: // myDrive
+        // Get all folders and files recursively
+        folders = await this.getAllUserFolders(userId);
+        files = await fileService.getUserFilesByFolders(userId); // Get all files for user
+        pathSegments = [{ id: null, name: "Search Results" }];
+    }
+
+    // Apply text search filter
+    if (query) {
+      const lowerQuery = query.toLowerCase();
+      folders = folders.filter(folder => 
+        folder.name.toLowerCase().includes(lowerQuery)
+      );
+      files = files.filter(file => 
+        file.name.toLowerCase().includes(lowerQuery)
+      );
+    }
+
+    // Apply item type filter
+    if (itemType === "folders") {
+      files = [];
+    } else if (itemType === "files") {
+      folders = [];
+    }
+
+    // Apply file type filter (only affects files)
+    if (fileTypes.length > 0 && files.length > 0) {
+      files = files.filter(file => 
+        fileTypes.includes(file.extension || file.type)
+      );
+    }
+
+    // Apply pinned filter
+    if (isPinned !== undefined) {
+      folders = folders.filter(folder => folder.isPinned === isPinned);
+      files = files.filter(file => file.isPinned === isPinned);
+    }
+
+    // Apply date range filter
+    if (dateFrom || dateTo) {
+      const fromDate = dateFrom ? new Date(dateFrom) : null;
+      const toDate = dateTo ? new Date(dateTo) : null;
+      
+      if (fromDate) {
+        folders = folders.filter(folder => new Date(folder.createdAt) >= fromDate);
+        files = files.filter(file => new Date(file.createdAt) >= fromDate);
+      }
+      
+      if (toDate) {
+        // Set to end of day for inclusive search
+        const endOfDay = new Date(toDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        
+        folders = folders.filter(folder => new Date(folder.createdAt) <= endOfDay);
+        files = files.filter(file => new Date(file.createdAt) <= endOfDay);
+      }
+    }
+
+    return {
+      folders,
+      files,
+      pathSegments
+    };
+  }
+
+  /**
+   * Get all user folders recursively
+   * @param userId - Target user
+   * @returns All folders for the user
+   */
+  private async getAllUserFolders(userId: string): Promise<FolderResponseDto[]> {
+    // Get all non-deleted folders for the user
+    const allFolders = await folderDao.getUserFolders(userId, undefined, false);
+    return allFolders.map(folder => this.sanitizeFolder(folder));
   }
 }
 
