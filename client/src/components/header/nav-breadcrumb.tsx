@@ -344,7 +344,7 @@ export function NavBreadcrumb() {
       let itemIcon = Folder;
 
       if (base === "Trash") {
-        linkPath = `/trash/folder/${segment.id}`;
+        linkPath = `/folder/${segment.id}`;
         itemIcon = index === pathSegments.length - 2 ? FolderOpen : Folder;
       } else if (base === "Settings") {
         // Handle settings sub-routes
