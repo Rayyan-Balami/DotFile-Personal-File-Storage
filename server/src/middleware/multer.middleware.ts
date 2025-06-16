@@ -47,7 +47,6 @@ interface VirtualFolder {
 declare module "express-serve-static-core" {
   interface Request {
     user?: { id: string; [key: string]: any };
-    requestId?: string;
     uploadedFiles?: UploadedFile[];
     fileToFolderMap?: Record<string, string>;
     virtualFolders?: Record<string, string>;
@@ -785,14 +784,4 @@ export const rollbackUploadedFiles = async (req: Request) => {
   } catch (error) {
     logger.error("❌ Error in rollbackUploadedFiles:", error);
   }
-};
-
-// Add requestId middleware to ensure each request has a unique ID
-export const addRequestId = (
-  req: Request,
-  _res: Response,
-  next: NextFunction
-) => {
-  req.requestId = crypto.randomBytes(16).toString("hex");
-  next();
 };
