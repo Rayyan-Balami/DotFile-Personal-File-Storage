@@ -20,6 +20,7 @@ import {
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useDialogStore } from "@/stores/useDialogStore";
+import { useSelectionStore } from "@/stores/useSelectionStore";
 import { useUploadStore } from "@/stores/useUploadStore";
 import { getDetailedErrorInfo, getErrorMessage } from "@/utils/apiErrorHandler";
 import { processDirectoryInput } from "@/utils/uploadUtils";
@@ -135,6 +136,7 @@ const useMenuActions = ({
     openFolderColorDialog,
     openFilePreviewDialog,
   } = useDialogStore();
+  const { selectedIds, getSelectedItems, isSelected } = useSelectionStore();
   const queryClient = useQueryClient();
   const restoreFolder = useRestoreFolder();
   const restoreFile = useRestoreFile();
@@ -277,23 +279,65 @@ const useMenuActions = ({
   };
 
   return (action: string) => {
+    // Check if we're dealing with multiple selected items
+    const selectedItems = getSelectedItems();
+    const isCurrentItemSelected = isSelected(id);
+    const hasMultipleSelected = selectedIds.size > 1;
+    
+    // If multiple items are selected and current item is selected, work on all selected
+    // Otherwise, work on just the current item
+    const targetItems = hasMultipleSelected && isCurrentItemSelected ? selectedItems : [{ id, cardType, name: title }];
+    
     const actions: Record<string, () => void | Promise<void>> = {
       "create-folder": () => {
         if (cardType === "folder") openCreateFolderDialog(id);
       },
-      rename: () => openRenameDialog(id, cardType, title),
-      delete: () =>
-        openDeleteDialog(id, cardType, title, deletedAt, hasDeletedAncestor),
+      rename: () => {
+        // Rename only works on single items
+        if (targetItems.length === 1) {
+          openRenameDialog(id, cardType, title);
+        }
+      },
+      delete: () => {
+        if (targetItems.length === 1) {
+          openDeleteDialog(id, cardType, title, deletedAt, hasDeletedAncestor);
+        } else {
+          // For bulk delete, pass arrays of IDs and names
+          const ids = targetItems.map(item => item.id);
+          const names = targetItems.map(item => item.name);
+          
+          // Determine the type - use "document" for mixed selection
+          const folderCount = targetItems.filter(item => item.cardType === "folder").length;
+          const fileCount = targetItems.filter(item => item.cardType === "document").length;
+          const type = folderCount > 0 && fileCount === 0 ? "folder" : "document";
+          
+          openDeleteDialog(ids, type, names, deletedAt, hasDeletedAncestor);
+        }
+      },
       restore: async () => {
-        const mutation = cardType === "folder" ? restoreFolder : restoreFile;
-        await mutation.mutateAsync(id, {
-          onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["folders", "trash"] });
-            queryClient.invalidateQueries({
-              queryKey: [cardType === "folder" ? "folders" : "files"],
-            });
-          },
-        });
+        for (const item of targetItems) {
+          const mutation = item.cardType === "folder" ? restoreFolder : restoreFile;
+          try {
+            await mutation.mutateAsync(item.id);
+          } catch (error) {
+            toast.error(`Failed to restore ${item.name || item.id}`);
+          }
+        }
+        
+        // Invalidate queries after all operations
+        queryClient.invalidateQueries({ queryKey: ["folders", "trash"] });
+        queryClient.invalidateQueries({ queryKey: ["folders"] });
+        queryClient.invalidateQueries({ queryKey: ["files"] });
+        
+        if (targetItems.length > 1) {
+          toast.success(`Successfully restored ${targetItems.length} items`);
+          // Clear selection after bulk operation with a small delay
+          setTimeout(() => {
+            useSelectionStore.getState().clear();
+          }, 100);
+        } else {
+          toast.success(`Successfully restored ${targetItems[0].name || 'item'}`);
+        }
       },
       pin: () => handlePin(true),
       unpin: () => handlePin(false),
@@ -370,6 +414,12 @@ const MenuItems = React.memo(
       createdAt,
       updatedAt,
     } = props;
+    
+    const { selectedIds, isSelected, getSelectedItems } = useSelectionStore();
+    const isCurrentItemSelected = isSelected(id);
+    const hasMultipleSelected = selectedIds.size > 1;
+    const selectedItems = getSelectedItems();
+    
     const handleAction = useMenuActions({
       cardType,
       title,
@@ -380,6 +430,61 @@ const MenuItems = React.memo(
     });
     const isDeleted = deletedAt || hasDeletedAncestor;
 
+    // If multiple items are selected and current item is selected, show bulk menu
+    if (hasMultipleSelected && isCurrentItemSelected) {
+      const folderCount = selectedItems.filter(item => item.cardType === "folder").length;
+      const fileCount = selectedItems.filter(item => item.cardType === "document").length;
+      const allDeleted = selectedItems.every(item => item.deletedAt || item.hasDeletedAncestor);
+      
+      return (
+        <>
+          <Item disabled className="text-muted-foreground text-xs">
+            {selectedIds.size} items selected
+            {folderCount > 0 && fileCount > 0 && (
+              <span className="block">{folderCount} folders, {fileCount} files</span>
+            )}
+          </Item>
+          <Separator />
+          
+          {/* Show bulk actions for deleted items */}
+          {allDeleted && (
+            <>
+              {selectedItems.every(item => item.deletedAt && !item.hasDeletedAncestor) && (
+                <>
+                  <Item
+                    onClick={() => handleAction("restore")}
+                    className="text-green-600 focus:text-green-600 focus:bg-green-700/20"
+                  >
+                    Put Back All
+                  </Item>
+                  <Separator />
+                </>
+              )}
+              <Item
+                onClick={() => handleAction("delete")}
+                className="text-red-600 focus:text-red-600 focus:bg-red-700/20"
+              >
+                Delete All Permanently
+              </Item>
+            </>
+          )}
+          
+          {/* Show bulk actions for non-deleted items */}
+          {!allDeleted && (
+            <>
+              <Item
+                onClick={() => handleAction("delete")}
+                className="text-red-600 focus:text-red-600 focus:bg-red-700/20"
+              >
+                Delete All
+              </Item>
+            </>
+          )}
+        </>
+      );
+    }
+
+    // Single item menu
     if (isDeleted) {
       return (
         <>

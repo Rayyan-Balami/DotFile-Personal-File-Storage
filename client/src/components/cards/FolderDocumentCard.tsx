@@ -284,21 +284,54 @@ const CardContent = React.memo(
   }) => {
     const [menuOpen, setMenuOpen] = useState(false);
     const { isMobile, isDesktop } = useBreakpoint();
+    const { isSelected, select } = useSelectionStore();
+    
+    const handleMenuOpenChange = (open: boolean) => {
+      if (open && !isSelected(id)) {
+        // Select the item when opening menu if not already selected
+        select(id, {} as React.MouseEvent);
+      }
+      setMenuOpen(open);
+      
+      // Track global dropdown state
+      window.__dropdownOpen = open;
+      
+      // If menu is closing, prevent selection clearing for a short time
+      if (!open) {
+        // Mark that we just closed a menu to prevent selection clearing
+        window.__menuJustClosed = Date.now();
+      }
+    };
+
+    // Prevent selection clearing when clicking on menu items
+    const handleMenuItemClick = (e: React.MouseEvent) => {
+      // Stop event propagation to prevent global click handler from clearing selection
+      e.stopPropagation();
+      e.preventDefault();
+    };
 
     // Only render dropdown content when menu is open
     const dropdownMenu = (
-      <DropdownMenu onOpenChange={setMenuOpen} modal={false}>
+      <DropdownMenu onOpenChange={handleMenuOpenChange} modal={false}>
         <DropdownMenuTrigger asChild>
           <Button
             variant={"ghost"}
             className="size-4.75 hover:bg-muted-foreground/10 cursor-pointer text-muted-foreground hover:text-foreground"
             aria-label="More options"
+            onMouseDown={(e) => {
+              // Prevent the global click handler from clearing selection when clicking the trigger
+              e.stopPropagation();
+            }}
+            onClick={(e) => {
+              // Prevent the global click handler from clearing selection when clicking the trigger
+              e.stopPropagation();
+            }}
           >
             <EllipsisVertical className="size-3.75" />
           </Button>
         </DropdownMenuTrigger>
         {menuOpen && (
-          <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuContent align="end" className="w-48" onClick={handleMenuItemClick}>
             <Suspense
               fallback={
                 <DropdownMenuItem disabled>
@@ -466,6 +499,13 @@ const FolderDocumentCard = React.memo(
 
     const handleItemClick = useSelectionStore((state) => state.handleItemClick);
 
+    // Prevent selection clearing when clicking on menu items
+    const handleMenuItemClick = useCallback((e: React.MouseEvent) => {
+      // Stop event propagation to prevent global click handler from clearing selection
+      e.stopPropagation();
+      e.preventDefault();
+    }, []);
+
     // Create stable references to handlers
     const actionHandlerRef = useRef<(action: string) => void>(() => {});
     actionHandlerRef.current = useCallback(
@@ -548,8 +588,29 @@ const FolderDocumentCard = React.memo(
       if (!window.__cardSelectionHandler) {
         window.__cardSelectionHandler = (e: MouseEvent) => {
           const target = e.target as Element;
-          // Don't clear selection if clicking on UI controls
-          if (target.closest("button") || target.closest('[role="button"]')) {
+          
+          // Don't clear selection if a menu just closed (within 300ms) or if a dropdown is open
+          const menuJustClosed = window.__menuJustClosed && (Date.now() - window.__menuJustClosed) < 300;
+          const dropdownOpen = window.__dropdownOpen;
+          if (menuJustClosed || dropdownOpen) {
+            return;
+          }
+          
+          // Don't clear selection if clicking on UI controls, dropdowns, or context menus
+          if (
+            target.closest("button") || 
+            target.closest('[role="button"]') ||
+            target.closest('[role="menu"]') ||
+            target.closest('[role="menuitem"]') ||
+            target.closest('[data-radix-collection-item]') ||
+            target.closest('[data-radix-dropdown-menu-content]') ||
+            target.closest('[data-radix-context-menu-content]') ||
+            target.closest('[data-radix-dropdown-menu-item]') ||
+            target.closest('[data-radix-context-menu-item]') ||
+            target.closest('.radix-dropdown-content') ||
+            target.closest('.radix-context-menu-content') ||
+            target.closest('[data-state="open"]') // Radix elements that are open
+          ) {
             return;
           }
           if (!target.closest("[data-folder-card]")) {
@@ -575,6 +636,14 @@ const FolderDocumentCard = React.memo(
               if (onOpen) {
                 onOpen();
               }
+            }}
+            onContextMenu={(e) => {
+              // Select the item on right-click if not already selected
+              if (!isSelected) {
+                useSelectionStore.getState().select(id, e as any);
+              }
+              // Mark that we're opening a context menu
+              window.__menuJustClosed = undefined;
             }}
             role="button"
             tabIndex={0}
@@ -620,7 +689,7 @@ const FolderDocumentCard = React.memo(
             />
           </div>
         </ContextMenuTrigger>
-        <ContextMenuContent className="w-48">
+        <ContextMenuContent className="w-48" onClick={handleMenuItemClick}>
           <Suspense
             fallback={
               <ContextMenuItem disabled>
@@ -687,6 +756,8 @@ FolderDocumentCard.displayName = "FolderDocumentCard";
 declare global {
   interface Window {
     __cardSelectionHandler?: (e: MouseEvent) => void;
+    __menuJustClosed?: number;
+    __dropdownOpen?: boolean;
   }
 }
 
