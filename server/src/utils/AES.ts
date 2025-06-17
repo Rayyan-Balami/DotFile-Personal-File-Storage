@@ -1,9 +1,36 @@
-// AES-128 implementation with PKCS#7 padding
-// This file implements the Advanced Encryption Standard (AES) with 128-bit keys
-// using PKCS#7 padding for block alignment
+/**
+ * Summary of AES-128:
+ *
+ * Plaintext → Split into 16-byte blocks → For each block:
+ *
+ * ENCRYPTION:
+ * 1. AddRoundKey (Mix with Key 0)
+ * 2. Apply 9 Main Rounds:
+ *    - SubBytes (Substitute each byte)
+ *    - ShiftRows (Shuffle the bytes)
+ *    - MixColumns (Mix the bytes within columns)
+ *    - AddRoundKey (Mix with the round key)
+ * 3. Apply Final Round:
+ *    - SubBytes
+ *    - ShiftRows
+ *    - AddRoundKey (Mix with Key 10)
+ * 4. Combine all blocks to get the ciphertext
+ *
+ * DECRYPTION:
+ * 1. AddRoundKey (Mix with Key 10)
+ * 2. Apply 9 Main Rounds:
+ *    - InvShiftRows (Undo the shuffling)
+ *    - InvSubBytes (Undo the substitution)
+ *    - AddRoundKey (Mix with the round key)
+ *    - InvMixColumns (Undo the mixing)
+ * 3. Apply Final Round:
+ *    - InvShiftRows
+ *    - InvSubBytes
+ *    - AddRoundKey (Mix with Key 0)
+ * 4. Remove padding and combine blocks to get the plaintext
+ */
 
-// S-box (Substitution box) - used for non-linear byte substitution during encryption
-// This is a fixed lookup table that provides confusion in the cipher
+// S-box: Fixed lookup table for byte substitution
 const S_BOX = [
   0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe,
   0xd7, 0xab, 0x76, 0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4,
@@ -27,8 +54,7 @@ const S_BOX = [
   0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16,
 ];
 
-// Inverse S-box - used for reverse byte substitution during decryption
-// This is the mathematical inverse of the S-box lookup table
+// Inverse S-box: Used for reverse byte substitution during decryption
 const INV_S_BOX = [
   0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81,
   0xf3, 0xd7, 0xfb, 0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e,
@@ -52,69 +78,78 @@ const INV_S_BOX = [
   0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d,
 ];
 
-// Round constants (Rcon) used in key expansion algorithm
-// These values are powers of 2 in the Galois Field GF(2^8)
+// Rcon: Round constants for key expansion (powers of 2 in GF(2^8))
 const RCON = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36];
 
-// Galois Field arithmetic operations for AES
-// These operations are performed in GF(2^8) with the irreducible polynomial x^8 + x^4 + x^3 + x + 1
+/**
+ * Galois Field (GF) math for AES
+ *
+ * These functions perform special multiplication used in the MixColumns step.
+ * Don't worry too much about these - they're just math operations for mixing data.
+ * Think of them as special recipes for combining bytes in a secure way.
+ */
 const gf = {
-  // Multiply by 2 in GF(2^8) - equivalent to left shift with conditional XOR
+  // Multiply by 2 in GF(2^8) - the basic operation
   mul2: (x: number) => (x << 1) ^ (x & 0x80 ? 0x11b : 0),
-  // Multiply by 3 in GF(2^8) - computed as (2*x) XOR x
-  mul3: (x: number) => gf.mul2(x) ^ x,
-  // Multiply by 9 in GF(2^8) - used in inverse MixColumns
-  mul9: (x: number) => gf.mul2(gf.mul2(gf.mul2(x))) ^ x,
-  // Multiply by 11 in GF(2^8) - used in inverse MixColumns
-  mul11: (x: number) => gf.mul2(gf.mul2(gf.mul2(x))) ^ gf.mul2(x) ^ x,
-  // Multiply by 13 in GF(2^8) - used in inverse MixColumns
-  mul13: (x: number) => gf.mul2(gf.mul2(gf.mul2(x) ^ x)) ^ x,
-  // Multiply by 14 in GF(2^8) - used in inverse MixColumns
-  mul14: (x: number) => gf.mul2(gf.mul2(gf.mul2(x) ^ x) ^ x),
+
+  // The following are derived from mul2
+  mul3: (x: number) => gf.mul2(x) ^ x, // 3 = 2 + 1
+  mul9: (x: number) => gf.mul2(gf.mul2(gf.mul2(x))) ^ x, // 9 = 8 + 1
+  mul11: (x: number) => gf.mul2(gf.mul2(gf.mul2(x))) ^ gf.mul2(x) ^ x, // 11 = 8 + 2 + 1
+  mul13: (x: number) => gf.mul2(gf.mul2(gf.mul2(x) ^ x)) ^ x, // 13 = 8 + 4 + 1
+  mul14: (x: number) => gf.mul2(gf.mul2(gf.mul2(x) ^ x) ^ x), // 14 = 8 + 4 + 2
 };
 
-// Key expansion algorithm for AES-128
-// Expands the 128-bit key into 11 round keys (44 words total)
-// Each round key is 128 bits (16 bytes) used in encryption/decryption rounds
+/**
+ * ExpandKey: Creates 11 round keys from the original 16-byte key
+ * We need a different key for each round of encryption
+ */
 function expandKey(key: Buffer): Buffer[] {
-  const w = new Array(44);
+  const words = new Array(44); // 4 words per round key * 11 round keys = 44 words
   const roundKeys: Buffer[] = [];
 
-  // Initialize first 4 words with the original 128-bit key
-  // Each word is 32 bits (4 bytes)
+  // Step 1: Copy the original key into the first 4 words
   for (let i = 0; i < 4; i++) {
-    w[i] =
+    words[i] =
       (key[4 * i] << 24) |
       (key[4 * i + 1] << 16) |
       (key[4 * i + 2] << 8) |
       key[4 * i + 3];
   }
 
-  // Generate remaining 40 words using key expansion algorithm
+  // Step 2: Generate the remaining 40 words
   for (let i = 4; i < 44; i++) {
-    let temp = w[i - 1];
-    // Apply transformation every 4th word (start of new round key)
+    let temp = words[i - 1];
+
+    // Every 4th word gets special treatment
     if (i % 4 === 0) {
-      // RotWord: rotate bytes in word by one position
-      // SubWord: apply S-box substitution to each byte
-      temp =
-        (S_BOX[(temp >>> 24) & 0xff] << 24) |
-        (S_BOX[(temp >>> 16) & 0xff] << 16) |
-        (S_BOX[(temp >>> 8) & 0xff] << 8) |
-        S_BOX[temp & 0xff];
-      // Rotate word and XOR with round constant
-      temp = ((temp << 8) | (temp >>> 24)) ^ (RCON[i / 4 - 1] << 24);
+      // Rotate word: shift bytes left
+      temp = ((temp << 8) | (temp >>> 24)) & 0xffffffff;
+
+      // Apply S-box to each byte
+      const b0 = S_BOX[(temp >>> 24) & 0xff];
+      const b1 = S_BOX[(temp >>> 16) & 0xff];
+      const b2 = S_BOX[(temp >>> 8) & 0xff];
+      const b3 = S_BOX[temp & 0xff];
+
+      temp = (b0 << 24) | (b1 << 16) | (b2 << 8) | b3;
+
+      // XOR with round constant
+      temp ^= RCON[Math.floor(i / 4) - 1] << 24;
     }
-    // XOR with word from 4 positions back
-    w[i] = w[i - 4] ^ temp;
+
+    // Each word is XOR of previous word and word 4 positions back
+    words[i] = words[i - 4] ^ temp;
   }
 
-  // Convert 44 words into 11 round keys of 16 bytes each
-  for (let i = 0; i < 11; i++) {
-    const roundKey = Buffer.alloc(16);
+  // Step 3: Group words into 11 round keys (16 bytes each)
+  for (let round = 0; round < 11; round++) {
+    const roundKey = Buffer.allocUnsafe(16);
+
+    // Each round key consists of 4 words (16 bytes)
     for (let j = 0; j < 4; j++) {
-      const word = w[i * 4 + j];
-      // Extract bytes from 32-bit word and store in round key
+      const word = words[round * 4 + j];
+      // Convert word back to 4 bytes
       roundKey[j * 4] = (word >>> 24) & 0xff;
       roundKey[j * 4 + 1] = (word >>> 16) & 0xff;
       roundKey[j * 4 + 2] = (word >>> 8) & 0xff;
@@ -128,137 +163,194 @@ function expandKey(key: Buffer): Buffer[] {
 
 // AES transformation functions - these implement the four main operations in AES
 
-// SubBytes transformation - non-linear byte substitution using S-box
-// Provides confusion by replacing each byte with a corresponding value from S-box
+/**
+ * SubBytes: Substitutes each byte with a value from the S-box
+ * This creates confusion by replacing each byte with a non-linear mapping
+ */
 function subBytes(state: Buffer) {
-  for (let i = 0; i < 16; i++) state[i] = S_BOX[state[i]];
+  for (let i = 0; i < 16; i++) {
+    state[i] = S_BOX[state[i]];
+  }
 }
 
-// Inverse SubBytes - reverses the SubBytes transformation using inverse S-box
+/**
+ * InvSubBytes: Reverses the substitution using the inverse S-box
+ * This is the opposite of subBytes, used during decryption
+ */
 function invSubBytes(state: Buffer) {
-  for (let i = 0; i < 16; i++) state[i] = INV_S_BOX[state[i]];
+  for (let i = 0; i < 16; i++) {
+    state[i] = INV_S_BOX[state[i]];
+  }
 }
 
-// ShiftRows transformation - cyclically shifts bytes in each row of the state matrix
-// Row 0: no shift, Row 1: shift left by 1, Row 2: shift left by 2, Row 3: shift left by 3
-// Provides diffusion by mixing bytes across columns
+/**
+ * ShiftRows: Moves bytes between columns by rotating each row
+ * - Row 0: No shift
+ * - Row 1: Shift 1 position left
+ * - Row 2: Shift 2 positions left
+ * - Row 3: Shift 3 positions left
+ *
+ * This creates diffusion by spreading the influence of each byte
+ */
 function shiftRows(state: Buffer) {
+  // Make a copy of the original state
   const temp = Buffer.from(state);
-  for (let i = 1; i < 4; i++) {
-    for (let j = 0; j < 4; j++) {
-      state[i + j * 4] = temp[i + ((j + i) % 4) * 4];
+
+  // For each row except the first (which stays unchanged)
+  for (let row = 1; row < 4; row++) {
+    for (let col = 0; col < 4; col++) {
+      // Calculate the new column position after shifting
+      const newCol = (col + row) % 4;
+      // Copy from the original state to the new position
+      state[row + col * 4] = temp[row + newCol * 4];
     }
   }
 }
 
-// Inverse ShiftRows - reverses the ShiftRows transformation
-// Shifts rows in the opposite direction to undo the original transformation
+/**
+ * InvShiftRows: Reverses the row shifting (moves right instead of left)
+ * Used during decryption
+ */
 function invShiftRows(state: Buffer) {
   const temp = Buffer.from(state);
-  for (let i = 1; i < 4; i++) {
-    for (let j = 0; j < 4; j++) {
-      state[i + j * 4] = temp[i + ((j - i + 4) % 4) * 4];
+  for (let row = 1; row < 4; row++) {
+    for (let col = 0; col < 4; col++) {
+      const newCol = (col - row + 4) % 4; // Shift right instead of left
+      state[row + col * 4] = temp[row + newCol * 4];
     }
   }
 }
 
-// MixColumns transformation - linear mixing of columns using Galois Field arithmetic
-// Each column is treated as a polynomial and multiplied by a fixed polynomial
-// Provides diffusion by mixing bytes within each column
+/**
+ * MixColumns: Transforms each column by mixing its bytes
+ * This creates diffusion within each column, ensuring changes propagate quickly
+ *
+ * Each column is multiplied by a fixed matrix:
+ * |2 3 1 1|
+ * |1 2 3 1|
+ * |1 1 2 3|
+ * |3 1 1 2|
+ */
 function mixColumns(state: Buffer) {
-  for (let i = 0; i < 4; i++) {
-    const s0 = state[i * 4],
-      s1 = state[i * 4 + 1],
-      s2 = state[i * 4 + 2],
-      s3 = state[i * 4 + 3];
-    // Matrix multiplication: [2 3 1 1; 1 2 3 1; 1 1 2 3; 3 1 1 2] * column
-    state[i * 4] = gf.mul2(s0) ^ gf.mul3(s1) ^ s2 ^ s3;
-    state[i * 4 + 1] = s0 ^ gf.mul2(s1) ^ gf.mul3(s2) ^ s3;
-    state[i * 4 + 2] = s0 ^ s1 ^ gf.mul2(s2) ^ gf.mul3(s3);
-    state[i * 4 + 3] = gf.mul3(s0) ^ s1 ^ s2 ^ gf.mul2(s3);
+  for (let col = 0; col < 4; col++) {
+    // Get all 4 bytes from this column
+    const s0 = state[col * 4]; // First byte in column
+    const s1 = state[col * 4 + 1]; // Second byte in column
+    const s2 = state[col * 4 + 2]; // Third byte in column
+    const s3 = state[col * 4 + 3]; // Fourth byte in column
+
+    // Mix the bytes according to the matrix multiplication formula
+    state[col * 4] = gf.mul2(s0) ^ gf.mul3(s1) ^ s2 ^ s3;
+    state[col * 4 + 1] = s0 ^ gf.mul2(s1) ^ gf.mul3(s2) ^ s3;
+    state[col * 4 + 2] = s0 ^ s1 ^ gf.mul2(s2) ^ gf.mul3(s3);
+    state[col * 4 + 3] = gf.mul3(s0) ^ s1 ^ s2 ^ gf.mul2(s3);
   }
 }
 
-// Inverse MixColumns - reverses the MixColumns transformation
-// Uses the inverse matrix in Galois Field arithmetic
+/**
+ * InvMixColumns: Reverses the column mixing
+ * Uses the inverse matrix of MixColumns
+ */
 function invMixColumns(state: Buffer) {
-  for (let i = 0; i < 4; i++) {
-    const s0 = state[i * 4],
-      s1 = state[i * 4 + 1],
-      s2 = state[i * 4 + 2],
-      s3 = state[i * 4 + 3];
-    // Inverse matrix multiplication: [14 11 13 9; 9 14 11 13; 13 9 14 11; 11 13 9 14] * column
-    state[i * 4] = gf.mul14(s0) ^ gf.mul11(s1) ^ gf.mul13(s2) ^ gf.mul9(s3);
-    state[i * 4 + 1] = gf.mul9(s0) ^ gf.mul14(s1) ^ gf.mul11(s2) ^ gf.mul13(s3);
-    state[i * 4 + 2] = gf.mul13(s0) ^ gf.mul9(s1) ^ gf.mul14(s2) ^ gf.mul11(s3);
-    state[i * 4 + 3] = gf.mul11(s0) ^ gf.mul13(s1) ^ gf.mul9(s2) ^ gf.mul14(s3);
+  for (let col = 0; col < 4; col++) {
+    const s0 = state[col * 4];
+    const s1 = state[col * 4 + 1];
+    const s2 = state[col * 4 + 2];
+    const s3 = state[col * 4 + 3];
+
+    // Apply inverse matrix multiplication
+    state[col * 4] = gf.mul14(s0) ^ gf.mul11(s1) ^ gf.mul13(s2) ^ gf.mul9(s3);
+    state[col * 4 + 1] =
+      gf.mul9(s0) ^ gf.mul14(s1) ^ gf.mul11(s2) ^ gf.mul13(s3);
+    state[col * 4 + 2] =
+      gf.mul13(s0) ^ gf.mul9(s1) ^ gf.mul14(s2) ^ gf.mul11(s3);
+    state[col * 4 + 3] =
+      gf.mul11(s0) ^ gf.mul13(s1) ^ gf.mul9(s2) ^ gf.mul14(s3);
   }
 }
 
-// AddRoundKey transformation - XOR state with round key
-// This is the key-dependent step that provides security
+/**
+ * AddRoundKey: XORs the state with the round key
+ * This is the only step that uses the actual encryption key
+ */
 function addRoundKey(state: Buffer, roundKey: Buffer) {
-  for (let i = 0; i < 16; i++) state[i] ^= roundKey[i];
+  for (let i = 0; i < 16; i++) {
+    state[i] ^= roundKey[i]; // XOR each byte with the corresponding key byte
+  }
 }
 
-// PKCS#7 padding functions - ensures data is multiple of block size (16 bytes)
-
-// Pad function - adds padding bytes to make data length multiple of 16
-// The padding value equals the number of padding bytes added
+/**
+ * Pad: Adds PKCS#7 padding to make data a multiple of 16 bytes
+ * Example: If we need 3 bytes of padding, we add [03,03,03]
+ */
 function pad(data: Buffer): Buffer {
+  // Calculate how many bytes of padding we need
   const padLen = 16 - (data.length % 16);
+
+  // Create a new buffer with room for the padding
   const padded = Buffer.alloc(data.length + padLen);
+
+  // Copy the original data
   data.copy(padded);
-  // Fill remaining bytes with the padding length value
+
+  // Add the padding bytes (each byte = the number of padding bytes)
   padded.fill(padLen, data.length);
+
   return padded;
 }
 
-// Unpad function - removes PKCS#7 padding from decrypted data
-// Reads the last byte to determine how many padding bytes to remove
+/**
+ * Unpad: Removes PKCS#7 padding
+ * Reads the last byte to determine how many padding bytes to remove
+ */
 function unpad(data: Buffer): Buffer {
   const padLen = data[data.length - 1];
-  // Validate padding length to prevent padding oracle attacks
+  // Make sure padding length is valid (not more than a block size)
   return padLen <= 16 ? data.subarray(0, -padLen) : data;
 }
 
 // Main AES encryption and decryption functions
 
 /**
- * AES-128 encryption function
- * Encrypts plaintext using AES-128 algorithm with PKCS#7 padding
- * @param plaintext - The data to encrypt (Buffer)
- * @param key - The encryption key (string, will be padded/truncated to 16 bytes)
- * @returns Encrypted ciphertext as Buffer
+ * AES-128 Encryption
+ *
+ * @param plaintext - The data to encrypt
+ * @param key - The encryption key (will be adjusted to 16 bytes)
+ * @returns The encrypted data
  */
 export function encrypt(plaintext: Buffer, key: string): Buffer {
-  // Expand the key into 11 round keys for AES-128
-  const expandedKey = expandKey(Buffer.from(key.padEnd(16).substring(0, 16)));
-  // Apply PKCS#7 padding to ensure data is multiple of 16 bytes
+  // Step 1: Make sure the key is exactly 16 bytes (128 bits)
+  const normalizedKey = Buffer.from(key.padEnd(16).substring(0, 16));
+
+  // Step 2: Generate all the round keys we'll need
+  const roundKeys = expandKey(normalizedKey);
+
+  // Step 3: Add padding so our data is a multiple of 16 bytes
   const padded = pad(plaintext);
   const ciphertext = Buffer.alloc(padded.length);
 
-  // Process each 16-byte block
+  // Step 4: Encrypt each 16-byte block separately
   for (let i = 0; i < padded.length; i += 16) {
+    // Get the next block to encrypt
     const block = Buffer.from(padded.subarray(i, i + 16));
 
-    // Initial round: only AddRoundKey
-    addRoundKey(block, expandedKey[0]);
+    // Step 4a: Initial round - just mix with the original key
+    addRoundKey(block, roundKeys[0]);
 
-    // Main rounds (rounds 1-9): SubBytes, ShiftRows, MixColumns, AddRoundKey
+    // Step 4b: Main rounds (1-9) - apply all four transformations
     for (let round = 1; round < 10; round++) {
-      subBytes(block);
-      shiftRows(block);
-      mixColumns(block);
-      addRoundKey(block, expandedKey[round]);
+      subBytes(block); // Replace each byte using S-box
+      shiftRows(block); // Shift rows for diffusion
+      mixColumns(block); // Mix columns for more diffusion
+      addRoundKey(block, roundKeys[round]); // Mix with round key
     }
 
-    // Final round (round 10): SubBytes, ShiftRows, AddRoundKey (no MixColumns)
+    // Step 4c: Final round - skip mixColumns
     subBytes(block);
     shiftRows(block);
-    addRoundKey(block, expandedKey[10]);
+    addRoundKey(block, roundKeys[10]);
 
-    // Copy encrypted block to ciphertext
+    // Step 4d: Add this encrypted block to our result
     block.copy(ciphertext, i);
   }
 
@@ -266,45 +358,52 @@ export function encrypt(plaintext: Buffer, key: string): Buffer {
 }
 
 /**
- * AES-128 decryption function
- * Decrypts ciphertext using AES-128 algorithm and removes PKCS#7 padding
- * @param ciphertext - The encrypted data to decrypt (Buffer)
- * @param key - The decryption key (string, will be padded/truncated to 16 bytes)
- * @returns Decrypted plaintext as Buffer
+ * AES-128 Decryption
+ *
+ * @param ciphertext - The encrypted data (must be a multiple of 16 bytes)
+ * @param key - The encryption key (will be adjusted to 16 bytes)
+ * @returns The decrypted data with padding removed
  */
 export function decrypt(ciphertext: Buffer, key: string): Buffer {
-  // Validate input - ciphertext must be multiple of 16 bytes
-  if (ciphertext.length % 16 !== 0)
+  // Step 1: Check that the input is valid (must be multiple of 16 bytes)
+  if (ciphertext.length % 16 !== 0) {
     throw new Error("Invalid ciphertext length");
+  }
 
-  // Expand the key into 11 round keys for AES-128
-  const expandedKey = expandKey(Buffer.from(key.padEnd(16).substring(0, 16)));
+  // Step 2: Make sure the key is exactly 16 bytes (128 bits)
+  const normalizedKey = Buffer.from(key.padEnd(16).substring(0, 16));
+
+  // Step 3: Generate all the round keys we'll need
+  const roundKeys = expandKey(normalizedKey);
+
+  // Step 4: Prepare a buffer for the decrypted data
   const plaintext = Buffer.alloc(ciphertext.length);
 
-  // Process each 16-byte block
+  // Step 5: Decrypt each 16-byte block separately
   for (let i = 0; i < ciphertext.length; i += 16) {
+    // Get the next block to decrypt
     const block = Buffer.from(ciphertext.subarray(i, i + 16));
 
-    // Initial step: AddRoundKey with last round key
-    addRoundKey(block, expandedKey[10]);
+    // Step 5a: Initial round - mix with the last round key
+    addRoundKey(block, roundKeys[10]);
 
-    // Main rounds (rounds 9-1): InvShiftRows, InvSubBytes, AddRoundKey, InvMixColumns
+    // Step 5b: Main rounds (9-1) - apply inverse transformations
     for (let round = 9; round > 0; round--) {
-      invShiftRows(block);
-      invSubBytes(block);
-      addRoundKey(block, expandedKey[round]);
-      invMixColumns(block);
+      invShiftRows(block); // Reverse the row shifting
+      invSubBytes(block); // Reverse the byte substitution
+      addRoundKey(block, roundKeys[round]); // Mix with round key
+      invMixColumns(block); // Reverse the column mixing
     }
 
-    // Final round (round 0): InvShiftRows, InvSubBytes, AddRoundKey (no InvMixColumns)
+    // Step 5c: Final round - no invMixColumns
     invShiftRows(block);
     invSubBytes(block);
-    addRoundKey(block, expandedKey[0]);
+    addRoundKey(block, roundKeys[0]); // Mix with original key
 
-    // Copy decrypted block to plaintext
+    // Step 5d: Add this decrypted block to our result
     block.copy(plaintext, i);
   }
 
-  // Remove PKCS#7 padding and return plaintext
+  // Step 6: Remove the padding and return the original data
   return unpad(plaintext);
 }

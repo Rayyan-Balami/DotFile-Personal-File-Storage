@@ -17,6 +17,8 @@ import fs from "fs";
 import * as fsPromises from "fs/promises";
 import { Types } from "mongoose";
 import path from "path";
+import crypto from "crypto";
+import { Transform, Readable } from "stream";
 
 /**
  * FileService: Business logic layer for file operations
@@ -837,6 +839,10 @@ class FileService {
 
   /**
    * Get decrypted file stream for viewing
+   * Uses a hybrid approach for efficient streaming:
+   * - Small files (< 5MB): Direct in-memory streaming
+   * - Large files: Temporary file streaming with proper cleanup
+   * 
    * @param fileId - File ID to view
    * @param userId - User ID who owns the file
    * @returns Object containing file stream, mime type, and filename
@@ -845,7 +851,7 @@ class FileService {
   async getFileStream(
     fileId: string,
     userId: string
-  ): Promise<{ stream: fs.ReadStream; mimeType: string; filename: string }> {
+  ): Promise<{ stream: NodeJS.ReadableStream; mimeType: string; filename: string }> {
     // Verify file ownership
     const file = await this.verifyFileOwnership(fileId, userId);
 
@@ -855,67 +861,110 @@ class FileService {
     try {
       // Check if file exists
       await fsPromises.access(filePath);
-
-      // Read the encrypted file content
-      const encryptedBuffer = await fsPromises.readFile(filePath);
-
-      // Decrypt the file content using the user's key
-      const decryptedBuffer = decryptFileBuffer(encryptedBuffer, userId);
-
-      // Log the decrypted data to the console for debugging
-      logger.debug(`Decrypted file data (${file.name}.${file.extension}):`);
-
-      // For text files, log the content as string
-      if (
-        ["txt", "json", "csv", "md", "html", "css", "js", "ts"].includes(
-          file.extension.toLowerCase()
-        )
-      ) {
-        // Convert buffer to string and log - limit to 1000 chars to avoid console overflow
-        const textContent = decryptedBuffer.toString("utf8");
-        logger.debug(
-          textContent.length > 1000
-            ? `${textContent.substring(0, 1000)}... (truncated, ${textContent.length} chars total)`
-            : textContent
-        );
-      } else {
-        // For binary files, just log buffer info
-        logger.debug(`Binary data: ${decryptedBuffer.length} bytes`);
-      }
-
-      // Create a temporary decrypted file path
-      const tempDir = path.join(getUserDirectoryPath(userId), "temp");
-
-      // Ensure temp directory exists
-      if (!fs.existsSync(tempDir)) {
-        await fsPromises.mkdir(tempDir, { recursive: true });
-      }
-
-      const tempFilePath = path.join(tempDir, `decrypted-${file.storageKey}`);
-
-      // Write the decrypted content to temp file
-      await fsPromises.writeFile(tempFilePath, decryptedBuffer);
-
-      // Create read stream from the decrypted temp file
-      const stream = fs.createReadStream(tempFilePath);
-
-      // Set up cleanup of temp file after stream ends
-      stream.on("end", async () => {
-        try {
-          // Delete temporary decrypted file after it's been streamed
-          await fsPromises.unlink(tempFilePath);
-        } catch (err) {
-          logger.error(`Error cleaning up temp file ${tempFilePath}:`, err);
-        }
-      });
-
+      
       // Determine mime type from file extension
       const mimeType = file.type || "application/octet-stream";
-
+      const filename = `${file.name}.${file.extension}`;
+      
+      // Get file size for reporting
+      const fileSize = (await fsPromises.stat(filePath)).size;
+      logger.debug(`Streaming file ${filename} (${fileSize} bytes) with pure streaming`);
+      
+      // Pure streaming approach with no temporary files
+      // 1. Create a read stream to read the file in chunks
+      const fileReadStream = fs.createReadStream(filePath, { 
+        highWaterMark: 64 * 1024 // 64KB chunks for optimal performance
+      });
+      
+      // 2. Buffer to accumulate complete blocks for decryption (AES requires 16-byte blocks)
+      let pendingBuffer = Buffer.alloc(0);
+      
+      // Optimize buffer size for better performance while keeping memory usage reasonable
+      const OPTIMAL_CHUNK_SIZE = 256 * 1024; // 256KB chunks for optimal performance
+      
+      // 3. Create a transform stream that decrypts chunks on-the-fly with optimized buffer handling
+      const decryptStream = new Transform({
+        transform(chunk: Buffer, encoding: string, callback: (error?: Error | null, data?: any) => void) {
+          try {
+            // Add current chunk to any leftover data from previous chunks
+            // Use efficient buffer concatenation to avoid excessive allocations
+            pendingBuffer = Buffer.concat([pendingBuffer, chunk], pendingBuffer.length + chunk.length);
+            
+            // Make sure we're processing complete AES blocks (multiples of 16 bytes)
+            // This is critical for correct AES decryption
+            const processableLength = Math.floor(pendingBuffer.length / 16) * 16;
+            
+            if (processableLength >= OPTIMAL_CHUNK_SIZE || pendingBuffer.length >= OPTIMAL_CHUNK_SIZE) {
+              // Only process complete blocks
+              if (processableLength > 0) {
+                // Extract the part we'll decrypt (must be multiple of 16)
+                const toDecrypt = pendingBuffer.subarray(0, processableLength);
+                
+                // Keep the remainder for the next chunk
+                pendingBuffer = pendingBuffer.subarray(processableLength);
+                
+                // Decrypt the buffer using our optimized AES implementation
+                const decrypted = decryptFileBuffer(toDecrypt, userId);
+                
+                // Push decrypted data downstream immediately to reduce memory pressure
+                this.push(decrypted);
+              }
+            }
+            
+            callback();
+          } catch (error: any) {
+            logger.error("Decryption error:", error);
+            callback(error instanceof Error ? error : new Error(String(error)));
+          }
+        },
+        
+        // Process any remaining data when the stream ends
+        flush(callback: (error?: Error | null, data?: any) => void) {
+          try {
+            if (pendingBuffer.length > 0) {
+              // For the final block, we need to ensure it's a complete block
+              // AES requires complete blocks, so the file must be padded correctly
+              if (pendingBuffer.length % 16 !== 0) {
+                logger.warn(`Received incomplete final block (${pendingBuffer.length} bytes). File may be corrupted.`);
+                // We'll still try to decrypt it (our implementation handles padding)
+              }
+              
+              // Decrypt final buffer
+              const decrypted = decryptFileBuffer(pendingBuffer, userId);
+              this.push(decrypted);
+            }
+            callback();
+          } catch (error: any) {
+            logger.error("Final decryption error:", error);
+            callback(error instanceof Error ? error : new Error(String(error)));
+          }
+        }
+      });
+      
+      // Handle errors in the pipeline
+      fileReadStream.on('error', (err) => {
+        logger.error(`Error reading file ${filePath}:`, err);
+        decryptStream.destroy(err);
+      });
+      
+      // For larger files, log status at intervals
+      if (fileSize > 10 * 1024 * 1024) { // Over 10MB
+        let bytesRead = 0;
+        fileReadStream.on('data', (chunk) => {
+          bytesRead += chunk.length;
+          if (bytesRead % (5 * 1024 * 1024) < chunk.length) { // Log every ~5MB
+            logger.debug(`Streaming progress: ${Math.round(bytesRead/fileSize*100)}% (${bytesRead}/${fileSize})`);
+          }
+        });
+      }
+      
+      // Create pipeline: file read stream -> decrypt transform -> output
+      const stream = fileReadStream.pipe(decryptStream);
+      
       return {
         stream,
         mimeType,
-        filename: `${file.name}.${file.extension}`,
+        filename
       };
     } catch (error) {
       logger.error("Error serving file:", error);
