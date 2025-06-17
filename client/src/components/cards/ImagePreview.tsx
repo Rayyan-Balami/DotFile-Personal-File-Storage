@@ -1,5 +1,6 @@
 import { useViewFile } from "@/api/file/file.query";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import * as React from "react";
 
 interface ImagePreviewProps {
@@ -42,19 +43,26 @@ export function ImagePreview({
     return () => observer.disconnect();
   }, [imageUrl]);
 
-  if (!imageUrl) return null;
-
   return (
-    <img
-      ref={imgRef}
-      className={cn(
-        "object-center object-cover min-h-full min-w-full transition-opacity will-change-transform",
-        loaded ? "opacity-100" : "opacity-0",
-        className
+    <div className="relative w-full h-full">
+      {/* Show skeleton while loading */}
+      {(!imageUrl || !loaded) && (
+        <Skeleton className={cn("absolute inset-0 w-full h-full", className)} />
       )}
-      alt="Preview"
-      loading="lazy"
-      onLoad={() => setLoaded(true)}
-    />
+      
+      {imageUrl && (
+        <img
+          ref={imgRef}
+          className={cn(
+            "object-center object-cover min-h-full min-w-full transition-opacity will-change-transform",
+            loaded ? "opacity-100" : "opacity-0",
+            className
+          )}
+          alt="Preview"
+          loading="lazy"
+          onLoad={() => setLoaded(true)}
+        />
+      )}
+    </div>
   );
 }
