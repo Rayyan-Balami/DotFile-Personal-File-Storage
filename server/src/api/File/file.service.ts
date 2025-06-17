@@ -902,15 +902,26 @@ class FileService {
       // Create read stream from the decrypted temp file
       const stream = fs.createReadStream(tempFilePath);
 
-      // Set up cleanup of temp file after stream ends
-      stream.on("end", async () => {
+      // Set up cleanup of temp file after stream ends or on error
+      const cleanupTempFile = async () => {
         try {
-          // Delete temporary decrypted file after it's been streamed
-          await fsPromises.unlink(tempFilePath);
+          // Check if the file exists before attempting to delete
+          await fsPromises.access(tempFilePath)
+            .then(() => fsPromises.unlink(tempFilePath))
+            .catch(err => {
+              // File already doesn't exist, which is fine
+              logger.debug(`Temp file ${tempFilePath} already deleted or doesn't exist`);
+            });
         } catch (err) {
           logger.error(`Error cleaning up temp file ${tempFilePath}:`, err);
         }
-      });
+      };
+      
+      // Clean up on different events
+      stream.on("end", cleanupTempFile);
+      stream.on("error", cleanupTempFile);
+      // Also clean up if the connection is closed prematurely
+      stream.on("close", cleanupTempFile);
 
       // Determine mime type from file extension
       const mimeType = file.type || "application/octet-stream";
@@ -922,6 +933,29 @@ class FileService {
       };
     } catch (error) {
       logger.error("Error serving file:", error);
+      // Clean up temporary file if it exists
+      const tempDir = path.join(getUserDirectoryPath(userId), "temp");
+      const tempFilePath = path.join(tempDir, `decrypted-${file.storageKey}`);
+      
+      try {
+        // Attempt to clean up the temporary file if it exists
+        if (fs.existsSync(tempFilePath)) {
+          await fsPromises.unlink(tempFilePath);
+        }
+      } catch (cleanupError) {
+        logger.error(`Failed to clean up temporary file after error: ${cleanupError}`);
+      }
+      
+      // Add error to request logs if request object is provided
+      if (req && Array.isArray(req.logEntries)) {
+        req.logEntries.push({
+          timestamp: new Date().toISOString(),
+          component: 'FileService',
+          level: 'ERROR',
+          message: `Error serving file: ${error instanceof Error ? error.message : String(error)}`
+        });
+      }
+      
       throw new ApiError(404, [
         { file: "File not found or could not be decrypted" },
       ]);

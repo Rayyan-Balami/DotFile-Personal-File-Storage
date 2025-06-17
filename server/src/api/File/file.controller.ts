@@ -398,15 +398,11 @@ class FileController {
       }
     }
 
-    // Include logs directly in response headers if available
+    // Additional header for log count if not already set
     if (req.logEntries && req.logEntries.length > 0) {
       const fileId = req.params.id;
-      // Only include logs in the headers if they're not too large
-      if (req.logEntries.length <= 20) {
-        res.set('X-Algorithm-Logs', JSON.stringify(req.logEntries));
-      }
-      // Otherwise just set the count
-      else {
+      // Only set count if we haven't already set the logs in the header
+      if (!res.getHeader('X-Algorithm-Logs')) {
         res.set('X-Algorithm-Log-Count', String(req.logEntries.length));
       }
     }

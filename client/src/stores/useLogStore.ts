@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
 export interface LogEntry {
   timestamp: string;
@@ -16,36 +15,26 @@ interface LogState {
   hasLogs: () => boolean;
 }
 
-export const useLogStore = create<LogState>()(
-  persist(
-    (set, get) => ({
-      logs: [],
-      
-      addLogs: (newLogs) => {
-        if (!newLogs || !Array.isArray(newLogs) || newLogs.length === 0) return;
-        
-        console.log(`Adding ${newLogs.length} logs to store`);
-        set((state) => ({ 
-          logs: [...newLogs, ...state.logs].slice(0, 1000) // Keep max 1000 logs
-        }));
-      },
-      
-      addLog: (log) => {
-        if (!log) return;
-        set((state) => ({ 
-          logs: [log, ...state.logs].slice(0, 1000) // Keep max 1000 logs
-        }));
-      },
-      
-      clearLogs: () => set({ logs: [] }),
-      
-      hasLogs: () => {
-        const state = get();
-        return state.logs.length > 0;
-      }
-    }),
-    {
-      name: 'algorithm-logs', // localStorage key
-    }
-  )
-);
+export const useLogStore = create<LogState>((set, get) => ({
+  logs: [],
+
+  addLogs: (newLogs) => {
+    if (!newLogs || !Array.isArray(newLogs) || newLogs.length === 0) return;
+
+    console.log(`Adding ${newLogs.length} logs to store`);
+    set({
+      logs: newLogs.slice(0, 1000), // keep max 1000 if needed
+    });
+  },
+
+  addLog: (log) => {
+    if (!log) return;
+    set({
+      logs: [log], // replace entire log list with just this log
+    });
+  },
+
+  clearLogs: () => set({ logs: [] }),
+
+  hasLogs: () => get().logs.length > 0,
+}));

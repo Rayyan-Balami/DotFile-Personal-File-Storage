@@ -3,6 +3,8 @@ import { useDownloadFile } from "@/api/file/file.query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useDialogStore } from "@/stores/useDialogStore";
+import { useLogStore } from "@/stores/useLogStore";
+import API from "@/lib/axios";
 import { DocumentItem } from "@/types/folderDocumnet";
 import {
   ChevronLeft,
@@ -140,6 +142,34 @@ export default function FilePreviewDialog() {
       toast.error("Failed to download file");
     }
   };
+
+  // Fetch logs separately when file preview is opened
+  useEffect(() => {
+    if (!currentFile || !filePreviewDialogOpen) return;
+
+    const fetchPreviewLogs = async () => {
+      try {
+        // Make a log-only request to ensure we get logs even with direct URL file preview
+        await fetch(`${API.defaults.baseURL}/files/${currentFile.id}/view?logs=true`, {
+          headers: {
+            Accept: 'application/json'
+          }
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.logs && Array.isArray(data.logs)) {
+            console.log(`[FilePreviewDialog] Retrieved ${data.logs.length} logs for preview`);
+            useLogStore.getState().addLogs(data.logs);
+          }
+        });
+        console.log(`[FilePreviewDialog] Fetched file preview metadata`);
+      } catch (error) {
+        console.error('[FilePreviewDialog] Failed to fetch preview logs:', error);
+      }
+    };
+
+    fetchPreviewLogs();
+  }, [currentFile?.id, filePreviewDialogOpen]);
 
   // Zoom functions
   const zoomIn = useCallback(() => {

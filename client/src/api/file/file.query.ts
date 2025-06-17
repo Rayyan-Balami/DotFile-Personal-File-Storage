@@ -334,6 +334,7 @@ export const useDownloadFile = () => {
       fileId: string;
       fallbackFilename?: string;
     }) => {
+      // Download the file - log capturing is now handled in fileApi.downloadFile
       const response = await fileApi.downloadFile(fileId);
       const blob = response.data;
 

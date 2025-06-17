@@ -320,9 +320,15 @@ function LogSheet() {
                 size="sm"
                 className="flex items-center gap-1.5 text-destructive"
                 onClick={() => {
-                  if (confirm('Are you sure you want to clear all logs?')) {
-                    clearLogs();
-                  }
+                  clearLogs();
+                  console.log('Logs cleared');
+                  // Optional: Show toast notification
+                  try {
+                    const toast = (window as any).toast;
+                    if (typeof toast?.success === 'function') {
+                      toast.success('Logs cleared');
+                    }
+                  } catch (e) {} // Ignore if toast isn't available
                 }}
               >
                 <TrashIcon className="size-3.5" />
