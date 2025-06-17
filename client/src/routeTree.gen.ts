@@ -18,7 +18,6 @@ import { Route as userIndexImport } from './routes/(user)/index'
 import { Route as userTrashImport } from './routes/(user)/trash'
 import { Route as userSearchImport } from './routes/(user)/search'
 import { Route as userRecentImport } from './routes/(user)/recent'
-import { Route as userAcademicImport } from './routes/(user)/academic'
 import { Route as authRegisterImport } from './routes/(auth)/register'
 import { Route as authLoginImport } from './routes/(auth)/login'
 import { Route as adminAdminIndexImport } from './routes/(admin)/admin/index'
@@ -68,12 +67,6 @@ const userSearchRoute = userSearchImport.update({
 const userRecentRoute = userRecentImport.update({
   id: '/recent',
   path: '/recent',
-  getParentRoute: () => userRouteRoute,
-} as any)
-
-const userAcademicRoute = userAcademicImport.update({
-  id: '/academic',
-  path: '/academic',
   getParentRoute: () => userRouteRoute,
 } as any)
 
@@ -175,13 +168,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/register'
       preLoaderRoute: typeof authRegisterImport
       parentRoute: typeof authRouteImport
-    }
-    '/(user)/academic': {
-      id: '/(user)/academic'
-      path: '/academic'
-      fullPath: '/academic'
-      preLoaderRoute: typeof userAcademicImport
-      parentRoute: typeof userRouteImport
     }
     '/(user)/recent': {
       id: '/(user)/recent'
@@ -319,7 +305,6 @@ const authRouteRouteWithChildren = authRouteRoute._addFileChildren(
 )
 
 interface userRouteRouteChildren {
-  userAcademicRoute: typeof userAcademicRoute
   userRecentRoute: typeof userRecentRoute
   userSearchRoute: typeof userSearchRoute
   userTrashRoute: typeof userTrashRoute
@@ -329,7 +314,6 @@ interface userRouteRouteChildren {
 }
 
 const userRouteRouteChildren: userRouteRouteChildren = {
-  userAcademicRoute: userAcademicRoute,
   userRecentRoute: userRecentRoute,
   userSearchRoute: userSearchRoute,
   userTrashRoute: userTrashRoute,
@@ -346,7 +330,6 @@ export interface FileRoutesByFullPath {
   '/': typeof userIndexRoute
   '/login': typeof authLoginRoute
   '/register': typeof authRegisterRoute
-  '/academic': typeof userAcademicRoute
   '/recent': typeof userRecentRoute
   '/search': typeof userSearchRoute
   '/trash': typeof userTrashRoute
@@ -364,7 +347,6 @@ export interface FileRoutesByTo {
   '/': typeof userIndexRoute
   '/login': typeof authLoginRoute
   '/register': typeof authRegisterRoute
-  '/academic': typeof userAcademicRoute
   '/recent': typeof userRecentRoute
   '/search': typeof userSearchRoute
   '/trash': typeof userTrashRoute
@@ -384,7 +366,6 @@ export interface FileRoutesById {
   '/(user)': typeof userRouteRouteWithChildren
   '/(auth)/login': typeof authLoginRoute
   '/(auth)/register': typeof authRegisterRoute
-  '/(user)/academic': typeof userAcademicRoute
   '/(user)/recent': typeof userRecentRoute
   '/(user)/search': typeof userSearchRoute
   '/(user)/trash': typeof userTrashRoute
@@ -405,7 +386,6 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
-    | '/academic'
     | '/recent'
     | '/search'
     | '/trash'
@@ -422,7 +402,6 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
-    | '/academic'
     | '/recent'
     | '/search'
     | '/trash'
@@ -440,7 +419,6 @@ export interface FileRouteTypes {
     | '/(user)'
     | '/(auth)/login'
     | '/(auth)/register'
-    | '/(user)/academic'
     | '/(user)/recent'
     | '/(user)/search'
     | '/(user)/trash'
@@ -503,7 +481,6 @@ export const routeTree = rootRoute
     "/(user)": {
       "filePath": "(user)/route.tsx",
       "children": [
-        "/(user)/academic",
         "/(user)/recent",
         "/(user)/search",
         "/(user)/trash",
@@ -519,10 +496,6 @@ export const routeTree = rootRoute
     "/(auth)/register": {
       "filePath": "(auth)/register.tsx",
       "parent": "/(auth)"
-    },
-    "/(user)/academic": {
-      "filePath": "(user)/academic.tsx",
-      "parent": "/(user)"
     },
     "/(user)/recent": {
       "filePath": "(user)/recent.tsx",

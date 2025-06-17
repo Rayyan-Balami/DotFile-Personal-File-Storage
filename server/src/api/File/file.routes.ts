@@ -15,6 +15,7 @@ import {
   upload,
   validateFileSize,
 } from "@middleware/multer.middleware.js";
+import { initRequestLogger, attachLogsToResponse } from "@middleware/requestLogger.middleware.js";
 import { validateData } from "@middleware/validate.middleware.js";
 import { Router } from "express";
 
@@ -24,6 +25,8 @@ import { Router } from "express";
 const userRoutes = Router();
 userRoutes.use(verifyAuth); // Require authentication
 userRoutes.use(restrictTo([UserRole.USER]));
+userRoutes.use(initRequestLogger); // Initialize request logger
+userRoutes.use(attachLogsToResponse); // Attach logs to response
 
 //=========================//
 // File routes (chained)
@@ -36,13 +39,14 @@ userRoutes
     upload, // Multer file upload (validates compressed size only)
     validateFileSize, // Validates total batch size after upload
     processZipFiles, // Extract ZIP files & validate extracted content size
-    encryptFiles, // Encrypt all files before storage
+    encryptFiles, // Encrypt all files before storage with detailed logging
     updateUserStorageUsage, // Update user's storage usage in DB
     FileController.uploadFiles
   ) // Upload file
   .get("/", FileController.getUserFiles) // List user files
   .get("/recent", FileController.getRecentFiles) // Get recent files
   .get("/:id", FileController.getFileById) // Get file by ID
+  .get("/:id/logs", FileController.getFileLogs) // Get algorithm logs for file
   .patch("/:id", validateData(updateFileSchema), FileController.updateFile) // Update file metadata
   .delete("/:id", FileController.softDeleteFile) // Soft delete file
   .delete("/:id/permanent", FileController.permanentDeleteFile) // Permanently delete

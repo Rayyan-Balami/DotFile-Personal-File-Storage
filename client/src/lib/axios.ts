@@ -1,5 +1,6 @@
 import { VITE_API_BASE_URL, VITE_API_TIMEOUT } from "@/config/constants";
 import { useAuthStore } from "@/stores/authStore";
+import { useLogStore } from "@/stores/useLogStore";
 import { logger } from "@/utils/logger";
 import axios, { InternalAxiosRequestConfig } from "axios";
 
@@ -43,7 +44,37 @@ API.interceptors.request.use(
 
 // Response interceptor
 API.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Capture algorithm logs from API response if present
+    try {
+      if (response.headers && response.headers['x-algorithm-logs']) {
+        const logsHeader = response.headers['x-algorithm-logs'];
+        try {
+          const parsedLogs = JSON.parse(logsHeader);
+          console.log(`[axios interceptor] Found ${parsedLogs.length} logs in X-Algorithm-Logs header`);
+          
+          // Import and use the store directly in the interceptor
+          const { addLogs } = useLogStore.getState();
+          addLogs(parsedLogs);
+        } catch (e) {
+          console.error('[axios interceptor] Failed to parse logs header:', e);
+        }
+      }
+
+      // Check for logs in response body
+      if (response.data && response.data.logs && Array.isArray(response.data.logs)) {
+        console.log(`[axios interceptor] Found ${response.data.logs.length} logs in response body`);
+        
+        // Import and use the store directly in the interceptor
+        const { addLogs } = useLogStore.getState();
+        addLogs(response.data.logs);
+      }
+    } catch (e) {
+      console.error('[axios interceptor] Error processing logs:', e);
+    }
+    
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;

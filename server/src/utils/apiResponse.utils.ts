@@ -7,14 +7,16 @@ export class ApiResponse {
   public message: string;
   public data?: any; // Optional payload
   public timestamp: string;
+  public logs?: any[]; // Algorithm logs from request
 
   /**
    * Create an ApiResponse instance.
    * @param statusCode HTTP status code (e.g., 200, 404)
    * @param data Optional response data payload
    * @param message Optional custom message; defaults to generic success/failure
+   * @param logs Optional logs from request
    */
-  constructor(statusCode: number, data?: any, message?: string) {
+  constructor(statusCode: number, data?: any, message?: string, logs?: any[]) {
     // Success if status code is in 200-299 range
     this.success = statusCode >= 200 && statusCode < 300;
     this.statusCode = statusCode;
@@ -23,5 +25,6 @@ export class ApiResponse {
       message || (this.success ? "Success" : "Something went wrong");
     this.data = data;
     this.timestamp = new Date().toISOString(); // Response creation time
+    this.logs = logs; // Include logs if provided
   }
 }

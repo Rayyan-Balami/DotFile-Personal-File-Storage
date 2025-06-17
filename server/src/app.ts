@@ -13,11 +13,18 @@ import { connectDatabase } from "@database/connection.js";
 import { errorHandler } from "@middleware/errorHandler.middleware.js";
 import { addRequestId } from "@middleware/requestId.middleware.js";
 import logger from "@utils/logger.utils.js";
+
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
 
 const app = express();
+
+// Log startup information
+logger.info(`File path: ${$filename}`);
+logger.info(`Directory path: ${$dirname}`);
+logger.info(`Root directory: ${ROOT_DIR}`);
+logger.info(`Uploads directory: ${UPLOADS_DIR}`);
 
 // Connect to MongoDB
 connectDatabase();
@@ -49,12 +56,6 @@ app.use(`${API_PREFIX}/${API_VERSION}`, apiRoutes);
 
 // Global error handler - must be last middleware
 app.use(errorHandler);
-
-// Log key paths at startup
-logger.info("File path:", $filename);
-logger.info("Directory path:", $dirname);
-logger.info("Root directory:", ROOT_DIR);
-logger.info("Uploads directory:", UPLOADS_DIR);
 
 // Start server
 app.listen(PORT, () => {

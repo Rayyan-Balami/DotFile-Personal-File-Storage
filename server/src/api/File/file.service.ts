@@ -11,6 +11,7 @@ import userService from "@api/user/user.service.js";
 import { ApiError } from "@utils/apiError.utils.js";
 import { decryptFileBuffer } from "@utils/cryptoUtil.utils.js"; // Import decryption utility
 import logger from "@utils/logger.utils.js";
+import { Request } from "express";
 import { getUserDirectoryPath } from "@utils/mkdir.utils.js";
 import { sanitizeDocument } from "@utils/sanitizeDocument.utils.js";
 import fs from "fs";
@@ -844,7 +845,8 @@ class FileService {
    */
   async getFileStream(
     fileId: string,
-    userId: string
+    userId: string,
+    req?: Request
   ): Promise<{ stream: fs.ReadStream; mimeType: string; filename: string }> {
     // Verify file ownership
     const file = await this.verifyFileOwnership(fileId, userId);
@@ -860,7 +862,8 @@ class FileService {
       const encryptedBuffer = await fsPromises.readFile(filePath);
 
       // Decrypt the file content using the user's key
-      const decryptedBuffer = decryptFileBuffer(encryptedBuffer, userId);
+      // Pass the request object for detailed algorithm logging if available
+      const decryptedBuffer = decryptFileBuffer(encryptedBuffer, userId, req);
 
       // Log the decrypted data to the console for debugging
       logger.debug(`Decrypted file data (${file.name}.${file.extension}):`);
@@ -1028,6 +1031,16 @@ class FileService {
     );
 
     return files.map((file) => this.sanitizeFile(file));
+  }
+
+  /**
+   * Get algorithm logs for a specific file
+   * @param fileId - File ID
+   * @returns Empty array since we're no longer caching logs
+   */
+  async getFileLogs(fileId: string): Promise<any[]> {
+    // Logs are no longer cached in memory - returning empty array
+    return [];
   }
 }
 

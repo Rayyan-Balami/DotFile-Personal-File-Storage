@@ -2,6 +2,22 @@
 // This file implements the Advanced Encryption Standard (AES) with 128-bit keys
 // using PKCS#7 padding for block alignment
 
+import { Request } from "express";
+
+// Matrix utility functions for pretty printing state arrays
+const formatStateMatrix = (state: Buffer): string => {
+  let result = "";
+  for (let i = 0; i < 4; i++) {
+    const row = [state[i], state[i + 4], state[i + 8], state[i + 12]];
+    result += `| ${row.map(b => b.toString(16).padStart(2, "0")).join(" ")} |\n`;
+  }
+  return result;
+};
+
+const formatRoundKey = (roundKey: Buffer, round: number): string => {
+  return `Round Key ${round}:\n${formatStateMatrix(roundKey)}`;
+};
+
 // S-box (Substitution box) - used for non-linear byte substitution during encryption
 // This is a fixed lookup table that provides confusion in the cipher
 const S_BOX = [
@@ -76,9 +92,13 @@ const gf = {
 // Key expansion algorithm for AES-128
 // Expands the 128-bit key into 11 round keys (44 words total)
 // Each round key is 128 bits (16 bytes) used in encryption/decryption rounds
-function expandKey(key: Buffer): Buffer[] {
+function expandKey(key: Buffer, req?: Request): Buffer[] {
   const w = new Array(44);
   const roundKeys: Buffer[] = [];
+  
+  if (req?.addLog) {
+    req.addLog("AES", "DEBUG", `Key: ${key.toString('hex').substring(0, 4)}...`);
+  }
 
   // Initialize first 4 words with the original 128-bit key
   // Each word is 32 bits (4 bytes)
@@ -121,6 +141,15 @@ function expandKey(key: Buffer): Buffer[] {
       roundKey[j * 4 + 3] = word & 0xff;
     }
     roundKeys.push(roundKey);
+  }
+
+  // Log the expanded key schedule (first and last round key) once
+  if (req?.addLog) {
+    req.addLog("AES", "DEBUG", `Key expanded to 11 round keys (44 words)`);
+    // Log first round key (initial key)
+    req.addLog("AES", "DEBUG", `Round Key 0 (initial):\n${formatStateMatrix(roundKeys[0])}`);
+    // Log final round key
+    req.addLog("AES", "DEBUG", `Round Key 10 (final):\n${formatStateMatrix(roundKeys[10])}`);
   }
 
   return roundKeys;
@@ -205,12 +234,17 @@ function addRoundKey(state: Buffer, roundKey: Buffer) {
 
 // Pad function - adds padding bytes to make data length multiple of 16
 // The padding value equals the number of padding bytes added
-function pad(data: Buffer): Buffer {
+function pad(data: Buffer, req?: Request): Buffer {
   const padLen = 16 - (data.length % 16);
   const padded = Buffer.alloc(data.length + padLen);
   data.copy(padded);
   // Fill remaining bytes with the padding length value
   padded.fill(padLen, data.length);
+  
+  if (req?.addLog) {
+    req.addLog("AES", "DEBUG", `Padded: ${data.length} → ${padded.length} bytes (${padLen} padding bytes)`);
+  }
+  
   return padded;
 }
 
@@ -231,35 +265,106 @@ function unpad(data: Buffer): Buffer {
  * @param key - The encryption key (string, will be padded/truncated to 16 bytes)
  * @returns Encrypted ciphertext as Buffer
  */
-export function encrypt(plaintext: Buffer, key: string): Buffer {
+export function encrypt(plaintext: Buffer, key: string, req?: Request): Buffer {
+  // Log the start of encryption if request logging is enabled
+  if (req?.addLog) {
+    req.addLog("AES", "INFO", `Starting AES: ${plaintext.length} bytes`);
+  }
+
   // Expand the key into 11 round keys for AES-128
-  const expandedKey = expandKey(Buffer.from(key.padEnd(16).substring(0, 16)));
+  const keyBuffer = Buffer.from(key.padEnd(16).substring(0, 16));
+  const expandedKey = expandKey(keyBuffer, req);
+  
   // Apply PKCS#7 padding to ensure data is multiple of 16 bytes
-  const padded = pad(plaintext);
+  const padded = pad(plaintext, req);
+  
+  // Calculate total blocks
+  const totalBlocks = padded.length / 16;
+  
   const ciphertext = Buffer.alloc(padded.length);
 
+  // Log encryption start
+  if (req?.addLog) {
+    req.addLog("AES", "INFO", `Working on ${totalBlocks} blocks...`);
+  }
+  
   // Process each 16-byte block
   for (let i = 0; i < padded.length; i += 16) {
+    const blockIndex = i / 16;
+    const isFirstBlock = blockIndex === 0;
     const block = Buffer.from(padded.subarray(i, i + 16));
+    
+    // Only log for the first block
+    if (req?.addLog && isFirstBlock) {
+      req.addLog("AES", "DEBUG", `Initial state:\n${formatStateMatrix(block)}`);
+    }
 
     // Initial round: only AddRoundKey
+    if (req?.addLog && isFirstBlock) {
+      req.addLog("AES", "DEBUG", `--- Initial round (AddRoundKey only) ---`);
+    }
+    
     addRoundKey(block, expandedKey[0]);
+    
+    if (req?.addLog && isFirstBlock) {
+      req.addLog("AES", "DEBUG", `After AddRoundKey with Round Key 0:\n${formatStateMatrix(block)}`);
+    }
 
     // Main rounds (rounds 1-9): SubBytes, ShiftRows, MixColumns, AddRoundKey
     for (let round = 1; round < 10; round++) {
-      subBytes(block);
-      shiftRows(block);
-      mixColumns(block);
-      addRoundKey(block, expandedKey[round]);
+      // Only log the first round (round 1) and only for the first block
+      if (req?.addLog && round === 1 && isFirstBlock) {
+        req.addLog("AES", "DEBUG", `--- Starting round ${round} ---`);
+        
+        subBytes(block);
+        req.addLog("AES", "DEBUG", `After SubBytes:\n${formatStateMatrix(block)}`);
+        
+        shiftRows(block);
+        req.addLog("AES", "DEBUG", `After ShiftRows:\n${formatStateMatrix(block)}`);
+        
+        mixColumns(block);
+        req.addLog("AES", "DEBUG", `After MixColumns:\n${formatStateMatrix(block)}`);
+        
+        addRoundKey(block, expandedKey[round]);
+        req.addLog("AES", "DEBUG", `After AddRoundKey with Round Key ${round}:\n${formatStateMatrix(block)}`);
+      } else {
+        // For other rounds, just perform the operations without logging
+        subBytes(block);
+        shiftRows(block);
+        mixColumns(block);
+        addRoundKey(block, expandedKey[round]);
+      }
     }
 
     // Final round (round 10): SubBytes, ShiftRows, AddRoundKey (no MixColumns)
+    if (req?.addLog && isFirstBlock) {
+      req.addLog("AES", "DEBUG", `--- Starting final round (10) ---`);
+    }
+    
     subBytes(block);
+    
+    if (req?.addLog && isFirstBlock) {
+      req.addLog("AES", "DEBUG", `After SubBytes:\n${formatStateMatrix(block)}`);
+    }
+    
     shiftRows(block);
+    
+    if (req?.addLog && isFirstBlock) {
+      req.addLog("AES", "DEBUG", `After ShiftRows:\n${formatStateMatrix(block)}`);
+    }
+    
     addRoundKey(block, expandedKey[10]);
+    
+    if (req?.addLog && isFirstBlock) {
+      req.addLog("AES", "DEBUG", `After final AddRoundKey with Round Key 10:\n${formatStateMatrix(block)}`);
+    }
 
     // Copy encrypted block to ciphertext
     block.copy(ciphertext, i);
+  }
+
+  if (req?.addLog) {
+    req.addLog("AES", "INFO", `AES completed: ${plaintext.length} → ${ciphertext.length} bytes (${totalBlocks} blocks)`);
   }
 
   return ciphertext;
@@ -270,41 +375,99 @@ export function encrypt(plaintext: Buffer, key: string): Buffer {
  * Decrypts ciphertext using AES-128 algorithm and removes PKCS#7 padding
  * @param ciphertext - The encrypted data to decrypt (Buffer)
  * @param key - The decryption key (string, will be padded/truncated to 16 bytes)
+ * @param req - Optional Express request object for detailed logging
  * @returns Decrypted plaintext as Buffer
  */
-export function decrypt(ciphertext: Buffer, key: string): Buffer {
+export function decrypt(ciphertext: Buffer, key: string, req?: Request): Buffer {
   // Validate input - ciphertext must be multiple of 16 bytes
   if (ciphertext.length % 16 !== 0)
     throw new Error("Invalid ciphertext length");
 
+  if (req?.addLog) {
+    req.addLog("AES", "INFO", `Starting decryption: ${ciphertext.length} bytes`);
+  }
+
   // Expand the key into 11 round keys for AES-128
-  const expandedKey = expandKey(Buffer.from(key.padEnd(16).substring(0, 16)));
+  const keyBuffer = Buffer.from(key.padEnd(16).substring(0, 16));
+  const expandedKey = expandKey(keyBuffer, req);
   const plaintext = Buffer.alloc(ciphertext.length);
+  const totalBlocks = Math.ceil(ciphertext.length / 16);
+  
+  if (req?.addLog) {
+    req.addLog("AES", "INFO", `Working on ${totalBlocks} blocks...`);
+  }
 
   // Process each 16-byte block
   for (let i = 0; i < ciphertext.length; i += 16) {
+    const blockIndex = Math.floor(i / 16);
+    const isFirstBlock = blockIndex === 0;
     const block = Buffer.from(ciphertext.subarray(i, i + 16));
+    
+    // Only log for the first block
+    if (req?.addLog && isFirstBlock) {
+      req.addLog("AES", "DEBUG", `Initial state:\n${formatStateMatrix(block)}`);
+    }
 
     // Initial step: AddRoundKey with last round key
     addRoundKey(block, expandedKey[10]);
+    
+    if (req?.addLog && isFirstBlock) {
+      req.addLog("AES", "DEBUG", `After initial AddRoundKey (round 10):\n${formatStateMatrix(block)}`);
+    }
 
     // Main rounds (rounds 9-1): InvShiftRows, InvSubBytes, AddRoundKey, InvMixColumns
     for (let round = 9; round > 0; round--) {
-      invShiftRows(block);
-      invSubBytes(block);
-      addRoundKey(block, expandedKey[round]);
-      invMixColumns(block);
+      // Only log the first round of decryption (round 9) and only for the first block
+      if (req?.addLog && round === 9 && isFirstBlock) {
+        invShiftRows(block);
+        req.addLog("AES", "DEBUG", `Round ${round} after InvShiftRows:\n${formatStateMatrix(block)}`);
+        
+        invSubBytes(block);
+        req.addLog("AES", "DEBUG", `Round ${round} after InvSubBytes:\n${formatStateMatrix(block)}`);
+        
+        addRoundKey(block, expandedKey[round]);
+        req.addLog("AES", "DEBUG", `Round ${round} after AddRoundKey:\n${formatStateMatrix(block)}`);
+        
+        invMixColumns(block);
+        req.addLog("AES", "DEBUG", `Round ${round} after InvMixColumns:\n${formatStateMatrix(block)}`);
+      } else {
+        // For intermediate rounds, just perform the operations without logging
+        invShiftRows(block);
+        invSubBytes(block);
+        addRoundKey(block, expandedKey[round]);
+        invMixColumns(block);
+      }
     }
 
     // Final round (round 0): InvShiftRows, InvSubBytes, AddRoundKey (no InvMixColumns)
     invShiftRows(block);
+    
+    if (req?.addLog && isFirstBlock) {
+      req.addLog("AES", "DEBUG", `Final round after InvShiftRows:\n${formatStateMatrix(block)}`);
+    }
+    
     invSubBytes(block);
+    
+    if (req?.addLog && isFirstBlock) {
+      req.addLog("AES", "DEBUG", `Final round after InvSubBytes:\n${formatStateMatrix(block)}`);
+    }
+    
     addRoundKey(block, expandedKey[0]);
+    
+    if (req?.addLog && isFirstBlock) {
+      req.addLog("AES", "DEBUG", `Final state after AddRoundKey:\n${formatStateMatrix(block)}`);
+    }
 
     // Copy decrypted block to plaintext
     block.copy(plaintext, i);
   }
 
   // Remove PKCS#7 padding and return plaintext
-  return unpad(plaintext);
+  const result = unpad(plaintext);
+  
+  if (req?.addLog) {
+    req.addLog("AES", "INFO", `AES decrypted: ${ciphertext.length} → ${result.length} bytes (${totalBlocks} blocks)`);
+  }
+  
+  return result;
 }

@@ -1,5 +1,6 @@
 import { NavBreadcrumb } from "@/components/header/nav-breadcrumb";
 import { NavigationControls } from "@/components/header/navigation-controls";
+import LogSheet from "@/components/header/log-sheet";
 
 export function SiteHeader() {
   return (
@@ -7,6 +8,9 @@ export function SiteHeader() {
       <nav className="flex h-(--header-height) w-full flex-1 items-center gap-3.5 p-4 overflow-hidden">
         <NavigationControls />
         <NavBreadcrumb />
+        <div className="ml-auto">
+          <LogSheet />
+        </div>
       </nav>
     </header>
   );
