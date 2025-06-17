@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  Loader2,
   Music,
   RotateCcw,
   Telescope,
@@ -40,6 +41,7 @@ export default function FilePreviewDialog() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [fitScale, setFitScale] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Calculate the scale needed to fit the media exactly within the container
   const calculateFitScale = useCallback(() => {
@@ -102,6 +104,9 @@ export default function FilePreviewDialog() {
 
   // Handle media load events
   const handleMediaLoad = useCallback(() => {
+    // Media has finished loading
+    setIsLoading(false);
+
     // Wait a bit for the media to be fully rendered before calculating fit scale
     setTimeout(() => {
       resetView();
@@ -247,8 +252,30 @@ export default function FilePreviewDialog() {
 
   // Reset view when file changes
   useEffect(() => {
+    // Set loading state when file changes for all file types
+    if (currentFile) {
+      setIsLoading(true);
+    }
     resetView();
   }, [currentFile?.id, resetView]);
+
+  // Clear loading state for unsupported file types
+  useEffect(() => {
+    if (currentFile) {
+      const { type: mimeType } = currentFile;
+      const isSupported =
+        mimeType.startsWith("image/") ||
+        mimeType.startsWith("video/") ||
+        mimeType.startsWith("audio/") ||
+        mimeType.startsWith("text/") ||
+        mimeType === "application/pdf";
+
+      if (!isSupported) {
+        // Clear loading for unsupported files immediately
+        setIsLoading(false);
+      }
+    }
+  }, [currentFile]);
 
   // Handle container resize to recalculate fit scale
   useEffect(() => {
@@ -303,6 +330,7 @@ export default function FilePreviewDialog() {
           style={mediaStyle}
           onMouseDown={handleMouseDown}
           onLoad={handleMediaLoad}
+          onLoadStart={() => setIsLoading(true)}
           draggable={false}
         />
       );
@@ -314,6 +342,8 @@ export default function FilePreviewDialog() {
           src={`${fileUrl}#zoom=${Math.round(zoom * 100)}`}
           title={name}
           className="w-full h-full border-none"
+          onLoad={handleMediaLoad}
+          onLoadStart={() => setIsLoading(true)}
         />
       );
     }
@@ -328,6 +358,7 @@ export default function FilePreviewDialog() {
           style={mediaStyle}
           onMouseDown={handleMouseDown}
           onLoadedMetadata={handleMediaLoad}
+          onLoadStart={() => setIsLoading(true)}
         />
       );
     }
@@ -339,7 +370,12 @@ export default function FilePreviewDialog() {
           <h3 className="text-lg font-medium text-primary-foreground">
             {name}.{extension}
           </h3>
-          <audio controls className="w-full max-w-lg">
+          <audio
+            controls
+            className="w-full max-w-lg"
+            onLoadStart={() => setIsLoading(true)}
+            onCanPlay={() => setIsLoading(false)}
+          >
             <source src={fileUrl} type={mimeType} />
           </audio>
         </div>
@@ -353,6 +389,8 @@ export default function FilePreviewDialog() {
             src={fileUrl}
             title={name}
             className="w-full h-full border-none"
+            onLoad={handleMediaLoad}
+            onLoadStart={() => setIsLoading(true)}
           />
         </div>
       );
@@ -368,7 +406,7 @@ export default function FilePreviewDialog() {
         <p className="text-sm text-center text-muted-foreground">
           Preview not available for this file type
         </p>
-        <Button onClick={handleDownload} variant="outline" className="mt-4">
+        <Button onClick={handleDownload} variant="outline" className="mt-4 bg-muted">
           <Download className="w-4 h-4 mr-2" />
           Download to view
         </Button>
@@ -385,6 +423,7 @@ export default function FilePreviewDialog() {
   return (
     <Dialog open={filePreviewDialogOpen} onOpenChange={closeFilePreviewDialog}>
       <DialogContent className="min-w-full min-h-full max-w-screen max-h-screen bg-background/80 rounded-none flex flex-col px-2 py-4 gap-4 focus:outline-none">
+        <>
         {/* Header */}
         <div className="sticky top-0 z-50 flex items-center justify-center flex-wrap backdrop-blur-sm">
           <h2 className="text-sm truncate max-w-[80vw]">
@@ -397,6 +436,11 @@ export default function FilePreviewDialog() {
           ref={previewRef}
           className={`flex-1 grid overflow-hidden rounded-md relative ${currentFile.type.startsWith("image/") || currentFile.type.startsWith("video/") ? "place-content-center" : "place-items-center"} relative`}
         >
+          {isLoading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/30 backdrop-blur-sm">
+              <Loader2 className="w-10 h-10 animate-spin text-primary" />
+            </div>
+          )}
           {renderPreview()}
         </div>
 
@@ -483,6 +527,7 @@ export default function FilePreviewDialog() {
             )}
           </>
         )}
+        </>
       </DialogContent>
     </Dialog>
   );
